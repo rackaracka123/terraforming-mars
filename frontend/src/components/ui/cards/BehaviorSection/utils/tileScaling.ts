@@ -56,13 +56,11 @@ export const detectTilePlacementScale = (
   // Count other behaviors (production, actions, effects)
   const hasProductionBox = classifiedBehaviors.some(
     (cb) =>
-      (cb.behavior as any).productionOutputs &&
-      (cb.behavior as any).productionOutputs.length > 0,
+      (cb.behavior as any).productionOutputs && (cb.behavior as any).productionOutputs.length > 0,
   );
   const hasActionBox = classifiedBehaviors.some(
     (cb) =>
-      (cb.behavior.triggers && cb.behavior.triggers[0]?.type === "manual") ||
-      cb.behavior.choices,
+      (cb.behavior.triggers && cb.behavior.triggers[0]?.type === "manual") || cb.behavior.choices,
   );
   const hasTriggeredEffect = classifiedBehaviors.some(
     (cb) =>

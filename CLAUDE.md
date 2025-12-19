@@ -76,6 +76,7 @@ backend/
 │   │   └── websocket/     # WebSocket hub, handlers, broadcaster
 │   ├── events/            # Event bus and domain events
 │   └── logger/            # Structured logging
+├── assets/                # Card database (terraforming_mars_cards.json)
 ├── test/                  # Comprehensive test suite
 └── tools/                 # Code generation utilities
 ```
@@ -124,9 +125,10 @@ func (a *MyAction) Execute(ctx context.Context, params...) (*Result, error) {
 **Card System Architecture**
 - **`/internal/cards/`**: Card data outside game context (registry, JSON loading, validation)
 - **`/internal/game/cards/`**: Card effect helpers for game context (behavior parsing, NO state mutation)
-- **Card behaviors** defined in JSON (`terraforming_mars_cards.json`) with triggers, inputs, outputs
+- **Card behaviors** defined in JSON (`backend/assets/terraforming_mars_cards.json`) with triggers, inputs, outputs
 - **Actions** read card behaviors and apply effects to game state
 - **90%+ of cards** added via JSON only, no Go code required
+- See `backend/assets/CLAUDE.md` for card database documentation
 
 **Broadcaster**
 Subscribes to BroadcastEvent and sends personalized game state to WebSocket clients:

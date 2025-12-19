@@ -463,4 +463,5 @@ func TestPlayerService_DoAction(t *testing.T) {
 - **docs/ARCHITECTURE_REFACTOR_GOAL.md**: Backend architecture and refactor history
 - **docs/EVENT_SYSTEM.md**: Event-driven architecture and broadcasting
 - **TERRAFORMING_MARS_RULES.md**: Complete game rules reference
+- **assets/CLAUDE.md**: Card database documentation (behavior types, output formats)
 - **assets/terraforming_mars_cards.json**: Authoritative card definitions (manually edited)

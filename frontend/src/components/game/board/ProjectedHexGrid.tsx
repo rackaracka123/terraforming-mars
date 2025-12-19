@@ -2,11 +2,7 @@ import { useMemo } from "react";
 import * as THREE from "three";
 import { HexGrid2D } from "../../../utils/hex-grid-2d";
 import ProjectedHexTile from "./ProjectedHexTile";
-import {
-  GameDto,
-  TileDto,
-  TileBonusDto,
-} from "../../../types/generated/api-types";
+import { GameDto, TileDto, TileBonusDto } from "../../../types/generated/api-types";
 
 interface ProjectedHexGridProps {
   gameState?: GameDto;
@@ -33,10 +29,7 @@ interface TileData {
   specialType: null;
 }
 
-export default function ProjectedHexGrid({
-  gameState,
-  onHexClick,
-}: ProjectedHexGridProps) {
+export default function ProjectedHexGrid({ gameState, onHexClick }: ProjectedHexGridProps) {
   const SPHERE_RADIUS = 2.02;
 
   // Convert hex coordinates to 2D pixel position (same as backend logic)
@@ -140,8 +133,7 @@ export default function ProjectedHexGrid({
   };
 
   // Get available hexes from current player's pending tile selection
-  const availableHexes =
-    gameState?.currentPlayer?.pendingTileSelection?.availableHexes || [];
+  const availableHexes = gameState?.currentPlayer?.pendingTileSelection?.availableHexes || [];
 
   return (
     <>
@@ -172,10 +164,7 @@ export default function ProjectedHexGrid({
  * Project a 2D point onto the surface of a sphere
  * This simulates "wrapping" the flat hex grid around the sphere
  */
-function projectToSphere(
-  position2D: { x: number; y: number },
-  radius: number,
-): THREE.Vector3 {
+function projectToSphere(position2D: { x: number; y: number }, radius: number): THREE.Vector3 {
   // Scale the 2D coordinates to fit nicely on the sphere
   const scale = 0.4; // Reduced scale to bring hexagons closer together
   const x = position2D.x * scale;

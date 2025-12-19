@@ -8,33 +8,20 @@ interface DiscountLayoutProps {
 const DiscountLayout: React.FC<DiscountLayoutProps> = ({ behavior }) => {
   if (!behavior.outputs || behavior.outputs.length === 0) return null;
 
-  const discountOutput = behavior.outputs.find(
-    (output: any) => output.type === "discount",
-  );
+  const discountOutput = behavior.outputs.find((output: any) => output.type === "discount");
   if (!discountOutput) return null;
 
   const amount = Math.abs(discountOutput.amount ?? 0);
   const affectedTags = discountOutput.affectedTags || [];
-  const affectedStandardProjects =
-    discountOutput.affectedStandardProjects || [];
 
-  // Map standard project string to icon type
-  const standardProjectIconMap: Record<string, string> = {
-    "sell-patents": "card-draw",
-    "power-plant": "energy",
-    asteroid: "asteroid",
-    aquifer: "ocean-tile",
-    greenery: "greenery-tile",
-    city: "city-tile",
-    "convert-plants-to-greenery": "greenery-tile",
-    "convert-heat-to-temperature": "temperature",
-  };
+  // Note: affectedStandardProjects is not rendered in BehaviorSection for now
+  // Standard project discounts are shown in the standard project UI instead
 
   return (
     <div className="flex gap-[3px] items-center justify-center">
-      {/* Left side: affected tags and standard projects */}
+      {/* Left side: affected tags only */}
       <div className="flex gap-[3px] items-center">
-        {/* Render affected tags */}
+        {/* Render affected tags - use -tag suffix to force tag icon lookup */}
         {affectedTags.map((tag: string, tagIndex: number) => (
           <React.Fragment key={`tag-${tagIndex}`}>
             {tagIndex > 0 && (
@@ -42,37 +29,9 @@ const DiscountLayout: React.FC<DiscountLayoutProps> = ({ behavior }) => {
                 /
               </span>
             )}
-            <GameIcon iconType={tag.toLowerCase()} size="small" />
+            <GameIcon iconType={`${tag.toLowerCase()}-tag`} size="small" />
           </React.Fragment>
         ))}
-
-        {/* Separator between tags and standard projects */}
-        {affectedTags.length > 0 && affectedStandardProjects.length > 0 && (
-          <span className="text-base font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
-            /
-          </span>
-        )}
-
-        {/* Render affected standard projects */}
-        {affectedStandardProjects.map((project: string, projIndex: number) => {
-          const iconType = standardProjectIconMap[project];
-          return (
-            <React.Fragment key={`proj-${projIndex}`}>
-              {projIndex > 0 && (
-                <span className="text-base font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
-                  /
-                </span>
-              )}
-              {iconType ? (
-                <GameIcon iconType={iconType} size="small" />
-              ) : (
-                <span className="text-xs font-semibold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
-                  {project}
-                </span>
-              )}
-            </React.Fragment>
-          );
-        })}
       </div>
 
       {/* Separator */}

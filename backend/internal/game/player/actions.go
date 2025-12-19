@@ -65,3 +65,16 @@ func (a *Actions) ResetTurnCounts() {
 		a.actions[i].TimesUsedThisTurn = 0
 	}
 }
+
+// RemoveActionsByCardID removes all actions from a specific card
+func (a *Actions) RemoveActionsByCardID(cardID string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	filtered := make([]CardAction, 0, len(a.actions))
+	for _, action := range a.actions {
+		if action.CardID != cardID {
+			filtered = append(filtered, action)
+		}
+	}
+	a.actions = filtered
+}

@@ -12,11 +12,7 @@ interface EffectsModalProps {
 type FilterType = "all" | string; // "all" or specific card names
 type SortType = "card" | "behavior";
 
-const EffectsModal: React.FC<EffectsModalProps> = ({
-  isVisible,
-  onClose,
-  effects,
-}) => {
+const EffectsModal: React.FC<EffectsModalProps> = ({ isVisible, onClose, effects }) => {
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [sortType, setSortType] = useState<SortType>("card");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -148,9 +144,7 @@ const EffectsModal: React.FC<EffectsModalProps> = ({
                 <span className="text-lg font-bold font-[Courier_New,monospace] text-[#ff96ff]">
                   {effectStats.total}
                 </span>
-                <span className="text-white/70 text-xs uppercase tracking-[0.5px]">
-                  Active
-                </span>
+                <span className="text-white/70 text-xs uppercase tracking-[0.5px]">Active</span>
               </div>
             </div>
           </div>
@@ -185,9 +179,7 @@ const EffectsModal: React.FC<EffectsModalProps> = ({
                 </select>
                 <button
                   className="bg-[#ff96ff]/20 border border-[#ff96ff]/40 rounded text-white py-1.5 px-2 cursor-pointer text-base transition-all duration-200 hover:bg-[#ff96ff]/30 hover:scale-110"
-                  onClick={() =>
-                    setSortOrder(sortOrder === "asc" ? "desc" : "asc")
-                  }
+                  onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
                   title={`Sort ${sortOrder === "asc" ? "Descending" : "Ascending"}`}
                 >
                   {sortOrder === "asc" ? "↑" : "↓"}
@@ -211,9 +203,7 @@ const EffectsModal: React.FC<EffectsModalProps> = ({
               <div className="mb-5 opacity-60">
                 <GameIcon iconType="asterisk" size="large" />
               </div>
-              <h3 className="text-white text-2xl m-0 mb-2.5">
-                No Effects Found
-              </h3>
+              <h3 className="text-white text-2xl m-0 mb-2.5">No Effects Found</h3>
               <p className="text-white/70 text-base m-0">
                 {filterType === "all"
                   ? "No card effects are currently active"
@@ -223,11 +213,9 @@ const EffectsModal: React.FC<EffectsModalProps> = ({
           ) : (
             <div className="flex flex-col gap-[25px]">
               <h2 className="text-white text-2xl font-bold m-0 flex flex-col gap-2">
-                {filterType === "all" ? "All" : filterType} Effects (
-                {filteredEffects.length})
+                {filterType === "all" ? "All" : filterType} Effects ({filteredEffects.length})
                 <span className="text-white/60 text-sm font-normal">
-                  Ongoing benefits from played cards that remain active
-                  throughout the game
+                  Ongoing benefits from played cards that remain active throughout the game
                 </span>
               </h2>
 
@@ -263,10 +251,7 @@ const EffectsModal: React.FC<EffectsModalProps> = ({
                     {/* Effect Behavior */}
                     <div className="border-t border-white/10 pt-4">
                       <div className="relative w-full min-h-[40px] flex items-center justify-center [&>div]:!relative [&>div]:!bottom-auto [&>div]:!left-auto [&>div]:!right-auto [&>div]:w-full">
-                        <BehaviorSection
-                          behaviors={[effect.behavior]}
-                          greyOutAll={false}
-                        />
+                        <BehaviorSection behaviors={[effect.behavior]} greyOutAll={false} />
                       </div>
                     </div>
                   </div>

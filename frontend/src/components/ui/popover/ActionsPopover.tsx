@@ -1,20 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  PlayerActionDto,
-  GameDto,
-} from "../../../types/generated/api-types.ts";
+import { PlayerActionDto, GameDto } from "../../../types/generated/api-types.ts";
 import BehaviorSection from "../cards/BehaviorSection";
-import {
-  canPerformActions,
-  hasActionsAvailable,
-} from "../../../utils/actionUtils.ts";
+import { canPerformActions, hasActionsAvailable } from "../../../utils/actionUtils.ts";
 import GameIcon from "../display/GameIcon.tsx";
 
 // Utility function to check if an action is affordable and available
-const isActionAvailable = (
-  action: PlayerActionDto,
-  gameState?: GameDto,
-): boolean => {
+const isActionAvailable = (action: PlayerActionDto, gameState?: GameDto): boolean => {
   // Check if action has been played this generation
   if (action.timesUsedThisGeneration > 0) {
     return false;
@@ -71,10 +62,7 @@ const isActionAvailable = (
   if (action.behavior.choices && action.behavior.choices.length > 0) {
     // For choice-based actions, at least ONE choice must be affordable
     for (const choice of action.behavior.choices) {
-      const choiceInputs = [
-        ...(action.behavior.inputs || []),
-        ...(choice.inputs || []),
-      ];
+      const choiceInputs = [...(action.behavior.inputs || []), ...(choice.inputs || [])];
       if (areInputsAffordable(choiceInputs)) {
         return true; // At least one choice is affordable
       }
@@ -158,17 +146,12 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
   if (!isVisible) return null;
 
   // Determine if actions can be played using utility function
-  const isCurrentPlayerTurn =
-    gameState?.currentTurn === gameState?.viewingPlayerId;
-  const hasActionsLeft = hasActionsAvailable(
-    gameState?.currentPlayer?.availableActions,
-  );
-  const hasPendingTileSelection =
-    gameState?.currentPlayer?.pendingTileSelection;
+  const isCurrentPlayerTurn = gameState?.currentTurn === gameState?.viewingPlayerId;
+  const hasActionsLeft = hasActionsAvailable(gameState?.currentPlayer?.availableActions);
+  const hasPendingTileSelection = gameState?.currentPlayer?.pendingTileSelection;
 
   // Actions should be clickable only if all conditions are met
-  const canPlayActions =
-    canPerformActions(gameState) && !hasPendingTileSelection;
+  const canPlayActions = canPerformActions(gameState) && !hasPendingTileSelection;
 
   const handleActionClick = (action: PlayerActionDto) => {
     if (onActionSelect) {
@@ -216,9 +199,7 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
             <div className="mb-[15px] opacity-60">
               <GameIcon iconType="card" size="medium" />
             </div>
-            <div className="text-white text-sm font-medium mb-2">
-              No card actions available
-            </div>
+            <div className="text-white text-sm font-medium mb-2">No card actions available</div>
             <div className="text-white/60 text-xs leading-[1.4]">
               Play cards with manual triggers to gain actions
             </div>
@@ -272,9 +253,7 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
                       <BehaviorSection
                         behaviors={[action.behavior]}
                         playerResources={gameState?.currentPlayer?.resources}
-                        resourceStorage={
-                          gameState?.currentPlayer?.resourceStorage
-                        }
+                        resourceStorage={gameState?.currentPlayer?.resourceStorage}
                         cardId={action.cardId}
                         greyOutAll={action.timesUsedThisGeneration > 0}
                       />

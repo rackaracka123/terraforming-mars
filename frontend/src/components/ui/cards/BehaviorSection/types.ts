@@ -17,7 +17,10 @@ export interface ClassifiedBehavior {
     | "triggered-effect"
     | "auto-no-background"
     | "discount"
-    | "payment-substitute";
+    | "payment-substitute"
+    | "value-modifier";
+  // For merged triggered effects that share the same condition type
+  mergedBehaviors?: CardBehaviorDto[];
 }
 
 export interface LayoutRequirement {

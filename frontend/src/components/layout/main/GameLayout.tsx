@@ -69,10 +69,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   const allPlayers: (PlayerDto | OtherPlayerDto)[] =
     (gameState?.turnOrder
       ?.map((playerId) => playerMap.get(playerId))
-      .filter((player) => player !== undefined) as (
-      | PlayerDto
-      | OtherPlayerDto
-    )[]) || [];
+      .filter((player) => player !== undefined) as (PlayerDto | OtherPlayerDto)[]) || [];
 
   // Find the current turn player for the right sidebar
   const currentTurnPlayer =
@@ -126,9 +123,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
               onConvertHeatToTemperature={onConvertHeatToTemperature}
             />
 
-            {corporationCard && (
-              <CorporationViewer corporation={corporationCard} />
-            )}
+            {corporationCard && <CorporationViewer corporation={corporationCard} />}
           </>
         )}
       </div>

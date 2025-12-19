@@ -83,14 +83,7 @@ const CardsPage: React.FC = () => {
     }
 
     setSearchParams(params, { replace: true });
-  }, [
-    searchQuery,
-    sortBy,
-    selectedTags,
-    selectedTypes,
-    searchParams,
-    setSearchParams,
-  ]);
+  }, [searchQuery, sortBy, selectedTags, selectedTypes, searchParams, setSearchParams]);
 
   const loadAllCards = useCallback(async () => {
     if (loading) return;
@@ -150,9 +143,7 @@ const CardsPage: React.FC = () => {
 
       // Apply tag filter (if any tags selected, show cards with ANY of the selected tags)
       if (selectedTags.size > 0) {
-        filtered = filtered.filter((card) =>
-          card.tags?.some((tag) => selectedTags.has(tag)),
-        );
+        filtered = filtered.filter((card) => card.tags?.some((tag) => selectedTags.has(tag)));
       }
 
       // Apply type filter (if any types selected, show cards with ANY of the selected types)
@@ -180,14 +171,7 @@ const CardsPage: React.FC = () => {
     }
 
     setCards(filtered);
-  }, [
-    allCards,
-    searchQuery,
-    selectedTags,
-    selectedTypes,
-    sortBy,
-    searchParams,
-  ]);
+  }, [allCards, searchQuery, selectedTags, selectedTypes, sortBy, searchParams]);
 
   // Search functionality
   const handleSearch = useCallback((query: string) => {
@@ -423,17 +407,13 @@ const CardsPage: React.FC = () => {
     }> = [];
 
     let currentRow = 0;
-    let currentRowCards: Array<{ index: number; left: number; width: number }> =
-      [];
+    let currentRowCards: Array<{ index: number; left: number; width: number }> = [];
     let currentRowWidth = 0;
     let currentRowHasCorp = false;
     let cumulativeTop = 0;
 
     cards.forEach((card, index) => {
-      const cardWidth =
-        card.type === CardTypeCorporation
-          ? CORP_CARD_WIDTH
-          : REGULAR_CARD_WIDTH;
+      const cardWidth = card.type === CardTypeCorporation ? CORP_CARD_WIDTH : REGULAR_CARD_WIDTH;
 
       // Force new row for corporation cards
       const isCorporation = card.type === CardTypeCorporation;
@@ -445,9 +425,7 @@ const CardsPage: React.FC = () => {
       ) {
         // Finalize current row - center the cards
         const rowOffset = (containerWidth - currentRowWidth) / 2;
-        const rowHeight = currentRowHasCorp
-          ? CORP_CARD_HEIGHT
-          : REGULAR_CARD_HEIGHT;
+        const rowHeight = currentRowHasCorp ? CORP_CARD_HEIGHT : REGULAR_CARD_HEIGHT;
 
         currentRowCards.forEach((cardInfo) => {
           positions[cardInfo.index].left = cardInfo.left + rowOffset;
@@ -513,10 +491,7 @@ const CardsPage: React.FC = () => {
     }> = [];
 
     cardPositions.forEach((pos) => {
-      if (
-        pos.cardIndex >= visibleRange.start &&
-        pos.cardIndex < visibleRange.end
-      ) {
+      if (pos.cardIndex >= visibleRange.start && pos.cardIndex < visibleRange.end) {
         result.push({
           card: cards[pos.cardIndex],
           position: {
@@ -590,9 +565,7 @@ const CardsPage: React.FC = () => {
             <div className="cards-info-header">
               {cards.length > 0 && (
                 <span>
-                  {searchQuery ||
-                  selectedTags.size > 0 ||
-                  selectedTypes.size > 0
+                  {searchQuery || selectedTags.size > 0 || selectedTypes.size > 0
                     ? `${cards.length} of ${allCards.length}`
                     : `${cards.length}`}{" "}
                   cards
@@ -615,13 +588,8 @@ const CardsPage: React.FC = () => {
                 className="link-button"
               />
             )}
-            <button
-              className="filter-toggle-button"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <span className={`filter-arrow ${showFilters ? "open" : ""}`}>
-                ▶
-              </span>
+            <button className="filter-toggle-button" onClick={() => setShowFilters(!showFilters)}>
+              <span className={`filter-arrow ${showFilters ? "open" : ""}`}>▶</span>
               <span>Filters</span>
             </button>
             <div className="sort-dropdown-container">
@@ -629,14 +597,8 @@ const CardsPage: React.FC = () => {
                 className="sort-dropdown-button"
                 onClick={() => setShowSortDropdown(!showSortDropdown)}
               >
-                <span className="sort-display-text">
-                  {getSortDisplayText()}
-                </span>
-                <span
-                  className={`dropdown-arrow ${showSortDropdown ? "open" : ""}`}
-                >
-                  ▼
-                </span>
+                <span className="sort-display-text">{getSortDisplayText()}</span>
+                <span className={`dropdown-arrow ${showSortDropdown ? "open" : ""}`}>▼</span>
               </button>
               {showSortDropdown && (
                 <div className="sort-dropdown-menu">
@@ -649,14 +611,10 @@ const CardsPage: React.FC = () => {
                     <button
                       key={option.key}
                       className={`sort-option ${sortBy === option.key ? "active" : ""}`}
-                      onClick={() =>
-                        handleSortSelection(option.key as typeof sortBy)
-                      }
+                      onClick={() => handleSortSelection(option.key as typeof sortBy)}
                     >
                       <span>{option.label}</span>
-                      {sortBy === option.key && (
-                        <span className="check-icon">✓</span>
-                      )}
+                      {sortBy === option.key && <span className="check-icon">✓</span>}
                     </button>
                   ))}
                 </div>
@@ -685,7 +643,7 @@ const CardsPage: React.FC = () => {
                     onClick={() => toggleTag(tag)}
                     title={tag}
                   >
-                    <GameIcon iconType={tag} size="small" />
+                    <GameIcon iconType={`${tag}-tag`} size="small" />
                   </button>
                 ))}
               </div>
@@ -703,9 +661,7 @@ const CardsPage: React.FC = () => {
                       backgroundColor: selectedTypes.has(type)
                         ? getCardTypeColor(type)
                         : "rgba(255, 255, 255, 0.1)",
-                      color: selectedTypes.has(type)
-                        ? "#ffffff"
-                        : getCardTypeColor(type),
+                      color: selectedTypes.has(type) ? "#ffffff" : getCardTypeColor(type),
                     }}
                   >
                     {type}
@@ -733,10 +689,7 @@ const CardsPage: React.FC = () => {
 
         {error && <div className="error-message">{error}</div>}
 
-        <div
-          className="cards-virtual-container"
-          style={{ position: "relative" }}
-        >
+        <div className="cards-virtual-container" style={{ position: "relative" }}>
           {/* Spacer to create scrollable area */}
           <div style={{ height: `${totalHeight}px`, pointerEvents: "none" }} />
 

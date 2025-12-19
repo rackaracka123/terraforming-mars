@@ -25,10 +25,7 @@ export function PanControls() {
   // Use frame loop to handle recentering smoothly and detect size changes
   useFrame(() => {
     // Check if size has changed
-    if (
-      size.width !== previousSize.current.width ||
-      size.height !== previousSize.current.height
-    ) {
+    if (size.width !== previousSize.current.width || size.height !== previousSize.current.height) {
       // Canvas size changed, trigger recentering
       setShouldRecenter(true);
       previousSize.current = { width: size.width, height: size.height };
@@ -96,10 +93,7 @@ export function PanControls() {
 
       // For vertical movement (phi), restrict around equatorial plane (π/2)
       const equator = Math.PI / 2;
-      spherical.phi = Math.max(
-        equator - maxAngle,
-        Math.min(equator + maxAngle, spherical.phi),
-      );
+      spherical.phi = Math.max(equator - maxAngle, Math.min(equator + maxAngle, spherical.phi));
 
       // Update camera position based on new spherical coordinates
       camera.position.setFromSpherical(spherical);
@@ -129,10 +123,7 @@ export function PanControls() {
       // Clamp zoom distance
       const minDistance = 3;
       const maxDistance = 20;
-      spherical.radius = Math.max(
-        minDistance,
-        Math.min(maxDistance, spherical.radius),
-      );
+      spherical.radius = Math.max(minDistance, Math.min(maxDistance, spherical.radius));
 
       // Update camera position
       camera.position.setFromSpherical(spherical);

@@ -207,8 +207,7 @@ const DebugDropdown: React.FC<DebugDropdownProps> = ({
   const handleExportJSON = () => {
     if (gameState) {
       const dataStr = JSON.stringify(gameState, null, 2);
-      const dataUri =
-        "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
+      const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
       const exportFileDefaultName = `game_state_${Date.now()}.json`;
 
       const linkElement = document.createElement("a");
@@ -253,9 +252,7 @@ const DebugDropdown: React.FC<DebugDropdownProps> = ({
     return hasMatch ? filtered : undefined;
   };
 
-  const displayState = searchTerm
-    ? filterGameState(gameState, searchTerm)
-    : gameState;
+  const displayState = searchTerm ? filterGameState(gameState, searchTerm) : gameState;
 
   return (
     <div
@@ -273,15 +270,14 @@ const DebugDropdown: React.FC<DebugDropdownProps> = ({
         borderRadius: "8px",
         padding: "16px",
         zIndex: 999999,
-        overflow: "hidden",
+        // Allow overflow on admin tab for autocomplete dropdowns
+        overflow: activeTab === "admin" ? "visible" : "hidden",
         display: "flex",
         flexDirection: "column",
         boxShadow: "0 4px 20px rgba(155, 89, 182, 0.3)",
         cursor: isDragging ? "grabbing" : "default",
         // Prevent transition on drag to avoid lag, but allow smooth constraint corrections
-        transition: isDragging
-          ? "none"
-          : "top 0.2s ease-out, left 0.2s ease-out",
+        transition: isDragging ? "none" : "top 0.2s ease-out, left 0.2s ease-out",
       }}
     >
       <div
@@ -340,13 +336,9 @@ const DebugDropdown: React.FC<DebugDropdownProps> = ({
           style={{
             flex: 1,
             padding: "8px",
-            background:
-              activeTab === "state" ? "rgba(155, 89, 182, 0.3)" : "transparent",
+            background: activeTab === "state" ? "rgba(155, 89, 182, 0.3)" : "transparent",
             border: "none",
-            borderBottom:
-              activeTab === "state"
-                ? "2px solid #9b59b6"
-                : "2px solid transparent",
+            borderBottom: activeTab === "state" ? "2px solid #9b59b6" : "2px solid transparent",
             color: activeTab === "state" ? "#9b59b6" : "#abb2bf",
             fontSize: "12px",
             cursor: "pointer",
@@ -362,15 +354,9 @@ const DebugDropdown: React.FC<DebugDropdownProps> = ({
             style={{
               flex: 1,
               padding: "8px",
-              background:
-                activeTab === "admin"
-                  ? "rgba(155, 89, 182, 0.3)"
-                  : "transparent",
+              background: activeTab === "admin" ? "rgba(155, 89, 182, 0.3)" : "transparent",
               border: "none",
-              borderBottom:
-                activeTab === "admin"
-                  ? "2px solid #9b59b6"
-                  : "2px solid transparent",
+              borderBottom: activeTab === "admin" ? "2px solid #9b59b6" : "2px solid transparent",
               color: activeTab === "admin" ? "#9b59b6" : "#abb2bf",
               fontSize: "12px",
               cursor: "pointer",
@@ -484,15 +470,11 @@ const DebugDropdown: React.FC<DebugDropdownProps> = ({
                 ))}
               </div>
             ) : gameState ? (
-              <div
-                style={{ color: "#666", textAlign: "center", padding: "20px" }}
-              >
+              <div style={{ color: "#666", textAlign: "center", padding: "20px" }}>
                 No matches found for "{searchTerm}"
               </div>
             ) : (
-              <div
-                style={{ color: "#666", textAlign: "center", padding: "20px" }}
-              >
+              <div style={{ color: "#666", textAlign: "center", padding: "20px" }}>
                 No game state available
               </div>
             )}
@@ -512,8 +494,7 @@ const DebugDropdown: React.FC<DebugDropdownProps> = ({
             <span style={{ color: "#666", fontSize: "11px" }}>
               {changedPaths.size > 0 && (
                 <span style={{ color: "#ffdf00" }}>
-                  {changedPaths.size} change{changedPaths.size === 1 ? "" : "s"}{" "}
-                  detected
+                  {changedPaths.size} change{changedPaths.size === 1 ? "" : "s"} detected
                 </span>
               )}
             </span>

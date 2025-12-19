@@ -17,6 +17,7 @@ type PlayerResources struct {
 	victoryPoints      int
 	resourceStorage    map[string]int
 	paymentSubstitutes []shared.PaymentSubstitute
+	valueModifiers     map[shared.ResourceType]int // e.g., {"titanium": 1, "steel": 1} for cards like Phobolog, Advanced Alloys
 	eventBus           *events.EventBusImpl
 	gameID             string
 	playerID           string
@@ -30,6 +31,7 @@ func newResources(eventBus *events.EventBusImpl, gameID, playerID string) *Playe
 		victoryPoints:      0,
 		resourceStorage:    make(map[string]int),
 		paymentSubstitutes: []shared.PaymentSubstitute{},
+		valueModifiers:     make(map[shared.ResourceType]int),
 		eventBus:           eventBus,
 		gameID:             gameID,
 		playerID:           playerID,
@@ -70,12 +72,29 @@ func (r *PlayerResources) Storage() map[string]int {
 	return storageCopy
 }
 
+// Base payment values (also defined in cards.SteelValue/TitaniumValue)
+const (
+	baseSteelValue    = 2
+	baseTitaniumValue = 3
+)
+
+// PaymentSubstitutes returns all payment substitutes including steel/titanium with dynamic values.
+// Steel and titanium are always included with their effective values (base + modifiers from cards like Phobolog).
+// Additional substitutes (like heat for Helion) are appended.
 func (r *PlayerResources) PaymentSubstitutes() []shared.PaymentSubstitute {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	substitutesCopy := make([]shared.PaymentSubstitute, len(r.paymentSubstitutes))
-	copy(substitutesCopy, r.paymentSubstitutes)
-	return substitutesCopy
+
+	// Always include steel and titanium as payment substitutes with dynamic values
+	substitutes := []shared.PaymentSubstitute{
+		{ResourceType: shared.ResourceSteel, ConversionRate: baseSteelValue + r.valueModifiers[shared.ResourceSteel]},
+		{ResourceType: shared.ResourceTitanium, ConversionRate: baseTitaniumValue + r.valueModifiers[shared.ResourceTitanium]},
+	}
+
+	// Add any additional substitutes (like heat for Helion)
+	substitutes = append(substitutes, r.paymentSubstitutes...)
+
+	return substitutes
 }
 
 func (r *PlayerResources) AddPaymentSubstitute(resourceType shared.ResourceType, conversionRate int) {
@@ -85,6 +104,34 @@ func (r *PlayerResources) AddPaymentSubstitute(resourceType shared.ResourceType,
 		ResourceType:   resourceType,
 		ConversionRate: conversionRate,
 	})
+}
+
+// ValueModifiers returns a copy of the value modifiers map
+func (r *PlayerResources) ValueModifiers() map[shared.ResourceType]int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	modifiersCopy := make(map[shared.ResourceType]int, len(r.valueModifiers))
+	for k, v := range r.valueModifiers {
+		modifiersCopy[k] = v
+	}
+	return modifiersCopy
+}
+
+// AddValueModifier adds a value modifier for a resource type (e.g., titanium +1 from Phobolog)
+func (r *PlayerResources) AddValueModifier(resourceType shared.ResourceType, amount int) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.valueModifiers == nil {
+		r.valueModifiers = make(map[shared.ResourceType]int)
+	}
+	r.valueModifiers[resourceType] += amount
+}
+
+// GetValueModifier returns the total value modifier for a resource type
+func (r *PlayerResources) GetValueModifier(resourceType shared.ResourceType) int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.valueModifiers[resourceType]
 }
 
 func (r *PlayerResources) Set(resources shared.Resources) {
@@ -326,4 +373,26 @@ func (r *PlayerResources) GetCardStorage(cardID string) int {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.resourceStorage[cardID]
+}
+
+// RemoveCardStorage removes the storage entry for a specific card
+func (r *PlayerResources) RemoveCardStorage(cardID string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.resourceStorage, cardID)
+}
+
+// ClearPaymentSubstitutes removes all non-standard payment substitutes
+// (keeps steel and titanium which are always available)
+func (r *PlayerResources) ClearPaymentSubstitutes() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.paymentSubstitutes = []shared.PaymentSubstitute{}
+}
+
+// ClearValueModifiers resets all value modifiers to zero
+func (r *PlayerResources) ClearValueModifiers() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.valueModifiers = make(map[shared.ResourceType]int)
 }

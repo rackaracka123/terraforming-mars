@@ -4,17 +4,15 @@ import { classifyBehaviors } from "./utils/behaviorClassifier.ts";
 import { detectTilePlacementScale } from "./utils/tileScaling.ts";
 import { isResourceAffordable } from "./utils/resourceValidation.ts";
 import { analyzeResourceDisplayWithConstraints } from "./utils/displayAnalysis.ts";
-import { mergeAutoProductionBehaviors } from "./utils/behaviorMerger.ts";
-import {
-  analyzeCardLayout,
-  optimizeBehaviorsForSpace,
-} from "./utils/spaceOptimizer.ts";
+import { mergeAutoProductionBehaviors, mergeTriggeredEffects } from "./utils/behaviorMerger.ts";
+import { analyzeCardLayout, optimizeBehaviorsForSpace } from "./utils/spaceOptimizer.ts";
 import BehaviorContainer from "./components/BehaviorContainer.tsx";
 import ManualActionLayout from "./components/ManualActionLayout.tsx";
 import TriggeredEffectLayout from "./components/TriggeredEffectLayout.tsx";
 import ImmediateResourceLayout from "./components/ImmediateResourceLayout.tsx";
 import DiscountLayout from "./components/DiscountLayout.tsx";
 import PaymentSubstituteLayout from "./components/PaymentSubstituteLayout.tsx";
+import ValueModifierLayout from "./components/ValueModifierLayout.tsx";
 import BehaviorIcon from "./components/BehaviorIcon.tsx";
 
 const BehaviorSection: React.FC<BehaviorSectionProps> = ({
@@ -32,23 +30,20 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
   const classifiedBehaviors = classifyBehaviors(behaviors);
 
   // Merge auto production behaviors if needed
-  const mergedBehaviors = mergeAutoProductionBehaviors(classifiedBehaviors);
+  const mergedAutoProduction = mergeAutoProductionBehaviors(classifiedBehaviors);
+
+  // Merge triggered effects with same condition type (e.g., city-placed)
+  const mergedBehaviors = mergeTriggeredEffects(mergedAutoProduction);
 
   // Detect tile placement scaling
   const tileScaleInfo = detectTilePlacementScale(mergedBehaviors);
 
   // Analyze card layout and optimize for space if needed
   const cardLayoutPlan = analyzeCardLayout(mergedBehaviors);
-  const optimizedBehaviors = optimizeBehaviorsForSpace(
-    mergedBehaviors,
-    cardLayoutPlan,
-  );
+  const optimizedBehaviors = optimizeBehaviorsForSpace(mergedBehaviors, cardLayoutPlan);
 
   // Helper function to check if a resource is affordable (bound to current context)
-  const checkResourceAffordable = (
-    resource: any,
-    isInput: boolean = true,
-  ): boolean => {
+  const checkResourceAffordable = (resource: any, isInput: boolean = true): boolean => {
     return isResourceAffordable(
       resource,
       isInput,
@@ -96,9 +91,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
             behavior={behavior}
             layoutPlan={layoutPlan}
             isResourceAffordable={checkResourceAffordable}
-            analyzeResourceDisplayWithConstraints={
-              analyzeResourceDisplayWithConstraints
-            }
+            analyzeResourceDisplayWithConstraints={analyzeResourceDisplayWithConstraints}
             tileScaleInfo={tileScaleInfo}
           />
         );
@@ -108,11 +101,10 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
         content = (
           <TriggeredEffectLayout
             behavior={behavior}
+            mergedBehaviors={classifiedBehavior.mergedBehaviors}
             layoutPlan={layoutPlan}
             isResourceAffordable={checkResourceAffordable}
-            analyzeResourceDisplayWithConstraints={
-              analyzeResourceDisplayWithConstraints
-            }
+            analyzeResourceDisplayWithConstraints={analyzeResourceDisplayWithConstraints}
             tileScaleInfo={tileScaleInfo}
           />
         );
@@ -126,9 +118,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
             behavior={behavior}
             layoutPlan={layoutPlan}
             isResourceAffordable={checkResourceAffordable}
-            analyzeResourceDisplayWithConstraints={
-              analyzeResourceDisplayWithConstraints
-            }
+            analyzeResourceDisplayWithConstraints={analyzeResourceDisplayWithConstraints}
             tileScaleInfo={tileScaleInfo}
             renderIcon={renderIcon}
           />
@@ -141,6 +131,10 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
       case "payment-substitute":
         content = <PaymentSubstituteLayout behavior={behavior} />;
+        break;
+
+      case "value-modifier":
+        content = <ValueModifierLayout behavior={behavior} />;
         break;
     }
 

@@ -47,3 +47,16 @@ func (e *Effects) AddEffect(effect CardEffect) {
 	defer e.mu.Unlock()
 	e.effects = append(e.effects, effect)
 }
+
+// RemoveEffectsByCardID removes all effects from a specific card
+func (e *Effects) RemoveEffectsByCardID(cardID string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	filtered := make([]CardEffect, 0, len(e.effects))
+	for _, effect := range e.effects {
+		if effect.CardID != cardID {
+			filtered = append(filtered, effect)
+		}
+	}
+	e.effects = filtered
+}

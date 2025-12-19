@@ -103,15 +103,14 @@ body {
 
 body {
   font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
-    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell",
+    "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family:
-    source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
 /* Player Card Animations (from LeftSidebar.global.css) */
@@ -288,13 +287,11 @@ code {
 @keyframes attackPulse {
   0%,
   100% {
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))
-      drop-shadow(0 0 1px rgba(244, 67, 54, 0.9))
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 1px rgba(244, 67, 54, 0.9))
       drop-shadow(0 0 2px rgba(244, 67, 54, 0.7));
   }
   50% {
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))
-      drop-shadow(0 0 1.5px rgba(244, 67, 54, 1))
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 1.5px rgba(244, 67, 54, 1))
       drop-shadow(0 0 3px rgba(244, 67, 54, 0.8));
   }
 }
@@ -302,13 +299,11 @@ code {
 @keyframes attackPulseCredits {
   0%,
   100% {
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))
-      drop-shadow(0 0 1px rgba(244, 67, 54, 0.9))
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 1px rgba(244, 67, 54, 0.9))
       drop-shadow(0 0 2px rgba(244, 67, 54, 0.7));
   }
   50% {
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))
-      drop-shadow(0 0 1.5px rgba(244, 67, 54, 1))
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 1.5px rgba(244, 67, 54, 1))
       drop-shadow(0 0 3px rgba(244, 67, 54, 0.8));
   }
 }
@@ -492,8 +487,7 @@ code {
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8)) brightness(1);
   }
   50% {
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8))
-      drop-shadow(0 0 8px rgba(255, 235, 59, 0.8))
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8)) drop-shadow(0 0 8px rgba(255, 235, 59, 0.8))
       drop-shadow(0 0 12px rgba(255, 235, 59, 0.6)) brightness(1.3);
   }
   100% {

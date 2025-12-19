@@ -92,7 +92,7 @@ func main() {
 
 	// Standard projects (6)
 	launchAsteroidAction := stdprojAction.NewLaunchAsteroidAction(gameRepo, log)
-	buildPowerPlantAction := stdprojAction.NewBuildPowerPlantAction(gameRepo, log)
+	buildPowerPlantAction := stdprojAction.NewBuildPowerPlantAction(gameRepo, cardRegistry, log)
 	buildAquiferAction := stdprojAction.NewBuildAquiferAction(gameRepo, log)
 	buildCityAction := stdprojAction.NewBuildCityAction(gameRepo, log)
 	plantGreeneryAction := stdprojAction.NewPlantGreeneryAction(gameRepo, log)

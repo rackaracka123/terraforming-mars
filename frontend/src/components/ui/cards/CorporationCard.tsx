@@ -89,26 +89,98 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
     if (!resourceType) return null;
 
     // Use GameIcon with -production suffix for automatic brown background
-    return (
-      <GameIcon
-        iconType={`${resourceType}-production`}
-        amount={amount}
-        size="medium"
-      />
-    );
+    return <GameIcon iconType={`${resourceType}-production`} amount={amount} size="medium" />;
   };
 
   // Extract auto-corporation-first-action behavior for display in starting resources section
-  const getAutoCorporationFirstAction = (
-    behaviors: CardBehaviorDto[] | undefined,
-  ) => {
+  const getAutoCorporationFirstAction = (behaviors: CardBehaviorDto[] | undefined) => {
     if (!behaviors) return null;
 
     return behaviors.find((behavior) =>
-      behavior.triggers?.some(
-        (t) => t.type === "auto-corporation-first-action",
-      ),
+      behavior.triggers?.some((t) => t.type === "auto-corporation-first-action"),
     );
+  };
+
+  // Extract starting resources from auto-corporation-start behaviors
+  const getStartingResourcesFromBehaviors = (
+    behaviors: CardBehaviorDto[] | undefined,
+  ): {
+    credits?: number;
+    steel?: number;
+    titanium?: number;
+    plants?: number;
+    energy?: number;
+    heat?: number;
+  } | null => {
+    if (!behaviors) return null;
+
+    const startBehavior = behaviors.find((behavior) =>
+      behavior.triggers?.some((t) => t.type === "auto-corporation-start"),
+    );
+
+    if (!startBehavior?.outputs) return null;
+
+    const resources: {
+      credits?: number;
+      steel?: number;
+      titanium?: number;
+      plants?: number;
+      energy?: number;
+      heat?: number;
+    } = {};
+
+    for (const output of startBehavior.outputs) {
+      // Only extract immediate resource outputs (not production)
+      if (output.type === "credit") resources.credits = output.amount;
+      else if (output.type === "steel") resources.steel = output.amount;
+      else if (output.type === "titanium") resources.titanium = output.amount;
+      else if (output.type === "plant") resources.plants = output.amount;
+      else if (output.type === "energy") resources.energy = output.amount;
+      else if (output.type === "heat") resources.heat = output.amount;
+    }
+
+    return Object.keys(resources).length > 0 ? resources : null;
+  };
+
+  // Extract starting production from auto-corporation-start behaviors
+  const getStartingProductionFromBehaviors = (
+    behaviors: CardBehaviorDto[] | undefined,
+  ): {
+    credits?: number;
+    steel?: number;
+    titanium?: number;
+    plants?: number;
+    energy?: number;
+    heat?: number;
+  } | null => {
+    if (!behaviors) return null;
+
+    const startBehavior = behaviors.find((behavior) =>
+      behavior.triggers?.some((t) => t.type === "auto-corporation-start"),
+    );
+
+    if (!startBehavior?.outputs) return null;
+
+    const production: {
+      credits?: number;
+      steel?: number;
+      titanium?: number;
+      plants?: number;
+      energy?: number;
+      heat?: number;
+    } = {};
+
+    for (const output of startBehavior.outputs) {
+      // Only extract production outputs
+      if (output.type === "credit-production") production.credits = output.amount;
+      else if (output.type === "steel-production") production.steel = output.amount;
+      else if (output.type === "titanium-production") production.titanium = output.amount;
+      else if (output.type === "plant-production") production.plants = output.amount;
+      else if (output.type === "energy-production") production.energy = output.amount;
+      else if (output.type === "heat-production") production.heat = output.amount;
+    }
+
+    return Object.keys(production).length > 0 ? production : null;
   };
 
   // Render auto-corporation-first-action as simple icons (e.g., card icon with "3" inside)
@@ -117,9 +189,7 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
 
     const output = behavior.outputs[0];
 
-    return (
-      <GameIcon iconType={output.type} amount={output.amount} size="large" />
-    );
+    return <GameIcon iconType={output.type} amount={output.amount} size="large" />;
   };
 
   // Filter out starting bonuses and auto-corporation-first-action (shown separately)
@@ -173,45 +243,49 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
       </div>
 
       {/* Starting resources, production, and auto-corporation-first-action - compact, no headers */}
-      {(corporation.startingProduction ||
-        corporation.startingResources ||
-        getAutoCorporationFirstAction(corporation.behaviors)) && (
-        <div className="flex flex-wrap gap-2 justify-center items-center mb-3 pb-3 border-b border-white/20">
-          {corporation.startingResources &&
-            Object.entries(corporation.startingResources).map(
-              ([type, amount]) =>
-                amount > 0 ? (
+      {(() => {
+        // Get starting resources from explicit properties or extract from behaviors
+        const startingResources =
+          corporation.startingResources || getStartingResourcesFromBehaviors(corporation.behaviors);
+        const startingProduction =
+          corporation.startingProduction ||
+          getStartingProductionFromBehaviors(corporation.behaviors);
+        const firstAction = getAutoCorporationFirstAction(corporation.behaviors);
+
+        if (!startingResources && !startingProduction && !firstAction) return null;
+
+        return (
+          <div className="flex flex-wrap gap-2 justify-center items-center mb-3 pb-3 border-b border-white/20">
+            {startingResources &&
+              Object.entries(startingResources).map(([type, amount]) =>
+                amount && amount > 0 ? (
                   <div key={type} className="flex items-center">
                     {renderResource(type, amount)}
                   </div>
                 ) : null,
-            )}
-          {corporation.startingProduction &&
-            Object.entries(corporation.startingProduction).map(
-              ([type, amount]) =>
-                amount > 0 ? (
+              )}
+            {startingProduction &&
+              Object.entries(startingProduction).map(([type, amount]) =>
+                amount && amount > 0 ? (
                   <div key={type} className="flex items-center">
                     {renderProduction(type, amount)}
                   </div>
                 ) : null,
-            )}
-          {getAutoCorporationFirstAction(corporation.behaviors) && (
-            <div className="flex items-center">
-              {renderAutoCorporationFirstAction(
-                getAutoCorporationFirstAction(corporation.behaviors)!,
               )}
-            </div>
-          )}
-        </div>
-      )}
+            {firstAction && (
+              <div className="flex items-center">
+                {renderAutoCorporationFirstAction(firstAction)}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Behaviors - using BehaviorSection component */}
       {filterBehaviors(corporation.behaviors).length > 0 && (
         <div className="mb-3 border-b border-white/20 pb-3">
           <div className="relative [&>div]:static [&>div]:!bottom-auto [&>div]:!left-auto [&>div]:!right-auto">
-            <BehaviorSection
-              behaviors={filterBehaviors(corporation.behaviors)}
-            />
+            <BehaviorSection behaviors={filterBehaviors(corporation.behaviors)} />
           </div>
         </div>
       )}
@@ -234,9 +308,7 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
           <div
             className={`w-6 h-6 rounded-full bg-[#1a1508] border-2 border-[rgba(255,193,7,0.3)] flex items-center justify-center transition-all duration-300 ${isSelected ? "bg-[#3a2f0d] border-[#ffc107]" : ""}`}
           >
-            {isSelected && (
-              <span className="text-white text-sm font-bold">✓</span>
-            )}
+            {isSelected && <span className="text-white text-sm font-bold">✓</span>}
           </div>
         </div>
       )}

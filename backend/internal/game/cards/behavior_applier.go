@@ -382,6 +382,20 @@ func (a *BehaviorApplier) applyOutput(
 			zap.Any("affected_tags", output.AffectedTags),
 			zap.Any("affected_standard_projects", output.AffectedStandardProjects))
 
+	// ========== Value Modifiers (Phobolog, Advanced Alloys) ==========
+	case shared.ResourceValueModifier:
+		if a.player == nil {
+			return fmt.Errorf("cannot apply value modifier: no player context")
+		}
+		// Apply value modifier to each affected resource (e.g., titanium +1, steel +1)
+		for _, resourceStr := range output.AffectedResources {
+			resourceType := shared.ResourceType(resourceStr)
+			a.player.Resources().AddValueModifier(resourceType, output.Amount)
+			log.Info("💎 Added resource value modifier",
+				zap.String("resource_type", string(resourceType)),
+				zap.Int("modifier_amount", output.Amount))
+		}
+
 	// ========== Card Resource Storage (Animals, Microbes, Floaters, etc.) ==========
 	case shared.ResourceAnimal, shared.ResourceMicrobe, shared.ResourceFloater:
 		if a.player == nil {

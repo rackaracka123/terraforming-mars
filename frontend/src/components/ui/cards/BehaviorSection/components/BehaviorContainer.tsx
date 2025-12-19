@@ -1,16 +1,5 @@
 import React from "react";
-
-interface ClassifiedBehavior {
-  behavior: any;
-  type:
-    | "manual-action"
-    | "immediate-production"
-    | "immediate-effect"
-    | "triggered-effect"
-    | "auto-no-background"
-    | "discount"
-    | "payment-substitute";
-}
+import { ClassifiedBehavior } from "../types.ts";
 
 interface BehaviorContainerProps {
   classifiedBehavior: ClassifiedBehavior;
@@ -39,24 +28,22 @@ const BehaviorContainer: React.FC<BehaviorContainerProps> = ({
     const typeStyles = {
       "manual-action":
         "bg-[linear-gradient(135deg,rgba(33,150,243,0.35)_0%,rgba(25,118,210,0.3)_100%)] border-[rgba(33,150,243,0.5)] shadow-[0_2px_4px_rgba(33,150,243,0.3)]",
-      "triggered-effect":
-        "bg-white/[0.08] border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.15)]",
-      discount:
-        "bg-white/[0.08] border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.15)]",
-      "payment-substitute":
-        "bg-white/[0.08] border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.15)]",
+      "triggered-effect": "bg-white/[0.08] border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.15)]",
+      discount: "bg-white/[0.08] border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.15)]",
+      "payment-substitute": "bg-white/[0.08] border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.15)]",
+      "value-modifier": "bg-white/[0.08] border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.15)]",
       "immediate-production":
         "bg-[linear-gradient(135deg,rgba(139,89,42,0.35)_0%,rgba(101,67,33,0.3)_100%)] border-[rgba(139,89,42,0.5)] shadow-[0_2px_4px_rgba(139,89,42,0.25)]",
-      "immediate-effect":
-        "bg-white/[0.08] border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.15)]",
+      "immediate-effect": "bg-white/[0.08] border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.15)]",
     };
 
-    // Manual actions, triggered effects, discount, and payment-substitute should shrink to fit content
+    // Manual actions, triggered effects, discount, payment-substitute, and value-modifier should shrink to fit content
     const widthClass =
       type === "manual-action" ||
       type === "triggered-effect" ||
       type === "discount" ||
-      type === "payment-substitute"
+      type === "payment-substitute" ||
+      type === "value-modifier"
         ? "w-fit"
         : "w-[calc(100%-20px)]";
 

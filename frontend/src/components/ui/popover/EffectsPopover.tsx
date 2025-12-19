@@ -66,8 +66,6 @@ const EffectsPopover: React.FC<EffectsPopoverProps> = ({
 
   if (!isVisible) return null;
 
-  // No conversion needed - PlayerEffectDto now contains CardBehaviorDto directly
-
   return (
     <div
       className="fixed w-[320px] max-h-[400px] bg-space-black-darker/95 border-2 border-[#ff96ff] rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.8),0_0_15px_#ff96ff] backdrop-blur-space z-[10001] animate-[popoverSlideUp_0.3s_ease-out] flex flex-col overflow-hidden isolate pointer-events-auto max-[768px]:w-[280px]"
@@ -107,9 +105,7 @@ const EffectsPopover: React.FC<EffectsPopoverProps> = ({
             <div className="mb-[15px] opacity-60">
               <GameIcon iconType="asterisk" size="medium" />
             </div>
-            <div className="text-white text-sm font-medium mb-2">
-              No card effects active
-            </div>
+            <div className="text-white text-sm font-medium mb-2">No card effects active</div>
             <div className="text-white/60 text-xs leading-[1.4]">
               Play cards with ongoing effects to gain bonuses
             </div>
@@ -130,10 +126,7 @@ const EffectsPopover: React.FC<EffectsPopoverProps> = ({
                   </div>
 
                   <div className="relative w-full min-h-[32px] [&>div]:!relative [&>div]:!bottom-auto [&>div]:!left-auto [&>div]:!right-auto [&>div]:w-full [&>div:hover]:!transform-none [&>div:hover]:!shadow-none [&>div:hover]:!filter-none">
-                    <BehaviorSection
-                      behaviors={[effect.behavior]}
-                      greyOutAll={false}
-                    />
+                    <BehaviorSection behaviors={[effect.behavior]} greyOutAll={false} />
                   </div>
                 </div>
               </div>

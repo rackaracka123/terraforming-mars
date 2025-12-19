@@ -144,8 +144,7 @@ export class WebSocketService {
         break;
       }
       case MessageTypePlayerDisconnected: {
-        const disconnectedPayload =
-          message.payload as PlayerDisconnectedPayload;
+        const disconnectedPayload = message.payload as PlayerDisconnectedPayload;
         this.emit("player-disconnected", disconnectedPayload);
         break;
       }
@@ -315,9 +314,7 @@ export class WebSocketService {
 
   off(event: string, callback: EventCallback) {
     if (this.listeners[event]) {
-      this.listeners[event] = this.listeners[event].filter(
-        (cb) => cb !== callback,
-      );
+      this.listeners[event] = this.listeners[event].filter((cb) => cb !== callback);
     }
   }
 

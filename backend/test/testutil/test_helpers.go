@@ -122,6 +122,27 @@ func CreateTestCardRegistry() cards.CardRegistry {
 			Pack: "base",
 		},
 		{
+			ID:   "corp-thorgate",
+			Name: "ThorGate",
+			Type: gamecards.CardTypeCorporation,
+			Pack: "base",
+			Tags: []shared.CardTag{shared.TagPower},
+			Behaviors: []shared.CardBehavior{
+				{
+					Triggers: []shared.Trigger{{Type: shared.TriggerTypeAuto}},
+					Outputs: []shared.ResourceCondition{
+						{
+							ResourceType:             shared.ResourceDiscount,
+							Amount:                   3,
+							Target:                   "self-player",
+							AffectedTags:             []shared.CardTag{shared.TagPower},
+							AffectedStandardProjects: []shared.StandardProject{shared.StandardProjectPowerPlant},
+						},
+					},
+				},
+			},
+		},
+		{
 			ID:   "corp-saturn-systems",
 			Name: "Saturn Systems",
 			Type: gamecards.CardTypeCorporation,
@@ -147,6 +168,7 @@ func CreateTestCardRegistry() cards.CardRegistry {
 			Type: gamecards.CardTypeEvent,
 			Pack: "base",
 			Cost: 14,
+			Tags: []shared.CardTag{shared.TagSpace, shared.TagEvent},
 		},
 		{
 			ID:   "card-water-import",
@@ -481,6 +503,16 @@ func CreateTestCardRegistry() cards.CardRegistry {
 			Cost:        12,
 			Tags:        []shared.CardTag{shared.TagPlant},
 			Description: "Test card without space tag for discount testing.",
+		},
+		// Test card with only power tag for ThorGate testing
+		{
+			ID:          "card-deep-well-heating",
+			Name:        "Deep Well Heating",
+			Type:        gamecards.CardTypeAutomated,
+			Pack:        "base",
+			Cost:        12,
+			Tags:        []shared.CardTag{shared.TagPower, shared.TagBuilding},
+			Description: "Increase temperature 1 step. Increase your energy production 1 step.",
 		},
 	}
 

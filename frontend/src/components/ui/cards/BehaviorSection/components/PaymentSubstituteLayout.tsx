@@ -5,9 +5,7 @@ interface PaymentSubstituteLayoutProps {
   behavior: any;
 }
 
-const PaymentSubstituteLayout: React.FC<PaymentSubstituteLayoutProps> = ({
-  behavior,
-}) => {
+const PaymentSubstituteLayout: React.FC<PaymentSubstituteLayoutProps> = ({ behavior }) => {
   if (!behavior.outputs || behavior.outputs.length === 0) return null;
 
   const paymentSubOutput = behavior.outputs.find(

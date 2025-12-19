@@ -13,9 +13,7 @@ const CreateGamePage: React.FC = () => {
   const [developmentMode, setDevelopmentMode] = useState(true);
   const [selectedPacks, setSelectedPacks] = useState<string[]>(["base-game"]);
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingStep, setLoadingStep] = useState<"game" | "environment" | null>(
-    null,
-  );
+  const [loadingStep, setLoadingStep] = useState<"game" | "environment" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [skyboxReady, setSkyboxReady] = useState(false);
   const [isFadedIn, setIsFadedIn] = useState(false);
@@ -72,32 +70,20 @@ const CreateGamePage: React.FC = () => {
       const handleGameUpdated = (gameData: any) => {
         console.log("🎯 [CreateGamePage] game-updated event fired");
         console.log("🎯 [CreateGamePage] Full gameData:", gameData);
-        console.log(
-          "🎯 [CreateGamePage] currentPlayer:",
-          gameData.currentPlayer,
-        );
+        console.log("🎯 [CreateGamePage] currentPlayer:", gameData.currentPlayer);
         console.log("🎯 [CreateGamePage] otherPlayers:", gameData.otherPlayers);
-        console.log(
-          "🎯 [CreateGamePage] Looking for player name:",
-          playerName.trim(),
-        );
+        console.log("🎯 [CreateGamePage] Looking for player name:", playerName.trim());
 
         // Extract player info from game data
-        const allPlayers = [
-          gameData.currentPlayer,
-          ...(gameData.otherPlayers || []),
-        ].filter(Boolean);
+        const allPlayers = [gameData.currentPlayer, ...(gameData.otherPlayers || [])].filter(
+          Boolean,
+        );
 
         console.log("🎯 [CreateGamePage] allPlayers array:", allPlayers);
 
-        const connectedPlayer = allPlayers.find(
-          (p: any) => p.name === playerName.trim(),
-        );
+        const connectedPlayer = allPlayers.find((p: any) => p.name === playerName.trim());
 
-        console.log(
-          "🎯 [CreateGamePage] connectedPlayer found:",
-          connectedPlayer,
-        );
+        console.log("🎯 [CreateGamePage] connectedPlayer found:", connectedPlayer);
 
         if (connectedPlayer) {
           console.log("✅ [CreateGamePage] Navigating to game interface");
@@ -109,10 +95,7 @@ const CreateGamePage: React.FC = () => {
             playerName: playerName.trim(),
             createdAt: new Date().toISOString(),
           };
-          localStorage.setItem(
-            "terraforming-mars-game",
-            JSON.stringify(storedData),
-          );
+          localStorage.setItem("terraforming-mars-game", JSON.stringify(storedData));
 
           // Navigate to the main game interface with the complete game state
           navigate("/game", {
@@ -126,13 +109,8 @@ const CreateGamePage: React.FC = () => {
           // Clean up listener
           globalWebSocketManager.off("game-updated", handleGameUpdated);
         } else {
-          console.error(
-            "❌ [CreateGamePage] connectedPlayer NOT FOUND - navigation blocked",
-          );
-          console.error(
-            "❌ [CreateGamePage] Expected name:",
-            playerName.trim(),
-          );
+          console.error("❌ [CreateGamePage] connectedPlayer NOT FOUND - navigation blocked");
+          console.error("❌ [CreateGamePage] Expected name:", playerName.trim());
           console.error(
             "❌ [CreateGamePage] Available player names:",
             allPlayers.map((p) => p.name),
@@ -252,10 +230,9 @@ const CreateGamePage: React.FC = () => {
                         ⓘ
                       </span>
                       <div className="invisible opacity-0 w-[280px] bg-space-black/[0.98] text-white text-left rounded-lg p-3 absolute z-[1000] bottom-[125%] right-0 text-[13px] leading-normal border border-space-blue-400 shadow-glow transition-all duration-300 group-hover:visible group-hover:opacity-100 after:content-[''] after:absolute after:top-full after:right-3 after:border-8 after:border-solid after:border-t-space-black/[0.98] after:border-r-transparent after:border-b-transparent after:border-l-transparent">
-                        Enable admin commands for debugging and testing. Allows
-                        you to give cards to players, modify
-                        resources/production, change game phases, and adjust
-                        global parameters through the debug panel.
+                        Enable admin commands for debugging and testing. Allows you to give cards to
+                        players, modify resources/production, change game phases, and adjust global
+                        parameters through the debug panel.
                       </div>
                     </div>
                   </span>
@@ -264,9 +241,7 @@ const CreateGamePage: React.FC = () => {
 
               {/* Card Pack Selection */}
               <div className="mt-6 bg-space-black-darker/95 border-2 border-space-blue-400 rounded-xl p-4 backdrop-blur-space shadow-[0_0_20px_rgba(30,60,150,0.2)]">
-                <h3 className="text-white text-sm font-semibold mb-3 text-center">
-                  Card Packs
-                </h3>
+                <h3 className="text-white text-sm font-semibold mb-3 text-center">Card Packs</h3>
                 <div className="flex flex-col gap-2">
                   <label className="flex items-center gap-3 cursor-pointer py-2 px-2 rounded hover:bg-space-blue-400/10 transition-all duration-200">
                     <input
@@ -275,8 +250,7 @@ const CreateGamePage: React.FC = () => {
                       onChange={() => handlePackToggle("base-game")}
                       disabled={
                         isLoading ||
-                        (selectedPacks.includes("base-game") &&
-                          selectedPacks.length === 1)
+                        (selectedPacks.includes("base-game") && selectedPacks.length === 1)
                       }
                       className="w-[18px] h-[18px] accent-space-blue-solid cursor-pointer m-0 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
@@ -288,8 +262,8 @@ const CreateGamePage: React.FC = () => {
                           ⓘ
                         </span>
                         <div className="invisible opacity-0 w-[260px] bg-space-black/[0.98] text-white text-left rounded-lg p-3 absolute z-[1000] bottom-[125%] right-0 text-[12px] leading-normal border border-space-blue-400 shadow-glow transition-all duration-300 group-hover:visible group-hover:opacity-100 after:content-[''] after:absolute after:top-full after:right-3 after:border-8 after:border-solid after:border-t-space-black/[0.98] after:border-r-transparent after:border-b-transparent after:border-l-transparent">
-                          Includes tested cards with comprehensive test
-                          coverage. All cards have verified implementations.
+                          Includes tested cards with comprehensive test coverage. All cards have
+                          verified implementations.
                         </div>
                       </div>
                     </span>
@@ -302,8 +276,7 @@ const CreateGamePage: React.FC = () => {
                       onChange={() => handlePackToggle("future")}
                       disabled={
                         isLoading ||
-                        (selectedPacks.includes("future") &&
-                          selectedPacks.length === 1)
+                        (selectedPacks.includes("future") && selectedPacks.length === 1)
                       }
                       className="w-[18px] h-[18px] accent-space-blue-solid cursor-pointer m-0 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
@@ -315,8 +288,8 @@ const CreateGamePage: React.FC = () => {
                           ⓘ
                         </span>
                         <div className="invisible opacity-0 w-[260px] bg-space-black/[0.98] text-white text-left rounded-lg p-3 absolute z-[1000] bottom-[125%] right-0 text-[12px] leading-normal border border-space-blue-400 shadow-glow transition-all duration-300 group-hover:visible group-hover:opacity-100 after:content-[''] after:absolute after:top-full after:right-3 after:border-8 after:border-solid after:border-t-space-black/[0.98] after:border-r-transparent after:border-b-transparent after:border-l-transparent">
-                          Includes complex and untested cards for future
-                          implementation. May have incomplete effects or bugs.
+                          Includes complex and untested cards for future implementation. May have
+                          incomplete effects or bugs.
                         </div>
                       </div>
                     </span>

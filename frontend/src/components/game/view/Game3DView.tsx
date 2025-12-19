@@ -7,10 +7,7 @@ import LoadingSpinner from "./LoadingSpinner.tsx";
 import GameIcon from "../../ui/display/GameIcon.tsx";
 import { GameDto } from "@/types/generated/api-types.ts";
 import { MarsRotationProvider } from "../../../contexts/MarsRotationContext.tsx";
-import {
-  skyboxCache,
-  SkyboxLoadingState,
-} from "../../../services/SkyboxCache.ts";
+import { skyboxCache, SkyboxLoadingState } from "../../../services/SkyboxCache.ts";
 import { webSocketService } from "../../../services/webSocketService.ts";
 
 interface Game3DViewProps {
@@ -23,13 +20,12 @@ export default function Game3DView({ gameState }: Game3DViewProps) {
     position: [0, 0, 8] as [number, number, number],
     fov: 50,
   });
-  const [skyboxLoadingState, setSkyboxLoadingState] =
-    useState<SkyboxLoadingState>({
-      isLoading: false,
-      isLoaded: false,
-      error: null,
-      texture: null,
-    });
+  const [skyboxLoadingState, setSkyboxLoadingState] = useState<SkyboxLoadingState>({
+    isLoading: false,
+    isLoaded: false,
+    error: null,
+    texture: null,
+  });
 
   const updateCameraConfig = useCallback(() => {
     const width = window.innerWidth;
@@ -127,13 +123,8 @@ export default function Game3DView({ gameState }: Game3DViewProps) {
                      rounded-lg px-6 py-3 shadow-glow-lg"
         >
           <div className="flex items-center gap-2">
-            <span className="font-orbitron text-lg text-white tracking-wider-2xl">
-              Place
-            </span>
-            <GameIcon
-              iconType={getTileIconType(pendingTileSelection.tileType)}
-              size="medium"
-            />
+            <span className="font-orbitron text-lg text-white tracking-wider-2xl">Place</span>
+            <GameIcon iconType={getTileIconType(pendingTileSelection.tileType)} size="medium" />
           </div>
         </div>
       )}
@@ -178,11 +169,7 @@ export default function Game3DView({ gameState }: Game3DViewProps) {
             />
 
             {/* Cool blue rim light for moody atmosphere */}
-            <directionalLight
-              position={[-8, -3, -10]}
-              intensity={0.35}
-              color="#4488ff"
-            />
+            <directionalLight position={[-8, -3, -10]} intensity={0.35} color="#4488ff" />
 
             {/* Atmospheric fog for depth and mood */}
             <fog attach="fog" args={["#0a0a1a", 8, 25]} />
@@ -197,9 +184,7 @@ export default function Game3DView({ gameState }: Game3DViewProps) {
       </Canvas>
 
       {/* Show loading spinner when skybox is loading */}
-      {skyboxLoadingState.isLoading && (
-        <LoadingSpinner message="Loading 3D environment..." />
-      )}
+      {skyboxLoadingState.isLoading && <LoadingSpinner message="Loading 3D environment..." />}
     </div>
   );
 }
