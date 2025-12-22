@@ -217,7 +217,9 @@ export default function ProjectedHexTile({
 
   // Position slightly above sphere surface
   const adjustedPosition = useMemo(() => {
-    return tileData.spherePosition.clone().add(tileData.normal.clone().multiplyScalar(0.01));
+    return tileData.spherePosition
+      .clone()
+      .add(tileData.normal.clone().multiplyScalar(0.01));
   }, [tileData.spherePosition, tileData.normal]);
 
   // Get tile color
@@ -328,8 +330,13 @@ export default function ProjectedHexTile({
       )}
 
       {/* Tile type 3D model (city, greenery, ocean) */}
-      {(tileType === "city" || tileType === "greenery" || tileType === "ocean") && (
-        <TileModel tileType={tileType} position={[0, 0, tileType === "ocean" ? 0.00001 : 0.03]} />
+      {(tileType === "city" ||
+        tileType === "greenery" ||
+        tileType === "ocean") && (
+        <TileModel
+          tileType={tileType}
+          position={[0, 0, tileType === "ocean" ? 0.00001 : 0.03]}
+        />
       )}
 
       {/* Special tile fallback emoji (no 3D model available) */}
@@ -368,7 +375,11 @@ export default function ProjectedHexTile({
                 <BonusIcon
                   key={index}
                   iconPath={iconPath}
-                  position={[index * 0.05 - (bonusIcons.length - 1) * 0.025, -0.03, 0.01]}
+                  position={[
+                    index * 0.05 - (bonusIcons.length - 1) * 0.025,
+                    -0.03,
+                    0.01,
+                  ]}
                 />
               ))}
             </>
@@ -390,7 +401,11 @@ export default function ProjectedHexTile({
               <BonusIcon
                 key={index}
                 iconPath={iconPath}
-                position={[index * 0.05 - (bonusIcons.length - 1) * 0.025, 0, 0.01]}
+                position={[
+                  index * 0.05 - (bonusIcons.length - 1) * 0.025,
+                  0,
+                  0.01,
+                ]}
               />
             ))
           )}
@@ -401,7 +416,9 @@ export default function ProjectedHexTile({
       {ownerId && (
         <mesh position={[0.1, 0.1, 0.01]}>
           <circleGeometry args={[0.02, 16]} />
-          <meshBasicMaterial color={`hsl(${(ownerId.charCodeAt(0) * 137.5) % 360}, 70%, 50%)`} />
+          <meshBasicMaterial
+            color={`hsl(${(ownerId.charCodeAt(0) * 137.5) % 360}, 70%, 50%)`}
+          />
         </mesh>
       )}
     </group>
@@ -431,7 +448,8 @@ function TileModel({ tileType, position }: TileModelProps) {
     const clonedScene = SkeletonUtils.clone(scene);
 
     // Calculate bounding box and scale - larger size for greenery and ocean to fill hex
-    const targetSize = tileType === "greenery" ? 0.3 : tileType === "ocean" ? 0.33 : 0.28;
+    const targetSize =
+      tileType === "greenery" ? 0.3 : tileType === "ocean" ? 0.33 : 0.28;
     const box = new THREE.Box3().setFromObject(clonedScene);
     const size = box.getSize(new THREE.Vector3());
     const maxDimension = Math.max(size.x, size.y, size.z);

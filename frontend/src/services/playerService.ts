@@ -1,7 +1,11 @@
 // Player service - business logic layer
 // Uses repository for data access, can be easily swapped between mock and real data
 
-import { PlayerRepository, MockPlayerRepository, Player } from "../repositories/playerRepository";
+import {
+  PlayerRepository,
+  MockPlayerRepository,
+  Player,
+} from "../repositories/playerRepository";
 
 class PlayerService {
   private repository: PlayerRepository;
@@ -41,7 +45,9 @@ class PlayerService {
 const USE_MOCK_DATA = true;
 
 // Dependency injection - inject the appropriate repository
-const repository = USE_MOCK_DATA ? new MockPlayerRepository() : new MockPlayerRepository(); // Would be ApiPlayerRepository() in real app
+const repository = USE_MOCK_DATA
+  ? new MockPlayerRepository()
+  : new MockPlayerRepository(); // Would be ApiPlayerRepository() in real app
 
 export const playerService = new PlayerService(repository);
 

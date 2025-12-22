@@ -4,8 +4,14 @@ import { classifyBehaviors } from "./utils/behaviorClassifier.ts";
 import { detectTilePlacementScale } from "./utils/tileScaling.ts";
 import { isResourceAffordable } from "./utils/resourceValidation.ts";
 import { analyzeResourceDisplayWithConstraints } from "./utils/displayAnalysis.ts";
-import { mergeAutoProductionBehaviors, mergeTriggeredEffects } from "./utils/behaviorMerger.ts";
-import { analyzeCardLayout, optimizeBehaviorsForSpace } from "./utils/spaceOptimizer.ts";
+import {
+  mergeAutoProductionBehaviors,
+  mergeTriggeredEffects,
+} from "./utils/behaviorMerger.ts";
+import {
+  analyzeCardLayout,
+  optimizeBehaviorsForSpace,
+} from "./utils/spaceOptimizer.ts";
 import BehaviorContainer from "./components/BehaviorContainer.tsx";
 import ManualActionLayout from "./components/ManualActionLayout.tsx";
 import TriggeredEffectLayout from "./components/TriggeredEffectLayout.tsx";
@@ -30,7 +36,8 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
   const classifiedBehaviors = classifyBehaviors(behaviors);
 
   // Merge auto production behaviors if needed
-  const mergedAutoProduction = mergeAutoProductionBehaviors(classifiedBehaviors);
+  const mergedAutoProduction =
+    mergeAutoProductionBehaviors(classifiedBehaviors);
 
   // Merge triggered effects with same condition type (e.g., city-placed)
   const mergedBehaviors = mergeTriggeredEffects(mergedAutoProduction);
@@ -40,10 +47,16 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
   // Analyze card layout and optimize for space if needed
   const cardLayoutPlan = analyzeCardLayout(mergedBehaviors);
-  const optimizedBehaviors = optimizeBehaviorsForSpace(mergedBehaviors, cardLayoutPlan);
+  const optimizedBehaviors = optimizeBehaviorsForSpace(
+    mergedBehaviors,
+    cardLayoutPlan,
+  );
 
   // Helper function to check if a resource is affordable (bound to current context)
-  const checkResourceAffordable = (resource: any, isInput: boolean = true): boolean => {
+  const checkResourceAffordable = (
+    resource: any,
+    isInput: boolean = true,
+  ): boolean => {
     return isResourceAffordable(
       resource,
       isInput,
@@ -91,7 +104,9 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
             behavior={behavior}
             layoutPlan={layoutPlan}
             isResourceAffordable={checkResourceAffordable}
-            analyzeResourceDisplayWithConstraints={analyzeResourceDisplayWithConstraints}
+            analyzeResourceDisplayWithConstraints={
+              analyzeResourceDisplayWithConstraints
+            }
             tileScaleInfo={tileScaleInfo}
           />
         );
@@ -104,7 +119,9 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
             mergedBehaviors={classifiedBehavior.mergedBehaviors}
             layoutPlan={layoutPlan}
             isResourceAffordable={checkResourceAffordable}
-            analyzeResourceDisplayWithConstraints={analyzeResourceDisplayWithConstraints}
+            analyzeResourceDisplayWithConstraints={
+              analyzeResourceDisplayWithConstraints
+            }
             tileScaleInfo={tileScaleInfo}
           />
         );
@@ -118,7 +135,9 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
             behavior={behavior}
             layoutPlan={layoutPlan}
             isResourceAffordable={checkResourceAffordable}
-            analyzeResourceDisplayWithConstraints={analyzeResourceDisplayWithConstraints}
+            analyzeResourceDisplayWithConstraints={
+              analyzeResourceDisplayWithConstraints
+            }
             tileScaleInfo={tileScaleInfo}
             renderIcon={renderIcon}
           />

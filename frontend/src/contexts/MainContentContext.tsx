@@ -15,9 +15,13 @@ interface MainContentContextType {
   setContentData: (data: Record<string, unknown>) => void;
 }
 
-const MainContentContext = createContext<MainContentContextType | undefined>(undefined);
+const MainContentContext = createContext<MainContentContextType | undefined>(
+  undefined,
+);
 
-export const MainContentProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const MainContentProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [contentType, setContentType] = useState<MainContentType>("game");
   const [contentData, setContentData] = useState<Record<string, unknown>>({});
 

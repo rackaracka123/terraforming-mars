@@ -11,7 +11,6 @@ The Terraforming Mars backend uses an event-driven architecture to decouple game
 The system uses two categories of events:
 
 **1. Domain Events** - Represent specific game state changes
-
 ```go
 type TemperatureChangedEvent struct {
     GameID   string
@@ -28,7 +27,6 @@ type ResourcesChangedEvent struct {
 ```
 
 **2. BroadcastEvent** - Signals that clients need game state updates
-
 ```go
 type BroadcastEvent struct {
     GameID    string
@@ -275,7 +273,6 @@ func ToPersonalizedGameDTO(game *game.Game, receivingPlayerID string) *GameDTO {
 ### Critical Rules
 
 1. **Never publish events while holding a lock**
-
    ```go
    // ❌ WRONG
    g.mu.Lock()
@@ -295,7 +292,6 @@ func ToPersonalizedGameDTO(game *game.Game, receivingPlayerID string) *GameDTO {
    ```
 
 2. **Capture values before releasing lock**
-
    ```go
    g.mu.Lock()
    oldValue := g.someField
@@ -524,7 +520,6 @@ func (g *Game) PlaceTile(ctx context.Context, tile Tile) {
 ## Summary
 
 The event system provides:
-
 - **Decoupling**: Actions don't know about WebSocket broadcasting
 - **Extensibility**: Add new event subscribers without changing actions
 - **Thread Safety**: Clear patterns for lock management

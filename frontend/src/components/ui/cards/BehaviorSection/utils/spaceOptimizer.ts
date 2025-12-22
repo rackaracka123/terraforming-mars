@@ -9,7 +9,9 @@ import { createLayoutPlan } from "./layoutCalculator.ts";
  * @param classifiedBehaviors - Array of behaviors to analyze
  * @returns Layout plan including row estimates and overflow requirements
  */
-export const analyzeCardLayout = (classifiedBehaviors: ClassifiedBehavior[]): CardLayoutPlan => {
+export const analyzeCardLayout = (
+  classifiedBehaviors: ClassifiedBehavior[],
+): CardLayoutPlan => {
   const behaviorPlans = classifiedBehaviors.map((classifiedBehavior, index) => {
     const { behavior, type } = classifiedBehavior;
     const layoutPlan = createLayoutPlan(behavior, type);
@@ -29,7 +31,10 @@ export const analyzeCardLayout = (classifiedBehaviors: ClassifiedBehavior[]): Ca
     };
   });
 
-  const totalEstimatedRows = behaviorPlans.reduce((sum, plan) => sum + plan.estimatedRows, 0);
+  const totalEstimatedRows = behaviorPlans.reduce(
+    (sum, plan) => sum + plan.estimatedRows,
+    0,
+  );
   const needsOverflowHandling = totalEstimatedRows > MAX_CARD_ROWS;
 
   return {

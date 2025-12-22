@@ -57,26 +57,22 @@ docker compose logs -f
 The Docker Compose configuration includes:
 
 ### 1. Backend (Go Server)
-
 - Port: 3001 (internal)
 - Health check enabled
 - WebSocket support
 
 ### 2. Frontend (React + Nginx)
-
 - Port: 8080 (internal)
 - Serves static files
 - Reverse proxy to backend
 - WebSocket proxy
 
 ### 3. Cloudflare Tunnel
-
 - Provides secure HTTPS access
 - No exposed ports
 - Automatic SSL certificates
 
 ### 4. Webhook Server
-
 - Port: 9000 (internal)
 - Receives GitHub push events
 - Triggers automatic deployments
@@ -108,25 +104,21 @@ WEBHOOK_SECRET=your_github_webhook_secret
 ## Management
 
 ### View Logs
-
 ```bash
 docker compose logs -f [service_name]
 ```
 
 ### Restart Services
-
 ```bash
 docker compose restart [service_name]
 ```
 
 ### Stop Everything
-
 ```bash
 docker compose down
 ```
 
 ### Rebuild
-
 ```bash
 docker compose build
 docker compose up -d

@@ -43,7 +43,6 @@ func CreatePlayerCard(card *cards.Card, player *Player, game *Game, cardRegistry
 ```
 
 **Key benefits:**
-
 - ✅ No GameContext interface needed
 - ✅ Actions orchestrate (consistent with existing architecture)
 - ✅ No circular dependencies (`player/` never imports `game/`)
@@ -105,7 +104,6 @@ func (h *Hand) RemoveCard(cardID string) {
 **IMPORTANT: Actions create everything** - Actions create PlayerCard, register listeners with cleanup tracking, calculate initial state, then add to Hand cache via AddPlayerCard(). Hand is a dumb cache with no creation logic.
 
 **Lifecycle:**
-
 - **Selection phase**: Created for card options, cached until selected/discarded
 - **In hand**: Created when added, cached until played/discarded
 - **Played**: Created when played, cached for game duration
@@ -118,7 +116,6 @@ func (h *Hand) RemoveCard(cardID string) {
 - `EntityState` (not PlayableState/UsableState) - single generic state structure
 
 All entities use the same `EntityState`:
-
 - `Available()` computed method - works for playable/usable/available/purchasable
 - `Metadata` map minimal - prefer typed fields when data is predictable
 - Future features (tiles, awards, milestones) use same pattern
@@ -180,7 +177,6 @@ action/
 ### State Design: Generic EntityState
 
 **Problem with entity-specific states**: Original design had three separate state structs (PlayerCardState, PlayerCardActionState, PlayerStandardProjectState) with redundant boolean flags that could contradict:
-
 ```go
 // ❌ Old approach - redundant and contradictory
 PlayerCardState {
@@ -192,7 +188,6 @@ PlayerCardState {
 ```
 
 **Solution**: Single generic `EntityState` with computed availability:
-
 ```go
 // ✅ New approach - simple and consistent
 EntityState {
@@ -208,7 +203,6 @@ func (e EntityState) Available() bool {
 ```
 
 **Benefits**:
-
 - ✅ Eliminates ALL redundant booleans (`Available`, `Playable`, `Affordable`, `MeetsRequirements`)
 - ✅ Impossible to have contradictory state (computed from single source of truth)
 - ✅ Works for all entity types (cards, actions, projects, tiles, etc.)
@@ -248,7 +242,7 @@ type Card struct {
 
 **IMPORTANT**: PlayerCard is a **simple data holder** with NO business logic. State calculation happens in `internal/action/` package to avoid circular dependencies and keep files focused.
 
-````go
+```go
 // backend/internal/game/player/player_card.go
 package player
 
@@ -317,10 +311,9 @@ type PlayerCardAction struct {
     timesUsedThisGeneration int  // NOT in metadata
     state EntityState
 }
-````
+```
 
 **Use metadata sparingly for truly dynamic data:**
-
 ```go
 // ✅ Minimal metadata - Cards
 Metadata: map[string]interface{}{
@@ -336,7 +329,6 @@ Metadata: map[string]interface{}{
 ```
 
 **Avoid metadata for boolean flags derivable from Errors:**
-
 ```go
 // ❌ Bad: Redundant with Errors
 "meetsRequirements": true,  // Just check for requirement errors
@@ -349,7 +341,6 @@ canAfford := !hasErrorCode(state.Errors, "INSUFFICIENT_CREDITS")
 ```
 
 **Benefits:**
-
 - Type-safe for common patterns (compile-time checking)
 - Metadata only for truly variable entity-specific data
 - Simpler DTO mapping (fewer type assertions)
@@ -357,47 +348,46 @@ canAfford := !hasErrorCode(state.Errors, "INSUFFICIENT_CREDITS")
 
 // Constructor: Simple initialization with empty state
 func NewPlayerCard(card *cards.Card) *PlayerCard {
-return &PlayerCard{
-card: card,
-state: EntityState{
-Errors: []StateError{},
-Metadata: make(map[string]interface{}),
-},
-}
+    return &PlayerCard{
+        card: card,
+        state: EntityState{
+            Errors:   []StateError{},
+            Metadata: make(map[string]interface{}),
+        },
+    }
 }
 
 // UpdateState: Called by actions after calculating state
-func (pc \*PlayerCard) UpdateState(newState EntityState) {
-pc.mu.Lock()
-defer pc.mu.Unlock()
-pc.state = newState
+func (pc *PlayerCard) UpdateState(newState EntityState) {
+    pc.mu.Lock()
+    defer pc.mu.Unlock()
+    pc.state = newState
 }
 
 // Public accessors (read-only)
 func (pc *PlayerCard) Card() *cards.Card {
-return pc.card
+    return pc.card
 }
 
-func (pc \*PlayerCard) State() EntityState {
-pc.mu.RLock()
-defer pc.mu.RUnlock()
-return pc.state
+func (pc *PlayerCard) State() EntityState {
+    pc.mu.RLock()
+    defer pc.mu.RUnlock()
+    return pc.state
 }
 
-func (pc \*PlayerCard) IsAvailable() bool {
-pc.mu.RLock()
-defer pc.mu.RUnlock()
-return pc.state.Available()
+func (pc *PlayerCard) IsAvailable() bool {
+    pc.mu.RLock()
+    defer pc.mu.RUnlock()
+    return pc.state.Available()
 }
 
 // Cleanup unsubscribes all event listeners (called when card removed from hand)
-func (pc \*PlayerCard) Cleanup() {
-for \_, unsub := range pc.unsubscribers {
-unsub()
+func (pc *PlayerCard) Cleanup() {
+    for _, unsub := range pc.unsubscribers {
+        unsub()
+    }
 }
-}
-
-````
+```
 
 ### Event Listener Lifecycle and Cleanup
 
@@ -430,10 +420,9 @@ func (a *Action) registerPlayerCardEventListeners(
 
     // ... register all relevant events
 }
-````
+```
 
 **Cleanup when PlayerCard removed:**
-
 ```go
 // Hand.RemoveCard calls Cleanup before removing from cache
 func (h *Hand) RemoveCard(cardID string) {
@@ -459,13 +448,11 @@ func (h *Hand) RemoveCard(cardID string) {
 ```
 
 **Why this matters:**
-
 - Each PlayerCard can have 5-10 event listeners
 - A game might have 50+ PlayerCards active
 - Without cleanup: 250-500 dangling listeners
 - Cleanup prevents memory leaks and performance degradation
-
-````
+```
 
 ### State Calculation (Action Package)
 
@@ -608,10 +595,9 @@ func validateAffordability(p *player.Player, cost int) []player.StateError {
     }
     return nil
 }
-````
+```
 
 **Key benefits:**
-
 - ✅ No circular dependencies (action imports both game and player)
 - ✅ Complex validation logic separated from domain model
 - ✅ Can reuse and extract existing logic from PlayCardAction
@@ -623,7 +609,6 @@ func validateAffordability(p *player.Player, cost int) []player.StateError {
 **CRITICAL**: State is calculated in EXACTLY TWO scenarios:
 
 1. **Initial Creation** (in action):
-
    ```go
    pc := player.NewPlayerCard(card)
    action.registerEventListeners(pc, p, g)
@@ -640,14 +625,12 @@ func validateAffordability(p *player.Player, cost int) []player.StateError {
    ```
 
 **NEVER calculate state:**
-
 - ❌ In DTO mapping (just read cached state)
 - ❌ In Hand.GetOrCreatePlayerCard() (just return cached instance)
 - ❌ On every game state broadcast (events handle this)
 - ❌ Manually in business logic (events handle this)
 
 **Flow:**
-
 ```
 Action creates PlayerCard
   → Registers event listeners on PlayerCard
@@ -1128,32 +1111,27 @@ type ActionPlayCountsResetEvent struct {
 ## Benefits
 
 ### 1. **Action Orchestration**
-
 - Actions have access to Game and Player
 - No interface indirection needed
 - Consistent with existing architecture pattern
 
 ### 2. **No Circular Dependencies**
-
 - `player/` package never imports `game/` package
 - Actions in `action/` package orchestrate both
 - Clean dependency flow: `action/` → `game/` → `player/` → `cards/` → `shared/`
 
 ### 3. **Long-Lived Caching**
-
 - PlayerCard cached in Hand, PlayedCards, selection phases
 - Efficient - no recalculation on every DTO mapping
 - Can recalculate when actions update state
 
 ### 4. **Extensible**
-
 - `EntityState` is truly generic - works for any entity type
 - Add new entity types without refactoring (cards, actions, projects, tiles, etc.)
 - Metadata map allows entity-specific data without struct changes
 - Future-proof - no breaking changes for new features
 
 ### 5. **Rich State Information**
-
 - Computed `Available()` method (impossible to contradict errors)
 - Detailed errors with codes, categories, and messages
 - Optional cost calculation (pointer, nil if N/A)
@@ -1161,7 +1139,6 @@ type ActionPlayCountsResetEvent struct {
 - All player-relevant information in one place
 
 ### 6. **Memory Safety**
-
 - Explicit event listener cleanup via Cleanup()
 - Unsubscribe functions tracked in PlayerCard
 - Hand.RemoveCard() calls Cleanup() before deletion
@@ -1170,7 +1147,6 @@ type ActionPlayCountsResetEvent struct {
 ## Implementation Checklist
 
 ### Phase 1: Core Types (Data Holders) ✅ COMPLETE
-
 - [x] Create `EntityState` struct in `player/entity_state.go` (42 lines)
 - [x] Create `StateError` struct
 - [x] Create `PlayerCard` in `player/player_card.go` (88 lines - uses `any` for card to avoid circular dependency)
@@ -1180,7 +1156,6 @@ type ActionPlayCountsResetEvent struct {
 **COMPLETED**: Simple data holders with NO business logic. Constructors, UpdateState(), accessors only. All use `EntityState` structure.
 
 ### Phase 2: State Calculation Logic (Action Package) ✅ COMPLETE
-
 - [x] Create `action/state_calculator.go` (455 lines - consolidates all entity types)
   - **PlayerCard calculation** (implemented):
     - `CalculatePlayerCardState()` returns `EntityState`
@@ -1202,7 +1177,6 @@ type ActionPlayCountsResetEvent struct {
 **COMPLETED**: All calculation logic in dedicated files. Shared validation helpers. Event-driven state updates.
 
 ### Phase 3: Caching Integration ✅ COMPLETE
-
 - [x] Add `playerCards map[string]*PlayerCard` to Hand
 - [x] Add `GetPlayerCard(cardID)` - retrieves cached instance
 - [x] Add `AddPlayerCard(cardID, pc)` - stores in cache
@@ -1212,7 +1186,6 @@ type ActionPlayCountsResetEvent struct {
 **COMPLETED**: Hand caches PlayerCard instances with proper cleanup.
 
 ### Phase 4: Action Integration ✅ COMPLETE (ALL 5 actions)
-
 - [x] Update actions that add cards to hand:
   - [x] `confirm_card_draw.go` - creates PlayerCard instances
   - [x] `admin/give_card.go` - creates PlayerCard instances
@@ -1224,7 +1197,6 @@ type ActionPlayCountsResetEvent struct {
 **COMPLETED**: All 5 actions that add cards to hand now create PlayerCard instances with event listeners.
 
 ### Phase 5: DTO Enhancement ✅ COMPLETE
-
 - [x] Create `StateErrorDto` with Code, Category, Message fields
 - [x] Create `PlayerCardDto` with EntityState fields:
   - available: bool (from Available() method)
@@ -1243,7 +1215,6 @@ type ActionPlayCountsResetEvent struct {
 **COMPLETED**: All DTOs read cached state with type assertions. NO calculation in DTO mapping - events keep state up-to-date. TypeScript types generated and ready for frontend integration.
 
 ### Phase 6: Frontend Integration (IN PROGRESS)
-
 - [x] Update TypeScript types (auto-generated from make generate)
 - [x] Update SimpleGameCard component to support PlayerCardDto:
   - Type guard to detect PlayerCardDto vs CardDto
@@ -1257,7 +1228,6 @@ type ActionPlayCountsResetEvent struct {
 - [ ] Test with real game data to verify state updates work in real-time
 
 ### Phase 7: Testing ✅ COMPLETE
-
 - [x] Unit tests for state calculator functions (11 tests, all passing):
   - PlayerCard state calculation (5 tests): Available, InsufficientCredits, TemperatureRequirement, MultipleRequirements, WrongPhase
   - PlayerCardAction state calculation (3 tests): Available, InsufficientResources, NotPlayerTurn
@@ -1381,7 +1351,6 @@ func mapSelectStartingCardsPhase(
 ## Conclusion
 
 This architecture:
-
 - **Separates concerns**: Card (immutable data) vs PlayerCard (player state holder) vs Calculator (state logic)
 - **Uses actions for orchestration**: All state calculation in `action/` package
 - **Caches for efficiency**: PlayerCard lives as long as relevant, state recalculated on demand
@@ -1394,13 +1363,11 @@ This architecture:
 - **Is maintainable**: Clear ownership - domain models hold data, actions calculate state
 
 **Key architectural decision**: State calculation in `action/` package prevents:
-
 - ❌ Circular dependencies (player importing game)
 - ❌ Huge files with complex business logic in domain models
 - ❌ Violation of separation of concerns
 
 **Generic EntityState benefits**:
-
 - ✅ Single source of truth: `Available()` computed from `len(Errors) == 0`
 - ✅ Impossible to have contradictory state (computed, not stored)
 - ✅ Works for any entity type without refactoring
@@ -1409,7 +1376,6 @@ This architecture:
 - ✅ Explicit cleanup prevents memory leaks
 
 **Simplifications in this architecture**:
-
 - ✅ One calculator file (~400 lines) instead of three (~600 lines total)
 - ✅ Computed Available() eliminates stored redundant field
 - ✅ Minimal metadata reduces type assertion complexity

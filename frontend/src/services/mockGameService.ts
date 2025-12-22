@@ -174,19 +174,23 @@ export class MockWebSocketService {
         const corp = mockCorporations.find((c) => c.id === data.corporationId);
         if (corp) {
           // Apply starting resources
-          Object.entries(corp.startingResources).forEach(([resource, amount]) => {
-            if (resource in player.resources) {
-              (player.resources as any)[resource] = amount;
-            }
-          });
+          Object.entries(corp.startingResources).forEach(
+            ([resource, amount]) => {
+              if (resource in player.resources) {
+                (player.resources as any)[resource] = amount;
+              }
+            },
+          );
 
           // Apply starting production
           if (corp.startingProduction) {
-            Object.entries(corp.startingProduction).forEach(([resource, amount]) => {
-              if (resource in player.production) {
-                (player.production as any)[resource] += amount;
-              }
-            });
+            Object.entries(corp.startingProduction).forEach(
+              ([resource, amount]) => {
+                if (resource in player.production) {
+                  (player.production as any)[resource] += amount;
+                }
+              },
+            );
           }
         }
 
@@ -201,7 +205,9 @@ export class MockWebSocketService {
       // Handle temperature raise
       if (this.gameState.globalParameters.temperature < 8) {
         this.gameState.globalParameters.temperature += 2;
-        const player = this.gameState.players.find((p) => p.id === this.playerId);
+        const player = this.gameState.players.find(
+          (p) => p.id === this.playerId,
+        );
         if (player) {
           player.resources.heat = Math.max(0, player.resources.heat - 8);
           player.terraformRating += 1;

@@ -47,32 +47,27 @@ frontend/
 ### Component Organization
 
 **Pages** (`components/pages/`)
-
 - Top-level route components
 - Compose multiple features
 - Handle page-level state and routing
 
 **Game Components** (`components/game/`)
-
 - Core gameplay UI elements
 - Resource displays, action panels, player boards
 - Direct game state visualization
 
 **Card Components** (`components/cards/`)
-
 - Card display and interaction
 - Corporation selection
 - Card effect visualization
 
 **Three.js Components** (`components/three/`)
-
 - 3D Mars visualization with React Three Fiber
 - Hex grid rendering
 - Custom camera controls (pan + zoom, no orbit)
 - Background celestial objects
 
 **UI Components** (`components/ui/`)
-
 - Reusable design system components
 - Buttons, panels, modals, icons
 - Consistent styling and behavior
@@ -80,19 +75,16 @@ frontend/
 ### State Management
 
 **WebSocket-Driven State**
-
 - **No local game state**: Backend is source of truth
 - **Real-time synchronization**: All state changes via WebSocket events
 - **Unidirectional flow**: Server → WebSocket → React state → UI
 
 **React Contexts**
-
 - Game state from WebSocket
 - Player connection status
 - UI state (modals, selections)
 
 **localStorage**
-
 - Game ID and player ID persistence
 - Automatic reconnection on page reload
 - Session recovery after browser close
@@ -329,7 +321,6 @@ websocketService.disconnect();
 **Message Types**
 
 **Outbound (Client → Server)**:
-
 - `join-game`: Join or create game session
 - `player-reconnect`: Reconnect existing player
 - `select-corporation`: Choose corporation
@@ -338,7 +329,6 @@ websocketService.disconnect();
 - `start-game`: Host starts game from lobby
 
 **Inbound (Server → Client)**:
-
 - `game-updated`: Full game state synchronization
 - `player-connected`: New player joined
 - `player-reconnected`: Player reconnected
@@ -424,7 +414,6 @@ make run
 ```
 
 **Playwright MCP Tools**:
-
 - `mcp__playwright__browser_navigate`: Navigate to URLs
 - `mcp__playwright__browser_snapshot`: Capture page state
 - `mcp__playwright__browser_click`: Click elements
@@ -433,7 +422,6 @@ make run
 - `mcp__playwright__browser_evaluate`: Run JavaScript
 
 **Debugging Use Cases**:
-
 - UI rendering issues
 - State synchronization problems
 - User flow testing

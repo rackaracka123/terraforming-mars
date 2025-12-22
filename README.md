@@ -6,7 +6,7 @@ A digital implementation of the board game Terraforming Mars with a unique 3D ga
 
 - **3D Game View**: Interactive Mars board with hex-based tile system
 - **Real-time Multiplayer**: WebSocket-based multiplayer with Go backend
-- **Clean Architecture**: Backend follows domain-driven design principles
+- **Clean Architecture**: Backend follows domain-driven design principles  
 - **Type Safety**: Automatic TypeScript generation from Go structs
 - **Visual Terraforming**: Watch Mars transform as global parameters change
 
@@ -19,15 +19,12 @@ A digital implementation of the board game Terraforming Mars with a unique 3D ga
 ## ⚡ Quick Start
 
 ### Run Both Servers
-
 ```bash
 make run
 ```
-
 This starts both frontend (port 3000) and backend (port 3001) servers.
 
 ### Individual Servers
-
 ```bash
 make frontend    # React development server
 make backend     # Go backend server
@@ -36,27 +33,23 @@ make backend     # Go backend server
 ## 🛠️ Development Commands
 
 ### Main Commands
-
 - `make run` - Start both servers
 - `make frontend` - Start frontend only
-- `make backend` - Start backend only
+- `make backend` - Start backend only  
 - `make tm` - Launch CLI tool
 
 ### Testing
-
 - `make test` - Run all tests
 - `make test-backend` - Backend tests only
 - `make test-verbose` - Verbose backend tests
 - `make test-coverage` - Coverage report
 
 ### Code Quality
-
 - `make lint` - Run all linters
 - `make format` - Format all code
 - `make generate` - Generate TypeScript types
 
 ### Build & Deploy
-
 - `make build` - Production builds
 - `make clean` - Clean artifacts
 
@@ -71,14 +64,12 @@ make backend     # Go backend server
 ## 🎮 Game Architecture
 
 ### Backend (Go)
-
 - **Domain Layer**: Core game entities and business logic
 - **Service Layer**: Use cases and application logic
 - **Delivery Layer**: HTTP handlers and WebSocket hub
 - **Repository Layer**: In-memory game state storage
 
 ### Frontend (React)
-
 - **3D Rendering**: React Three Fiber with custom pan controls
 - **Game State**: Redux with generated TypeScript types
 - **Real-time Updates**: WebSocket client for live game state
@@ -87,7 +78,7 @@ make backend     # Go backend server
 ## 📋 Development Workflow
 
 1. **Make changes** to Go domain models with `ts:` tags
-2. **Run `make generate`** to update TypeScript types
+2. **Run `make generate`** to update TypeScript types  
 3. **Implement frontend** using generated types
 4. **Test with CLI** using `make tm` for backend interaction
 5. **Run `make lint`** before committing changes

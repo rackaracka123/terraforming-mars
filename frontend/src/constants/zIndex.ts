@@ -54,6 +54,9 @@ export const Z_INDEX = {
 export type ZIndexValue = (typeof Z_INDEX)[keyof typeof Z_INDEX];
 
 // Helper function to get z-index with optional offset
-export const getZIndex = (level: keyof typeof Z_INDEX, offset: number = 0): number => {
+export const getZIndex = (
+  level: keyof typeof Z_INDEX,
+  offset: number = 0,
+): number => {
   return Z_INDEX[level] + offset;
 };

@@ -5,7 +5,10 @@ interface LoadingOverlayProps {
   message?: string;
 }
 
-const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ isLoading, message = "Loading..." }) => {
+const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
+  isLoading,
+  message = "Loading...",
+}) => {
   const [isVisible, setIsVisible] = useState(isLoading);
   const [isFadingOut, setIsFadingOut] = useState(false);
 

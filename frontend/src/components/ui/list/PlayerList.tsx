@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { PlayerDto, OtherPlayerDto, GamePhase } from "@/types/generated/api-types.ts";
+import {
+  PlayerDto,
+  OtherPlayerDto,
+  GamePhase,
+} from "@/types/generated/api-types.ts";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import PlayerCard from "../cards/PlayerCard.tsx";
 
@@ -18,7 +22,9 @@ const PlayerList: React.FC<PlayerListProps> = ({
   currentPhase,
   remainingActions,
 }) => {
-  const [previousTurnPlayer, setPreviousTurnPlayer] = useState<string | null>(null);
+  const [previousTurnPlayer, setPreviousTurnPlayer] = useState<string | null>(
+    null,
+  );
   const [actionsUsed, setActionsUsed] = useState(0);
 
   // Calculate if we're in the action phase where action UI should be visible

@@ -13,7 +13,6 @@ Go-based REST and WebSocket API server implementing the Terraforming Mars board 
 **IMPORTANT**: This backend follows idiomatic Go practices and community standards. For comprehensive Go coding guidelines, see **[go.instructions.md](./go.instructions.md)**.
 
 Key standards include:
-
 - Follow Effective Go, Go Code Review Comments, and Google's Go Style Guide
 - Write simple, clear, and idiomatic Go code
 - Use proper naming conventions (mixedCaps, avoid underscores)
@@ -251,14 +250,12 @@ See `docs/EVENT_SYSTEM.md` for complete event system documentation.
 The architecture follows clear ownership boundaries for game state:
 
 **Game Repository Owns:**
-
 - Game-wide state (status, phase, generation, current turn)
 - Player-specific phase state (ProductionPhase, SelectStartingCardsPhase, PendingCardSelection, PendingCardDrawSelection, PendingTileSelection, PendingTileSelectionQueue, ForcedFirstAction)
 - Global parameters (temperature, oxygen, oceans)
 - Game configuration and settings
 
 **Player Repository Owns:**
-
 - Player identity (ID, name, gameID)
 - Corporation selection
 - Cards (hand and played cards)
@@ -267,14 +264,12 @@ The architecture follows clear ownership boundaries for game state:
 - Player effects, actions, requirement modifiers
 
 **Why Phase State Lives in Game:**
-
 - Phase state is transient - exists only during specific game phases
 - Game controls phase transitions and needs atomic access to all players' phase states
 - Cleaner separation: Player represents persistent player state, Game manages workflow state
 - Simplifies phase transition logic (e.g., checking if all players completed starting selection)
 
 **Access Pattern:**
-
 ```go
 // ✅ CORRECT: Access phase state via Game
 game, _ := gameRepo.Get(gameID)

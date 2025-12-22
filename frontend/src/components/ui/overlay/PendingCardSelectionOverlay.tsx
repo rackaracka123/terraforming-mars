@@ -1,7 +1,10 @@
 import React from "react";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
 import GameIcon from "../display/GameIcon.tsx";
-import { PendingCardSelectionDto, ResourceTypeCredit } from "../../../types/generated/api-types.ts";
+import {
+  PendingCardSelectionDto,
+  ResourceTypeCredit,
+} from "../../../types/generated/api-types.ts";
 import { useCardSelection } from "../../../hooks/useCardSelection.ts";
 import {
   OVERLAY_BACKGROUND_CLASS,
@@ -30,13 +33,9 @@ interface TitleInfo {
   description: string;
 }
 
-const PendingCardSelectionOverlay: React.FC<PendingCardSelectionOverlayProps> = ({
-  isOpen,
-  selection,
-  playerCredits,
-  onSelectCards,
-  onCancel,
-}) => {
+const PendingCardSelectionOverlay: React.FC<
+  PendingCardSelectionOverlayProps
+> = ({ isOpen, selection, playerCredits, onSelectCards, onCancel }) => {
   const {
     selectedCardIds,
     totalCost,
@@ -163,7 +162,9 @@ const PendingCardSelectionOverlay: React.FC<PendingCardSelectionOverlayProps> = 
                   {/* Unaffordable overlay */}
                   {!canAfford && !isSelected && (
                     <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center">
-                      <span className="text-white/80 font-bold">Can't Afford</span>
+                      <span className="text-white/80 font-bold">
+                        Can't Afford
+                      </span>
                     </div>
                   )}
                 </div>
@@ -177,12 +178,20 @@ const PendingCardSelectionOverlay: React.FC<PendingCardSelectionOverlayProps> = 
           <div className="flex gap-8 items-center max-[768px]:w-full max-[768px]:justify-between max-[768px]:flex-wrap">
             <div className="flex items-center gap-3">
               <span className={RESOURCE_LABEL_CLASS}>Your Credits:</span>
-              <GameIcon iconType={ResourceTypeCredit} amount={playerCredits} size="large" />
+              <GameIcon
+                iconType={ResourceTypeCredit}
+                amount={playerCredits}
+                size="large"
+              />
             </div>
             {totalCost > 0 && (
               <div className="flex items-center gap-3">
                 <span className={RESOURCE_LABEL_CLASS}>Total Cost:</span>
-                <GameIcon iconType={ResourceTypeCredit} amount={totalCost} size="large" />
+                <GameIcon
+                  iconType={ResourceTypeCredit}
+                  amount={totalCost}
+                  size="large"
+                />
               </div>
             )}
             {totalReward > 0 && (
@@ -190,7 +199,11 @@ const PendingCardSelectionOverlay: React.FC<PendingCardSelectionOverlayProps> = 
                 <span className={RESOURCE_LABEL_CLASS}>Total Reward:</span>
                 <div className="flex items-center gap-1">
                   <span className="text-[#4caf50] font-bold text-lg">+</span>
-                  <GameIcon iconType={ResourceTypeCredit} amount={totalReward} size="large" />
+                  <GameIcon
+                    iconType={ResourceTypeCredit}
+                    amount={totalReward}
+                    size="large"
+                  />
                 </div>
               </div>
             )}
@@ -231,7 +244,10 @@ const PendingCardSelectionOverlay: React.FC<PendingCardSelectionOverlayProps> = 
             </div>
             <div className="flex gap-3 items-center">
               {(onCancel || selection.minCards === 0) && (
-                <button className={SECONDARY_BUTTON_CLASS} onClick={handleCancel}>
+                <button
+                  className={SECONDARY_BUTTON_CLASS}
+                  onClick={handleCancel}
+                >
                   {onCancel ? "Cancel" : "Skip"}
                 </button>
               )}

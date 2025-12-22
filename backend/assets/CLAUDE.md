@@ -30,7 +30,6 @@ This is the authoritative source for all card definitions in the game. It contai
 ### Behavior System
 
 Each card has a `behaviors` array defining its effects. Each behavior has:
-
 - `triggers`: When the behavior activates
 - `inputs`: Resources consumed (costs)
 - `outputs`: Resources produced (effects)
@@ -38,12 +37,12 @@ Each card has a `behaviors` array defining its effects. Each behavior has:
 
 ### Trigger Types
 
-| Trigger                  | Description                               |
-| ------------------------ | ----------------------------------------- |
-| `auto`                   | Applies immediately when card is played   |
+| Trigger | Description |
+|---------|-------------|
+| `auto` | Applies immediately when card is played |
 | `auto-corporation-start` | Applies once when corporation is selected |
-| `manual`                 | Player-activated action (blue cards)      |
-| `auto` + `condition`     | Passive effect triggered by game events   |
+| `manual` | Player-activated action (blue cards) |
+| `auto` + `condition` | Passive effect triggered by game events |
 
 ### Output Types
 
@@ -56,7 +55,6 @@ Each card has a `behaviors` array defining its effects. Each behavior has:
 **Tile Placements:** `city-placement`, `greenery-placement`, `ocean-placement`
 
 **Special:**
-
 - `discount` - Reduces card costs (uses `affectedTags` or `affectedStandardProjects`)
 - `payment-substitute` - Allows resource as credit payment (uses `affectedResources` for resource type, `amount` for conversion rate)
 - `value-modifier` - Increases resource payment value (uses `affectedResources` for steel/titanium, `amount` for bonus)

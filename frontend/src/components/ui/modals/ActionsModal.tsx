@@ -10,7 +10,10 @@ import { canPerformActions, hasActionsAvailable } from "@/utils/actionUtils.ts";
 import GameIcon from "../display/GameIcon.tsx";
 
 // Utility function to check if an action is affordable and available
-const isActionAvailable = (action: PlayerActionDto, gameState?: GameDto): boolean => {
+const isActionAvailable = (
+  action: PlayerActionDto,
+  gameState?: GameDto,
+): boolean => {
   // Check if action has been played this generation
   if (action.timesUsedThisGeneration > 0) {
     return false;
@@ -94,9 +97,13 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
   // Determine if actions can be played using utility function
   const isGameActive = gameState?.status === GameStatusActive;
   const isActionPhase = gameState?.currentPhase === GamePhaseAction;
-  const isCurrentPlayerTurn = gameState?.currentTurn === gameState?.viewingPlayerId;
-  const hasActionsLeft = hasActionsAvailable(gameState?.currentPlayer?.availableActions);
-  const hasPendingTileSelection = gameState?.currentPlayer?.pendingTileSelection;
+  const isCurrentPlayerTurn =
+    gameState?.currentTurn === gameState?.viewingPlayerId;
+  const hasActionsLeft = hasActionsAvailable(
+    gameState?.currentPlayer?.availableActions,
+  );
+  const hasPendingTileSelection =
+    gameState?.currentPlayer?.pendingTileSelection;
 
   // Button should be visible only if game is active and in action phase
   const showPlayButton = isGameActive && isActionPhase;
@@ -162,7 +169,9 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
               </select>
               <button
                 className="bg-[#ff6464]/20 border border-[#ff6464]/40 rounded text-white py-1.5 px-2 cursor-pointer text-base transition-all duration-200 hover:bg-[#ff6464]/30 hover:scale-110"
-                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                onClick={() =>
+                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                }
                 title={`Sort ${sortOrder === "asc" ? "Descending" : "Ascending"}`}
               >
                 {sortOrder === "asc" ? "↑" : "↓"}
@@ -185,7 +194,9 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
               <div className="mb-5 opacity-60">
                 <GameIcon iconType="card" size="large" />
               </div>
-              <h3 className="text-white text-2xl m-0 mb-2.5">No Card Actions Available</h3>
+              <h3 className="text-white text-2xl m-0 mb-2.5">
+                No Card Actions Available
+              </h3>
               <p className="text-white/70 text-base m-0">
                 Play cards with manual triggers to gain actions
               </p>
@@ -228,7 +239,9 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                     {showPlayButton && (
                       <button
                         className={`absolute bottom-2.5 right-2.5 bg-[linear-gradient(135deg,rgba(100,200,100,0.8)_0%,rgba(80,160,80,0.9)_100%)] border border-[rgba(100,200,100,0.6)] rounded-md text-black text-[11px] font-semibold py-1.5 px-3 cursor-pointer transition-all duration-200 [text-shadow:none] shadow-[0_2px_4px_rgba(0,0,0,0.3)] z-10 hover:bg-[linear-gradient(135deg,rgba(100,200,100,1)_0%,rgba(80,160,80,1)_100%)] hover:border-[rgba(100,200,100,0.8)] hover:-translate-y-px hover:shadow-[0_3px_8px_rgba(100,200,100,0.3)] disabled:!bg-[linear-gradient(135deg,rgba(120,120,120,0.5)_0%,rgba(80,80,80,0.6)_100%)] disabled:!border-[rgba(120,120,120,0.4)] disabled:!text-black/50 disabled:!cursor-not-allowed disabled:!transform-none disabled:!shadow-[0_1px_2px_rgba(0,0,0,0.2)] max-md:text-[10px] max-md:py-1 max-md:px-2 max-md:bottom-2 max-md:right-2 ${!isActionPlayable ? "!bg-[linear-gradient(135deg,rgba(120,120,120,0.5)_0%,rgba(80,80,80,0.6)_100%)] !border-[rgba(120,120,120,0.4)] !text-black/50 !cursor-not-allowed !transform-none !shadow-[0_1px_2px_rgba(0,0,0,0.2)]" : ""}`}
-                        onClick={() => isActionPlayable && handleActionClick(action)}
+                        onClick={() =>
+                          isActionPlayable && handleActionClick(action)
+                        }
                         disabled={!isActionPlayable}
                         title={
                           hasPendingTileSelection

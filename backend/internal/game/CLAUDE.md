@@ -9,7 +9,6 @@ This document contains critical reminders for Claude Code when working with game
 ### Current Pattern (Manual Broadcasting)
 
 When any state changes, we currently publish TWO events:
-
 1. **Domain event** - Business logic event (e.g., `TemperatureChangedEvent`, `ResourcesChangedEvent`)
 2. **BroadcastEvent** - Signals to Broadcaster to send game state updates to clients
 
@@ -88,7 +87,6 @@ func Publish[T any](eb *EventBusImpl, event T) {
 ```
 
 **Benefits:**
-
 - ✅ Remove ALL manual `BroadcastEvent` publishing
 - ✅ Impossible to forget broadcasting
 - ✅ EventBus per game already - gameID known at creation
@@ -110,7 +108,6 @@ func NewEventBus(gameID string, broadcaster BroadcastFunc, autoBroadcast bool) *
 ```
 
 **Benefits:**
-
 - Allows opt-out for internal-only events if needed
 - More flexible but adds complexity
 
@@ -128,14 +125,12 @@ type BroadcastableEvent interface {
 Only auto-broadcast for events implementing this interface.
 
 **Benefits:**
-
 - Fine-grained control per event type
 - Most complex, possibly over-engineered
 
 ### Recommendation
 
 **Use Option A** because:
-
 1. All current state changes already broadcast (checked 50+ instances)
 2. Real-time multiplayer game = all state changes ARE broadcasted
 3. Simplest implementation, easiest to maintain
@@ -155,7 +150,6 @@ If implementing automatic broadcasting:
 ### Current State Management Locations
 
 State mutation happens in these packages:
-
 - `/internal/game/game.go` - Game-level state (status, phase, generation)
 - `/internal/game/global_parameters/` - Temperature, oxygen, oceans
 - `/internal/game/board/` - Tile placement
@@ -169,7 +163,6 @@ All of these currently publish `BroadcastEvent` after state changes.
 ### EventBus Per Game
 
 Each `Game` instance has its own `EventBus`:
-
 ```go
 type Game struct {
     id       string
@@ -179,7 +172,6 @@ type Game struct {
 ```
 
 This means:
-
 - ✅ No cross-game event pollution
 - ✅ GameID is known at EventBus creation time
 - ✅ Perfect isolation for automatic broadcasting
