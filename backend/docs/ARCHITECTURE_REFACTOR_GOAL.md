@@ -37,12 +37,14 @@ This document describes the current architecture, design patterns, and the refac
 ## What Changed
 
 ### Previous Architecture (Before Refactor)
+
 - `internal/session/` package with Session wrapper
 - Multiple repositories (game, board, card, deck)
 - Actions received Session and multiple repositories
 - Mixed responsibility between actions and repositories
 
 ### Current Architecture (After Refactor)
+
 - `internal/game/` as root package for all game state
 - **Package Structure**:
   - `internal/game/` - Core game types (Game, Card types, PlayerActions, PlayerEffects)
@@ -102,6 +104,7 @@ func (g *Game) IncrementGeneration(ctx context.Context) {
 ```
 
 **Key Points:**
+
 - EventBus injected as private field in Game, Player, GlobalParameters
 - State methods publish events after releasing locks (never while holding)
 - No business logic in event publishing - just state notification
@@ -112,6 +115,7 @@ func (g *Game) IncrementGeneration(ctx context.Context) {
 All domain types use **private fields with public methods**:
 
 ### Game
+
 ```go
 type Game struct {
     mu                sync.RWMutex
@@ -134,6 +138,7 @@ func (g *Game) IncrementGeneration(ctx context.Context)
 ```
 
 ### GlobalParameters
+
 ```go
 type GlobalParameters struct {
     mu          sync.RWMutex
@@ -149,6 +154,7 @@ func (gp *GlobalParameters) Temperature() int
 ```
 
 ### Turn
+
 ```go
 type Turn struct {
     mu               sync.RWMutex
@@ -166,6 +172,7 @@ func (t *Turn) SetActions(actions []ActionType)
 ```
 
 ### Player (in `internal/game/player/` package)
+
 ```go
 package player
 
@@ -209,6 +216,7 @@ func (p *Player) HasCorporation() bool
 **Note on Actions and Effects**: The `Actions` and `Effects` components (managing available player actions and passive effects) remain in the `game` package, not in the `player` package. This avoids import cycles since these components depend heavily on card behavior types.
 
 ### Components (Hand, PlayedCards, Resources, etc.)
+
 ```go
 package player
 
@@ -337,6 +345,7 @@ func (gp *GlobalParameters) IncreaseTemperature(ctx context.Context, steps int) 
 ```
 
 **Thread Safety Pattern**:
+
 1. ✅ Acquire lock
 2. ✅ Capture old values
 3. ✅ Update state
@@ -347,6 +356,7 @@ func (gp *GlobalParameters) IncreaseTemperature(ctx context.Context, steps int) 
 **Why**: Publishing events while holding a lock can cause deadlocks if event handlers try to acquire the same lock.
 
 Broadcaster subscribes to `BroadcastEvent`:
+
 ```go
 // In internal/delivery/websocket/broadcaster.go
 func (b *Broadcaster) OnBroadcastEvent(event BroadcastEvent) {
@@ -372,6 +382,7 @@ func (b *Broadcaster) OnBroadcastEvent(event BroadcastEvent) {
 ```
 
 **Personalized DTO Pattern**:
+
 - Each player receives their own perspective of the game state
 - `playerID` parameter determines which player is "you" vs "others"
 - **Full data for receiving player**: Complete hand, hidden selections, full resource details
@@ -416,27 +427,32 @@ The refactor was completed using a phased approach with parallel migration direc
 ### Completed Phases
 
 **Phase 1: Foundation** ✅
+
 - Created `internal/game_migration/` package structure
 - Implemented encapsulated Game, GlobalParameters, Board, Deck types
 - Implemented GameRepository with in-memory storage
 - Kept existing `internal/session/` code running in parallel
 
 **Phase 2: Event System** ✅
+
 - Updated EventBus to support BroadcastEvent
 - Implemented Broadcaster in delivery layer as event subscriber
 - Created DTO generation from gameID + playerID
 
 **Phase 3: Incremental Migration** ✅
+
 - Created `internal/action_migration/` directory
 - Migrated representative actions using GameRepository from `internal/game_migration/`
 - Validated event flow and broadcasting worked end-to-end
 
 **Phase 4: Complete Migration** ✅
+
 - Migrated all action files to `internal/action_migration/`
 - Updated tests to use new architecture
 - All migrated actions using `internal/game_migration/`
 
 **Phase 5: Final Cutover** ✅
+
 - Renamed `internal/game_migration/` → `internal/game/`
 - Renamed `internal/action_migration/` → `internal/action/`
 - Removed `internal/session/` package and old repositories
@@ -444,6 +460,7 @@ The refactor was completed using a phased approach with parallel migration direc
 - Simplified main.go dependency injection
 
 **Phase 6: Cleanup** ⚠️ In Progress
+
 - Tests passing ✅
 - Linting clean ✅
 - Documentation updates ongoing 🔄
@@ -451,6 +468,7 @@ The refactor was completed using a phased approach with parallel migration direc
 ## Success Criteria
 
 ### ✅ Completed
+
 - All game state lives in `internal/game/` (verified in codebase)
 - Zero business logic in Game/Player/Components (encapsulation enforced)
 - All actions use only GameRepository dependency (via BaseAction)
@@ -460,17 +478,20 @@ The refactor was completed using a phased approach with parallel migration direc
 - No linting errors (confirmed via `make lint`)
 
 ### 🔄 In Progress
+
 - Documentation updates (this file being updated now)
 
 ### 📋 Known Outstanding Items
 
 **Active TODOs in Codebase:**
+
 - `backend/internal/game/game.go:402` - Implement proper turn order mechanism (currently uses map iteration order which is non-deterministic)
 - `backend/internal/action/convert_plants_to_greenery.go:80` - Reimplement card discount effects when card system is migrated
 - `backend/internal/action/convert_heat.go:76` - Reimplement card discount effects when card system is migrated
 - `backend/internal/delivery/dto/mapper_game.go:238,298` - Implement production phase mapping
 
 **Documentation Status:**
+
 - ✅ CLAUDE.md files updated to reflect `internal/game/` structure
 - ✅ Broadcaster terminology clarified (removed SessionManager references)
 - 🔄 Test directories still use `test/session/` naming (consider renaming to `test/game/` in future cleanup)

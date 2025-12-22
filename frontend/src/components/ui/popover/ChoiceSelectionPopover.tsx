@@ -1,9 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  ChoiceDto,
-  CardBehaviorDto,
-  ResourcesDto,
-} from "../../../types/generated/api-types.ts";
+import { ChoiceDto, CardBehaviorDto, ResourcesDto } from "../../../types/generated/api-types.ts";
 import BehaviorSection from "../cards/BehaviorSection";
 
 interface ChoiceItem {
@@ -179,9 +175,7 @@ const ChoiceSelectionPopover: React.FC<ChoiceSelectionPopoverProps> = ({
           <h3 className="m-0 font-orbitron text-white text-base font-bold text-shadow-glow">
             {isAction ? "Choose Action Effect" : "Choose One Effect"}
           </h3>
-          <div className="text-white/60 text-xs text-shadow-glow mt-1">
-            {cardName}
-          </div>
+          <div className="text-white/60 text-xs text-shadow-glow mt-1">{cardName}</div>
         </div>
 
         {/* Choices Container */}
@@ -216,11 +210,7 @@ const ChoiceSelectionPopover: React.FC<ChoiceSelectionPopoverProps> = ({
                 `}
                 style={{ animationDelay: `${delay}s` }}
                 onClick={() => isAffordable && handleChoiceClick(index)}
-                title={
-                  isAffordable
-                    ? "Click to select this choice"
-                    : "Cannot afford this choice"
-                }
+                title={isAffordable ? "Click to select this choice" : "Cannot afford this choice"}
               >
                 <div className="text-white/60 text-[11px] font-semibold uppercase tracking-wider mb-3 text-shadow-glow">
                   Choice {index + 1}

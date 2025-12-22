@@ -30,28 +30,20 @@ interface MainContentDisplayProps {
   gameState: GameDto;
 }
 
-const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
-  gameState,
-}) => {
+const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) => {
   const { contentType, contentData, setContentType } = useMainContent();
 
   const renderMilestones = () => {
-    const milestones: Milestone[] =
-      (contentData?.milestones as Milestone[]) || [];
+    const milestones: Milestone[] = (contentData?.milestones as Milestone[]) || [];
 
     return (
       <div className="main-content-container">
         <div className="content-header">
-          <button
-            className="back-button"
-            onClick={() => setContentType("game")}
-          >
+          <button className="back-button" onClick={() => setContentType("game")}>
             ← Back to Game
           </button>
           <h2>Milestones</h2>
-          <div className="subtitle">
-            Claim milestones to earn victory points
-          </div>
+          <div className="subtitle">Claim milestones to earn victory points</div>
         </div>
 
         <div className="items-grid">
@@ -69,9 +61,7 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
               <div className="item-description">{milestone.description}</div>
               <div className="item-reward">Reward: {milestone.reward}</div>
               {milestone.claimed && milestone.claimedBy && (
-                <div className="claimed-by">
-                  Claimed by {milestone.claimedBy}
-                </div>
+                <div className="claimed-by">Claimed by {milestone.claimedBy}</div>
               )}
               <div className="item-actions">
                 <button
@@ -94,16 +84,11 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
     return (
       <div className="main-content-container">
         <div className="content-header">
-          <button
-            className="back-button"
-            onClick={() => setContentType("game")}
-          >
+          <button className="back-button" onClick={() => setContentType("game")}>
             ← Back to Game
           </button>
           <h2>Awards</h2>
-          <div className="subtitle">
-            Fund awards and compete for victory points
-          </div>
+          <div className="subtitle">Fund awards and compete for victory points</div>
         </div>
 
         <div className="items-grid">
@@ -120,21 +105,14 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
               </div>
               <div className="item-description">{award.description}</div>
               <div className="award-info">
-                <div className="award-rewards">
-                  1st place: 5 VP, 2nd place: 2 VP
-                </div>
+                <div className="award-rewards">1st place: 5 VP, 2nd place: 2 VP</div>
                 {award.funded && award.fundedBy && (
                   <div className="funded-by">Funded by {award.fundedBy}</div>
                 )}
-                {award.winner && (
-                  <div className="current-winner">Leading: {award.winner}</div>
-                )}
+                {award.winner && <div className="current-winner">Leading: {award.winner}</div>}
               </div>
               <div className="item-actions">
-                <button
-                  className="action-btn fund-btn"
-                  disabled={award.funded || !award.available}
-                >
+                <button className="action-btn fund-btn" disabled={award.funded || !award.available}>
                   {award.funded ? "Funded" : "Fund"}
                 </button>
               </div>

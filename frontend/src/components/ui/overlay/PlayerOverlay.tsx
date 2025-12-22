@@ -1,18 +1,12 @@
 import React from "react";
-import {
-  PlayerDto,
-  OtherPlayerDto,
-} from "../../../types/generated/api-types.ts";
+import { PlayerDto, OtherPlayerDto } from "../../../types/generated/api-types.ts";
 
 interface PlayerOverlayProps {
   players: (PlayerDto | OtherPlayerDto)[];
   currentPlayer: PlayerDto | OtherPlayerDto | null;
 }
 
-const PlayerOverlay: React.FC<PlayerOverlayProps> = ({
-  players,
-  currentPlayer,
-}) => {
+const PlayerOverlay: React.FC<PlayerOverlayProps> = ({ players, currentPlayer }) => {
   // Player color system - 6 distinct colors for up to 6 players
   const playerColors = [
     "#ff4757", // Red
@@ -41,10 +35,7 @@ const PlayerOverlay: React.FC<PlayerOverlayProps> = ({
 
   const getCorpLogo = (corporationId?: string) => {
     if (!corporationId) return "/assets/pathfinders/corp-logo-polaris.png"; // Default
-    return (
-      corporationLogos[corporationId] ||
-      "/assets/pathfinders/corp-logo-polaris.png"
-    );
+    return corporationLogos[corporationId] || "/assets/pathfinders/corp-logo-polaris.png";
   };
 
   const getPlayerColor = (index: number) => {

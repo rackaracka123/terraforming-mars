@@ -9,6 +9,7 @@ This guide explains how to migrate actions from the old architecture (`internal/
 **Objective**: Create standalone `game_migration` package with complete type definitions and encapsulated entities.
 
 **Completed Work**:
+
 1. **Type Definitions** (`internal/game_migration/types.go`):
    - All basic game types (GamePhase, GameStatus, GameSettings)
    - Resource types (Resources, Production, ResourceType enum with 50+ constants)
@@ -42,6 +43,7 @@ This guide explains how to migrate actions from the old architecture (`internal/
    - Validation helpers created
 
 **Verification**: ✅ All packages compile successfully
+
 ```bash
 go build ./internal/game_migration/...
 go build ./internal/action_migration/...
@@ -52,6 +54,7 @@ go build ./internal/action_migration/...
 **Objective**: Migrate all simple actions that don't depend on complex infrastructure.
 
 **Migrated Actions (20 total)**:
+
 - ✅ action_build_aquifer.go
 - ✅ action_build_city.go
 - ✅ action_build_power_plant.go
@@ -90,6 +93,7 @@ These actions require infrastructure components that haven't been migrated yet:
    - Complex card playing workflows
 
 **Non-Actions (utilities)**:
+
 - `workflows.go` - Helper functions (deprecated, not critical)
 - `validation.go` - Validation helpers (already in action_migration/)
 - `base.go` - Base action (already in action_migration/)
@@ -101,6 +105,7 @@ These actions require infrastructure components that haven't been migrated yet:
 **Objective**: Wire migrated actions to WebSocket and HTTP handlers.
 
 **Current Status**:
+
 - ✅ All 21 migrated actions instantiated in `cmd/server/main.go`
 - ✅ MigrationBroadcaster initialized and subscribed to BroadcastEvent
 - ✅ DTO mapper for game_migration types complete
@@ -109,6 +114,7 @@ These actions require infrastructure components that haven't been migrated yet:
 - ✅ Server compiles successfully with both old and new handlers active
 
 **What's Initialized** (`cmd/server/main.go` lines 163-235):
+
 ```go
 // Game lifecycle (2)
 createGameActionMigrated := action_migration.NewCreateGameAction(...)
@@ -125,6 +131,7 @@ buildPowerPlantActionMigrated, buildCityActionMigrated, ...
 ```
 
 **Architectural Status**:
+
 1. **Event System**: ✅ Working
    - Migrated actions publish BroadcastEvent
    - MigrationBroadcaster subscribes and handles events
@@ -141,6 +148,7 @@ buildPowerPlantActionMigrated, buildCityActionMigrated, ...
    - Old handlers remain active on same message types (parallel operation)
 
 **What Was Completed**:
+
 - ✅ Created `internal/delivery/dto/mapper_migration.go` (~250 lines)
   - `ToGameDtoFromMigration()` - Main game converter
   - `ToPlayerDtoFromMigration()` - Full player data for viewing player
@@ -161,6 +169,7 @@ buildPowerPlantActionMigrated, buildCityActionMigrated, ...
   ```
 
 **Handler Implementation**:
+
 - ✅ Created `handler_migration/` directory structure:
   - `game/` - Game lifecycle (CreateGame, JoinGame)
   - `standard_project/` - Standard projects (6 handlers)
@@ -200,6 +209,7 @@ buildPowerPlantActionMigrated, buildCityActionMigrated, ...
   - Admin actions remain unregistered (HTTP-only)
 
 **Complete Architecture Flow** (End-to-End):
+
 ```
 Client sends WebSocket message
     ↓
@@ -221,6 +231,7 @@ Clients receive updated game state
 **Status**: Phase 3 is **100% complete** - all handlers registered and ready for testing.
 
 **Message Type Mapping**:
+
 - `create-game` → CreateGameHandler
 - `player-connect-v2` → JoinGameHandler (temporary, avoids conflict)
 - `action.standard-project.*` → Standard project handlers (6)
@@ -230,6 +241,7 @@ Clients receive updated game state
 - `player-reconnected/disconnected` → Connection handlers (2)
 
 **Testing & Migration Strategy**:
+
 1. ✅ All handlers registered and active
 2. Old handlers remain active on same message types (parallel operation)
 3. Frontend can test migration handlers by sending appropriate message types
@@ -239,6 +251,7 @@ Clients receive updated game state
 ### 🔄 Phase 4: Cleanup (PENDING)
 
 **Objective**: Delete old packages and rename migration packages.
+
 - Delete `internal/session/` package
 - Rename `internal/game_migration/` → `internal/game/`
 - Rename `internal/action_migration/` → `internal/action/`
@@ -248,6 +261,7 @@ Clients receive updated game state
 ## Architecture Overview
 
 ### Old Architecture
+
 ```
 internal/action/
   ├── Old actions with 4-5 dependencies
@@ -261,6 +275,7 @@ internal/session/
 ```
 
 ### New Architecture
+
 ```
 internal/action_migration/
   ├── New actions with 2 dependencies only
@@ -278,6 +293,7 @@ internal/game_migration/
 ### 1. Action Structure
 
 **Old:**
+
 ```go
 type OldAction struct {
     BaseAction
@@ -309,6 +325,7 @@ func (a *OldAction) Execute(ctx context.Context, sess *session.Session, playerID
 ```
 
 **New:**
+
 ```go
 type NewAction struct {
     gameRepo game_migration.GameRepository
@@ -343,6 +360,7 @@ func (a *NewAction) Execute(
 ### 2. Game Access
 
 **Old:**
+
 ```go
 // Through Session + Repository
 sess := a.sessionFactory.Get(gameID)
@@ -351,6 +369,7 @@ g, err := a.gameRepo.GetByID(ctx, gameID)
 ```
 
 **New:**
+
 ```go
 // Direct via GameRepository
 g, err := a.gameRepo.Get(ctx, gameID)
@@ -360,6 +379,7 @@ player, err := g.GetPlayer(playerID)
 ### 3. State Mutations
 
 **Old:**
+
 ```go
 // Direct field mutation + repository update
 g.GlobalParameters.Temperature += 2
@@ -368,6 +388,7 @@ a.BroadcastGameState(gameID, log)  // Manual!
 ```
 
 **New:**
+
 ```go
 // Encapsulated method (publishes event automatically)
 stepsRaised, err := g.GlobalParameters().IncreaseTemperature(ctx, 1)
@@ -377,6 +398,7 @@ stepsRaised, err := g.GlobalParameters().IncreaseTemperature(ctx, 1)
 ### 4. Player State Changes
 
 **Old:**
+
 ```go
 resources := player.Resources().Get()
 resources.Credits -= cost
@@ -384,6 +406,7 @@ player.Resources().Set(resources)
 ```
 
 **New:**
+
 ```go
 // Same! Player component is already encapsulated
 player.Resources().Add(map[types.ResourceType]int{
@@ -397,6 +420,7 @@ player.Resources().Add(map[types.ResourceType]int{
 ### Example 1: Simple Resource Action (ConvertHeat)
 
 **Old Version:** `internal/action/convert_heat_to_temperature.go`
+
 ```go
 type ConvertHeatToTemperatureAction struct {
     BaseAction
@@ -422,6 +446,7 @@ func (a *ConvertHeatToTemperatureAction) Execute(ctx context.Context, sess *sess
 ```
 
 **New Version:** `internal/action_migration/action_convert_heat.go`
+
 ```go
 type ConvertHeatToTemperatureAction struct {
     gameRepo game_migration.GameRepository
@@ -457,6 +482,7 @@ func (a *ConvertHeatToTemperatureAction) Execute(ctx context.Context, gameID str
 ### Example 2: Player Creation (JoinGame)
 
 **Old Version:** `internal/action/join_game.go`
+
 ```go
 func (a *JoinGameAction) Execute(ctx context.Context, gameID string, playerName string, playerID ...string) (*JoinGameResult, error) {
     sess := a.sessionFactory.GetOrCreate(gameID)
@@ -476,6 +502,7 @@ func (a *JoinGameAction) Execute(ctx context.Context, gameID string, playerName 
 ```
 
 **New Version:** `internal/action_migration/action_join_game.go`
+
 ```go
 func (a *JoinGameAction) Execute(ctx context.Context, gameID string, playerName string, playerID ...string) (*JoinGameResult, error) {
     // 1. Get game
@@ -502,6 +529,7 @@ func (a *JoinGameAction) Execute(ctx context.Context, gameID string, playerName 
 ### Example 3: Standard Project (BuildPowerPlant)
 
 **Old Version:** `internal/action/build_power_plant.go`
+
 ```go
 func (a *BuildPowerPlantAction) Execute(ctx context.Context, sess *session.Session, playerID string) error {
     gameID := sess.GetGameID()
@@ -527,6 +555,7 @@ func (a *BuildPowerPlantAction) Execute(ctx context.Context, sess *session.Sessi
 ```
 
 **New Version:** `internal/action_migration/action_build_power_plant.go`
+
 ```go
 func (a *BuildPowerPlantAction) Execute(ctx context.Context, gameID string, playerID string) error {
     log := a.logger.With(zap.String("game_id", gameID), zap.String("player_id", playerID))
@@ -577,31 +606,32 @@ For each action:
 
 These domain methods automatically publish domain events AND BroadcastEvent:
 
-| Method | Domain Event Published | BroadcastEvent | WebSocket Broadcast |
-|--------|----------------------|----------------|-------------------|
-| `g.AddPlayer()` | `PlayerJoinedEvent` | ✅ (all) | ✅ |
-| `g.UpdateStatus()` | `GameStatusChangedEvent` | ✅ (all) | ✅ |
-| `g.UpdatePhase()` | `GamePhaseChangedEvent` | ✅ (all) | ✅ |
-| `g.AdvanceGeneration()` | `GenerationAdvancedEvent` | ✅ (all) | ✅ |
-| `g.SetCurrentTurn()` | None | ✅ (all) | ✅ |
-| `g.SetPendingTileSelection()` | None | ✅ (player) | ✅ |
-| `g.SetPendingTileSelectionQueue()` | None | ✅ (player) | ✅ |
-| `g.SetForcedFirstAction()` | None | ✅ (player) | ✅ |
-| `g.SetProductionPhase()` | None | ✅ (player) | ✅ |
-| `g.ProcessNextTile()` | None | ✅ (player) | ✅ |
-| `g.GlobalParameters().IncreaseTemperature()` | `TemperatureChangedEvent` | ✅ (all) | ✅ |
-| `g.GlobalParameters().IncreaseOxygen()` | `OxygenChangedEvent` | ✅ (all) | ✅ |
-| `g.GlobalParameters().PlaceOcean()` | `OceansChangedEvent` | ✅ (all) | ✅ |
-| `g.GlobalParameters().SetTemperature()` | `TemperatureChangedEvent` | ✅ (all) | ✅ |
-| `g.GlobalParameters().SetOxygen()` | `OxygenChangedEvent` | ✅ (all) | ✅ |
-| `g.GlobalParameters().SetOceans()` | `OceansChangedEvent` | ✅ (all) | ✅ |
-| `g.Board().UpdateTileOccupancy()` | `TilePlacedEvent` | ✅ (all) | ✅ |
-| `player.Resources().Set()` | `ResourcesChangedEvent` | (via old arch) | ✅ |
-| `player.Resources().Add()` | `ResourcesChangedEvent` | (via old arch) | ✅ |
-| `player.Resources().SetTerraformRating()` | `TerraformRatingChangedEvent` | (via old arch) | ✅ |
-| `player.Resources().AddProduction()` | `ProductionChangedEvent` | (via old arch) | ✅ |
+| Method                                       | Domain Event Published        | BroadcastEvent | WebSocket Broadcast |
+| -------------------------------------------- | ----------------------------- | -------------- | ------------------- |
+| `g.AddPlayer()`                              | `PlayerJoinedEvent`           | ✅ (all)       | ✅                  |
+| `g.UpdateStatus()`                           | `GameStatusChangedEvent`      | ✅ (all)       | ✅                  |
+| `g.UpdatePhase()`                            | `GamePhaseChangedEvent`       | ✅ (all)       | ✅                  |
+| `g.AdvanceGeneration()`                      | `GenerationAdvancedEvent`     | ✅ (all)       | ✅                  |
+| `g.SetCurrentTurn()`                         | None                          | ✅ (all)       | ✅                  |
+| `g.SetPendingTileSelection()`                | None                          | ✅ (player)    | ✅                  |
+| `g.SetPendingTileSelectionQueue()`           | None                          | ✅ (player)    | ✅                  |
+| `g.SetForcedFirstAction()`                   | None                          | ✅ (player)    | ✅                  |
+| `g.SetProductionPhase()`                     | None                          | ✅ (player)    | ✅                  |
+| `g.ProcessNextTile()`                        | None                          | ✅ (player)    | ✅                  |
+| `g.GlobalParameters().IncreaseTemperature()` | `TemperatureChangedEvent`     | ✅ (all)       | ✅                  |
+| `g.GlobalParameters().IncreaseOxygen()`      | `OxygenChangedEvent`          | ✅ (all)       | ✅                  |
+| `g.GlobalParameters().PlaceOcean()`          | `OceansChangedEvent`          | ✅ (all)       | ✅                  |
+| `g.GlobalParameters().SetTemperature()`      | `TemperatureChangedEvent`     | ✅ (all)       | ✅                  |
+| `g.GlobalParameters().SetOxygen()`           | `OxygenChangedEvent`          | ✅ (all)       | ✅                  |
+| `g.GlobalParameters().SetOceans()`           | `OceansChangedEvent`          | ✅ (all)       | ✅                  |
+| `g.Board().UpdateTileOccupancy()`            | `TilePlacedEvent`             | ✅ (all)       | ✅                  |
+| `player.Resources().Set()`                   | `ResourcesChangedEvent`       | (via old arch) | ✅                  |
+| `player.Resources().Add()`                   | `ResourcesChangedEvent`       | (via old arch) | ✅                  |
+| `player.Resources().SetTerraformRating()`    | `TerraformRatingChangedEvent` | (via old arch) | ✅                  |
+| `player.Resources().AddProduction()`         | `ProductionChangedEvent`      | (via old arch) | ✅                  |
 
 **Legend:**
+
 - **Domain Event**: Traditional domain event (e.g., TemperatureChangedEvent, ResourcesChangedEvent)
 - **BroadcastEvent**: Meta-event that triggers WebSocket broadcasts
   - **(all)**: Broadcasts to all players in the game (`PlayerIDs: nil`)
@@ -609,6 +639,7 @@ These domain methods automatically publish domain events AND BroadcastEvent:
 - **WebSocket Broadcast**: MigrationBroadcaster subscribes to BroadcastEvent and sends personalized game state to clients
 
 **Phase 2 Complete (Event-Driven Broadcasting):**
+
 - ✅ BroadcastEvent defined in `internal/events/domain_events.go`
 - ✅ All game_migration components publish BroadcastEvent after state mutations
 - ✅ MigrationBroadcaster subscribes to BroadcastEvent and handles WebSocket updates
@@ -619,6 +650,7 @@ These domain methods automatically publish domain events AND BroadcastEvent:
 ### Pattern: Validation
 
 **Old:**
+
 ```go
 g, err := ValidateActiveGame(ctx, a.gameRepo, gameID, log)
 if err := ValidateCurrentTurn(g, playerID, log); err != nil {
@@ -627,6 +659,7 @@ if err := ValidateCurrentTurn(g, playerID, log); err != nil {
 ```
 
 **New:**
+
 ```go
 g, err := a.gameRepo.Get(ctx, gameID)
 if g.Status() != types.GameStatusActive {
@@ -641,6 +674,7 @@ if currentTurn == nil || *currentTurn != playerID {
 ### Pattern: Resource Cost
 
 **Both old and new (Player component already encapsulated):**
+
 ```go
 // Validate
 resources := player.Resources().Get()
@@ -657,6 +691,7 @@ player.Resources().Add(map[types.ResourceType]int{
 ### Pattern: Global Parameter Changes
 
 **Old:**
+
 ```go
 newTemp := g.GlobalParameters.Temperature + 2
 err = a.gameRepo.UpdateTemperature(ctx, gameID, newTemp)
@@ -664,6 +699,7 @@ a.BroadcastGameState(gameID, log)
 ```
 
 **New:**
+
 ```go
 stepsRaised, err := g.GlobalParameters().IncreaseTemperature(ctx, 1)
 // Automatic broadcast via TemperatureChangedEvent
@@ -681,6 +717,7 @@ stepsRaised, err := g.GlobalParameters().IncreaseTemperature(ctx, 1)
 ## Next Steps
 
 After migrating actions:
+
 1. Update tests to use `game_migration.GameRepository`
 2. Create bridge layer for WebSocket/HTTP handlers
 3. Delete `internal/session/` package

@@ -16,6 +16,7 @@ make help        # Show all available commands
 ## Essential Commands
 
 ### Development
+
 ```bash
 make frontend    # React dev server (port 3000)
 make backend     # Go backend with Air hot reload (port 3001)
@@ -23,6 +24,7 @@ make dev-setup   # Set up environment (go mod tidy + npm install)
 ```
 
 ### Testing
+
 ```bash
 make test         # Run all backend tests
 make test-verbose # Verbose test output
@@ -33,6 +35,7 @@ make test-quick   # Fast test suite for iteration
 **IMPORTANT**: Test files go in `test/` directory (e.g., `test/middleware/validator_test.go` tests `internal/middleware/validator.go`).
 
 ### Code Quality
+
 ```bash
 make lint         # Run all linters (Go fmt + oxlint)
 make format       # Format all code (Go + TypeScript)
@@ -42,6 +45,7 @@ make generate     # Generate TypeScript types from Go structs
 **CRITICAL**: Always run `make format` and `make lint` after completing any feature. Fix all lint ERRORS immediately - no exceptions.
 
 ### Build
+
 ```bash
 make build        # Build both frontend and backend
 make clean        # Clean build artifacts
@@ -84,6 +88,7 @@ backend/
 ### Core Principles
 
 **Action Pattern**
+
 - Each action performs ONE operation (join game, play card, raise temperature)
 - Actions extend `BaseAction` with injected dependencies (GameRepository, CardRegistry, logger)
 - Execute method with clear inputs/outputs and error handling
@@ -103,6 +108,7 @@ func (a *MyAction) Execute(ctx context.Context, params...) (*Result, error) {
 ```
 
 **Game as State Repository**
+
 - Single Game type contains all state (Players, Board, Deck, GlobalParameters)
 - Private fields with public accessor methods enforce encapsulation
 - State mutation methods publish domain events to EventBus
@@ -110,12 +116,14 @@ func (a *MyAction) Execute(ctx context.Context, params...) (*Result, error) {
 - No separate player/board/deck repositories - all accessed via Game
 
 **Event-Driven Architecture**
+
 - Actions update Game → Game publishes events → Broadcaster sends to clients
 - Passive card effects subscribe to domain events automatically
 - No manual polling or effect checking in services
 - **Core Rule**: Services do ONLY what the action says. Effects trigger via events.
 
 **State Mutation Rule**
+
 - **ONLY actions** in `/internal/action/` may mutate game state
 - All other packages provide helpers, parse data, or subscribe to events
 - Actions call game state methods: `player.Resources().AddCredits()`, `game.GlobalParameters().IncreaseTemperature()`
@@ -123,6 +131,7 @@ func (a *MyAction) Execute(ctx context.Context, params...) (*Result, error) {
 - Actions use helpers to understand WHAT to do, then actions apply the changes
 
 **Card System Architecture**
+
 - **`/internal/cards/`**: Card data outside game context (registry, JSON loading, validation)
 - **`/internal/game/cards/`**: Card effect helpers for game context (behavior parsing, NO state mutation)
 - **Card behaviors** defined in JSON (`backend/assets/terraforming_mars_cards.json`) with triggers, inputs, outputs
@@ -132,6 +141,7 @@ func (a *MyAction) Execute(ctx context.Context, params...) (*Result, error) {
 
 **Broadcaster**
 Subscribes to BroadcastEvent and sends personalized game state to WebSocket clients:
+
 ```go
 // In internal/delivery/websocket/broadcaster.go
 func (b *Broadcaster) OnBroadcastEvent(event BroadcastEvent) {
@@ -154,22 +164,26 @@ All Clients Receive Personalized Game State
 ### WebSocket Messages
 
 **Inbound (Client → Server)**
+
 - `join-game`, `player-reconnect`, `select-corporation`
 - `raise-temperature`, `skip-action`, `start-game`
 
 **Outbound (Server → Client)**
+
 - `game-updated` (primary event with complete game state)
 - `player-connected`, `player-reconnected`, `player-disconnected`
 
 ## Frontend Architecture
 
 ### Tech Stack
+
 - **React + TypeScript**: UI components with generated types from Go
 - **React Three Fiber**: 3D Mars visualization with custom pan controls
 - **WebSocket Client**: Real-time game state synchronization
 - **Tailwind CSS v4**: Utility-first styling with custom theme
 
 ### Type Safety Bridge
+
 - Go structs with `ts:` tags generate TypeScript interfaces
 - Run `make generate` after any Go type changes
 - Import types from `src/types/generated/api-types.ts`
@@ -189,6 +203,7 @@ interface Player {
 ```
 
 ### 3D Rendering System
+
 - **Game3DView.tsx**: Main Three.js canvas
 - **HexGrid.tsx**: Hexagonal tile system (cube coordinates: q, r, s where q+r+s=0)
 - **PanControls.tsx**: Custom mouse/touch controls (pan + zoom, no orbit)
@@ -248,18 +263,22 @@ import GameIcon from '../ui/display/GameIcon.tsx';
 **Most cards require ONLY JSON edits, no Go code!**
 
 1. **Immediate effects** (auto trigger):
+
    ```json
    {"behaviors": [{"triggers": [{"type": "auto"}],
      "outputs": [{"type": "steel-production", "amount": 2}]}]}
    ```
+
    PlayCardAction applies automatically when card is played.
 
 2. **Manual actions** (blue cards):
+
    ```json
    {"behaviors": [{"triggers": [{"type": "manual"}],
      "inputs": [{"type": "energy", "amount": 4}],
      "outputs": [{"type": "steel", "amount": 2}]}]}
    ```
+
    Registered to Player.Actions(), executed via UseCardAction.
 
 3. **Passive effects** (conditional trigger):
@@ -274,18 +293,21 @@ See `CARD_SYSTEM.md` for complete card architecture documentation.
 ### Backend Development Patterns
 
 **Action Development**
+
 - ONE operation per action (~100-200 lines)
 - Extend BaseAction with explicit dependencies
 - Implement `Execute()` with clear parameters
 - Design for idempotency when possible
 
 **Game State Usage**
+
 - Access game state via GameRepository: `game, err := a.gameRepo.Get(gameID)`
 - Call Game methods: `game.GlobalParameters().IncreaseTemperature(ctx, steps)`
 - Access players: `player := game.GetPlayer(playerID)`
 - Game methods publish events automatically
 
 **Handler Development**
+
 - HTTP: Parse request → Call action → Map to DTO → Respond
 - WebSocket: Parse message → Call action → Events trigger broadcasts
 - Always delegate business logic to actions
@@ -303,6 +325,7 @@ See `CARD_SYSTEM.md` for complete card architecture documentation.
 ### Testing & Debugging
 
 **Backend Tests**
+
 ```bash
 make test              # All tests
 go test -json          # Easier to parse output
@@ -312,6 +335,7 @@ go test -json -v       # Verbose JSON output
 **Frontend Debugging with Playwright**
 
 When asked to "debug frontend", use Playwright MCP to interactively debug:
+
 1. Ensure backend and frontend are running
 2. Navigate to `http://localhost:3000`
 3. Use MCP tools: snapshot, click, type, screenshot, evaluate
@@ -322,6 +346,7 @@ When asked to "debug frontend", use Playwright MCP to interactively debug:
 ### Type and DTO Synchronization
 
 When updating types in `/internal/game/`:
+
 1. Check if DTOs in `/internal/delivery/dto/` need updates
 2. Update mapper functions in `/internal/delivery/dto/mapper.go`
 3. Run `make generate` to sync TypeScript types
@@ -333,12 +358,14 @@ When updating types in `/internal/game/`:
 **CRITICAL**: Timeouts and delays ARE NOT solutions to bad state management.
 
 ❌ **Bad Approaches:**
+
 - `setTimeout()` to wait for state updates
 - `sleep()` in tests for timing issues
 - Arbitrary retry loops
 - Polling instead of event-driven updates
 
 ✅ **Correct Approaches:**
+
 - Proper event listeners and callbacks
 - Promise/async-await patterns
 - Deterministic state machines
@@ -346,6 +373,7 @@ When updating types in `/internal/game/`:
 - Proper synchronization (channels, mutexes)
 
 **Logging Guidelines**
+
 - Use emojis for visual distinction
 - 🔗 connect, ⛓️‍💥 disconnect
 - 📢 broadcast, 💬 direct message
@@ -355,6 +383,7 @@ When updating types in `/internal/game/`:
 ## Current Implementation Status
 
 ### Working Features
+
 - Real-time WebSocket multiplayer with Go backend
 - 3D game view with hexagonal Mars board
 - Clean architecture with action-based pattern
@@ -365,6 +394,7 @@ When updating types in `/internal/game/`:
 - Game state persistence and reconnection (localStorage)
 
 ### Waiting Room System
+
 - Games start in `lobby` status, transition to `active`
 - Host controls (first player): Start game button
 - Shareable join links with URL parameters
@@ -372,12 +402,14 @@ When updating types in `/internal/game/`:
 - UI adapts: Resource bar hidden in lobby
 
 ### Game State Persistence
+
 - localStorage: gameId, playerId, playerName
 - Page reload support with automatic reconnection
 - State recovery: API call → WebSocket reconnect
 - Fallback to landing page if reconnection fails
 
 ### Missing Features
+
 - Tile placement logic and adjacency bonuses
 - Advanced turn phases and action state machine
 - Victory condition checking
@@ -387,20 +419,24 @@ When updating types in `/internal/game/`:
 ## Important Notes
 
 ### Development Workflow
+
 - Both servers run with hot reload (`make run`)
 - Type generation: Go changes → `make generate` → React implementation
 - State flow: All changes originate from Go backend via WebSocket
 - No client-side game logic (prevents desync)
 
 ### Test Creation
+
 - Always write tests for new backend features
 - Use `git mv` when moving files checked into git
 
 ### Hex Coordinate System
+
 Cube coordinates (q, r, s) where q + r + s = 0
 Utilities in `HexMath` class for conversions and neighbors
 
 ### Energy/Power Reference
+
 When working with energy, it's referenced as `power.png` in assets
 
 ## Important Instruction Reminders

@@ -16,10 +16,7 @@ interface CardFanOverlayProps {
   hideWhenModalOpen?: boolean;
   onCardSelect?: (cardId: string) => void;
   onPlayCard?: (cardId: string) => Promise<void>;
-  onUnplayableCard?: (
-    card: PlayerCardDto | null,
-    errorMessage: string | null,
-  ) => void;
+  onUnplayableCard?: (card: PlayerCardDto | null, errorMessage: string | null) => void;
 }
 
 const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
@@ -39,9 +36,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
   const [isInThrowZone, setIsInThrowZone] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [cardScales, setCardScales] = useState<Record<string, number>>({});
-  const [cardRotations, setCardRotations] = useState<Record<string, number>>(
-    {},
-  );
+  const [cardRotations, setCardRotations] = useState<Record<string, number>>({});
   const [isHoveringMars, setIsHoveringMars] = useState(false);
   const [returningCard, setReturningCard] = useState<string | null>(null);
   const handRef = useRef<HTMLDivElement>(null);
@@ -70,9 +65,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
     const topBound = 100; // Top margin
     const bottomBound = topBound + marsAreaHeight;
 
-    return (
-      x >= leftBound && x <= rightBound && y >= topBound && y <= bottomBound
-    );
+    return x >= leftBound && x <= rightBound && y >= topBound && y <= bottomBound;
   };
 
   // Calculate card positions with neighbor spreading for hovered or highlighted cards
@@ -89,10 +82,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
 
     // Base spacing - much wider when expanded
     const baseSpacing = expanded ? cardWidth * 0.8 : cardWidth * 0.3;
-    const spacing = Math.min(
-      baseSpacing,
-      handWidth / Math.max(totalCards - 1, 1),
-    );
+    const spacing = Math.min(baseSpacing, handWidth / Math.max(totalCards - 1, 1));
 
     // Calculate neighbor spreading offset
     let spreadOffset = 0;
@@ -145,9 +135,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
 
   // Helper functions to manage card rotations
   const getCardRotation = (cardId: string, defaultRotation: number) => {
-    return cardRotations[cardId] !== undefined
-      ? cardRotations[cardId]
-      : defaultRotation;
+    return cardRotations[cardId] !== undefined ? cardRotations[cardId] : defaultRotation;
   };
 
   const setCardRotation = (cardId: string, rotation: number) => {
@@ -208,15 +196,8 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
 
     const cardIndex = cards.findIndex((c) => c.id === cardId);
     const spreadCard = highlightedCard || hoveredCard;
-    const spreadIndex = spreadCard
-      ? cards.findIndex((c) => c.id === spreadCard)
-      : null;
-    const cardPosition = calculateCardPosition(
-      cardIndex,
-      cards.length,
-      spreadIndex,
-      false,
-    );
+    const spreadIndex = spreadCard ? cards.findIndex((c) => c.id === spreadCard) : null;
+    const cardPosition = calculateCardPosition(cardIndex, cards.length, spreadIndex, false);
     const containerRect = handRef.current?.getBoundingClientRect();
 
     if (containerRect) {
@@ -224,8 +205,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
       // Always add offset for collapsed state
       adjustedY += 90;
 
-      const cardScreenX =
-        containerRect.left + containerRect.width / 2 + cardPosition.x;
+      const cardScreenX = containerRect.left + containerRect.width / 2 + cardPosition.x;
       const cardScreenY = containerRect.bottom + adjustedY;
 
       setDragOffset({
@@ -251,16 +231,13 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
     const deltaY = dragPosition.y - dragStartPosition.y;
     const dragDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
     const isUpwardThrow = deltaY < THROW_Y_THRESHOLD;
-    const isThrowDetected =
-      dragDistance > THROW_DISTANCE_THRESHOLD && isUpwardThrow;
+    const isThrowDetected = dragDistance > THROW_DISTANCE_THRESHOLD && isUpwardThrow;
 
     if (draggedCardId) {
       // Handle throw action first - but only if card is playable
       if (isThrowDetected && onPlayCard) {
         // Check if card is playable before attempting to play it
-        const draggedCardData = cardsRef.current.find(
-          (c) => c.id === draggedCardId,
-        );
+        const draggedCardData = cardsRef.current.find((c) => c.id === draggedCardId);
 
         if (draggedCardData?.available) {
           // Card is playable, proceed with playing it
@@ -360,14 +337,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
     setTimeout(() => {
       setJustDragged(false);
     }, 100);
-  }, [
-    draggedCard,
-    dragPosition,
-    dragStartPosition,
-    onPlayCard,
-    resetCardScale,
-    resetCardRotation,
-  ]);
+  }, [draggedCard, dragPosition, dragStartPosition, onPlayCard, resetCardScale, resetCardRotation]);
 
   const handleDocumentClick = useCallback((event: MouseEvent) => {
     if (handRef.current && !handRef.current.contains(event.target as Node)) {
@@ -389,15 +359,9 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
         // Update feedback based on Mars hover state (do this every time, not just on state change)
         if (hoveringMars && onUnplayableCard && draggedCard) {
           // Get current card data using refs to avoid dependency issues
-          const currentCard = cardsRef.current.find(
-            (c) => c.id === draggedCard,
-          );
+          const currentCard = cardsRef.current.find((c) => c.id === draggedCard);
 
-          if (
-            currentCard &&
-            !currentCard.available &&
-            currentCard.errors.length > 0
-          ) {
+          if (currentCard && !currentCard.available && currentCard.errors.length > 0) {
             // Card is not playable, show error message
             const errorMessage = formatErrorMessage(currentCard.errors);
             onUnplayableCard(currentCard, errorMessage);
@@ -415,8 +379,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
         const deltaY = event.clientY - dragStartPosition.y;
         const dragDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
         const isUpwardThrow = deltaY < THROW_Y_THRESHOLD;
-        const inThrowZone =
-          dragDistance > THROW_DISTANCE_THRESHOLD && isUpwardThrow;
+        const inThrowZone = dragDistance > THROW_DISTANCE_THRESHOLD && isUpwardThrow;
 
         if (inThrowZone !== isInThrowZone) {
           setIsInThrowZone(inThrowZone);
@@ -462,23 +425,14 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
     <div className="card-fan-overlay" ref={handRef}>
       {cards.map((card, index) => {
         const spreadCard = highlightedCard || hoveredCard;
-        const spreadIndex = spreadCard
-          ? cards.findIndex((c) => c.id === spreadCard)
-          : null;
-        const position = calculateCardPosition(
-          index,
-          cards.length,
-          spreadIndex,
-          false,
-        );
+        const spreadIndex = spreadCard ? cards.findIndex((c) => c.id === spreadCard) : null;
+        const position = calculateCardPosition(index, cards.length, spreadIndex, false);
         const isHighlighted = highlightedCard === card.id;
         const isDraggedCard = draggedCard === card.id;
         const isHovered = hoveredCard === card.id;
         const isReturning = returningCard === card.id;
-        const isUnplayableInThrowZone =
-          isDraggedCard && isInThrowZone && !card.available;
-        const isUnplayableOverMars =
-          isDraggedCard && isHoveringMars && !card.available;
+        const isUnplayableInThrowZone = isDraggedCard && isInThrowZone && !card.available;
+        const isUnplayableOverMars = isDraggedCard && isHoveringMars && !card.available;
 
         let finalX = position.x;
         let finalY = position.y;
@@ -503,8 +457,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
             const targetScreenX = dragPosition.x + dragOffset.x;
             const targetScreenY = dragPosition.y + dragOffset.y;
 
-            finalX =
-              targetScreenX - (containerRect.left + containerRect.width / 2);
+            finalX = targetScreenX - (containerRect.left + containerRect.width / 2);
             finalY = targetScreenY - containerRect.bottom;
           }
         }

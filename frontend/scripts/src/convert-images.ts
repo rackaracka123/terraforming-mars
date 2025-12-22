@@ -1,9 +1,9 @@
 #!/usr/bin/env tsx
 
-import fs from 'fs';
-import path from 'path';
-import sharp from 'sharp';
-import { glob } from 'glob';
+import fs from "fs";
+import path from "path";
+import sharp from "sharp";
+import { glob } from "glob";
 
 interface ConversionOptions {
   aspectRatio: { width: number; height: number };
@@ -11,7 +11,11 @@ interface ConversionOptions {
   quality: number;
 }
 
-async function convertImage(imagePath: string, outputDir: string, options: ConversionOptions): Promise<boolean> {
+async function convertImage(
+  imagePath: string,
+  outputDir: string,
+  options: ConversionOptions,
+): Promise<boolean> {
   try {
     console.log(`Processing: ${imagePath}`);
 
@@ -57,27 +61,30 @@ async function convertImage(imagePath: string, outputDir: string, options: Conve
         left: cropLeft,
         top: cropTop,
         width: cropWidth,
-        height: cropHeight
+        height: cropHeight,
       })
       .resize(options.resolution.width, options.resolution.height, {
-        fit: 'fill'
+        fit: "fill",
       })
       .webp({
-        quality: options.quality
+        quality: options.quality,
       })
       .toFile(outputPath);
 
     console.log(`✅ Converted: ${outputPath}`);
     return true;
-
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error(`❌ Error converting ${imagePath}:`, errorMessage);
     return false;
   }
 }
 
-async function processFolder(inputDir: string, outputDir: string, options: ConversionOptions): Promise<void> {
+async function processFolder(
+  inputDir: string,
+  outputDir: string,
+  options: ConversionOptions,
+): Promise<void> {
   try {
     // Ensure output directory exists
     if (!fs.existsSync(outputDir)) {
@@ -86,17 +93,19 @@ async function processFolder(inputDir: string, outputDir: string, options: Conve
     }
 
     // Find all PNG files in the input directory
-    const pngFiles = await glob(path.join(inputDir, '**/*.png'));
+    const pngFiles = await glob(path.join(inputDir, "**/*.png"));
 
     if (pngFiles.length === 0) {
-      console.log('❌ No PNG files found in the input directory');
+      console.log("❌ No PNG files found in the input directory");
       return;
     }
 
     console.log(`🖼️  Found ${pngFiles.length} PNG files to convert`);
     console.log(`📥 Input directory: ${inputDir}`);
     console.log(`📤 Output directory: ${outputDir}`);
-    console.log(`🎯 Target format: WebP, ${options.resolution.width}x${options.resolution.height} (${options.aspectRatio.width}:${options.aspectRatio.height} aspect ratio)\n`);
+    console.log(
+      `🎯 Target format: WebP, ${options.resolution.width}x${options.resolution.height} (${options.aspectRatio.width}:${options.aspectRatio.height} aspect ratio)\n`,
+    );
 
     let successCount = 0;
     let failCount = 0;
@@ -111,22 +120,21 @@ async function processFolder(inputDir: string, outputDir: string, options: Conve
       }
 
       // Add a small delay between API calls to be respectful
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
     console.log(`\n🎉 Conversion complete!`);
     console.log(`✅ Successfully converted: ${successCount} images`);
     console.log(`❌ Failed to convert: ${failCount} images`);
-
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('❌ Error processing folder:', errorMessage);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("❌ Error processing folder:", errorMessage);
     process.exit(1);
   }
 }
 
 function parseAspectRatio(aspectStr: string): { width: number; height: number } {
-  const parts = aspectStr.split(':');
+  const parts = aspectStr.split(":");
   if (parts.length !== 2) {
     throw new Error(`Invalid aspect ratio format: ${aspectStr}. Use format like "4:3" or "16:9"`);
   }
@@ -142,16 +150,20 @@ function parseAspectRatio(aspectStr: string): { width: number; height: number } 
 }
 
 function parseResolution(resolutionStr: string): { width: number; height: number } {
-  const parts = resolutionStr.split('x');
+  const parts = resolutionStr.split("x");
   if (parts.length !== 2) {
-    throw new Error(`Invalid resolution format: ${resolutionStr}. Use format like "960x720" or "1920x1080"`);
+    throw new Error(
+      `Invalid resolution format: ${resolutionStr}. Use format like "960x720" or "1920x1080"`,
+    );
   }
 
   const width = parseInt(parts[0], 10);
   const height = parseInt(parts[1], 10);
 
   if (isNaN(width) || isNaN(height) || width <= 0 || height <= 0) {
-    throw new Error(`Invalid resolution values: ${resolutionStr}. Values must be positive integers`);
+    throw new Error(
+      `Invalid resolution values: ${resolutionStr}. Values must be positive integers`,
+    );
   }
 
   return { width, height };
@@ -207,7 +219,7 @@ async function main(): Promise<void> {
   const defaultOptions: ConversionOptions = {
     aspectRatio: { width: 4, height: 3 },
     resolution: { width: 960, height: 720 },
-    quality: 85
+    quality: 85,
   };
 
   // Parse optional arguments
@@ -216,7 +228,7 @@ async function main(): Promise<void> {
   for (let i = 2; i < args.length; i++) {
     const arg = args[i];
 
-    if (arg === '--aspect-ratio' || arg === '-a') {
+    if (arg === "--aspect-ratio" || arg === "-a") {
       if (i + 1 >= args.length) {
         console.error('❌ --aspect-ratio requires a value (e.g., "4:3", "16:9")');
         process.exit(1);
@@ -225,10 +237,10 @@ async function main(): Promise<void> {
         options.aspectRatio = parseAspectRatio(args[i + 1]);
         i++; // Skip the next argument since we consumed it
       } catch (error) {
-        console.error(`❌ ${error instanceof Error ? error.message : 'Invalid aspect ratio'}`);
+        console.error(`❌ ${error instanceof Error ? error.message : "Invalid aspect ratio"}`);
         process.exit(1);
       }
-    } else if (arg === '--resolution' || arg === '-r') {
+    } else if (arg === "--resolution" || arg === "-r") {
       if (i + 1 >= args.length) {
         console.error('❌ --resolution requires a value (e.g., "960x720", "1920x1080")');
         process.exit(1);
@@ -237,22 +249,22 @@ async function main(): Promise<void> {
         options.resolution = parseResolution(args[i + 1]);
         i++; // Skip the next argument since we consumed it
       } catch (error) {
-        console.error(`❌ ${error instanceof Error ? error.message : 'Invalid resolution'}`);
+        console.error(`❌ ${error instanceof Error ? error.message : "Invalid resolution"}`);
         process.exit(1);
       }
-    } else if (arg === '--quality' || arg === '-q') {
+    } else if (arg === "--quality" || arg === "-q") {
       if (i + 1 >= args.length) {
-        console.error('❌ --quality requires a value (1-100)');
+        console.error("❌ --quality requires a value (1-100)");
         process.exit(1);
       }
       const quality = parseInt(args[i + 1], 10);
       if (isNaN(quality) || quality < 1 || quality > 100) {
-        console.error('❌ Quality must be a number between 1 and 100');
+        console.error("❌ Quality must be a number between 1 and 100");
         process.exit(1);
       }
       options.quality = quality;
       i++; // Skip the next argument since we consumed it
-    } else if (arg === '--help' || arg === '-h') {
+    } else if (arg === "--help" || arg === "-h") {
       showUsage();
       process.exit(0);
     } else {
@@ -279,8 +291,8 @@ async function main(): Promise<void> {
 // Handle script execution
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((error: unknown) => {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('❌ Script failed:', errorMessage);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("❌ Script failed:", errorMessage);
     process.exit(1);
   });
 }

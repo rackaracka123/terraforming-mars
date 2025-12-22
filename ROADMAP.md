@@ -3,6 +3,7 @@
 ## Architecture Overview
 
 This roadmap enhances the existing Terraforming Mars implementation with a hybrid approach:
+
 - **Single Game State Object** containing all game data for simplicity
 - **Parallel Event Stream** for action logging and audit trail (like Steam version)
 - **Enhanced Card System** with YAML definitions for maintainability
@@ -11,6 +12,7 @@ This roadmap enhances the existing Terraforming Mars implementation with a hybri
 ## Current State Analysis
 
 ### Existing Strengths
+
 - Clean architecture with domain/service/delivery separation
 - Event bus with worker pool for async processing
 - Card validation and effect processing foundation
@@ -18,6 +20,7 @@ This roadmap enhances the existing Terraforming Mars implementation with a hybri
 - Type generation from Go to TypeScript
 
 ### Architecture Gaps
+
 - No action log/audit trail (Steam version has this)
 - Card definitions scattered across Go structs (hard to maintain 200+ cards)
 - Limited event granularity for debugging
@@ -28,6 +31,7 @@ This roadmap enhances the existing Terraforming Mars implementation with a hybri
 ### 1. Unified Game State Structure
 
 **Single Game Object (Everything Embedded):**
+
 ```go
 type Game struct {
     // Core game identifiers
@@ -76,6 +80,7 @@ type GameEvent struct {
 ```
 
 **Simple Repository Pattern:**
+
 ```go
 type GameRepository interface {
     GetByID(ctx context.Context, gameID string) (*Game, error)
@@ -93,13 +98,16 @@ type EventRepository interface {
 ## Implementation Plan - Incremental Feature Chunks
 
 ### 🎯 Feature 1: Basic Event Logging System (Week 1)
+
 **Goal**: Add action logging like Steam version without breaking existing architecture
 
 **Deliverable**: Action log UI showing recent player actions
+
 - ✅ **Testable**: Can see "Player X raised temperature" in action log
 - ✅ **Incremental**: Works alongside current game state system
 
 **Implementation:**
+
 ```go
 // Add to existing Game struct
 type Game struct {
@@ -121,6 +129,7 @@ type GameEvent struct {
 ```
 
 **Files to Create/Modify:**
+
 - `internal/model/event.go` - GameEvent struct
 - `internal/repository/event_repository.go` - Simple event storage
 - `internal/service/event_service.go` - Event creation and logging
@@ -129,19 +138,23 @@ type GameEvent struct {
 - `frontend/src/components/ActionLog.tsx` - Display recent events
 
 **Test Success Criteria:**
+
 - Action log shows when players raise temperature
 - Action log shows when players select corporations
 - Events persist and display chronologically
 - No impact on existing game functionality
 
 ### 🎯 Feature 2: Enhanced Game State Structure (Week 2)
+
 **Goal**: Migrate to unified Game object with embedded data
 
 **Deliverable**: Single Game object containing all state, simplified repository
+
 - ✅ **Testable**: Game state loads/saves correctly with embedded players
 - ✅ **Incremental**: Maintains compatibility with current WebSocket system
 
 **Implementation:**
+
 ```go
 // Enhanced unified Game struct
 type Game struct {
@@ -165,6 +178,7 @@ type Game struct {
 ```
 
 **Files to Modify:**
+
 - `internal/model/game.go` - Update Game struct
 - `internal/repository/game_repository.go` - Simplify to single game operations
 - Update all services to work with embedded data
@@ -172,19 +186,23 @@ type Game struct {
 - Run `make generate` to sync TypeScript types
 
 **Test Success Criteria:**
+
 - All existing functionality works with new structure
 - WebSocket updates continue to work
 - Game creation/joining/reconnection works
 - Frontend receives correct typed data
 
 ### 🎯 Feature 3: JSON Card System Foundation (Week 3)
+
 **Goal**: Create 5-10 basic cards from JSON definitions to prove the system
 
 **Deliverable**: Working JSON card loader with basic cards functional
+
 - ✅ **Testable**: Can play Power Plant card loaded from JSON
 - ✅ **Incremental**: Coexists with existing Go card structs
 
 **Implementation:**
+
 ```json
 {
   "id": "power_plant",
@@ -213,31 +231,37 @@ type Game struct {
 ```
 
 **Architecture Components:**
+
 - **CardFactory Interface**: Loads JSON definitions and builds executable card objects
 - **EffectRegistry Pattern**: Maps JSON behavior types to executable functions
 - **CardDefinition Model**: Represents the JSON structure with behaviors, triggers, and outputs
 - **Integration Service**: Bridges card system with existing game services
 
 **Key Design Patterns:**
+
 - **Behavior Composition**: Cards are built by composing behaviors from JSON definitions
 - **Effect Function Registry**: JSON "type" fields map to executable micro-functions
 - **Trigger System**: "auto" vs "manual" triggers determine when behaviors execute
 - **Resource Target System**: "self-player", "any", "self-card" define effect scope
 
 **Implementation Strategy:**
+
 - Leverage existing comprehensive JSON card database
 - Build effect functions that match existing JSON behavior patterns
 - Create card instances that integrate with current game state management
 - Ensure seamless interaction with existing validation and event systems
 
 ### 🎯 Feature 4: Action Availability System (Week 4)
+
 **Goal**: Backend calculates available actions instead of frontend logic
 
 **Deliverable**: Frontend receives available actions list, no client-side validation
+
 - ✅ **Testable**: Frontend shows only playable cards
 - ✅ **Incremental**: Replaces existing card validation gradually
 
 **Implementation:**
+
 ```go
 type Action struct {
     ID          string `json:"id"`          // "play_card:power_plant"
@@ -253,25 +277,30 @@ type AvailabilityService interface {
 ```
 
 **Architecture Components:**
+
 - **AvailabilityService Interface**: Calculates which actions are legal for current game state
 - **Action Model**: Represents available player actions with ID, type, description, and cost
 - **WebSocket Integration**: Extend game state DTOs to include available actions
 - **Frontend Action Hooks**: React integration for backend-provided action lists
 
 **Test Success Criteria:**
+
 - Frontend shows only cards player can afford
 - Unavailable cards are grayed out with reason
 - Action buttons only appear when valid
 - No duplicate validation logic between frontend/backend
 
 ### 🎯 Feature 5: Enhanced Phase Management (Week 5)
+
 **Goal**: Clean up phase transitions and private player phases
 
 **Deliverable**: Smooth phase transitions with proper private data handling
+
 - ✅ **Testable**: Corporation selection phase works cleanly
 - ✅ **Incremental**: Improves existing phase system
 
 **Implementation:**
+
 ```go
 type Phase struct {
     Type      PhaseType   `json:"type"`
@@ -289,25 +318,30 @@ const (
 ```
 
 **Architecture Improvements:**
+
 - **Enhanced Phase Types**: More granular phase definitions with clear transitions
 - **Phase Transition Logic**: State machine approach to phase progression
 - **Private Data Handling**: Secure separation of player-specific phase information
 - **UI Phase Adaptation**: Dynamic component rendering based on phase state
 
 **Test Success Criteria:**
+
 - Clean phase transitions (lobby → corp selection → action)
 - Private phases only show data to relevant player
 - Phase-specific UI renders correctly
 - Action log shows phase transitions
 
 ### 🎯 Feature 6: Advanced Card Effects (Week 6)
+
 **Goal**: Implement complex card interactions and ongoing effects
 
 **Deliverable**: Blue (action) cards with multiple abilities working
+
 - ✅ **Testable**: Research card lets you draw and discard
 - ✅ **Incremental**: Builds on JSON card system
 
 **Implementation:**
+
 ```json
 {
   "id": "research",
@@ -353,55 +387,66 @@ const (
 ```
 
 **Architecture Extensions:**
+
 - **Multi-Choice Behavior System**: Handle JSON "choices" arrays for complex card actions
 - **Action Card Interface**: Support "manual" triggers for player-activated abilities
 - **Resource Cost System**: Process "inputs" arrays for action costs
 - **Card State Management**: Track card-specific resources and counters
 
 **Test Success Criteria:**
+
 - Blue cards show action buttons
 - Card actions consume resources correctly
 - Action log shows card ability usage
 - Multi-step effects work (draw cards, choose which to keep)
 
 ### 🎯 Feature 7: Complete Event Stream UI (Week 7)
+
 **Goal**: Rich action log with filtering and game replay features
 
 **Deliverable**: Comprehensive action log like Steam version
+
 - ✅ **Testable**: Can see full game history and filter by player/action type
 - ✅ **Incremental**: Enhances basic event logging from Feature 1
 
 **Implementation:**
+
 - Advanced action log filtering (by player, by action type)
 - Event details expansion (click to see full action details)
 - Game timeline visualization
 - Export game log functionality
 
 **Files to Create:**
+
 - `frontend/src/components/ActionLog/FilterableActionLog.tsx`
 - `frontend/src/components/ActionLog/EventDetails.tsx`
 - `frontend/src/services/eventFilter.ts`
 
 **Test Success Criteria:**
+
 - Can filter events by player
 - Can filter events by type (cards, standard projects, etc.)
 - Event details show complete action information
 - Action log updates in real-time during game
 
 ### 🎯 Feature 8: Performance & Polish (Week 8)
+
 **Goal**: Optimize event processing and add quality-of-life improvements
 
 **Deliverable**: Smooth performance with large event logs, polished UI
+
 - ✅ **Testable**: Action log performs well with 100+ events
 - ✅ **Incremental**: Optimizes existing systems without breaking them
 
 **Implementation:**
+
 - Event pagination for large games
 - WebSocket event batching
 - Action log virtualization for performance
 - Event search functionality
 
 **Test Success Criteria:**
+
 - Action log scrolls smoothly with many events
 - Real-time updates don't cause lag
 - Search finds specific actions quickly
@@ -412,23 +457,29 @@ const (
 ## Key Principles for Each Feature:
 
 ### ✅ **Incremental**:
+
 Each feature builds on the previous ones without breaking existing functionality
 
 ### ✅ **Testable**:
+
 Every feature has clear success criteria and can be tested independently
 
 ### ✅ **Valuable**:
+
 Each feature provides immediate user value and can be shipped
 
 ### ✅ **Focused**:
+
 One clear goal per feature, avoiding scope creep
 
 ### ✅ **Compatible**:
+
 Features work with existing architecture and don't require massive rewrites
 
 ### 2. Event-Sourced Card System with Reactive Availability
 
 #### 2.1 Reactive Card Availability Architecture
+
 Cards subscribe to relevant events and self-manage their availability:
 
 ```go
@@ -467,9 +518,11 @@ func (cam *CardAvailabilityManager) HandleEvent(event Event) {
 ```
 
 #### 2.2 Declarative Card Creation System
+
 200+ cards created from JSON definitions instead of individual Go structs:
 
 **Simple Card Definition:**
+
 ```json
 {
   "id": "card_001",
@@ -501,6 +554,7 @@ func (cam *CardAvailabilityManager) HandleEvent(event Event) {
 ```
 
 **Complex Card with Multiple Actions:**
+
 ```json
 {
   "id": "card_234",
@@ -564,6 +618,7 @@ func (cam *CardAvailabilityManager) HandleEvent(event Event) {
 ```
 
 #### 2.3 Card Factory System
+
 ```go
 type CardFactory struct {
     definitions map[string]*CardDefinition
@@ -598,6 +653,7 @@ func (cf *CardFactory) BuildCard(def *CardDefinition) (*Card, error) {
 ```
 
 #### 2.4 Effect Composition System
+
 ```go
 type EffectRegistry struct {
     immediateEffects map[string]ImmediateEffectFunc
@@ -621,6 +677,7 @@ func IncreaseProductionEffect(ctx EffectContext, params EffectParams) error {
 ```
 
 #### 2.5 Event-Driven Control Flow
+
 - **Granular Events**: Every card operation generates specific events
 - **Micro Functions**: 5-10 line functions for each operation (but not one-liners)
 - **Clear Control Flow**: Predictable sequence of operations
@@ -628,6 +685,7 @@ func IncreaseProductionEffect(ctx EffectContext, params EffectParams) error {
 - **Reactive Updates**: Cards automatically recalculate availability on state changes
 
 ### 3. Phase Management System
+
 - **Public Phases**: Game-wide phases visible to all players
 - **Private Phases**: Player-specific phases with sensitive data
 - **Type Safety**: Strongly typed phase data structures
@@ -638,12 +696,15 @@ func IncreaseProductionEffect(ctx EffectContext, params EffectParams) error {
 ### Phase 1: Core Event & Phase Infrastructure (Week 1)
 
 #### 1.1 Enhanced Event System
+
 **Files to Create/Modify:**
+
 - `internal/events/event.go` - Add granular event types
 - `internal/events/store.go` - Event store with audit trail
 - `internal/events/query.go` - Event querying interface
 
 **New Event Types:**
+
 ```go
 // Granular Card Events
 EventTypeCardValidated
@@ -660,18 +721,22 @@ EventTypePhaseTransition
 ```
 
 **Key Features:**
+
 - Immutable event log storage
 - Event sequence numbering
 - Event replay capabilities
 - Historical game state queries
 
 #### 1.2 Phase System
+
 **Architecture Components:**
+
 - **Phase Model**: Strongly-typed phase data structures with type-specific payloads
 - **PhaseService Interface**: Manages phase transitions and validation
 - **Phase State Management**: Clean separation between public and private phase data
 
 **Phase Types:**
+
 ```go
 type PhaseType string
 const (
@@ -691,6 +756,7 @@ const (
 ```
 
 **Phase Data Structures:**
+
 ```go
 // Game Initialization Phase Data
 type GameInitializeData struct {
@@ -716,7 +782,9 @@ type PlayerActionData struct {
 ```
 
 #### 1.3 Repository Architecture System
+
 **Files to Create/Modify:**
+
 - `internal/repository/game_repository.go` - Game references only
 - `internal/repository/player_repository.go` - Player data storage
 - `internal/repository/global_parameters_repository.go` - Global game state
@@ -726,6 +794,7 @@ type PlayerActionData struct {
 - `internal/service/availability_service.go` - Action/card availability calculation
 
 **Key Features:**
+
 - **Normalized data storage** - no embedded objects in domain models
 - **Separate repositories** for each domain entity
 - **DTO composition** - merge data from multiple repositories for responses
@@ -734,7 +803,9 @@ type PlayerActionData struct {
 - **Backend-calculated availability** (Critical DRY implementation)
 
 #### 1.4 DTO Composition System
+
 **Files to Create:**
+
 - `internal/service/dto_builder_service.go` - Compose DTOs from repositories
 
 ```go
@@ -743,7 +814,8 @@ type DTOBuilderService interface {
     BuildPlayerDTO(ctx context.Context, player *Player, isCurrentPlayer bool) (*shared.PlayerDTO, error)
 }
 ```
-```
+
+````
 
 #### 1.4 Action Availability System (DRY Implementation)
 **Files to Create:**
@@ -785,14 +857,15 @@ type Action struct {
 // "pass_turn"                    - End current turn
 // "claim_milestone:gardener"     - Claim specific milestone
 // "fund_award:landlord"          - Fund specific award
-```
+````
 
 type AvailabilityService interface {
-    GetPlayableCards(ctx context.Context, gameID, playerID string) ([]string, error)
-    GetAvailableActions(ctx context.Context, gameID, playerID string) ([]Action, error)
-    CanPlayCard(ctx context.Context, gameID, playerID, cardID string) (bool, string, error)
+GetPlayableCards(ctx context.Context, gameID, playerID string) ([]string, error)
+GetAvailableActions(ctx context.Context, gameID, playerID string) ([]Action, error)
+CanPlayCard(ctx context.Context, gameID, playerID, cardID string) (bool, string, error)
 }
-```
+
+````
 
 **Enhanced Card Model for Active Cards:**
 ```go
@@ -852,18 +925,21 @@ type CardAction struct {
 
 **Action ID Examples:**
 - `"play_card:card_123"`, `"use_active_card:card_456:draw"`, `"standard_project:asteroid"`
-```
+````
 
 ### Phase 2: Card Factory & Availability System Implementation (Week 2)
 
 #### 2.1 Card Factory System
+
 **Files to Create:**
+
 - `backend/cards/factory/factory.go` - CardFactory and card loading
 - `backend/cards/factory/availability.go` - Availability checker builders
 - `backend/cards/factory/effects.go` - Effect handler builders
 - `backend/cards/definitions/` - JSON card definition directories
 
 **Card Factory Implementation:**
+
 ```go
 type CardFactory struct {
     definitions map[string]*CardDefinition
@@ -880,11 +956,14 @@ func (cf *CardFactory) LoadCardDefinitions(dir string) error {
 ```
 
 #### 2.2 Card Availability Manager
+
 **Files to Create:**
+
 - `internal/service/card_availability_service.go` - Reactive availability system
 - `internal/events/card_events.go` - Card-specific event types
 
 **Availability System:**
+
 ```go
 type CardAvailabilityManager struct {
     cardSubscriptions map[string][]EventType
@@ -902,12 +981,15 @@ func (cam *CardAvailabilityManager) HandleEvent(event Event) {
 ```
 
 #### 2.3 Effect Micro-Functions Registry
+
 **Files to Create:**
+
 - `backend/cards/effects/immediate.go` - Immediate effect micro-functions
 - `backend/cards/effects/ongoing.go` - Ongoing effect micro-functions
 - `backend/cards/effects/actions.go` - Action effect micro-functions
 
 **Registry Pattern:**
+
 ```go
 type EffectRegistry struct {
     immediateEffects map[string]ImmediateEffectFunc
@@ -922,11 +1004,14 @@ func RaiseTemperatureEffect(ctx EffectContext, params EffectParams) error
 ```
 
 #### 2.4 Application Integration
+
 **Files to Modify:**
+
 - `cmd/server/main.go` - Add card factory initialization
 - `internal/service/game_service.go` - Integrate availability manager
 
 **Initialization Flow:**
+
 ```go
 // Application startup
 func (app *Application) InitializeCards() error {
@@ -945,22 +1030,27 @@ func (app *Application) InitializeCards() error {
 ### Phase 3: Advanced Card Interactions (Week 3)
 
 #### 3.1 Card Reaction System
+
 **Files to Create:**
+
 - `internal/cards/reactions/manager.go` - Reaction subscription system
 - `internal/cards/reactions/handlers.go` - Card-specific reaction handlers
 - `internal/cards/reactions/triggers.go` - Event trigger definitions
 
 **Key Features:**
+
 - Cards subscribe to relevant events
 - Automatic reaction triggering
 - Complex card interaction chains
 
 #### 3.2 Complex Effect Chains
+
 - Cascading effects from single actions
 - Conditional effects based on game state
 - Delayed/triggered effects system
 
 #### 3.3 Historical Requirements
+
 - Cards requiring specific event history
 - Event-based requirement validation
 - Complex conditional logic
@@ -968,17 +1058,21 @@ func (app *Application) InitializeCards() error {
 ### Phase 4: Frontend Event Processing (Week 4)
 
 #### 4.1 Event Stream Processing
+
 **Files to Create/Modify:**
+
 - `frontend/src/services/eventProcessor.ts` - Event processing logic (NO GAME LOGIC)
 - `frontend/src/hooks/useGameEvents.ts` - Event subscription hooks
 - `frontend/src/types/events.ts` - Auto-generated event type definitions (READ-ONLY)
 
 **Features:**
+
 - Real-time event stream processing
 - Local state updates from events
 - Event validation and error handling
 
 **DRY Compliance:**
+
 - ❌ **Frontend does NOT**: Validate card requirements, calculate costs, or determine legal moves
 - ❌ **Frontend does NOT**: Check if cards are playable or calculate availability
 - ❌ **Frontend does NOT**: Implement any Terraforming Mars game rules
@@ -987,12 +1081,15 @@ func (app *Application) InitializeCards() error {
 - ✅ **Backend provides**: Complete list of available actions and playable cards
 
 #### 4.2 Phase-Aware UI System
+
 **Files to Create:**
+
 - `frontend/src/components/phases/PhaseRenderer.tsx` - Dynamic phase UI
 - `frontend/src/components/phases/private/` - Private phase components
 - `frontend/src/components/phases/public/` - Public phase components
 
 **UI Components:**
+
 ```tsx
 const PhaseRenderer = ({ phase, gameState }) => {
     switch(phase.type) {
@@ -1007,6 +1104,7 @@ const PhaseRenderer = ({ phase, gameState }) => {
 ```
 
 #### 4.3 Private Data Handling
+
 - Clear separation of public/private UI
 - Secure handling of sensitive data
 - Privacy-aware component rendering
@@ -1014,19 +1112,23 @@ const PhaseRenderer = ({ phase, gameState }) => {
 ### Phase 5: Optimization & Polish (Week 5)
 
 #### 5.1 Performance Optimization
+
 - Event processing performance tuning
 - State snapshot system for fast reconnection
 - Memory optimization for event storage
 - Database indexing for event queries
 
 #### 5.2 Testing & Validation
+
 **Test Files to Create:**
+
 - `test/events/store_test.go` - Event store testing
 - `test/cards/microfunction_test.go` - Micro-function unit tests
 - `test/phases/transition_test.go` - Phase transition testing
 - `test/integration/card_flow_test.go` - End-to-end testing
 
 #### 5.3 Documentation & Tooling
+
 - Event type documentation
 - Phase transition diagrams
 - Development tooling for event inspection
@@ -1035,32 +1137,38 @@ const PhaseRenderer = ({ phase, gameState }) => {
 ## Key Technical Decisions
 
 ### 1. Hybrid Event System
+
 - **Events for audit trail**: Complete game action history
 - **Snapshots for performance**: Fast state reconstruction
 - **Best of both worlds**: Auditability + efficiency
 
 ### 2. Embedded Private Phases
+
 - **Location**: Private phases in `currentPlayer` object
 - **Benefit**: Natural separation of public/private data
 - **Simplicity**: No complex data filtering logic needed
 
 ### 3. Micro-Function Architecture
+
 - **Size limit**: 5-10 lines per function maximum
 - **Single responsibility**: Each function does exactly one thing
 - **Clear naming**: Function names describe exact purpose
 - **Composability**: Functions combine into larger operations
 
 ### 4. Type-Safe Phases
+
 - **Strong typing**: All phase data structures defined
 - **Runtime validation**: Validate phase data integrity
 - **Type generation**: Automatic TypeScript types from Go
 
 ### 5. Event-Driven Control Flow
+
 - **Linear progression**: Predictable sequence of operations
 - **Event boundaries**: Clear separation between operations
 - **Error isolation**: Failures don't cascade unexpectedly
 
 ### 6. **DRY Architecture Principle - CRITICAL**
+
 - **Single Source of Truth**: Game logic exists ONLY in Go backend
 - **No Duplicate Logic**: Frontend never implements game rules or validation
 - **Shared Types**: TypeScript types auto-generated from Go structs
@@ -1068,6 +1176,7 @@ const PhaseRenderer = ({ phase, gameState }) => {
 - **Validation Boundary**: All game rule validation happens server-side only
 
 **DRY Implementation Strategy:**
+
 - ✅ **Backend**: All game logic, validation, and state management
 - ✅ **Frontend**: UI rendering, user input, and event display only
 - ✅ **Types**: Single Go definition → auto-generated TypeScript
@@ -1077,6 +1186,7 @@ const PhaseRenderer = ({ phase, gameState }) => {
 - ❌ **Never**: Frontend calculating game state transitions
 
 **Violation Prevention:**
+
 - Code reviews must verify no game logic in frontend
 - TypeScript types are read-only (generated, not hand-written)
 - Frontend components are pure presentation layer
@@ -1085,26 +1195,31 @@ const PhaseRenderer = ({ phase, gameState }) => {
 ## Expected Benefits
 
 ### Maintainability
+
 - **Tiny functions**: Easy to understand and test
 - **Clear separation**: Public/private data boundaries
 - **Event audit**: Complete action history for debugging
 
 ### Extensibility
+
 - **New card types**: Easy to add with micro-function pattern
 - **Complex interactions**: Event system handles dependencies
 - **Phase flexibility**: New phases integrate cleanly
 
 ### Testability
+
 - **Unit testing**: Each micro-function independently testable
 - **Integration testing**: Event flow testing
 - **Replay testing**: Reproduce bugs from event logs
 
 ### Debuggability
+
 - **Event trail**: See exactly what happened and when
 - **State reconstruction**: Replay events to debug issues
 - **Performance monitoring**: Track event processing times
 
 ### User Experience
+
 - **Real-time updates**: Immediate feedback from event system
 - **Privacy**: Clean separation of public/private information
 - **Responsiveness**: Optimized state updates
@@ -1112,6 +1227,7 @@ const PhaseRenderer = ({ phase, gameState }) => {
 ## Migration Strategy
 
 ### Gradual Implementation
+
 1. **Phase 1**: Add event infrastructure without breaking existing code
 2. **Phase 2**: Migrate card system piece by piece
 3. **Phase 3**: Add advanced features incrementally
@@ -1119,9 +1235,11 @@ const PhaseRenderer = ({ phase, gameState }) => {
 5. **Phase 5**: Performance optimization and cleanup
 
 ### Backward Compatibility
+
 - No need to think about it
 
 ### Risk Mitigation
+
 - Comprehensive testing at each phase
 - Rollback capabilities for each change
 - Performance monitoring throughout migration

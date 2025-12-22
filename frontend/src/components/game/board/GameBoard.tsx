@@ -103,9 +103,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
             >
               <div className="hex-inner">
                 <div className="hex-content">
-                  {getHexIcon(hex) && (
-                    <div className="hex-icon">{getHexIcon(hex)}</div>
-                  )}
+                  {getHexIcon(hex) && <div className="hex-icon">{getHexIcon(hex)}</div>}
                   <div className="hex-coords">{hex.id}</div>
                 </div>
               </div>
@@ -117,9 +115,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
           <div className="planet-info">
             <h3>🪐 Mars</h3>
             <div className="planet-status">
-              <div>
-                Temperature: {gameState?.globalParameters?.temperature || -30}°C
-              </div>
+              <div>Temperature: {gameState?.globalParameters?.temperature || -30}°C</div>
               <div>Oxygen: {gameState?.globalParameters?.oxygen || 0}%</div>
               <div>Oceans: {gameState?.globalParameters?.oceans || 0}/9</div>
             </div>

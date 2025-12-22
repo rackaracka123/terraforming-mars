@@ -36,8 +36,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
 }) => {
   const { resourceType, amount, displayMode } = displayInfo;
 
-  const isCredits =
-    resourceType === "credit" || resourceType === "credit-production";
+  const isCredits = resourceType === "credit" || resourceType === "credit-production";
   const isDiscount = resourceType === "discount";
   const isProduction = resourceType?.includes("-production");
   const hasPer = resource?.per;
@@ -64,11 +63,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
         return (
           <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
             <div className={itemClasses}>
-              <GameIcon
-                iconType="credit"
-                amount={Math.abs(amount)}
-                size="small"
-              />
+              <GameIcon iconType="credit" amount={Math.abs(amount)} size="small" />
             </div>
             <span className="text-base font-bold text-white mx-[3px] [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
               /
@@ -137,11 +132,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
         return (
           <div className="flex items-center gap-[3px]">
             <div className={itemClasses}>
-              <GameIcon
-                iconType="credit"
-                amount={Math.abs(amount)}
-                size="small"
-              />
+              <GameIcon iconType="credit" amount={Math.abs(amount)} size="small" />
             </div>
             <span className="text-base font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
               /
@@ -293,13 +284,11 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
     const absoluteAmount = Math.abs(amount);
     return (
       <div className="flex items-center gap-px relative">
-        {(isInput || amount < 0) &&
-          !isGroupedWithOtherNegatives &&
-          context !== "action" && (
-            <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
-              -
-            </span>
-          )}
+        {(isInput || amount < 0) && !isGroupedWithOtherNegatives && context !== "action" && (
+          <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+            -
+          </span>
+        )}
         {Array.from({ length: absoluteAmount }, (_, i) => (
           <React.Fragment key={i}>{iconElement}</React.Fragment>
         ))}

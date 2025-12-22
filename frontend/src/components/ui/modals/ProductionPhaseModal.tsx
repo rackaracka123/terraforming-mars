@@ -26,12 +26,11 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   onHide,
   openDirectlyToCardSelection = false,
 }) => {
-  const [hasSubmittedCardSelection, setHasSubmittedCardSelection] =
-    useState(false);
+  const [hasSubmittedCardSelection, setHasSubmittedCardSelection] = useState(false);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
-  const [animationStep, setAnimationStep] = useState<
-    "energyConversion" | "production"
-  >("energyConversion");
+  const [animationStep, setAnimationStep] = useState<"energyConversion" | "production">(
+    "energyConversion",
+  );
   const [isAnimating, setIsAnimating] = useState(false);
   const [resourceAnimationState, setResourceAnimationState] = useState<
     "initial" | "fadeInResources" | "showProduction" | "fadeOut" | "fadeIn"
@@ -75,11 +74,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
       setHasSubmittedCardSelection(false);
       setShowCardSelection(openDirectlyToCardSelection);
     }
-  }, [
-    isOpen,
-    gameState?.currentPlayer?.productionPhase,
-    openDirectlyToCardSelection,
-  ]);
+  }, [isOpen, gameState?.currentPlayer?.productionPhase, openDirectlyToCardSelection]);
 
   // Extract production data from game state
   const modalProductionData = useMemo(() => {
@@ -94,9 +89,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     ];
 
     // Filter players that have production selection data
-    const playersWithProduction = allPlayers.filter(
-      (player) => player.productionPhase,
-    );
+    const playersWithProduction = allPlayers.filter((player) => player.productionPhase);
 
     if (playersWithProduction.length === 0) {
       return null;
@@ -140,8 +133,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   // Set initial animation step based on energy conversion
   useEffect(() => {
     if (modalProductionData && modalProductionData.playersData.length > 0) {
-      const currentPlayerData =
-        modalProductionData.playersData[currentPlayerIndex];
+      const currentPlayerData = modalProductionData.playersData[currentPlayerIndex];
       const hasEnergyToConvert = currentPlayerData.energyConverted > 0;
 
       if (hasEnergyToConvert) {
@@ -264,11 +256,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   // Handle Enter key to open card selection
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        event.key === "Enter" &&
-        !hasSubmittedCardSelection &&
-        !showCardSelection
-      ) {
+      if (event.key === "Enter" && !hasSubmittedCardSelection && !showCardSelection) {
         setShowCardSelection(true);
       }
     };
@@ -309,8 +297,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
       } else if (resourceType === "heat") {
         displayBeforeAmount = currentPlayerData.beforeResources.heat;
         displayAfterAmount =
-          currentPlayerData.beforeResources.heat +
-          currentPlayerData.energyConverted;
+          currentPlayerData.beforeResources.heat + currentPlayerData.energyConverted;
         change = currentPlayerData.energyConverted;
         shouldAnimate = true;
       } else {
@@ -331,8 +318,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
           resourceAnimationState !== "showProduction";
       } else if (resourceType === "heat") {
         displayBeforeAmount =
-          currentPlayerData.beforeResources.heat +
-          currentPlayerData.energyConverted;
+          currentPlayerData.beforeResources.heat + currentPlayerData.energyConverted;
         displayAfterAmount = currentPlayerData.afterResources.heat;
         change = displayAfterAmount - displayBeforeAmount;
         // Heat should animate if it has additional production and after showing production indicators
@@ -368,8 +354,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
       // During production phase initial and fadeInResources state, show clean values
       if (
         animationStep === "production" &&
-        (resourceAnimationState === "initial" ||
-          resourceAnimationState === "fadeInResources")
+        (resourceAnimationState === "initial" || resourceAnimationState === "fadeInResources")
       ) {
         return (
           <div className="flex items-center justify-center gap-2 mb-2 text-base font-bold relative min-h-[24px]">
@@ -481,9 +466,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
         <div
           className={`flex items-center justify-center gap-2 mb-2 text-base font-bold relative min-h-[24px] ${getAnimationStateClass()}`}
         >
-          <div className="beforeAmount text-white/70">
-            {displayBeforeAmount}
-          </div>
+          <div className="beforeAmount text-white/70">{displayBeforeAmount}</div>
           <div
             className={`changeIndicator text-sm font-bold text-green-400 [text-shadow:0_0_10px_#4ade80] ${change < 0 ? "!text-red-500 ![text-shadow:0_0_10px_#ef4444]" : ""}`}
           >
@@ -622,9 +605,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
       {showCardSelection && (
         <ProductionCardSelectionOverlay
           isOpen={showCardSelection}
-          cards={
-            gameState?.currentPlayer?.productionPhase?.availableCards || []
-          }
+          cards={gameState?.currentPlayer?.productionPhase?.availableCards || []}
           playerCredits={gameState?.currentPlayer?.resources.credits || 0}
           onSelectCards={handleCardSelection}
           onReturn={handleReturnFromCardSelection}

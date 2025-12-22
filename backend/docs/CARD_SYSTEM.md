@@ -16,6 +16,7 @@ This document explains the complete card effect system architecture in the Terra
 ## Overview
 
 The card system is designed to be **JSON-driven**, meaning **90%+ of cards can be added by only editing JSON**, with no Go code changes required. The system uses a declarative behavior model where cards specify:
+
 - **Triggers**: When the effect activates (auto, manual, conditional)
 - **Inputs**: What the player must spend
 - **Outputs**: What the player/game receives
@@ -24,21 +25,25 @@ The card system is designed to be **JSON-driven**, meaning **90%+ of cards can b
 ## Architecture Principles
 
 ### 1. **Actions Mutate State**
+
 - **ONLY** actions in `/internal/action/` may mutate game state
 - Actions call game state methods: `player.Resources().AddCredits()`, `game.GlobalParameters().IncreaseTemperature()`
 - All other code provides helpers, parses data, or subscribes to events
 
 ### 2. **Separation of Concerns**
+
 - **`/internal/cards/`**: Card data outside game context (registry, JSON loading, JSON validation)
 - **`/internal/game/cards/`**: Card-related game logic (behavior helpers, gameplay validation, NO state mutation)
 - **`/internal/action/`**: Applies card effects to game state
 
 ### 3. **Event-Driven Passive Effects**
+
 - Passive effects (conditional triggers) subscribe to domain events
 - When event matches trigger condition, effect outputs are applied
 - No manual polling or checking - fully event-driven
 
 ### 4. **Data-Driven, Not Code-Driven**
+
 - Card behaviors defined in JSON
 - Generic application logic handles all standard patterns
 - Only truly unique card mechanics require custom code (rare)
@@ -100,11 +105,13 @@ Cards are defined in `/backend/assets/terraforming_mars_cards.json`:
 ### Behavior Components
 
 **Triggers** - When the behavior activates:
+
 - `auto`: Immediately when card is played
 - `manual`: Player-activated action (blue cards)
 - `auto` with `condition`: Event-driven passive effect
 
 **Inputs** - Resources player must spend:
+
 ```json
 "inputs": [
   {"type": "energy", "amount": 4, "target": "self-player"}
@@ -112,6 +119,7 @@ Cards are defined in `/backend/assets/terraforming_mars_cards.json`:
 ```
 
 **Outputs** - Effects applied to game:
+
 ```json
 "outputs": [
   {"type": "steel", "amount": 2, "target": "self-player"},
@@ -120,18 +128,21 @@ Cards are defined in `/backend/assets/terraforming_mars_cards.json`:
 ```
 
 **Output Types**:
+
 - Resources: `credits`, `steel`, `titanium`, `plants`, `energy`, `heat`
 - Production: `credits-production`, `steel-production`, `titanium-production`, `plants-production`, `energy-production`, `heat-production`
 - Global Parameters: `temperature`, `oxygen`, `ocean`
 - Other: `tr` (terraform rating), `cards` (draw cards), `tile-placement`
 
 **Targets**:
+
 - `self-player`: Affects the player who played the card
 - `any-player`: Can affect any player (opponent targeting)
 - `self-card`: Affects resource storage on the card itself
 - `none`: No target (global parameters)
 
 **Choices** - For cards with multiple options:
+
 ```json
 "choices": [
   {
@@ -175,6 +186,7 @@ Broadcaster sends updates to clients
 ```
 
 **Code Pattern**:
+
 ```go
 // In PlayCardAction.Execute()
 card := a.cardRegistry.GetCard(cardID)
@@ -220,6 +232,7 @@ Events published → Broadcaster → Clients
 ```
 
 **Code Pattern**:
+
 ```go
 // When card is played
 if hasManualTrigger(behavior) {
@@ -277,6 +290,7 @@ Events published → Broadcaster → Clients
 ```
 
 **Example Card** - "Urbanized Area" (Gain 2 MC when any city is placed):
+
 ```json
 {
   "behaviors": [{
@@ -296,6 +310,7 @@ Events published → Broadcaster → Clients
 ```
 
 **Code Pattern**:
+
 ```go
 // CardEffectSubscriber
 func (s *EffectSubscriber) OnTilePlaced(event TilePlacedEvent) {
@@ -327,6 +342,7 @@ func (s *EffectSubscriber) OnTilePlaced(event TilePlacedEvent) {
 ### Two-Level Validation
 
 **1. JSON Structure Validation** (`card_json_validator.go`)
+
 - Validates card JSON at load time
 - Checks: Valid resource types, trigger types, condition types
 - Ensures: Required fields present, amounts are reasonable
@@ -334,6 +350,7 @@ func (s *EffectSubscriber) OnTilePlaced(event TilePlacedEvent) {
 - **When**: Card JSON is loaded from file
 
 **2. Gameplay Validation** (`card_validator.go`)
+
 - Validates if card CAN BE PLAYED in game context
 - Checks: Player has resources to pay cost, requirements met
 - Requirements: Temperature, oxygen, ocean levels, tags, production
@@ -372,6 +389,7 @@ If valid: PlayCardAction applies effects
 4. Test by playing the card
 
 **Example - Automated Card**:
+
 ```json
 {
   "id": "999",
@@ -391,6 +409,7 @@ If valid: PlayCardAction applies effects
 ```
 
 **Example - Blue Card (Manual Action)**:
+
 ```json
 {
   "id": "1000",
@@ -413,6 +432,7 @@ If valid: PlayCardAction applies effects
 ```
 
 **Example - Passive Effect**:
+
 ```json
 {
   "id": "1001",
@@ -442,12 +462,14 @@ If valid: PlayCardAction applies effects
 Some cards have unique mechanics not covered by the standard behavior system. These require custom code:
 
 **Examples of complex cards**:
+
 - **Ants**: Removes resources from other players' cards
 - **Predators**: Complex targeting and resource stealing
 - **Research**: Player draws cards and chooses which to keep
 - **Special Tiles**: Tiles with unique adjacency bonuses
 
 **When custom code is needed**:
+
 1. Add behavior to JSON with `"custom": true` flag
 2. Implement custom logic in action or helper function
 3. Document the custom behavior
@@ -573,6 +595,7 @@ Some cards have unique mechanics not covered by the standard behavior system. Th
 ## Summary
 
 The card system is designed to be:
+
 - **JSON-driven**: Most cards require only JSON edits
 - **Type-safe**: Card structures validated at load and play time
 - **Event-driven**: Passive effects trigger automatically

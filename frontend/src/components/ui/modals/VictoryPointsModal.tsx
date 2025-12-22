@@ -10,13 +10,7 @@ import {
 
 interface VPSource {
   id: string;
-  source:
-    | "card"
-    | "milestone"
-    | "award"
-    | "terraformRating"
-    | "greenery"
-    | "city";
+  source: "card" | "milestone" | "award" | "terraformRating" | "greenery" | "city";
   name: string;
   points: number;
   description?: string;
@@ -58,13 +52,7 @@ interface VictoryPointsModalProps {
   cityTiles?: number;
 }
 
-type FilterType =
-  | "all"
-  | "cards"
-  | "milestones"
-  | "awards"
-  | "terraforming"
-  | "tiles";
+type FilterType = "all" | "cards" | "milestones" | "awards" | "terraforming" | "tiles";
 type SortType = "points" | "name" | "source";
 
 const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
@@ -170,8 +158,7 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
       source: "city",
       name: "City Placement",
       points: cityVP,
-      description:
-        "Victory Points from city tile placement and adjacency bonuses",
+      description: "Victory Points from city tile placement and adjacency bonuses",
     });
   }
 
@@ -223,15 +210,11 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
   const totalVP = vpSources.reduce((sum, source) => sum + source.points, 0);
 
   const vpBreakdown = {
-    cards: vpSources
-      .filter((s) => s.source === "card")
-      .reduce((sum, s) => sum + s.points, 0),
+    cards: vpSources.filter((s) => s.source === "card").reduce((sum, s) => sum + s.points, 0),
     milestones: vpSources
       .filter((s) => s.source === "milestone")
       .reduce((sum, s) => sum + s.points, 0),
-    awards: vpSources
-      .filter((s) => s.source === "award")
-      .reduce((sum, s) => sum + s.points, 0),
+    awards: vpSources.filter((s) => s.source === "award").reduce((sum, s) => sum + s.points, 0),
     terraformRating: terraformRating,
     tiles: vpSources
       .filter((s) => s.source === "greenery" || s.source === "city")
@@ -304,12 +287,8 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
                 >
                   <option value="all">All Sources</option>
                   <option value="cards">Cards ({vpBreakdown.cards} VP)</option>
-                  <option value="milestones">
-                    Milestones ({vpBreakdown.milestones} VP)
-                  </option>
-                  <option value="awards">
-                    Awards ({vpBreakdown.awards} VP)
-                  </option>
+                  <option value="milestones">Milestones ({vpBreakdown.milestones} VP)</option>
+                  <option value="awards">Awards ({vpBreakdown.awards} VP)</option>
                   <option value="terraforming">
                     Terraform Rating ({vpBreakdown.terraformRating} VP)
                   </option>
@@ -330,9 +309,7 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
                 </select>
                 <button
                   className="bg-[#ffd700]/20 border border-[#ffd700]/40 rounded text-white py-1.5 px-2 cursor-pointer text-base transition-all duration-200 hover:bg-[#ffd700]/30 hover:scale-110"
-                  onClick={() =>
-                    setSortOrder(sortOrder === "asc" ? "desc" : "asc")
-                  }
+                  onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
                   title={`Sort ${sortOrder === "asc" ? "Descending" : "Ascending"}`}
                 >
                   {sortOrder === "asc" ? "↑" : "↓"}
@@ -362,22 +339,16 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2.5 text-white font-medium">
                       <GameIcon
-                        iconType={getSourceIconType(
-                          source as VPSource["source"],
-                        )}
+                        iconType={getSourceIconType(source as VPSource["source"])}
                         size="small"
                       />
-                      <span>
-                        {getSourceLabel(source as VPSource["source"])}
-                      </span>
+                      <span>{getSourceLabel(source as VPSource["source"])}</span>
                     </div>
                     <div className="flex gap-2.5 items-center">
                       <span className="text-white font-bold font-['Courier_New',monospace]">
                         {points} VP
                       </span>
-                      <span className="text-white/70 text-sm">
-                        ({percentage.toFixed(1)}%)
-                      </span>
+                      <span className="text-white/70 text-sm">({percentage.toFixed(1)}%)</span>
                     </div>
                   </div>
                   <div className="h-2 bg-black/50 rounded overflow-hidden">
@@ -402,9 +373,7 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
               <div className="mb-5 opacity-60">
                 <GameIcon iconType={ResourceTypeTR} size="large" />
               </div>
-              <h3 className="text-white text-2xl m-0 mb-2.5">
-                No Victory Point Sources
-              </h3>
+              <h3 className="text-white text-2xl m-0 mb-2.5">No Victory Point Sources</h3>
               <p className="text-white/70 text-base m-0">
                 {filterType === "all"
                   ? "No victory point sources found"
@@ -427,10 +396,7 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
                   >
                     <div className="flex justify-between items-center mb-2.5">
                       <div className="flex items-center gap-[15px]">
-                        <GameIcon
-                          iconType={getSourceIconType(source.source)}
-                          size="medium"
-                        />
+                        <GameIcon iconType={getSourceIconType(source.source)} size="medium" />
                         <div className="flex flex-col gap-1">
                           <h3 className="text-white text-lg font-bold m-0 text-shadow-dark">
                             {source.name}
@@ -442,10 +408,7 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
                       </div>
 
                       <div className="flex items-center">
-                        <VictoryPointsDisplay
-                          victoryPoints={source.points}
-                          size="small"
-                        />
+                        <VictoryPointsDisplay victoryPoints={source.points} size="small" />
                       </div>
                     </div>
 
@@ -475,10 +438,7 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
                 style={{ borderColor: color, backgroundColor: `${color}20` }}
                 onClick={() => setFilterType(source as FilterType)}
               >
-                <GameIcon
-                  iconType={getSourceIconType(source as VPSource["source"])}
-                  size="small"
-                />
+                <GameIcon iconType={getSourceIconType(source as VPSource["source"])} size="small" />
                 <div className="flex flex-col items-start">
                   <span className="text-white text-base font-bold font-['Courier_New',monospace]">
                     {points}
@@ -501,9 +461,7 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
               <span className="text-white text-base font-bold font-['Courier_New',monospace]">
                 {totalVP}
               </span>
-              <span className="text-white/80 text-[10px] uppercase tracking-[0.5px]">
-                Total
-              </span>
+              <span className="text-white/80 text-[10px] uppercase tracking-[0.5px]">Total</span>
             </div>
           </div>
         </div>

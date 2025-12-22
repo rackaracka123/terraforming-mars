@@ -47,8 +47,8 @@ const TabConflictOverlay: React.FC<TabConflictOverlayProps> = ({
               </div>
             </div>
             <p className="!text-[#ffc107] !text-sm italic !mt-4 !text-center">
-              Opening the game here will close it in the other tab. This may
-              interrupt your gameplay if you're actively playing there.
+              Opening the game here will close it in the other tab. This may interrupt your gameplay
+              if you're actively playing there.
             </p>
           </div>
 
