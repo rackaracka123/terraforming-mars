@@ -26,12 +26,9 @@ const GameLandingPage: React.FC = () => {
         void preloadSkybox();
 
         // Check localStorage for existing game
-        const savedGameDataString = localStorage.getItem(
-          "terraforming-mars-game",
-        );
+        const savedGameDataString = localStorage.getItem("terraforming-mars-game");
         if (savedGameDataString) {
-          const { gameId, playerId, playerName } =
-            JSON.parse(savedGameDataString);
+          const { gameId, playerId, playerName } = JSON.parse(savedGameDataString);
 
           if (gameId && playerId) {
             // Try to get the current game state from server with player ID for personalized view
@@ -103,9 +100,7 @@ const GameLandingPage: React.FC = () => {
         const game = await apiService.getGame(savedGameData.game.id);
         if (!game) {
           // Game no longer exists, clear storage and show error
-          console.log(
-            "Game no longer exists, clearing session and showing error",
-          );
+          console.log("Game no longer exists, clearing session and showing error");
           clearGameSession();
           setError("Game no longer exists");
           setIsFadingOut(false);
@@ -164,11 +159,7 @@ const GameLandingPage: React.FC = () => {
       await globalWebSocketManager.initialize();
 
       // Connect player via WebSocket
-      await globalWebSocketManager.playerConnect(
-        "You",
-        result.game.id,
-        result.playerId,
-      );
+      await globalWebSocketManager.playerConnect("You", result.game.id, result.playerId);
 
       // Navigate to game with fade-out
       setIsFadingOut(true);
@@ -182,9 +173,7 @@ const GameLandingPage: React.FC = () => {
         });
       }, 300);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to create demo lobby",
-      );
+      setError(err instanceof Error ? err.message : "Failed to create demo lobby");
       setIsCreatingDemo(false);
     }
   };
@@ -247,9 +236,7 @@ const GameLandingPage: React.FC = () => {
                       savedGameData.game.currentPlayer.corporation.name.toLowerCase(),
                     )
                   ) : (
-                    <div className="text-white/60 text-sm italic">
-                      No Corporation
-                    </div>
+                    <div className="text-white/60 text-sm italic">No Corporation</div>
                   )}
                 </div>
 
@@ -260,17 +247,13 @@ const GameLandingPage: React.FC = () => {
                       {1 + savedGameData.game.otherPlayers.length}
                     </span>
                     <span className="text-white/70">
-                      {1 + savedGameData.game.otherPlayers.length === 1
-                        ? "Player"
-                        : "Players"}
+                      {1 + savedGameData.game.otherPlayers.length === 1 ? "Player" : "Players"}
                     </span>
                   </div>
                   <div className="text-white/40">•</div>
                   <div className="flex items-center gap-2">
                     <span className="text-white/70">Generation</span>
-                    <span className="font-semibold">
-                      {savedGameData.game.generation}
-                    </span>
+                    <span className="font-semibold">{savedGameData.game.generation}</span>
                   </div>
                 </div>
 

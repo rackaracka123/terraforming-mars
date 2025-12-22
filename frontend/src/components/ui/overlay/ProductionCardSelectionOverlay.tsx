@@ -1,10 +1,7 @@
 import React from "react";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
 import GameIcon from "../display/GameIcon.tsx";
-import {
-  CardDto,
-  ResourceTypeCredit,
-} from "../../../types/generated/api-types.ts";
+import { CardDto, ResourceTypeCredit } from "../../../types/generated/api-types.ts";
 import { useCardSelection } from "../../../hooks/useCardSelection.ts";
 import {
   OVERLAY_CONTAINER_CLASS,
@@ -31,9 +28,13 @@ interface ProductionCardSelectionOverlayProps {
   onReturn: () => void;
 }
 
-const ProductionCardSelectionOverlay: React.FC<
-  ProductionCardSelectionOverlayProps
-> = ({ isOpen, cards, playerCredits, onSelectCards, onReturn }) => {
+const ProductionCardSelectionOverlay: React.FC<ProductionCardSelectionOverlayProps> = ({
+  isOpen,
+  cards,
+  playerCredits,
+  onSelectCards,
+  onReturn,
+}) => {
   const {
     selectedCardIds,
     totalCost,
@@ -92,24 +93,14 @@ const ProductionCardSelectionOverlay: React.FC<
           <div className={OVERLAY_FOOTER_LEFT_CLASS}>
             <div className={RESOURCE_DISPLAY_CLASS}>
               <span className={RESOURCE_LABEL_CLASS}>Your Credits:</span>
-              <GameIcon
-                iconType={ResourceTypeCredit}
-                amount={playerCredits}
-                size="large"
-              />
+              <GameIcon iconType={ResourceTypeCredit} amount={playerCredits} size="large" />
             </div>
             <div className={RESOURCE_DISPLAY_CLASS}>
               <span className={RESOURCE_LABEL_CLASS}>Total Cost:</span>
               {totalCost > 0 ? (
-                <GameIcon
-                  iconType={ResourceTypeCredit}
-                  amount={totalCost}
-                  size="large"
-                />
+                <GameIcon iconType={ResourceTypeCredit} amount={totalCost} size="large" />
               ) : (
-                <span className="!text-[#4caf50] font-bold tracking-[1px]">
-                  FREE
-                </span>
+                <span className="!text-[#4caf50] font-bold tracking-[1px]">FREE</span>
               )}
             </div>
           </div>

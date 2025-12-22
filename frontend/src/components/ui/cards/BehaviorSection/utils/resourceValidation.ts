@@ -43,10 +43,7 @@ export const isResourceAffordable = (
   }
 
   // Check card storage resources
-  if (
-    CARD_STORAGE_RESOURCE_TYPES.includes(resourceType) &&
-    target === "self-card"
-  ) {
+  if (CARD_STORAGE_RESOURCE_TYPES.includes(resourceType) && target === "self-card") {
     if (!resourceStorage || !cardId) return true;
     const currentStorage = resourceStorage[cardId] || 0;
     return currentStorage >= amount;

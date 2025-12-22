@@ -64,14 +64,10 @@ const TreeNode: React.FC<TreeNodeProps> = ({
       return <span style={{ color: getTypeColor(valueType) }}>"{value}"</span>;
     }
     if (valueType === "boolean" || valueType === "number") {
-      return (
-        <span style={{ color: getTypeColor(valueType) }}>{String(value)}</span>
-      );
+      return <span style={{ color: getTypeColor(valueType) }}>{String(value)}</span>;
     }
     if (valueType === "null" || valueType === "undefined") {
-      return (
-        <span style={{ color: getTypeColor(valueType) }}>{valueType}</span>
-      );
+      return <span style={{ color: getTypeColor(valueType) }}>{valueType}</span>;
     }
     return null;
   };

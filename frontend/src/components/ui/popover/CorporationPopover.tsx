@@ -95,17 +95,13 @@ const CorporationPopover: React.FC<CorporationPopoverProps> = ({
 
       {/* Description */}
       <div className="px-5 pb-4">
-        <div className="text-sm text-white/90 leading-relaxed">
-          {corporation.description}
-        </div>
+        <div className="text-sm text-white/90 leading-relaxed">{corporation.description}</div>
       </div>
 
       {/* Tags (if any) */}
       {corporation.tags && corporation.tags.length > 0 && (
         <div className="px-5 pb-4 border-t border-white/10 pt-3">
-          <div className="text-xs text-white/70 uppercase tracking-wider mb-2">
-            Tags
-          </div>
+          <div className="text-xs text-white/70 uppercase tracking-wider mb-2">Tags</div>
           <div className="flex flex-wrap gap-2">
             {corporation.tags.map((tag, index) => (
               <div

@@ -96,8 +96,7 @@ export const mergeAutoProductionBehaviors = (
 
     // Check if behavior has a trigger condition (e.g., greenery-placed for Herbivores)
     const hasCondition =
-      behavior.triggers &&
-      behavior.triggers.some((trigger: any) => trigger.condition);
+      behavior.triggers && behavior.triggers.some((trigger: any) => trigger.condition);
 
     const isAutoProduction =
       type === "auto-no-background" &&

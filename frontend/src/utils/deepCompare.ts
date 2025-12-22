@@ -1,11 +1,7 @@
 /**
  * Deep comparison utility to find changed paths between two objects
  */
-export function findChangedPaths(
-  oldObj: any,
-  newObj: any,
-  currentPath: string = "",
-): Set<string> {
+export function findChangedPaths(oldObj: any, newObj: any, currentPath: string = ""): Set<string> {
   const changedPaths = new Set<string>();
 
   // Handle null/undefined cases
@@ -55,11 +51,7 @@ export function findChangedPaths(
       if (i >= oldObj.length || i >= newObj.length) {
         changedPaths.add(elementPath);
       } else {
-        const elementChanges = findChangedPaths(
-          oldObj[i],
-          newObj[i],
-          elementPath,
-        );
+        const elementChanges = findChangedPaths(oldObj[i], newObj[i], elementPath);
         elementChanges.forEach((path) => changedPaths.add(path));
       }
     }
@@ -77,11 +69,7 @@ export function findChangedPaths(
     } else if (!(key in newObj)) {
       changedPaths.add(keyPath);
     } else {
-      const propertyChanges = findChangedPaths(
-        oldObj[key],
-        newObj[key],
-        keyPath,
-      );
+      const propertyChanges = findChangedPaths(oldObj[key], newObj[key], keyPath);
       propertyChanges.forEach((path) => changedPaths.add(path));
     }
   }
