@@ -11,6 +11,7 @@ import PaymentSelectionPopover from "../../ui/popover/PaymentSelectionPopover.ts
 import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
 import DevModeChip from "../../ui/debug/DevModeChip.tsx";
 import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
+import DemoSetupOverlay from "../../ui/overlay/DemoSetupOverlay.tsx";
 import TabConflictOverlay from "../../ui/overlay/TabConflictOverlay.tsx";
 import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelectionOverlay.tsx";
 import PendingCardSelectionOverlay from "../../ui/overlay/PendingCardSelectionOverlay.tsx";
@@ -30,6 +31,7 @@ import {
   CardPaymentDto,
   FullStatePayload,
   GameDto,
+  GamePhaseDemoSetup,
   GamePhaseStartingCardSelection,
   GameStatusActive,
   GameStatusLobby,
@@ -1204,6 +1206,11 @@ export default function GameInterface() {
       />
 
       {isLobbyPhase && game && playerId && <WaitingRoomOverlay game={game} playerId={playerId} />}
+
+      {/* Demo setup overlay - shown after start game in demo mode */}
+      {game?.currentPhase === GamePhaseDemoSetup && game && playerId && (
+        <DemoSetupOverlay game={game} playerId={playerId} />
+      )}
 
       {showTabConflict && conflictingTabInfo && (
         <TabConflictOverlay

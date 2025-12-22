@@ -18,27 +18,30 @@ import (
 
 // GameHandler handles HTTP requests for games
 type GameHandler struct {
-	createGameAction *gameaction.CreateGameAction
-	getGameAction    *query.GetGameAction
-	listGamesAction  *query.ListGamesAction
-	listCardsAction  *query.ListCardsAction
-	cardRegistry     cards.CardRegistry
+	createGameAction      *gameaction.CreateGameAction
+	createDemoLobbyAction *gameaction.CreateDemoLobbyAction
+	getGameAction         *query.GetGameAction
+	listGamesAction       *query.ListGamesAction
+	listCardsAction       *query.ListCardsAction
+	cardRegistry          cards.CardRegistry
 }
 
 // NewGameHandler creates a new game handler
 func NewGameHandler(
 	createGameAction *gameaction.CreateGameAction,
+	createDemoLobbyAction *gameaction.CreateDemoLobbyAction,
 	getGameAction *query.GetGameAction,
 	listGamesAction *query.ListGamesAction,
 	listCardsAction *query.ListCardsAction,
 	cardRegistry cards.CardRegistry,
 ) *GameHandler {
 	return &GameHandler{
-		createGameAction: createGameAction,
-		getGameAction:    getGameAction,
-		listGamesAction:  listGamesAction,
-		listCardsAction:  listCardsAction,
-		cardRegistry:     cardRegistry,
+		createGameAction:      createGameAction,
+		createDemoLobbyAction: createDemoLobbyAction,
+		getGameAction:         getGameAction,
+		listGamesAction:       listGamesAction,
+		listCardsAction:       listCardsAction,
+		cardRegistry:          cardRegistry,
 	}
 }
 
@@ -219,4 +222,52 @@ func (h *GameHandler) ListCards(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Info("✅ Cards listed successfully", zap.Int("count", len(cardDtos)))
+}
+
+// CreateDemoLobby handles POST /api/v1/games/demo/lobby
+func (h *GameHandler) CreateDemoLobby(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
+	ctx := r.Context()
+
+	log.Info("POST /api/v1/games/demo/lobby")
+
+	var req dto.CreateDemoLobbyRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Error("Failed to decode request", zap.Error(err))
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.PlayerCount < 1 || req.PlayerCount > 5 {
+		http.Error(w, "Player count must be between 1 and 5", http.StatusBadRequest)
+		return
+	}
+
+	settings := gameaction.DemoLobbySettings{
+		PlayerCount: req.PlayerCount,
+		CardPacks:   req.CardPacks,
+		PlayerName:  req.PlayerName,
+	}
+
+	result, err := h.createDemoLobbyAction.Execute(ctx, settings)
+	if err != nil {
+		log.Error("Failed to create demo lobby", zap.Error(err))
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response := dto.CreateDemoLobbyResponse{
+		Game:     result.GameDto,
+		PlayerID: result.PlayerID,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Error("Failed to encode response", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Info("Demo lobby created successfully", zap.String("game_id", result.GameDto.ID))
 }

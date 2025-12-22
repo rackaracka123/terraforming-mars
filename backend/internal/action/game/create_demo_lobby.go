@@ -1,0 +1,151 @@
+package game
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/google/uuid"
+	"go.uber.org/zap"
+
+	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/game"
+	gamecards "terraforming-mars-backend/internal/game/cards"
+	"terraforming-mars-backend/internal/game/deck"
+	"terraforming-mars-backend/internal/game/player"
+)
+
+// CreateDemoLobbyAction handles creating a demo game lobby where player count is set
+type CreateDemoLobbyAction struct {
+	gameRepo     game.GameRepository
+	cardRegistry cards.CardRegistry
+	logger       *zap.Logger
+}
+
+// DemoLobbySettings contains settings for creating a demo lobby
+type DemoLobbySettings struct {
+	PlayerCount int      // 1-5, required
+	CardPacks   []string // default: ["base-game"]
+	PlayerName  string   // name for the human player
+}
+
+// DemoLobbyResult contains the result of creating a demo lobby
+type DemoLobbyResult struct {
+	PlayerID string
+	GameDto  dto.GameDto
+}
+
+// NewCreateDemoLobbyAction creates a new demo lobby creation action
+func NewCreateDemoLobbyAction(
+	gameRepo game.GameRepository,
+	cardRegistry cards.CardRegistry,
+	logger *zap.Logger,
+) *CreateDemoLobbyAction {
+	return &CreateDemoLobbyAction{
+		gameRepo:     gameRepo,
+		cardRegistry: cardRegistry,
+		logger:       logger,
+	}
+}
+
+// Execute creates a demo game lobby with the specified player count
+func (a *CreateDemoLobbyAction) Execute(
+	ctx context.Context,
+	settings DemoLobbySettings,
+) (*DemoLobbyResult, error) {
+	log := a.logger.With(zap.String("action", "create_demo_lobby"))
+	log.Info("Creating demo lobby", zap.Int("player_count", settings.PlayerCount))
+
+	// Validate player count
+	if settings.PlayerCount < 1 {
+		settings.PlayerCount = 1
+	}
+	if settings.PlayerCount > 5 {
+		settings.PlayerCount = 5
+	}
+
+	// Apply defaults
+	if len(settings.CardPacks) == 0 {
+		settings.CardPacks = []string{"base-game"}
+	}
+	if settings.PlayerName == "" {
+		settings.PlayerName = "You"
+	}
+
+	// Generate game ID and create base game
+	gameID := uuid.New().String()
+	baseSettings := game.GameSettings{
+		MaxPlayers:      settings.PlayerCount,
+		CardPacks:       settings.CardPacks,
+		DevelopmentMode: true,
+		DemoGame:        true,
+	}
+
+	newGame := game.NewGame(gameID, "", baseSettings)
+
+	// Initialize deck
+	projectCardIDs, corpIDs, preludeIDs := a.getCardIDsByPacks(settings.CardPacks)
+	gameDeck := deck.NewDeck(gameID, projectCardIDs, corpIDs, preludeIDs)
+	newGame.SetDeck(gameDeck)
+	log.Info("Deck initialized",
+		zap.Int("project_cards", len(projectCardIDs)),
+		zap.Int("corporations", len(corpIDs)))
+
+	// Store game in repository
+	if err := a.gameRepo.Create(ctx, newGame); err != nil {
+		return nil, fmt.Errorf("failed to create game: %w", err)
+	}
+
+	// Create and add human player (other players join via normal lobby system)
+	playerID := uuid.New().String()
+	humanPlayer := player.NewPlayer(newGame.EventBus(), gameID, playerID, settings.PlayerName)
+	if err := newGame.AddPlayer(ctx, humanPlayer); err != nil {
+		return nil, fmt.Errorf("failed to add player: %w", err)
+	}
+	log.Info("Human player added", zap.String("player_id", playerID), zap.String("name", settings.PlayerName))
+
+	// Set host to human player
+	if err := newGame.SetHostPlayerID(ctx, playerID); err != nil {
+		return nil, fmt.Errorf("failed to set host: %w", err)
+	}
+
+	// Game stays in lobby status - ready for configuration
+	log.Info("Demo lobby created successfully", zap.String("game_id", gameID))
+
+	gameDto := dto.ToGameDto(newGame, a.cardRegistry, playerID)
+	return &DemoLobbyResult{
+		PlayerID: playerID,
+		GameDto:  gameDto,
+	}, nil
+}
+
+// getCardIDsByPacks retrieves card IDs filtered by pack and separated by type
+func (a *CreateDemoLobbyAction) getCardIDsByPacks(packs []string) (projectCards, corps, preludes []string) {
+	allCards := a.cardRegistry.GetAll()
+
+	packMap := make(map[string]bool, len(packs))
+	for _, pack := range packs {
+		packMap[pack] = true
+	}
+
+	projectCards = []string{}
+	corps = []string{}
+	preludes = []string{}
+
+	for _, card := range allCards {
+		if !packMap[card.Pack] {
+			continue
+		}
+
+		switch card.Type {
+		case gamecards.CardTypeCorporation:
+			corps = append(corps, card.ID)
+		case gamecards.CardTypePrelude:
+			preludes = append(preludes, card.ID)
+		default:
+			projectCards = append(projectCards, card.ID)
+		}
+	}
+
+	return projectCards, corps, preludes
+}

@@ -11,6 +11,7 @@ const GameLandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [isFadingOut, setIsFadingOut] = useState(false);
+  const [isCreatingDemo, setIsCreatingDemo] = useState(false);
   const { preloadSkybox } = useSpaceBackground();
   const [savedGameData, setSavedGameData] = useState<{
     game: GameDto;
@@ -130,6 +131,53 @@ const GameLandingPage: React.FC = () => {
     }, 300); // Match CSS transition duration
   };
 
+  const handleDemoGame = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    if (isCreatingDemo) return;
+
+    setIsCreatingDemo(true);
+    setError(null);
+
+    try {
+      const result = await apiService.createDemoLobby({
+        playerCount: 5, // Max players - actual count determined by who joins
+        playerName: "You",
+      });
+
+      // Store session in localStorage
+      localStorage.setItem(
+        "terraforming-mars-game",
+        JSON.stringify({
+          gameId: result.game.id,
+          playerId: result.playerId,
+          playerName: "You",
+          createdAt: new Date().toISOString(),
+        }),
+      );
+
+      // Initialize WebSocket
+      await globalWebSocketManager.initialize();
+
+      // Connect player via WebSocket
+      await globalWebSocketManager.playerConnect("You", result.game.id, result.playerId);
+
+      // Navigate to game with fade-out
+      setIsFadingOut(true);
+      setTimeout(() => {
+        navigate("/game", {
+          state: {
+            game: result.game,
+            playerId: result.playerId,
+            playerName: "You",
+          },
+        });
+      }, 300);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create demo lobby");
+      setIsCreatingDemo(false);
+    }
+  };
+
   return (
     <div
       className={`flex items-center justify-center min-h-screen text-white font-sans transition-opacity duration-300 ease-out relative z-10 ${isFadingOut ? "opacity-0" : "opacity-100"}`}
@@ -160,6 +208,14 @@ const GameLandingPage: React.FC = () => {
             >
               JOIN
             </Link>
+
+            <button
+              onClick={(e) => void handleDemoGame(e)}
+              disabled={isCreatingDemo}
+              className="bg-space-black-darker/90 border-2 border-space-blue-500 rounded-xl px-10 py-5 cursor-pointer transition-all duration-300 backdrop-blur-space text-white text-lg font-semibold font-orbitron tracking-wide hover:border-space-blue-900 hover:shadow-glow hover:shadow-glow-lg hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isCreatingDemo ? "CREATING..." : "DEMO"}
+            </button>
           </div>
 
           {/* Error message - shown below buttons, near reconnect card */}

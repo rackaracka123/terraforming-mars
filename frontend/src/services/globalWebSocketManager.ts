@@ -2,6 +2,7 @@ import { webSocketService } from "./webSocketService.ts";
 import { WebSocketConnection } from "../types/webSocketTypes.ts";
 import type {
   CardPaymentDto,
+  ConfirmDemoSetupRequest,
   GameDto,
   PlayerDisconnectedPayload,
   FullStatePayload,
@@ -256,6 +257,12 @@ class GlobalWebSocketManager implements WebSocketConnection {
   async selectTile(coordinate: { q: number; r: number; s: number }): Promise<string> {
     await this.ensureConnected();
     return webSocketService.selectTile(coordinate);
+  }
+
+  // Demo setup
+  async confirmDemoSetup(request: ConfirmDemoSetupRequest): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.confirmDemoSetup(request);
   }
 
   // Admin commands (development mode only)

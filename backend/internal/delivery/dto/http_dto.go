@@ -52,3 +52,16 @@ type ErrorResponse struct {
 	Code    string `json:"code,omitempty" ts:"string"`
 	Details string `json:"details,omitempty" ts:"string"`
 }
+
+// CreateDemoLobbyRequest represents the request body for creating a demo lobby
+type CreateDemoLobbyRequest struct {
+	PlayerCount int      `json:"playerCount" ts:"number"`
+	CardPacks   []string `json:"cardPacks,omitempty" ts:"string[] | undefined"`
+	PlayerName  string   `json:"playerName,omitempty" ts:"string | undefined"`
+}
+
+// CreateDemoLobbyResponse represents the response for creating a demo lobby
+type CreateDemoLobbyResponse struct {
+	Game     GameDto `json:"game" ts:"GameDto"`
+	PlayerID string  `json:"playerId" ts:"string"`
+}

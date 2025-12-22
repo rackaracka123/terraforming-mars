@@ -1,13 +1,14 @@
 # Terraforming Mars - Unified Development Makefile
 # Run from project root directory
 
-.PHONY: help frontend backend backend-live kill lint typecheck test test-backend test-frontend test-verbose test-coverage clean build format format-backend format-frontend install-cli generate
+.PHONY: help run frontend backend backend-live kill lint typecheck test test-backend test-frontend test-verbose test-coverage clean build format format-backend format-frontend install-cli generate
 
 # Default target - show help
 help:
 	@echo "🚀 Terraforming Mars Development Commands"
 	@echo ""
 	@echo "🎯 Main Commands:"
+	@echo "  make run          - Run both frontend and backend with hot reload"
 	@echo "  make frontend     - Run frontend development server (port 3000)"
 	@echo "  make backend      - Run backend server (port 3001)"
 	@echo "  make backend-live - Run backend server with hot reload (port 3001)"
@@ -31,6 +32,17 @@ help:
 	@echo ""
 
 # Main development commands
+run:
+	@echo "🚀 Starting Terraforming Mars (frontend + backend with hot reload)..."
+	@echo "   Frontend: http://localhost:3000"
+	@echo "   Backend:  http://localhost:3001"
+	@echo "   Press Ctrl+C to stop both servers"
+	@echo ""
+	@trap 'kill 0' SIGINT; \
+		(cd backend && $(shell go env GOPATH)/bin/air) & \
+		(cd frontend && npm start) & \
+		wait
+
 frontend:
 	@echo "🎨 Starting frontend development server..."
 	cd frontend && npm start
