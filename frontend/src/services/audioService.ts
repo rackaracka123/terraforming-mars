@@ -15,7 +15,9 @@ class AudioService {
    * Preload audio files for better performance
    */
   private preloadAudioFiles() {
-    const audioFiles = [{ key: "production", path: "/assets/audio/production.mp3" }];
+    const audioFiles = [
+      { key: "production", path: "/assets/audio/production.mp3" },
+    ];
 
     audioFiles.forEach(({ key, path }) => {
       try {

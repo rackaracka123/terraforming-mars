@@ -7,7 +7,11 @@ interface CostDisplayProps {
   className?: string;
 }
 
-const CostDisplay: React.FC<CostDisplayProps> = ({ cost, size = "medium", className = "" }) => {
+const CostDisplay: React.FC<CostDisplayProps> = ({
+  cost,
+  size = "medium",
+  className = "",
+}) => {
   const sizeMap = {
     small: { container: 24, icon: 24, fontSize: "10px" },
     medium: { container: 32, icon: 32, fontSize: "12px" },

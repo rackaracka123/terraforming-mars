@@ -49,7 +49,9 @@ export const analyzeResourceDisplayWithConstraints = (
   const maxIndividualIcons = forceCompact || resource.forceNumberFormat ? 2 : 3;
   const absoluteAmount = Math.abs(amount);
   const useIndividual =
-    absoluteAmount > 0 && absoluteAmount <= maxIndividualIcons && absoluteAmount <= availableSpace;
+    absoluteAmount > 0 &&
+    absoluteAmount <= maxIndividualIcons &&
+    absoluteAmount <= availableSpace;
 
   return {
     resourceType,
@@ -66,7 +68,9 @@ export const analyzeResourceDisplayWithConstraints = (
  * @param resources - Array of resources to coordinate
  * @returns Map of resources to their display information
  */
-export const coordinateDisplayModes = (resources: any[]): Map<any, IconDisplayInfo> => {
+export const coordinateDisplayModes = (
+  resources: any[],
+): Map<any, IconDisplayInfo> => {
   // First pass: analyze each resource independently
   const displayInfos = resources.map((r) => ({
     resource: r,
@@ -74,7 +78,9 @@ export const coordinateDisplayModes = (resources: any[]): Map<any, IconDisplayIn
   }));
 
   // Check if ANY resource uses "number" mode
-  const hasNumberMode = displayInfos.some((d) => d.info.displayMode === "number");
+  const hasNumberMode = displayInfos.some(
+    (d) => d.info.displayMode === "number",
+  );
 
   // Second pass: if any uses number mode, force all to use it (except amount=1)
   if (hasNumberMode) {

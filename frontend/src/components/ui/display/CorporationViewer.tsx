@@ -7,7 +7,9 @@ interface CorporationViewerProps {
   corporation: CardDto;
 }
 
-const CorporationViewer: React.FC<CorporationViewerProps> = ({ corporation }) => {
+const CorporationViewer: React.FC<CorporationViewerProps> = ({
+  corporation,
+}) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -19,7 +21,10 @@ const CorporationViewer: React.FC<CorporationViewerProps> = ({ corporation }) =>
   // Close when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setIsExpanded(false);
       }
     };
@@ -37,7 +42,9 @@ const CorporationViewer: React.FC<CorporationViewerProps> = ({ corporation }) =>
     <div
       ref={containerRef}
       className="fixed bottom-[150px] left-[30px] z-[999] pointer-events-auto"
-      title={isExpanded ? "" : `${corporation.name}\n${corporation.description}`}
+      title={
+        isExpanded ? "" : `${corporation.name}\n${corporation.description}`
+      }
     >
       {!isExpanded ? (
         /* Collapsed: Logo Only */

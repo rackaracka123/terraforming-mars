@@ -49,7 +49,8 @@ const CardDrawSelectionOverlay: React.FC<CardDrawSelectionOverlayProps> = ({
   // Pure card-draw: All shown cards must be taken (no choice)
   // Peek+Draw/Take: Some cards must/can be taken (player has choice)
   const isCardDraw =
-    selection.maxBuyCount === 0 && selection.freeTakeCount === selection.availableCards.length;
+    selection.maxBuyCount === 0 &&
+    selection.freeTakeCount === selection.availableCards.length;
 
   const getTitleAndDescription = (): {
     title: string;
@@ -70,7 +71,9 @@ const CardDrawSelectionOverlay: React.FC<CardDrawSelectionOverlayProps> = ({
     };
   };
 
-  const getCardBadge = (cardId: string): { type: "free" | "buy"; value?: number } => {
+  const getCardBadge = (
+    cardId: string,
+  ): { type: "free" | "buy"; value?: number } => {
     if (cardsToTake.includes(cardId)) {
       return { type: "free" };
     } else {
@@ -133,7 +136,8 @@ const CardDrawSelectionOverlay: React.FC<CardDrawSelectionOverlayProps> = ({
     // Require confirmation in two scenarios:
     // 1. Discarding all cards (totalSelected === 0)
     // 2. Not taking all available free cards (cardsToTake.length < freeTakeCount)
-    const needsConfirmation = totalSelected === 0 || cardsToTake.length < selection.freeTakeCount;
+    const needsConfirmation =
+      totalSelected === 0 || cardsToTake.length < selection.freeTakeCount;
 
     if (needsConfirmation && !showConfirmation) {
       // First click - show confirmation
@@ -154,7 +158,8 @@ const CardDrawSelectionOverlay: React.FC<CardDrawSelectionOverlayProps> = ({
     const totalSelected = cardsToTake.length + cardsToBuy.length;
 
     // Check if confirmation is needed
-    const needsConfirmation = totalSelected === 0 || cardsToTake.length < selection.freeTakeCount;
+    const needsConfirmation =
+      totalSelected === 0 || cardsToTake.length < selection.freeTakeCount;
 
     if (needsConfirmation && showConfirmation) {
       return "Confirm Selection";
@@ -166,7 +171,9 @@ const CardDrawSelectionOverlay: React.FC<CardDrawSelectionOverlayProps> = ({
 
     // Show buy count if any cards are being bought
     if (cardsToBuy.length > 0) {
-      return cardsToBuy.length === 1 ? "Buy 1 card" : `Buy ${cardsToBuy.length} cards`;
+      return cardsToBuy.length === 1
+        ? "Buy 1 card"
+        : `Buy ${cardsToBuy.length} cards`;
     }
 
     // Otherwise just confirm the free selection
@@ -178,7 +185,8 @@ const CardDrawSelectionOverlay: React.FC<CardDrawSelectionOverlayProps> = ({
   const totalSelected = cardsToTake.length + cardsToBuy.length;
   // For peek scenarios, allow any selection from 0 to max (including discarding all)
   const isValidSelection =
-    isCardDraw || totalSelected <= selection.freeTakeCount + selection.maxBuyCount;
+    isCardDraw ||
+    totalSelected <= selection.freeTakeCount + selection.maxBuyCount;
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center animate-[fadeIn_0.3s_ease]">
@@ -199,7 +207,8 @@ const CardDrawSelectionOverlay: React.FC<CardDrawSelectionOverlayProps> = ({
         <div className={OVERLAY_CARDS_CONTAINER_CLASS}>
           <div className={OVERLAY_CARDS_INNER_CLASS}>
             {selection.availableCards.map((card, index) => {
-              const isSelected = cardsToTake.includes(card.id) || cardsToBuy.includes(card.id);
+              const isSelected =
+                cardsToTake.includes(card.id) || cardsToBuy.includes(card.id);
               const badge = getCardBadge(card.id);
 
               return (
@@ -228,12 +237,20 @@ const CardDrawSelectionOverlay: React.FC<CardDrawSelectionOverlayProps> = ({
           <div className="flex gap-8 items-center max-[768px]:w-full max-[768px]:justify-between max-[768px]:flex-wrap">
             <div className="flex items-center gap-3">
               <span className={RESOURCE_LABEL_CLASS}>Your Credits:</span>
-              <GameIcon iconType={ResourceTypeCredit} amount={playerCredits} size="large" />
+              <GameIcon
+                iconType={ResourceTypeCredit}
+                amount={playerCredits}
+                size="large"
+              />
             </div>
             {totalBuyCost > 0 && (
               <div className="flex items-center gap-3">
                 <span className={RESOURCE_LABEL_CLASS}>Buy Cost:</span>
-                <GameIcon iconType={ResourceTypeCredit} amount={totalBuyCost} size="large" />
+                <GameIcon
+                  iconType={ResourceTypeCredit}
+                  amount={totalBuyCost}
+                  size="large"
+                />
               </div>
             )}
           </div>
@@ -250,13 +267,15 @@ const CardDrawSelectionOverlay: React.FC<CardDrawSelectionOverlayProps> = ({
                   {totalSelected === 0
                     ? "Are you sure you want to discard all?"
                     : (() => {
-                        const remainingFreeTakes = selection.freeTakeCount - cardsToTake.length;
+                        const remainingFreeTakes =
+                          selection.freeTakeCount - cardsToTake.length;
                         return `You can take ${remainingFreeTakes} more card${remainingFreeTakes !== 1 ? "s" : ""} for free. Confirm?`;
                       })()}
                 </span>
               ) : (
                 (() => {
-                  const discardCount = selection.availableCards.length - totalSelected;
+                  const discardCount =
+                    selection.availableCards.length - totalSelected;
                   return discardCount > 0 ? (
                     <span className="text-white/70">
                       Discard {discardCount} card

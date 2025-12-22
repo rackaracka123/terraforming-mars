@@ -71,7 +71,9 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
 
   // Helper function to coordinate display modes across resources for consistency
   // If ANY resource uses "number + icon" format, ALL should use it (except amount=1)
-  const coordinateDisplayModes = (resources: any[]): Map<any, IconDisplayInfo> => {
+  const coordinateDisplayModes = (
+    resources: any[],
+  ): Map<any, IconDisplayInfo> => {
     // First pass: analyze each resource independently
     const displayInfos = resources.map((r) => ({
       resource: r,
@@ -79,7 +81,9 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
     }));
 
     // Check if ANY resource uses "number" mode
-    const hasNumberMode = displayInfos.some((d) => d.info.displayMode === "number");
+    const hasNumberMode = displayInfos.some(
+      (d) => d.info.displayMode === "number",
+    );
 
     // Second pass: if any uses number mode, force all to use it (except amount=1)
     if (hasNumberMode) {
@@ -102,7 +106,10 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
   };
 
   // Helper function to render production group content
-  const renderProductionGroup = (negative: any[], positive: any[]): React.ReactNode => {
+  const renderProductionGroup = (
+    negative: any[],
+    positive: any[],
+  ): React.ReactNode => {
     return (
       <div
         className={`flex flex-col gap-[3px] justify-center ${negative.length > 0 ? "items-start" : "items-center"}`}
@@ -114,7 +121,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
               -
             </span>
             {negative.map((output: any, index: number) => {
-              const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+              const displayInfo = analyzeResourceDisplayWithConstraints(
+                output,
+                7,
+                false,
+              );
               return (
                 <React.Fragment key={`neg-prod-${index}`}>
                   <ResourceDisplay
@@ -137,7 +148,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
           <>
             {negative.length === 0 && positive.length === 2 ? (
               positive.map((output: any, index: number) => {
-                const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+                const displayInfo = analyzeResourceDisplayWithConstraints(
+                  output,
+                  7,
+                  false,
+                );
                 return (
                   <div
                     key={`pos-prod-row-${index}`}
@@ -163,7 +178,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                   </span>
                 )}
                 {positive.map((output: any, index: number) => {
-                  const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+                  const displayInfo = analyzeResourceDisplayWithConstraints(
+                    output,
+                    7,
+                    false,
+                  );
                   return (
                     <React.Fragment key={`pos-prod-${index}`}>
                       <ResourceDisplay
@@ -187,7 +206,10 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
   };
 
   // Helper function to render non-production group content
-  const renderNonProductionGroup = (negative: any[], positive: any[]): React.ReactNode => {
+  const renderNonProductionGroup = (
+    negative: any[],
+    positive: any[],
+  ): React.ReactNode => {
     return (
       <div
         className={`flex flex-col gap-[3px] justify-center ${negative.length > 0 && positive.length > 0 ? "items-start" : "items-center"}`}
@@ -201,7 +223,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
               </span>
             )}
             {negative.map((output: any, index: number) => {
-              const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+              const displayInfo = analyzeResourceDisplayWithConstraints(
+                output,
+                7,
+                false,
+              );
               const isGrouped = negative.length > 1;
               return (
                 <React.Fragment key={`neg-${index}`}>
@@ -225,7 +251,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
           <>
             {negative.length === 0 && positive.length === 2 ? (
               positive.map((output: any, index: number) => {
-                const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+                const displayInfo = analyzeResourceDisplayWithConstraints(
+                  output,
+                  7,
+                  false,
+                );
                 return (
                   <div
                     key={`pos-row-${index}`}
@@ -251,7 +281,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                   </span>
                 )}
                 {positive.map((output: any, index: number) => {
-                  const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+                  const displayInfo = analyzeResourceDisplayWithConstraints(
+                    output,
+                    7,
+                    false,
+                  );
                   return (
                     <React.Fragment key={`pos-${index}`}>
                       <ResourceDisplay
@@ -307,23 +341,27 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
             ) {
               return (
                 <React.Fragment key={`trigger-condition-${triggerIndex}`}>
-                  {condition.affectedTags.map((tag: string, tagIndex: number) => (
-                    <React.Fragment key={`trigger-tag-${triggerIndex}-${tagIndex}`}>
-                      {tagIndex > 0 && (
-                        <span className="text-white font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
-                          /
-                        </span>
-                      )}
-                      <BehaviorIcon
-                        resourceType={tag}
-                        isProduction={false}
-                        isAttack={false}
-                        context="standalone"
-                        isAffordable={true}
-                        tileScaleInfo={tileScaleInfo}
-                      />
-                    </React.Fragment>
-                  ))}
+                  {condition.affectedTags.map(
+                    (tag: string, tagIndex: number) => (
+                      <React.Fragment
+                        key={`trigger-tag-${triggerIndex}-${tagIndex}`}
+                      >
+                        {tagIndex > 0 && (
+                          <span className="text-white font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
+                            /
+                          </span>
+                        )}
+                        <BehaviorIcon
+                          resourceType={tag}
+                          isProduction={false}
+                          isAttack={false}
+                          context="standalone"
+                          isAffordable={true}
+                          tileScaleInfo={tileScaleInfo}
+                        />
+                      </React.Fragment>
+                    ),
+                  )}
                 </React.Fragment>
               );
             } else {
@@ -348,7 +386,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
         </span>
         {/* Render output icons */}
         {behavior.outputs.map((output: any, outputIndex: number) => {
-          const displayInfo = analyzeResourceDisplayWithConstraints(output, 6, false);
+          const displayInfo = analyzeResourceDisplayWithConstraints(
+            output,
+            6,
+            false,
+          );
           return (
             <React.Fragment key={`trigger-output-${outputIndex}`}>
               <ResourceDisplay
@@ -392,7 +434,9 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                   const isAffordable = isResourceAffordable(output, false);
 
                   return (
-                    <React.Fragment key={`choice-${choiceIndex}-output-${outputIndex}`}>
+                    <React.Fragment
+                      key={`choice-${choiceIndex}-output-${outputIndex}`}
+                    >
                       <div className="flex gap-[3px] items-center">
                         {amount > 0 && (
                           <span className="text-white font-bold text-base [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
@@ -434,7 +478,10 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
           );
 
           // If all outputs are production, wrap them in brown box with row separation
-          if (productionOutputs.length > 0 && nonProductionOutputs.length === 0) {
+          if (
+            productionOutputs.length > 0 &&
+            nonProductionOutputs.length === 0
+          ) {
             const negativeProduction = productionOutputs.filter(
               (output: any) => (output.amount || 0) < 0,
             );
@@ -454,11 +501,12 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                         -
                       </span>
                       {negativeProduction.map((output: any, index: number) => {
-                        const displayInfo = analyzeResourceDisplayWithConstraints(
-                          { ...output, amount: Math.abs(output.amount) },
-                          7,
-                          false,
-                        );
+                        const displayInfo =
+                          analyzeResourceDisplayWithConstraints(
+                            { ...output, amount: Math.abs(output.amount) },
+                            7,
+                            false,
+                          );
                         return (
                           <React.Fragment key={`neg-prod-${index}`}>
                             <ResourceDisplay
@@ -487,7 +535,12 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                         </span>
                       )}
                       {positiveProduction.map((output: any, index: number) => {
-                        const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+                        const displayInfo =
+                          analyzeResourceDisplayWithConstraints(
+                            output,
+                            7,
+                            false,
+                          );
                         return (
                           <React.Fragment key={`pos-prod-${index}`}>
                             <ResourceDisplay
@@ -513,7 +566,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
           return (
             <div className="flex flex-wrap gap-[3px] items-center justify-center">
               {behavior.outputs.map((output: any, index: number) => {
-                const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+                const displayInfo = analyzeResourceDisplayWithConstraints(
+                  output,
+                  7,
+                  false,
+                );
                 return (
                   <React.Fragment key={`output-${index}`}>
                     <ResourceDisplay
@@ -547,7 +604,8 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
       if (!choice.outputs || choice.outputs.length === 0) return false;
       return choice.outputs.every(
         (output: any) =>
-          output.type?.includes("production") || output.resourceType?.includes("production"),
+          output.type?.includes("production") ||
+          output.resourceType?.includes("production"),
       );
     });
 
@@ -564,9 +622,15 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                 )}
                 <div className="flex gap-[3px] items-center">
                   {choice.outputs.map((output: any, outputIndex: number) => {
-                    const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+                    const displayInfo = analyzeResourceDisplayWithConstraints(
+                      output,
+                      7,
+                      false,
+                    );
                     return (
-                      <React.Fragment key={`prod-choice-${choiceIndex}-output-${outputIndex}`}>
+                      <React.Fragment
+                        key={`prod-choice-${choiceIndex}-output-${outputIndex}`}
+                      >
                         <ResourceDisplay
                           displayInfo={displayInfo}
                           isInput={false}
@@ -597,7 +661,10 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
   const isCardResource = (output: any): boolean => {
     const type = output.resourceType || output.type || "";
     return (
-      type === "card-draw" || type === "card-peek" || type === "card-take" || type === "card-buy"
+      type === "card-draw" ||
+      type === "card-peek" ||
+      type === "card-take" ||
+      type === "card-buy"
     );
   };
 
@@ -619,16 +686,28 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
   );
 
   // Separate per-condition production (which already has its own wrapper) from regular production
-  const perConditionProduction = productionOutputs.filter((output: any) => output.per);
-  const regularProduction = productionOutputs.filter((output: any) => !output.per);
+  const perConditionProduction = productionOutputs.filter(
+    (output: any) => output.per,
+  );
+  const regularProduction = productionOutputs.filter(
+    (output: any) => !output.per,
+  );
 
   // Separate negative and positive production outputs (only for regular production, not per-condition)
-  const negativeProduction = regularProduction.filter((output: any) => (output.amount ?? 1) < 0);
-  const positiveProduction = regularProduction.filter((output: any) => (output.amount ?? 1) >= 0);
+  const negativeProduction = regularProduction.filter(
+    (output: any) => (output.amount ?? 1) < 0,
+  );
+  const positiveProduction = regularProduction.filter(
+    (output: any) => (output.amount ?? 1) >= 0,
+  );
 
   // Separate negative and positive non-production outputs
-  const negativeOutputs = nonProductionOutputs.filter((output: any) => (output.amount ?? 1) < 0);
-  const positiveOutputs = nonProductionOutputs.filter((output: any) => (output.amount ?? 1) >= 0);
+  const negativeOutputs = nonProductionOutputs.filter(
+    (output: any) => (output.amount ?? 1) < 0,
+  );
+  const positiveOutputs = nonProductionOutputs.filter(
+    (output: any) => (output.amount ?? 1) >= 0,
+  );
 
   // Special handling: if nonProductionOutputs has both regular resources AND global params/tiles,
   // and there are at least 3 outputs total, use special layouts
@@ -659,10 +738,12 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
       (output: any) => output.target === "any-player",
     );
     const positiveRegular = regularResourceOutputs.filter(
-      (output: any) => output.target !== "any-player" && (output.amount ?? 1) >= 0,
+      (output: any) =>
+        output.target !== "any-player" && (output.amount ?? 1) >= 0,
     );
     const negativeRegular = regularResourceOutputs.filter(
-      (output: any) => output.target !== "any-player" && (output.amount ?? 1) < 0,
+      (output: any) =>
+        output.target !== "any-player" && (output.amount ?? 1) < 0,
     );
 
     // Coordinate display modes for consistency across all regular resources
@@ -748,7 +829,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
               return 0;
             })
             .map((output: any, index: number) => {
-              const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+              const displayInfo = analyzeResourceDisplayWithConstraints(
+                output,
+                7,
+                false,
+              );
               return (
                 <React.Fragment key={`global-${index}`}>
                   <ResourceDisplay
@@ -775,10 +860,12 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
       (output: any) => output.target === "any-player",
     );
     const positiveRegular = regularResourceOutputs.filter(
-      (output: any) => output.target !== "any-player" && (output.amount ?? 1) >= 0,
+      (output: any) =>
+        output.target !== "any-player" && (output.amount ?? 1) >= 0,
     );
     const negativeRegular = regularResourceOutputs.filter(
-      (output: any) => output.target !== "any-player" && (output.amount ?? 1) < 0,
+      (output: any) =>
+        output.target !== "any-player" && (output.amount ?? 1) < 0,
     );
 
     // Coordinate display modes for consistency across all regular resources
@@ -875,7 +962,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
               return 0;
             })
             .map((output: any, index: number) => {
-              const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+              const displayInfo = analyzeResourceDisplayWithConstraints(
+                output,
+                7,
+                false,
+              );
               return (
                 <React.Fragment key={`global-${index}`}>
                   <ResourceDisplay
@@ -928,7 +1019,10 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                   key={`left-prod-${index}`}
                   className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]"
                 >
-                  {renderProductionGroup(negativeProduction, positiveProduction)}
+                  {renderProductionGroup(
+                    negativeProduction,
+                    positiveProduction,
+                  )}
                 </div>
               );
             } else if (group.content === perConditionProduction) {
@@ -938,7 +1032,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                   className="flex flex-wrap gap-[3px] items-center justify-center"
                 >
                   {perConditionProduction.map((output: any, idx: number) => {
-                    const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+                    const displayInfo = analyzeResourceDisplayWithConstraints(
+                      output,
+                      7,
+                      false,
+                    );
                     return (
                       <React.Fragment key={`per-prod-left-${idx}`}>
                         <ResourceDisplay
@@ -977,7 +1075,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
           ) : rightGroup.content === perConditionProduction ? (
             <div className="flex flex-wrap gap-[3px] items-center justify-center">
               {perConditionProduction.map((output: any, idx: number) => {
-                const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+                const displayInfo = analyzeResourceDisplayWithConstraints(
+                  output,
+                  7,
+                  false,
+                );
                 return (
                   <React.Fragment key={`per-prod-right-${idx}`}>
                     <ResourceDisplay
@@ -1004,7 +1106,8 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
   }
 
   // Check if we have both regular and per-condition production - if so, combine them in ONE brown box
-  const hasAllProductionTypes = regularProduction.length > 0 && perConditionProduction.length > 0;
+  const hasAllProductionTypes =
+    regularProduction.length > 0 && perConditionProduction.length > 0;
 
   return (
     <div className="flex flex-wrap gap-2 items-center justify-center max-w-full">
@@ -1021,7 +1124,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                   -
                 </span>
                 {negativeProduction.map((output: any, index: number) => {
-                  const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+                  const displayInfo = analyzeResourceDisplayWithConstraints(
+                    output,
+                    7,
+                    false,
+                  );
                   const isGrouped = true;
                   return (
                     <React.Fragment key={`neg-prod-${index}`}>
@@ -1043,7 +1150,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
             {/* Positive regular production */}
             {positiveProduction.length > 0 &&
               positiveProduction.map((output: any, index: number) => {
-                const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+                const displayInfo = analyzeResourceDisplayWithConstraints(
+                  output,
+                  7,
+                  false,
+                );
                 return (
                   <div
                     key={`pos-prod-row-${index}`}
@@ -1149,7 +1260,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                       -
                     </span>
                     {negativeProduction.map((output: any, index: number) => {
-                      const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+                      const displayInfo = analyzeResourceDisplayWithConstraints(
+                        output,
+                        7,
+                        false,
+                      );
                       const isGrouped = true;
                       return (
                         <React.Fragment key={`neg-prod-${index}`}>
@@ -1170,9 +1285,15 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
 
                 {positiveProduction.length > 0 && (
                   <>
-                    {negativeProduction.length === 0 && positiveProduction.length === 2 ? (
+                    {negativeProduction.length === 0 &&
+                    positiveProduction.length === 2 ? (
                       positiveProduction.map((output: any, index: number) => {
-                        const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+                        const displayInfo =
+                          analyzeResourceDisplayWithConstraints(
+                            output,
+                            7,
+                            false,
+                          );
                         return (
                           <div
                             key={`pos-prod-row-${index}`}
@@ -1197,26 +1318,32 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                             +
                           </span>
                         )}
-                        {positiveProduction.map((output: any, index: number) => {
-                          const displayInfo = analyzeResourceDisplayWithConstraints(
-                            output,
-                            7,
-                            false,
-                          );
-                          return (
-                            <React.Fragment key={`pos-prod-${index}`}>
-                              <ResourceDisplay
-                                displayInfo={displayInfo}
-                                isInput={false}
-                                resource={output}
-                                isGroupedWithOtherNegatives={false}
-                                context="standalone"
-                                isAffordable={isResourceAffordable(output, false)}
-                                tileScaleInfo={tileScaleInfo}
-                              />
-                            </React.Fragment>
-                          );
-                        })}
+                        {positiveProduction.map(
+                          (output: any, index: number) => {
+                            const displayInfo =
+                              analyzeResourceDisplayWithConstraints(
+                                output,
+                                7,
+                                false,
+                              );
+                            return (
+                              <React.Fragment key={`pos-prod-${index}`}>
+                                <ResourceDisplay
+                                  displayInfo={displayInfo}
+                                  isInput={false}
+                                  resource={output}
+                                  isGroupedWithOtherNegatives={false}
+                                  context="standalone"
+                                  isAffordable={isResourceAffordable(
+                                    output,
+                                    false,
+                                  )}
+                                  tileScaleInfo={tileScaleInfo}
+                                />
+                              </React.Fragment>
+                            );
+                          },
+                        )}
                       </div>
                     )}
                   </>
@@ -1229,7 +1356,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
           {perConditionProduction.length > 0 && (
             <div className="flex flex-col gap-[3px] items-center justify-center">
               {perConditionProduction.map((output: any, index: number) => {
-                const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+                const displayInfo = analyzeResourceDisplayWithConstraints(
+                  output,
+                  7,
+                  false,
+                );
                 return (
                   <React.Fragment key={`per-prod-${index}`}>
                     <ResourceDisplay
@@ -1263,7 +1394,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                 </span>
               )}
               {negativeOutputs.map((output: any, index: number) => {
-                const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+                const displayInfo = analyzeResourceDisplayWithConstraints(
+                  output,
+                  7,
+                  false,
+                );
                 const isGrouped = negativeOutputs.length > 1;
                 return (
                   <React.Fragment key={`neg-${index}`}>
@@ -1288,7 +1423,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
               {negativeOutputs.length === 0 && positiveOutputs.length === 2 ? (
                 // When there are exactly 2 positive outputs and no negatives, show them on separate rows
                 positiveOutputs.map((output: any, index: number) => {
-                  const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+                  const displayInfo = analyzeResourceDisplayWithConstraints(
+                    output,
+                    7,
+                    false,
+                  );
                   return (
                     <div
                       key={`pos-row-${index}`}
@@ -1315,7 +1454,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                     </span>
                   )}
                   {positiveOutputs.map((output: any, index: number) => {
-                    const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
+                    const displayInfo = analyzeResourceDisplayWithConstraints(
+                      output,
+                      7,
+                      false,
+                    );
                     return (
                       <React.Fragment key={`pos-${index}`}>
                         <ResourceDisplay

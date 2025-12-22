@@ -123,7 +123,9 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
               className={`bg-none border-2 text-white text-sm font-bold py-2.5 px-5 cursor-pointer rounded transition-all duration-200 hover:bg-white/10 max-lg:text-xs max-lg:py-2 max-lg:px-[15px] max-md:py-2 max-md:px-[15px] max-md:text-xs max-sm:py-1.5 max-sm:px-3 max-sm:text-[11px] ${item.id === "projects" && showStandardProjectsPopover ? `border-[${item.color}]` : "border-transparent"}`}
               onClick={() => handleTabClick(item.id)}
               style={{ "--item-color": item.color } as React.CSSProperties}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = item.color)}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.borderColor = item.color)
+              }
               onMouseLeave={(e) => {
                 if (item.id !== "projects" || !showStandardProjectsPopover) {
                   e.currentTarget.style.borderColor = "transparent";

@@ -20,7 +20,10 @@ const DevModeChip: React.FC = () => {
         zIndex: Z_INDEX.DEBUG_OVERLAY,
       }}
     >
-      <span className="transition-opacity duration-200" style={{ opacity: isHovered ? 0 : 1 }}>
+      <span
+        className="transition-opacity duration-200"
+        style={{ opacity: isHovered ? 0 : 1 }}
+      >
         DEV MODE
       </span>
       <span

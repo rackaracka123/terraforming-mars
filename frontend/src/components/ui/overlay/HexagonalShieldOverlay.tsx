@@ -15,7 +15,9 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
   const [shouldRender, setShouldRender] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
   const [isAnimatingIn, setIsAnimatingIn] = useState(false);
-  const [lastValidCard, setLastValidCard] = useState<PlayerCardDto | null>(null);
+  const [lastValidCard, setLastValidCard] = useState<PlayerCardDto | null>(
+    null,
+  );
   const [lastValidReason, setLastValidReason] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,7 +50,11 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
     return null;
   }
 
-  const overlayClass = isAnimatingOut ? "hidden" : isAnimatingIn ? "visible" : "hidden";
+  const overlayClass = isAnimatingOut
+    ? "hidden"
+    : isAnimatingIn
+      ? "visible"
+      : "hidden";
 
   const displayCard = lastValidCard;
   const displayReason = lastValidReason;
@@ -95,7 +101,9 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
         const x = padding + rowStartX + col * hexWidth + offsetX;
         const y = padding + row * vertSpacing + hexSize;
 
-        const distanceFromCenter = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+        const distanceFromCenter = Math.sqrt(
+          Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2),
+        );
         const maxRadius = Math.min(svgWidth, svgHeight) / 2;
         const normalizedDistance = distanceFromCenter / maxRadius;
         const opacity = Math.max(0, 1 - normalizedDistance * 0.8);
@@ -116,7 +124,11 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
     return hexagons;
   };
 
-  const generateHexagonPoints = (centerX: number, centerY: number, size: number) => {
+  const generateHexagonPoints = (
+    centerX: number,
+    centerY: number,
+    size: number,
+  ) => {
     const points = [];
     for (let i = 0; i < 6; i++) {
       const angle = (i * 60 - 90) * (Math.PI / 180);

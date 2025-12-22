@@ -7,7 +7,11 @@ interface CardIconProps {
   isAffordable?: boolean;
 }
 
-const CardIcon: React.FC<CardIconProps> = ({ amount, badgeType, isAffordable = true }) => {
+const CardIcon: React.FC<CardIconProps> = ({
+  amount,
+  badgeType,
+  isAffordable = true,
+}) => {
   const cardIcon = getIconPath("card-draw");
 
   if (!cardIcon) return null;

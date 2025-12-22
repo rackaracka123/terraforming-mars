@@ -13,7 +13,12 @@ interface TagsPopoverProps {
   anchorRef: React.RefObject<HTMLElement>;
 }
 
-const TagsPopover: React.FC<TagsPopoverProps> = ({ isVisible, onClose, tagCounts, anchorRef }) => {
+const TagsPopover: React.FC<TagsPopoverProps> = ({
+  isVisible,
+  onClose,
+  tagCounts,
+  anchorRef,
+}) => {
   const popoverRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ bottom: 85, right: 140 });
 

@@ -2,7 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { globalWebSocketManager } from "../../services/globalWebSocketManager.ts";
 import { apiService } from "../../services/apiService.ts";
-import { clearGameSession, getGameSession } from "../../utils/sessionStorage.ts";
+import {
+  clearGameSession,
+  getGameSession,
+} from "../../utils/sessionStorage.ts";
 
 interface ReconnectingPageProps {
   // Add any props if needed
@@ -47,7 +50,9 @@ const ReconnectingPage: React.FC<ReconnectingPageProps> = () => {
         const game = await apiService.getGame(gameId);
         if (!game) {
           // Game no longer exists, automatically clear storage and redirect
-          console.log("Game no longer exists, clearing session and returning to landing page");
+          console.log(
+            "Game no longer exists, clearing session and returning to landing page",
+          );
           clearGameSession();
           navigate("/", { replace: true });
           return;
@@ -55,7 +60,11 @@ const ReconnectingPage: React.FC<ReconnectingPageProps> = () => {
 
         // Ensure WebSocket is ready and attempt reconnection
         // playerConnect sends the reconnect message, game state updates come via WebSocket
-        await globalWebSocketManager.playerConnect(playerName, gameId, playerId);
+        await globalWebSocketManager.playerConnect(
+          playerName,
+          gameId,
+          playerId,
+        );
 
         // CRITICAL FIX: Set the current player ID in globalWebSocketManager
         // This ensures the GameInterface component knows which player this client represents

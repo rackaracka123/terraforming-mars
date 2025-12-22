@@ -123,11 +123,13 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements }) => {
         className="flex items-center gap-px px-0.5 py-px [&:has(span)]:px-1 [&:has(span)]:py-0.5"
       >
         {/* Show amount before icon for tag/production requirements with multiple units */}
-        {(isTagRequirement || isProductionRequirement) && displayText && !showMultipleIcons && (
-          <span className="text-[11px] font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-none">
-            {displayText}
-          </span>
-        )}
+        {(isTagRequirement || isProductionRequirement) &&
+          displayText &&
+          !showMultipleIcons && (
+            <span className="text-[11px] font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-none">
+              {displayText}
+            </span>
+          )}
 
         {resourceType || cardTag ? (
           <div className="flex items-center gap-px">
@@ -136,7 +138,9 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements }) => {
               Array.from({ length: Math.min(iconCount, 4) }, (_, i) => (
                 <GameIcon
                   key={i}
-                  iconType={cardTag ? `${cardTag}-tag` : (resourceType as string)}
+                  iconType={
+                    cardTag ? `${cardTag}-tag` : (resourceType as string)
+                  }
                   size="small"
                 />
               ))
@@ -169,7 +173,9 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements }) => {
   return (
     <div className="absolute bottom-full left-[10%] w-fit min-w-[60px] max-w-[80%] z-[-10] bg-[linear-gradient(135deg,rgba(255,87,34,0.15)_0%,rgba(255,69,0,0.12)_100%)] rounded-[2px] shadow-[0_3px_8px_rgba(0,0,0,0.4)] backdrop-blur-[2px] pt-1 pr-0.5 pb-1 pl-1.5 before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:bottom-0 before:border-2 before:border-[rgba(255,87,34,0.9)] before:rounded-[2px] before:pointer-events-none max-md:min-w-[50px] max-md:pt-[3px] max-md:pr-0.5 max-md:pb-2.5 max-md:pl-1">
       <div className="flex items-center justify-start gap-[3px] flex-wrap max-md:gap-1">
-        {groupedRequirements.map((group, index) => renderRequirementGroup(group, index))}
+        {groupedRequirements.map((group, index) =>
+          renderRequirementGroup(group, index),
+        )}
       </div>
     </div>
   );
