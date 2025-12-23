@@ -180,8 +180,3 @@ func GetMilestoneInfo(milestoneType shared.MilestoneType) (MilestoneInfo, bool) 
 	}
 	return MilestoneInfo{}, false
 }
-
-// ValidMilestoneType returns true if the string is a valid milestone type
-func ValidMilestoneType(s string) bool {
-	return shared.ValidMilestoneType(s)
-}

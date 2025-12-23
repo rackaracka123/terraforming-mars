@@ -33,7 +33,7 @@ func (a *FundAwardAction) Execute(ctx context.Context, gameID string, playerID s
 	log.Info("🏅 Funding award")
 
 	// 1. Validate award type
-	if !game.ValidAwardType(awardType) {
+	if !shared.ValidAwardType(awardType) {
 		log.Warn("Invalid award type", zap.String("award_type", awardType))
 		return fmt.Errorf("invalid award type: %s", awardType)
 	}

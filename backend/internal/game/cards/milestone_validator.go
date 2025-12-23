@@ -70,52 +70,21 @@ func GetPlayerMilestoneProgress(
 	b *board.Board,
 	cardRegistry CardRegistryInterface,
 ) int {
+	cityTileType := shared.ResourceCityTile
+	greeneryTileType := shared.ResourceGreeneryTile
+
 	switch milestoneType {
 	case shared.MilestoneTerraformer:
 		return p.Resources().TerraformRating()
 	case shared.MilestoneMayor:
-		return countPlayerTiles(p.ID(), b, shared.ResourceCityTile)
+		return CountPlayerTiles(p.ID(), b, &cityTileType)
 	case shared.MilestoneGardener:
-		return countPlayerTiles(p.ID(), b, shared.ResourceGreeneryTile)
+		return CountPlayerTiles(p.ID(), b, &greeneryTileType)
 	case shared.MilestoneBuilder:
-		return countPlayerBuildingTags(p, cardRegistry)
+		return CountPlayerTagsByType(p, cardRegistry, shared.TagBuilding)
 	case shared.MilestonePlanner:
 		return p.Hand().CardCount()
 	default:
 		return 0
 	}
-}
-
-// countPlayerTiles counts tiles of a specific type owned by a player
-func countPlayerTiles(playerID string, b *board.Board, tileType shared.ResourceType) int {
-	count := 0
-	tiles := b.Tiles()
-	for _, tile := range tiles {
-		if tile.OwnerID != nil && *tile.OwnerID == playerID {
-			if tile.OccupiedBy != nil && tile.OccupiedBy.Type == tileType {
-				count++
-			}
-		}
-	}
-	return count
-}
-
-// countPlayerBuildingTags counts building tags across all played cards
-func countPlayerBuildingTags(p *player.Player, cardRegistry CardRegistryInterface) int {
-	count := 0
-	playedCardIDs := p.PlayedCards().Cards()
-
-	for _, cardID := range playedCardIDs {
-		card, err := cardRegistry.GetByID(cardID)
-		if err != nil {
-			continue // Skip cards not in registry
-		}
-		for _, tag := range card.Tags {
-			if tag == shared.TagBuilding {
-				count++
-			}
-		}
-	}
-
-	return count
 }

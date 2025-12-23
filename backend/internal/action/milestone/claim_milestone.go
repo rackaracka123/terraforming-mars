@@ -34,7 +34,7 @@ func (a *ClaimMilestoneAction) Execute(ctx context.Context, gameID string, playe
 	log.Info("🏆 Claiming milestone")
 
 	// 1. Validate milestone type
-	if !game.ValidMilestoneType(milestoneType) {
+	if !shared.ValidMilestoneType(milestoneType) {
 		log.Warn("Invalid milestone type", zap.String("milestone_type", milestoneType))
 		return fmt.Errorf("invalid milestone type: %s", milestoneType)
 	}
@@ -80,10 +80,9 @@ func (a *ClaimMilestoneAction) Execute(ctx context.Context, gameID string, playe
 	}
 
 	// 8. Validate player meets milestone requirements
-	milestoneTypeForValidator := shared.MilestoneType(milestoneType)
-	if !gamecards.CanClaimMilestone(milestoneTypeForValidator, player, g.Board(), a.CardRegistry()) {
-		requirement := gamecards.GetMilestoneRequirement(milestoneTypeForValidator)
-		progress := gamecards.GetPlayerMilestoneProgress(milestoneTypeForValidator, player, g.Board(), a.CardRegistry())
+	if !gamecards.CanClaimMilestone(mt, player, g.Board(), a.CardRegistry()) {
+		requirement := gamecards.GetMilestoneRequirement(mt)
+		progress := gamecards.GetPlayerMilestoneProgress(mt, player, g.Board(), a.CardRegistry())
 		log.Warn("Player does not meet milestone requirements",
 			zap.String("requirement", requirement.Description),
 			zap.Int("required", requirement.Required),

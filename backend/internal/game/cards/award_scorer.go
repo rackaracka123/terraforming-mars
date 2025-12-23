@@ -8,6 +8,12 @@ import (
 	"terraforming-mars-backend/internal/game/shared"
 )
 
+// Award VP constants
+const (
+	AwardFirstPlaceVP  = 5 // VP for first place in an award
+	AwardSecondPlaceVP = 2 // VP for second place in an award
+)
+
 // AwardPlacement represents a player's placement in an award
 type AwardPlacement struct {
 	PlayerID  string
@@ -25,14 +31,14 @@ func CalculateAwardScore(
 	switch awardType {
 	case shared.AwardLandlord:
 		// Most tiles on Mars (owned by player)
-		return countAllPlayerTiles(p.ID(), b)
+		return CountPlayerTiles(p.ID(), b, nil)
 	case shared.AwardBanker:
 		// Highest MC production
 		production := p.Resources().Production()
 		return production.Credits
 	case shared.AwardScientist:
 		// Most science tags in play
-		return countPlayerTagsByType(p, cardRegistry, shared.TagScience)
+		return CountPlayerTagsByType(p, cardRegistry, shared.TagScience)
 	case shared.AwardThermalist:
 		// Most heat resources
 		resources := p.Resources().Get()
@@ -120,44 +126,10 @@ func ScoreAward(
 func GetAwardVP(placement int) int {
 	switch placement {
 	case 1:
-		return 5
+		return AwardFirstPlaceVP
 	case 2:
-		return 2
+		return AwardSecondPlaceVP
 	default:
 		return 0
 	}
-}
-
-// countAllPlayerTiles counts all tiles (city, greenery, etc.) owned by a player
-func countAllPlayerTiles(playerID string, b *board.Board) int {
-	count := 0
-	tiles := b.Tiles()
-	for _, tile := range tiles {
-		if tile.OwnerID != nil && *tile.OwnerID == playerID {
-			if tile.OccupiedBy != nil {
-				count++
-			}
-		}
-	}
-	return count
-}
-
-// countPlayerTagsByType counts tags of a specific type across all played cards
-func countPlayerTagsByType(p *player.Player, cardRegistry CardRegistryInterface, tagType shared.CardTag) int {
-	count := 0
-	playedCardIDs := p.PlayedCards().Cards()
-
-	for _, cardID := range playedCardIDs {
-		card, err := cardRegistry.GetByID(cardID)
-		if err != nil {
-			continue // Skip cards not in registry
-		}
-		for _, tag := range card.Tags {
-			if tag == tagType {
-				count++
-			}
-		}
-	}
-
-	return count
 }

@@ -187,8 +187,3 @@ func GetAwardInfo(awardType shared.AwardType) (AwardInfo, bool) {
 	}
 	return AwardInfo{}, false
 }
-
-// ValidAwardType returns true if the string is a valid award type
-func ValidAwardType(s string) bool {
-	return shared.ValidAwardType(s)
-}

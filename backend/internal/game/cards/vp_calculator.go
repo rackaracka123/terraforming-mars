@@ -8,6 +8,9 @@ import (
 	"terraforming-mars-backend/internal/game/shared"
 )
 
+// Milestone VP constant
+const MilestoneClaimedVP = 5 // VP for each claimed milestone
+
 // CardVPConditionDetail represents the detailed calculation of a single VP condition
 type CardVPConditionDetail struct {
 	ConditionType  string `json:"conditionType"`  // "fixed", "per", "once"
@@ -259,40 +262,31 @@ func countPerCondition(
 		return storage
 	}
 
+	cityTileType := shared.ResourceCityTile
+	greeneryTileType := shared.ResourceGreeneryTile
+
 	// Handle different resource types
 	switch per.Type {
 	case shared.ResourceOceanTile:
-		return countAllTilesOfType(b, shared.ResourceOceanTile)
+		return CountAllTilesOfType(b, shared.ResourceOceanTile)
 	case shared.ResourceCityTile:
 		if per.Target != nil && *per.Target == TargetSelfPlayer {
-			return countPlayerTiles(p.ID(), b, shared.ResourceCityTile)
+			return CountPlayerTiles(p.ID(), b, &cityTileType)
 		}
-		return countAllTilesOfType(b, shared.ResourceCityTile)
+		return CountAllTilesOfType(b, shared.ResourceCityTile)
 	case shared.ResourceGreeneryTile:
 		if per.Target != nil && *per.Target == TargetSelfPlayer {
-			return countPlayerTiles(p.ID(), b, shared.ResourceGreeneryTile)
+			return CountPlayerTiles(p.ID(), b, &greeneryTileType)
 		}
-		return countAllTilesOfType(b, shared.ResourceGreeneryTile)
+		return CountAllTilesOfType(b, shared.ResourceGreeneryTile)
 	default:
 		// Check if it's a tag type
 		if per.Tag != nil {
-			return countPlayerTagsByType(p, cardRegistry, *per.Tag)
+			return CountPlayerTagsByType(p, cardRegistry, *per.Tag)
 		}
 		// Default: try to count as a tag
-		return countPlayerTagsByType(p, cardRegistry, shared.CardTag(per.Type))
+		return CountPlayerTagsByType(p, cardRegistry, shared.CardTag(per.Type))
 	}
-}
-
-// countAllTilesOfType counts all tiles of a specific type on the board
-func countAllTilesOfType(b *board.Board, tileType shared.ResourceType) int {
-	count := 0
-	tiles := b.Tiles()
-	for _, tile := range tiles {
-		if tile.OccupiedBy != nil && tile.OccupiedBy.Type == tileType {
-			count++
-		}
-	}
-	return count
 }
 
 // calculateMilestoneVP calculates VP from claimed milestones
@@ -300,7 +294,7 @@ func calculateMilestoneVP(playerID string, claimedMilestones []ClaimedMilestoneI
 	vp := 0
 	for _, milestone := range claimedMilestones {
 		if milestone.PlayerID == playerID {
-			vp += 5 // Each milestone is worth 5 VP
+			vp += MilestoneClaimedVP
 		}
 	}
 	return vp
@@ -382,7 +376,7 @@ func calculateCityVPDetailed(playerID string, b *board.Board) []CityVPDetail {
 // getAdjacentGreeneryCoordinates returns coordinates of greenery tiles adjacent to a position
 func getAdjacentGreeneryCoordinates(coords shared.HexPosition, tiles []board.Tile) []string {
 	var greeneryCoords []string
-	neighbors := getHexNeighbors(coords)
+	neighbors := coords.GetNeighbors()
 
 	for _, tile := range tiles {
 		if tile.OccupiedBy == nil || tile.OccupiedBy.Type != shared.ResourceGreeneryTile {
@@ -398,36 +392,4 @@ func getAdjacentGreeneryCoordinates(coords shared.HexPosition, tiles []board.Til
 	}
 
 	return greeneryCoords
-}
-
-// countAdjacentGreeneries counts greenery tiles adjacent to a position
-func countAdjacentGreeneries(coords shared.HexPosition, tiles []board.Tile) int {
-	count := 0
-	neighbors := getHexNeighbors(coords)
-
-	for _, tile := range tiles {
-		if tile.OccupiedBy == nil || tile.OccupiedBy.Type != shared.ResourceGreeneryTile {
-			continue
-		}
-		for _, neighbor := range neighbors {
-			if tile.Coordinates == neighbor {
-				count++
-				break
-			}
-		}
-	}
-
-	return count
-}
-
-// getHexNeighbors returns the 6 neighboring hex positions
-func getHexNeighbors(pos shared.HexPosition) []shared.HexPosition {
-	return []shared.HexPosition{
-		{Q: pos.Q + 1, R: pos.R - 1, S: pos.S},
-		{Q: pos.Q + 1, R: pos.R, S: pos.S - 1},
-		{Q: pos.Q, R: pos.R + 1, S: pos.S - 1},
-		{Q: pos.Q - 1, R: pos.R + 1, S: pos.S},
-		{Q: pos.Q - 1, R: pos.R, S: pos.S + 1},
-		{Q: pos.Q, R: pos.R - 1, S: pos.S + 1},
-	}
 }

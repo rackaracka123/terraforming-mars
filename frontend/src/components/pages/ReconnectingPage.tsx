@@ -5,13 +5,10 @@ import { apiService } from "../../services/apiService.ts";
 import {
   clearGameSession,
   getGameSession,
+  saveGameSession,
 } from "../../utils/sessionStorage.ts";
 
-interface ReconnectingPageProps {
-  // Add any props if needed
-}
-
-const ReconnectingPage: React.FC<ReconnectingPageProps> = () => {
+const ReconnectingPage: React.FC = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(true);
@@ -68,15 +65,11 @@ const ReconnectingPage: React.FC<ReconnectingPageProps> = () => {
         globalWebSocketManager.setCurrentPlayerId(playerId);
 
         // Update localStorage with fresh data
-        localStorage.setItem(
-          "terraforming-mars-game",
-          JSON.stringify({
-            gameId: game.id,
-            playerId: playerId,
-            playerName: playerName,
-            timestamp: Date.now(),
-          }),
-        );
+        saveGameSession({
+          gameId: game.id,
+          playerId: playerId,
+          playerName: playerName,
+        });
 
         // Navigate to game with reconnected state
         // Game state will be updated reactively via WebSocket game-updated events
@@ -106,17 +99,17 @@ const ReconnectingPage: React.FC<ReconnectingPageProps> = () => {
   };
 
   return (
-    <div className="bg-[#000011] text-white min-h-screen flex items-center justify-center font-sans">
+    <div className="bg-space-black text-white min-h-screen flex items-center justify-center font-sans">
       <div className="max-w-[600px] w-full py-10 px-5 max-[768px]:py-5 max-[768px]:px-[15px]">
         <div className="text-center">
-          <h1 className="text-5xl text-white mb-[60px] [text-shadow:0_2px_4px_rgba(0,0,0,0.8)] font-bold max-[768px]:text-4xl max-[768px]:mb-10 max-[480px]:text-[28px] max-[480px]:mb-[30px]">
+          <h1 className="text-5xl text-white mb-[60px] text-shadow-glow-strong font-bold font-orbitron max-[768px]:text-4xl max-[768px]:mb-10 max-[480px]:text-[28px] max-[480px]:mb-[30px]">
             Terraforming Mars
           </h1>
 
           {isReconnecting ? (
             <div className="flex flex-col items-center gap-6">
-              <div className="w-[60px] h-[60px] border-4 border-[rgba(74,144,226,0.3)] border-t-[#4a90e2] rounded-full animate-[spin_1s_linear_infinite] max-[768px]:w-[50px] max-[768px]:h-[50px]"></div>
-              <h2 className="text-[32px] text-[#4a90e2] m-0 [text-shadow:0_2px_4px_rgba(0,0,0,0.8)] font-bold max-[768px]:text-2xl max-[480px]:text-xl">
+              <div className="w-[60px] h-[60px] border-4 border-space-blue-500 border-t-space-blue-900 rounded-full animate-spin shadow-glow max-[768px]:w-[50px] max-[768px]:h-[50px]"></div>
+              <h2 className="text-[32px] text-space-blue-900 m-0 text-shadow-glow-strong font-bold font-orbitron max-[768px]:text-2xl max-[480px]:text-xl">
                 Reconnecting to game...
               </h2>
               <p className="text-lg text-white/80 m-0 max-w-[400px] max-[768px]:text-base">
@@ -125,15 +118,15 @@ const ReconnectingPage: React.FC<ReconnectingPageProps> = () => {
             </div>
           ) : error ? (
             <div className="flex flex-col items-center gap-5">
-              <div className="text-[64px] mb-2">⚠️</div>
-              <h2 className="text-[28px] text-[#ff6b6b] m-0 [text-shadow:0_2px_4px_rgba(0,0,0,0.8)] font-bold max-[768px]:text-2xl max-[480px]:text-xl">
+              <div className="text-[64px] mb-2">!</div>
+              <h2 className="text-[28px] text-error-red m-0 text-shadow-glow-strong font-bold font-orbitron max-[768px]:text-2xl max-[480px]:text-xl">
                 Reconnection Failed
               </h2>
               <p className="text-base text-white/90 m-0 max-w-[400px] leading-[1.5] max-[768px]:text-sm">
                 {error}
               </p>
               <button
-                className="bg-[linear-gradient(135deg,#4a90e2_0%,#5ba0f2_100%)] border-none rounded-xl py-4 px-8 text-lg font-bold text-white cursor-pointer transition-all duration-300 [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] shadow-[0_4px_20px_rgba(74,144,226,0.3)] mt-4 hover:bg-[linear-gradient(135deg,#357abd_0%,#4a90e2_100%)] hover:-translate-y-0.5 hover:shadow-[0_6px_25px_rgba(74,144,226,0.4)] max-[768px]:py-3.5 max-[768px]:px-7 max-[768px]:text-base max-[480px]:py-3 max-[480px]:px-6 max-[480px]:text-sm"
+                className="bg-space-blue-600 border-2 border-space-blue-900 rounded-xl py-4 px-8 text-lg font-bold text-white cursor-pointer transition-all duration-300 shadow-glow mt-4 hover:bg-space-blue-900 hover:-translate-y-0.5 hover:shadow-glow-lg max-[768px]:py-3.5 max-[768px]:px-7 max-[768px]:text-base max-[480px]:py-3 max-[480px]:px-6 max-[480px]:text-sm font-orbitron"
                 onClick={handleReturnToMenu}
               >
                 Return to Main Menu
