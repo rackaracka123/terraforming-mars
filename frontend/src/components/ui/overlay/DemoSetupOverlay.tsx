@@ -40,7 +40,10 @@ const OCEANS_MAX = 9;
 const GENERATION_MIN = 1;
 const GENERATION_MAX = 14;
 
-const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) => {
+const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({
+  game,
+  playerId,
+}) => {
   const isHost = game.hostPlayerId === playerId;
 
   // Global parameters (host only)
@@ -52,9 +55,12 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
   const [generation, setGeneration] = useState(game.generation ?? 1);
 
   // Player setup
-  const [availableCorporations, setAvailableCorporations] = useState<CardDto[]>([]);
+  const [availableCorporations, setAvailableCorporations] = useState<CardDto[]>(
+    [],
+  );
   const [availableCards, setAvailableCards] = useState<CardDto[]>([]);
-  const [selectedCorporationId, setSelectedCorporationId] = useState<string>("");
+  const [selectedCorporationId, setSelectedCorporationId] =
+    useState<string>("");
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [cardSearchTerm, setCardSearchTerm] = useState("");
   const [showCardSelection, setShowCardSelection] = useState(false);
@@ -114,7 +120,9 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
   useEffect(() => {
     if (!selectedCorporationId) return;
 
-    const corp = availableCorporations.find((c) => c.id === selectedCorporationId);
+    const corp = availableCorporations.find(
+      (c) => c.id === selectedCorporationId,
+    );
     if (corp) {
       // Apply starting resources
       if (corp.startingResources) {
@@ -143,7 +151,9 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
 
   const toggleCardSelection = (cardId: string) => {
     setSelectedCardIds((prev) =>
-      prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId],
+      prev.includes(cardId)
+        ? prev.filter((id) => id !== cardId)
+        : [...prev, cardId],
     );
   };
 
@@ -153,7 +163,9 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
       card.id.toLowerCase().includes(cardSearchTerm.toLowerCase()),
   );
 
-  const selectedCorporation = availableCorporations.find((c) => c.id === selectedCorporationId);
+  const selectedCorporation = availableCorporations.find(
+    (c) => c.id === selectedCorporationId,
+  );
 
   const handleConfirm = async () => {
     if (isSubmitting) return;
@@ -175,11 +187,17 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
     }
   };
 
-  const handleResourceChange = (resource: keyof ResourcesDto, value: number) => {
+  const handleResourceChange = (
+    resource: keyof ResourcesDto,
+    value: number,
+  ) => {
     setResources((prev) => ({ ...prev, [resource]: Math.max(0, value) }));
   };
 
-  const handleProductionChange = (resource: keyof ProductionDto, value: number) => {
+  const handleProductionChange = (
+    resource: keyof ProductionDto,
+    value: number,
+  ) => {
     // Production can be negative for credits
     const minValue = resource === "credits" ? -5 : 0;
     setProduction((prev) => ({
@@ -198,7 +216,8 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
   ];
 
   // Select all text on focus for better UX with number inputs
-  const handleSelectAll = (e: React.FocusEvent<HTMLInputElement>) => e.target.select();
+  const handleSelectAll = (e: React.FocusEvent<HTMLInputElement>) =>
+    e.target.select();
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-[fadeIn_0.3s_ease]">
@@ -240,7 +259,10 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                             ...prev,
                             temperature: Math.max(
                               TEMP_MIN,
-                              Math.min(TEMP_MAX, parseInt(e.target.value) || TEMP_MIN),
+                              Math.min(
+                                TEMP_MAX,
+                                parseInt(e.target.value) || TEMP_MIN,
+                              ),
                             ),
                           }))
                         }
@@ -264,7 +286,10 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                             ...prev,
                             oxygen: Math.max(
                               OXYGEN_MIN,
-                              Math.min(OXYGEN_MAX, parseInt(e.target.value) || OXYGEN_MIN),
+                              Math.min(
+                                OXYGEN_MAX,
+                                parseInt(e.target.value) || OXYGEN_MIN,
+                              ),
                             ),
                           }))
                         }
@@ -288,7 +313,10 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                             ...prev,
                             oceans: Math.max(
                               OCEANS_MIN,
-                              Math.min(OCEANS_MAX, parseInt(e.target.value) || OCEANS_MIN),
+                              Math.min(
+                                OCEANS_MAX,
+                                parseInt(e.target.value) || OCEANS_MIN,
+                              ),
                             ),
                           }))
                         }
@@ -311,7 +339,10 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                           setGeneration(
                             Math.max(
                               GENERATION_MIN,
-                              Math.min(GENERATION_MAX, parseInt(e.target.value) || GENERATION_MIN),
+                              Math.min(
+                                GENERATION_MAX,
+                                parseInt(e.target.value) || GENERATION_MIN,
+                              ),
                             ),
                           )
                         }
@@ -341,7 +372,9 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                   ))}
                 </select>
                 {selectedCorporation && (
-                  <p className="text-white/50 text-xs mt-2">{selectedCorporation.description}</p>
+                  <p className="text-white/50 text-xs mt-2">
+                    {selectedCorporation.description}
+                  </p>
                 )}
               </div>
 
@@ -372,7 +405,9 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                     {selectedCardIds.length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-2">
                         {selectedCardIds.map((cardId) => {
-                          const card = availableCards.find((c) => c.id === cardId);
+                          const card = availableCards.find(
+                            (c) => c.id === cardId,
+                          );
                           return (
                             <span
                               key={cardId}
@@ -405,7 +440,9 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                             }`}
                           >
                             <span className="font-medium">{card.name}</span>
-                            <span className="text-white/40 ml-1">({card.cost})</span>
+                            <span className="text-white/40 ml-1">
+                              ({card.cost})
+                            </span>
                           </button>
                         );
                       })}
@@ -424,7 +461,9 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                 </h3>
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={() => setTerraformRating((prev) => Math.max(0, prev - 1))}
+                    onClick={() =>
+                      setTerraformRating((prev) => Math.max(0, prev - 1))
+                    }
                     className="w-8 h-8 bg-black/60 border border-space-blue-400/50 rounded text-white hover:border-space-blue-400 transition-all"
                   >
                     -
@@ -433,7 +472,11 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                     type="number"
                     min={0}
                     value={terraformRating}
-                    onChange={(e) => setTerraformRating(Math.max(0, parseInt(e.target.value) || 0))}
+                    onChange={(e) =>
+                      setTerraformRating(
+                        Math.max(0, parseInt(e.target.value) || 0),
+                      )
+                    }
                     onFocus={handleSelectAll}
                     className={`${INPUT_SMALL_CLASS} w-20 rounded-lg`}
                   />
@@ -459,7 +502,12 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                         type="number"
                         min={0}
                         value={resources[key]}
-                        onChange={(e) => handleResourceChange(key, parseInt(e.target.value) || 0)}
+                        onChange={(e) =>
+                          handleResourceChange(
+                            key,
+                            parseInt(e.target.value) || 0,
+                          )
+                        }
                         onFocus={handleSelectAll}
                         className={INPUT_SMALL_CLASS}
                         title={label}
@@ -485,7 +533,12 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                         type="number"
                         min={key === "credits" ? -5 : 0}
                         value={production[key]}
-                        onChange={(e) => handleProductionChange(key, parseInt(e.target.value) || 0)}
+                        onChange={(e) =>
+                          handleProductionChange(
+                            key,
+                            parseInt(e.target.value) || 0,
+                          )
+                        }
                         onFocus={handleSelectAll}
                         className={INPUT_SMALL_CLASS}
                         title={`${label} Production`}
