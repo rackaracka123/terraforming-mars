@@ -1,12 +1,19 @@
 import { useMemo } from "react";
 import * as THREE from "three";
 import { HexGrid2D } from "../../../utils/hex-grid-2d";
-import ProjectedHexTile from "./ProjectedHexTile";
-import { GameDto, TileDto, TileBonusDto } from "../../../types/generated/api-types";
+import ProjectedHexTile, { TileHighlightMode } from "./ProjectedHexTile";
+import { TileVPIndicator } from "../../ui/overlay/EndGameOverlay";
+import {
+  GameDto,
+  TileDto,
+  TileBonusDto,
+} from "../../../types/generated/api-types";
 
 interface ProjectedHexGridProps {
   gameState?: GameDto;
   onHexClick?: (hexCoordinate: string) => void;
+  tileHighlightMode?: TileHighlightMode;
+  vpIndicators?: TileVPIndicator[];
 }
 
 // Local type for tiles with projected positions
@@ -29,8 +36,43 @@ interface TileData {
   specialType: null;
 }
 
-export default function ProjectedHexGrid({ gameState, onHexClick }: ProjectedHexGridProps) {
+export default function ProjectedHexGrid({
+  gameState,
+  onHexClick,
+  tileHighlightMode,
+  vpIndicators = [],
+}: ProjectedHexGridProps) {
   const SPHERE_RADIUS = 2.02;
+
+  // Create lookup map for VP indicators by coordinate
+  const vpIndicatorMap = useMemo(() => {
+    const map = new Map<string, TileVPIndicator>();
+    for (const indicator of vpIndicators) {
+      map.set(indicator.coordinate, indicator);
+    }
+    return map;
+  }, [vpIndicators]);
+
+  // Determine highlight mode for individual tiles based on VP indicators or global mode
+  const getHighlightModeForTile = (
+    tileType: TileType,
+    globalHighlightMode: TileHighlightMode | undefined,
+    vpIndicator: TileVPIndicator | undefined,
+  ): TileHighlightMode => {
+    // Priority 1: Use VP indicator if present (for end-game VP counting)
+    if (vpIndicator) {
+      if (vpIndicator.type === "greenery") return "greenery";
+      if (vpIndicator.type === "city-adjacency") return "adjacent";
+    }
+
+    // Priority 2: Use global highlight mode
+    if (!globalHighlightMode) return null;
+    if (globalHighlightMode === "greenery" && tileType === "greenery")
+      return "greenery";
+    if (globalHighlightMode === "city" && tileType === "city") return "city";
+    // "adjacent" mode could be used for highlighting greeneries adjacent to cities
+    return null;
+  };
 
   // Convert hex coordinates to 2D pixel position (same as backend logic)
   const hexToPixel = (coord: { q: number; r: number; s: number }) => {
@@ -133,7 +175,8 @@ export default function ProjectedHexGrid({ gameState, onHexClick }: ProjectedHex
   };
 
   // Get available hexes from current player's pending tile selection
-  const availableHexes = gameState?.currentPlayer?.pendingTileSelection?.availableHexes || [];
+  const availableHexes =
+    gameState?.currentPlayer?.pendingTileSelection?.availableHexes || [];
 
   return (
     <>
@@ -141,6 +184,7 @@ export default function ProjectedHexGrid({ gameState, onHexClick }: ProjectedHex
         const hexKey = HexGrid2D.coordinateToKey(tile.coordinate);
         const tileData = getTileData(tile);
         const isAvailable = availableHexes.includes(hexKey);
+        const vpIndicator = vpIndicatorMap.get(hexKey);
 
         return (
           <ProjectedHexTile
@@ -153,6 +197,13 @@ export default function ProjectedHexGrid({ gameState, onHexClick }: ProjectedHex
               onHexClick?.(hexKey);
             }}
             isAvailableForPlacement={isAvailable}
+            highlightMode={getHighlightModeForTile(
+              tileData.type,
+              tileHighlightMode,
+              vpIndicator,
+            )}
+            vpAmount={vpIndicator?.showVPText ? vpIndicator.amount : undefined}
+            vpAnimating={vpIndicator?.isAnimating}
           />
         );
       })}
@@ -164,7 +215,10 @@ export default function ProjectedHexGrid({ gameState, onHexClick }: ProjectedHex
  * Project a 2D point onto the surface of a sphere
  * This simulates "wrapping" the flat hex grid around the sphere
  */
-function projectToSphere(position2D: { x: number; y: number }, radius: number): THREE.Vector3 {
+function projectToSphere(
+  position2D: { x: number; y: number },
+  radius: number,
+): THREE.Vector3 {
   // Scale the 2D coordinates to fit nicely on the sphere
   const scale = 0.4; // Reduced scale to bring hexagons closer together
   const x = position2D.x * scale;
