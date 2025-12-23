@@ -1,5 +1,9 @@
 import React from "react";
-import { ResourceType, ResourceTypeCredit, CardTag } from "@/types/generated/api-types.ts";
+import {
+  ResourceType,
+  ResourceTypeCredit,
+  CardTag,
+} from "@/types/generated/api-types.ts";
 import { getIconPath } from "@/utils/iconStore.ts";
 
 /**
@@ -10,7 +14,12 @@ import { getIconPath } from "@/utils/iconStore.ts";
  *
  * Production resources are automatically detected via "-production" suffix (e.g., "energy-production")
  */
-export type GameIconType = ResourceType | CardTag | "milestone" | "award" | "card";
+export type GameIconType =
+  | ResourceType
+  | CardTag
+  | "milestone"
+  | "award"
+  | "card";
 
 interface GameIconProps {
   /** The type of icon to display. Supports ResourceType, CardTag, or frontend-specific icons */
@@ -74,7 +83,8 @@ const GameIcon: React.FC<GameIconProps> = ({
   className = "",
 }) => {
   const isProduction = iconType?.endsWith("-production") || false;
-  const baseType = isProduction && iconType ? iconType.replace("-production", "") : iconType;
+  const baseType =
+    isProduction && iconType ? iconType.replace("-production", "") : iconType;
   const isCredits = baseType === ResourceTypeCredit;
   const isCardType =
     baseType === "card-draw" ||
