@@ -638,9 +638,12 @@ type GameDto struct {
 	ViewingPlayerID  string              `json:"viewingPlayerId" ts:"string"`        // The player viewing this game state
 	CurrentTurn      *string             `json:"currentTurn" ts:"string|null"`       // Whose turn it is (nullable)
 	Generation       int                 `json:"generation" ts:"number"`
-	TurnOrder        []string            `json:"turnOrder" ts:"string[]"`                   // Turn order of all players in game
-	Board            BoardDto            `json:"board" ts:"BoardDto"`                       // Game board with tiles and occupancy state
-	PaymentConstants PaymentConstantsDto `json:"paymentConstants" ts:"PaymentConstantsDto"` // Conversion rates for alternative payments
+	TurnOrder        []string            `json:"turnOrder" ts:"string[]"`                                // Turn order of all players in game
+	Board            BoardDto            `json:"board" ts:"BoardDto"`                                    // Game board with tiles and occupancy state
+	PaymentConstants PaymentConstantsDto `json:"paymentConstants" ts:"PaymentConstantsDto"`              // Conversion rates for alternative payments
+	Milestones       []MilestoneDto      `json:"milestones" ts:"MilestoneDto[]"`                         // All milestones with claim status
+	Awards           []AwardDto          `json:"awards" ts:"AwardDto[]"`                                 // All awards with funding status
+	FinalScores      []FinalScoreDto     `json:"finalScores,omitempty" ts:"FinalScoreDto[] | undefined"` // Final scores (only when game completed)
 }
 
 // Board-related DTOs for tygo generation
@@ -685,4 +688,79 @@ type TileDto struct {
 type BoardDto struct {
 	// Tiles specifies all tiles on the game board
 	Tiles []TileDto `json:"tiles" ts:"TileDto[]"`
+}
+
+// MilestoneDto represents a milestone for client consumption
+type MilestoneDto struct {
+	Type        string  `json:"type" ts:"string"`
+	Name        string  `json:"name" ts:"string"`
+	Description string  `json:"description" ts:"string"`
+	IsClaimed   bool    `json:"isClaimed" ts:"boolean"`
+	ClaimedBy   *string `json:"claimedBy" ts:"string | null"`
+	ClaimCost   int     `json:"claimCost" ts:"number"`
+}
+
+// AwardDto represents an award for client consumption
+type AwardDto struct {
+	Type        string  `json:"type" ts:"string"`
+	Name        string  `json:"name" ts:"string"`
+	Description string  `json:"description" ts:"string"`
+	IsFunded    bool    `json:"isFunded" ts:"boolean"`
+	FundedBy    *string `json:"fundedBy" ts:"string | null"`
+	FundingCost int     `json:"fundingCost" ts:"number"`
+}
+
+// CardVPConditionDetailDto represents the detailed calculation of a single VP condition
+type CardVPConditionDetailDto struct {
+	ConditionType  string `json:"conditionType" ts:"string"` // "fixed", "per", "once"
+	Amount         int    `json:"amount" ts:"number"`        // VP amount per trigger or fixed amount
+	Count          int    `json:"count" ts:"number"`         // Items counted (for "per" conditions)
+	MaxTrigger     *int   `json:"maxTrigger" ts:"number | undefined"`
+	ActualTriggers int    `json:"actualTriggers" ts:"number"` // Actual triggers after applying max
+	TotalVP        int    `json:"totalVP" ts:"number"`        // Final VP from this condition
+	Explanation    string `json:"explanation" ts:"string"`    // Human-readable breakdown
+}
+
+// CardVPDetailDto represents VP calculation for a single card
+type CardVPDetailDto struct {
+	CardID     string                     `json:"cardId" ts:"string"`
+	CardName   string                     `json:"cardName" ts:"string"`
+	Conditions []CardVPConditionDetailDto `json:"conditions" ts:"CardVPConditionDetailDto[]"`
+	TotalVP    int                        `json:"totalVP" ts:"number"`
+}
+
+// GreeneryVPDetailDto represents VP from a single greenery tile
+type GreeneryVPDetailDto struct {
+	Coordinate string `json:"coordinate" ts:"string"` // Format: "q,r,s"
+	VP         int    `json:"vp" ts:"number"`         // Always 1 per greenery
+}
+
+// CityVPDetailDto represents VP from a single city tile and its adjacent greeneries
+type CityVPDetailDto struct {
+	CityCoordinate     string   `json:"cityCoordinate" ts:"string"`       // Format: "q,r,s"
+	AdjacentGreeneries []string `json:"adjacentGreeneries" ts:"string[]"` // Coordinates of adjacent greenery tiles
+	VP                 int      `json:"vp" ts:"number"`                   // Number of adjacent greeneries
+}
+
+// VPBreakdownDto represents a breakdown of victory points for client consumption
+type VPBreakdownDto struct {
+	TerraformRating   int                   `json:"terraformRating" ts:"number"`
+	CardVP            int                   `json:"cardVP" ts:"number"`
+	CardVPDetails     []CardVPDetailDto     `json:"cardVPDetails" ts:"CardVPDetailDto[]"` // Per-card VP breakdown
+	MilestoneVP       int                   `json:"milestoneVP" ts:"number"`
+	AwardVP           int                   `json:"awardVP" ts:"number"`
+	GreeneryVP        int                   `json:"greeneryVP" ts:"number"`
+	GreeneryVPDetails []GreeneryVPDetailDto `json:"greeneryVPDetails" ts:"GreeneryVPDetailDto[]"` // Per-greenery VP breakdown
+	CityVP            int                   `json:"cityVP" ts:"number"`
+	CityVPDetails     []CityVPDetailDto     `json:"cityVPDetails" ts:"CityVPDetailDto[]"` // Per-city VP breakdown with adjacencies
+	TotalVP           int                   `json:"totalVP" ts:"number"`
+}
+
+// FinalScoreDto represents a player's final score for client consumption
+type FinalScoreDto struct {
+	PlayerID    string         `json:"playerId" ts:"string"`
+	PlayerName  string         `json:"playerName" ts:"string"`
+	VPBreakdown VPBreakdownDto `json:"vpBreakdown" ts:"VPBreakdownDto"`
+	IsWinner    bool           `json:"isWinner" ts:"boolean"`
+	Placement   int            `json:"placement" ts:"number"`
 }

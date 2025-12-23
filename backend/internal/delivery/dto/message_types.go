@@ -36,6 +36,10 @@ const (
 	MessageTypeActionSkipAction       MessageType = "action.game-management.skip-action"
 	MessageTypeActionConfirmDemoSetup MessageType = "action.game-management.confirm-demo-setup"
 
+	// Milestone and award message types
+	MessageTypeActionClaimMilestone MessageType = "action.milestone.claim-milestone"
+	MessageTypeActionFundAward      MessageType = "action.award.fund-award"
+
 	// Tile selection message types
 	MessageTypeActionTileSelected MessageType = "action.tile-selection.tile-selected"
 
