@@ -63,9 +63,7 @@ const Stepper: React.FC<StepperProps> = ({
 
   return (
     <div className="flex items-center gap-1">
-      {label && (
-        <span className="text-white/60 text-xs mr-2 min-w-[60px]">{label}</span>
-      )}
+      {label && <span className="text-white/60 text-xs mr-2 min-w-[60px]">{label}</span>}
       <button
         onClick={() => canDecrease && onChange(Math.max(min, value - step))}
         disabled={!canDecrease}
@@ -77,9 +75,7 @@ const Stepper: React.FC<StepperProps> = ({
       >
         -
       </button>
-      <span className="w-12 text-center text-white font-medium text-sm">
-        {value}
-      </span>
+      <span className="w-12 text-center text-white font-medium text-sm">{value}</span>
       <button
         onClick={() => canIncrease && onChange(Math.min(max, value + step))}
         disabled={!canIncrease}
@@ -125,9 +121,7 @@ const ResourceStepper: React.FC<ResourceStepperProps> = ({
       >
         -
       </button>
-      <span className="w-8 text-center text-white font-medium text-sm">
-        {value}
-      </span>
+      <span className="w-8 text-center text-white font-medium text-sm">{value}</span>
       <button
         onClick={() => onChange(value + 1)}
         className="w-6 h-6 text-sm rounded bg-black/40 border border-space-blue-400/30 text-white hover:border-space-blue-400 transition-all"
@@ -138,10 +132,7 @@ const ResourceStepper: React.FC<ResourceStepperProps> = ({
   );
 };
 
-const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({
-  game,
-  playerId,
-}) => {
+const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) => {
   const isHost = game.hostPlayerId === playerId;
 
   // Global parameters (host only)
@@ -153,12 +144,9 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({
   const [generation, setGeneration] = useState(game.generation ?? 1);
 
   // Player setup
-  const [availableCorporations, setAvailableCorporations] = useState<CardDto[]>(
-    [],
-  );
+  const [availableCorporations, setAvailableCorporations] = useState<CardDto[]>([]);
   const [availableCards, setAvailableCards] = useState<CardDto[]>([]);
-  const [selectedCorporationId, setSelectedCorporationId] =
-    useState<string>("");
+  const [selectedCorporationId, setSelectedCorporationId] = useState<string>("");
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [cardSearchTerm, setCardSearchTerm] = useState("");
   const [corpSearchTerm, setCorpSearchTerm] = useState("");
@@ -217,9 +205,7 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({
   useEffect(() => {
     if (!selectedCorporationId) return;
 
-    const corp = availableCorporations.find(
-      (c) => c.id === selectedCorporationId,
-    );
+    const corp = availableCorporations.find((c) => c.id === selectedCorporationId);
     if (corp) {
       if (corp.startingResources) {
         setResources({
@@ -246,9 +232,7 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({
 
   const toggleCardSelection = (cardId: string) => {
     setSelectedCardIds((prev) =>
-      prev.includes(cardId)
-        ? prev.filter((id) => id !== cardId)
-        : [...prev, cardId],
+      prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId],
     );
   };
 
@@ -264,9 +248,7 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({
       corp.id.toLowerCase().includes(corpSearchTerm.toLowerCase()),
   );
 
-  const selectedCorporation = availableCorporations.find(
-    (c) => c.id === selectedCorporationId,
-  );
+  const selectedCorporation = availableCorporations.find((c) => c.id === selectedCorporationId);
 
   const handleConfirm = async () => {
     if (isSubmitting) return;
@@ -324,9 +306,7 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({
                     <Stepper
                       label="Temp"
                       value={globalParams.temperature}
-                      onChange={(v) =>
-                        setGlobalParams((p) => ({ ...p, temperature: v }))
-                      }
+                      onChange={(v) => setGlobalParams((p) => ({ ...p, temperature: v }))}
                       min={TEMP_MIN}
                       max={TEMP_MAX}
                       step={2}
@@ -334,18 +314,14 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({
                     <Stepper
                       label="Oxygen"
                       value={globalParams.oxygen}
-                      onChange={(v) =>
-                        setGlobalParams((p) => ({ ...p, oxygen: v }))
-                      }
+                      onChange={(v) => setGlobalParams((p) => ({ ...p, oxygen: v }))}
                       min={OXYGEN_MIN}
                       max={OXYGEN_MAX}
                     />
                     <Stepper
                       label="Oceans"
                       value={globalParams.oceans}
-                      onChange={(v) =>
-                        setGlobalParams((p) => ({ ...p, oceans: v }))
-                      }
+                      onChange={(v) => setGlobalParams((p) => ({ ...p, oceans: v }))}
                       min={OCEANS_MIN}
                       max={OCEANS_MAX}
                     />
@@ -365,12 +341,7 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({
                 <h3 className="text-white font-semibold mb-3 uppercase tracking-wide text-xs">
                   Terraform Rating
                 </h3>
-                <Stepper
-                  value={terraformRating}
-                  onChange={setTerraformRating}
-                  min={0}
-                  max={100}
-                />
+                <Stepper value={terraformRating} onChange={setTerraformRating} min={0} max={100} />
               </div>
 
               {/* Resources */}
@@ -384,9 +355,7 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({
                       key={key}
                       icon={icon}
                       value={resources[key]}
-                      onChange={(v) =>
-                        setResources((p) => ({ ...p, [key]: v }))
-                      }
+                      onChange={(v) => setResources((p) => ({ ...p, [key]: v }))}
                     />
                   ))}
                 </div>
@@ -403,9 +372,7 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({
                       key={key}
                       icon={icon}
                       value={production[key]}
-                      onChange={(v) =>
-                        setProduction((p) => ({ ...p, [key]: v }))
-                      }
+                      onChange={(v) => setProduction((p) => ({ ...p, [key]: v }))}
                       min={key === "credits" ? -5 : 0}
                       isProduction
                     />
@@ -439,9 +406,7 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({
                       : "border-white/20 bg-black/30 hover:border-yellow-400/50"
                   }`}
                 >
-                  <span className="text-white/80 text-sm font-medium">
-                    Random Corporation
-                  </span>
+                  <span className="text-white/80 text-sm font-medium">Random Corporation</span>
                 </button>
                 {filteredCorporations.map((corp) => (
                   <div key={corp.id} className="shrink-0">
@@ -476,9 +441,7 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({
                       }}
                       isSelected={selectedCorporationId === corp.id}
                       onSelect={() =>
-                        setSelectedCorporationId(
-                          selectedCorporationId === corp.id ? "" : corp.id,
-                        )
+                        setSelectedCorporationId(selectedCorporationId === corp.id ? "" : corp.id)
                       }
                       showCheckbox
                     />
