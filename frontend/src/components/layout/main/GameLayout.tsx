@@ -3,6 +3,8 @@ import LeftSidebar from "../panels/LeftSidebar.tsx";
 import TopMenuBar from "../panels/TopMenuBar.tsx";
 import RightSidebar from "../panels/RightSidebar.tsx";
 import MainContentDisplay from "../../ui/display/MainContentDisplay.tsx";
+import { TileHighlightMode } from "../../game/board/ProjectedHexTile.tsx";
+import { TileVPIndicator } from "../../ui/overlay/EndGameOverlay.tsx";
 import BottomResourceBar from "../../ui/overlay/BottomResourceBar.tsx";
 import PlayerOverlay from "../../ui/overlay/PlayerOverlay.tsx";
 import CorporationViewer from "../../ui/display/CorporationViewer.tsx";
@@ -24,6 +26,8 @@ interface GameLayoutProps {
   isLobbyPhase?: boolean;
   showCardSelection?: boolean;
   changedPaths?: Set<string>;
+  tileHighlightMode?: TileHighlightMode;
+  vpIndicators?: TileVPIndicator[];
   onOpenCardEffectsModal?: () => void;
   onOpenCardsPlayedModal?: () => void;
   onOpenVictoryPointsModal?: () => void;
@@ -45,6 +49,8 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   isLobbyPhase = false,
   showCardSelection = false,
   changedPaths = new Set(),
+  tileHighlightMode,
+  vpIndicators = [],
   onOpenCardEffectsModal,
   onOpenCardsPlayedModal,
   onOpenVictoryPointsModal,
@@ -69,7 +75,10 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   const allPlayers: (PlayerDto | OtherPlayerDto)[] =
     (gameState?.turnOrder
       ?.map((playerId) => playerMap.get(playerId))
-      .filter((player) => player !== undefined) as (PlayerDto | OtherPlayerDto)[]) || [];
+      .filter((player) => player !== undefined) as (
+      | PlayerDto
+      | OtherPlayerDto
+    )[]) || [];
 
   // Find the current turn player for the right sidebar
   const currentTurnPlayer =
@@ -87,7 +96,11 @@ const GameLayout: React.FC<GameLayoutProps> = ({
         )}
 
         <div className="grid grid-cols-1 min-h-0 gap-0 relative">
-          <MainContentDisplay gameState={gameState} />
+          <MainContentDisplay
+            gameState={gameState}
+            tileHighlightMode={tileHighlightMode}
+            vpIndicators={vpIndicators}
+          />
         </div>
 
         {/* Overlay Components */}
@@ -123,7 +136,9 @@ const GameLayout: React.FC<GameLayoutProps> = ({
               onConvertHeatToTemperature={onConvertHeatToTemperature}
             />
 
-            {corporationCard && <CorporationViewer corporation={corporationCard} />}
+            {corporationCard && (
+              <CorporationViewer corporation={corporationCard} />
+            )}
           </>
         )}
       </div>

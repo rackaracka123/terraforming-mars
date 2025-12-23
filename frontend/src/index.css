@@ -628,3 +628,208 @@ code {
     transform: scaleY(0);
   }
 }
+
+/* ========== End Game VP Counting Animations ========== */
+
+/* VP number count-up pulse animation */
+@keyframes vpCountUp {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+    color: #ffd700;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Card pop/reveal animation */
+@keyframes cardPop {
+  0% {
+    transform: translateZ(0) rotateY(0) scale(1);
+  }
+  50% {
+    transform: translateZ(50px) rotateY(5deg) scale(1.05);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  }
+  100% {
+    transform: translateZ(0) rotateY(0) scale(1);
+  }
+}
+
+/* Floating VP number animation */
+@keyframes floatUp {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+}
+
+/* Bar chart segment growth animation */
+@keyframes barGrow {
+  from {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  to {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+}
+
+/* Winner glow pulse animation */
+@keyframes winnerGlow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 20px rgba(255, 215, 0, 0.5),
+      0 0 40px rgba(255, 215, 0, 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 40px rgba(255, 215, 0, 0.8),
+      0 0 80px rgba(255, 215, 0, 0.5);
+  }
+}
+
+/* Podium rise animation */
+@keyframes podiumRise {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Milestone badge fill animation */
+@keyframes badgeFill {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0% 0;
+  }
+}
+
+/* Trophy shine animation */
+@keyframes trophyShine {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+/* Tile highlight pulse */
+@keyframes tileHighlight {
+  0%,
+  100% {
+    filter: brightness(1) drop-shadow(0 0 4px currentColor);
+  }
+  50% {
+    filter: brightness(1.3) drop-shadow(0 0 12px currentColor);
+  }
+}
+
+/* Stagger fade in for list items */
+@keyframes staggerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Score reveal animation */
+@keyframes scoreReveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+/* VP category section slide in */
+@keyframes sectionSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Utility classes for end game animations */
+.vp-count-animate {
+  animation: vpCountUp 0.3s ease-out;
+}
+
+.card-pop-animate {
+  animation: cardPop 0.5s ease-out;
+}
+
+.float-up-animate {
+  animation: floatUp 1s ease-out forwards;
+}
+
+.bar-grow-animate {
+  animation: barGrow 1s ease-out forwards;
+}
+
+.winner-glow-animate {
+  animation: winnerGlow 2s ease-in-out infinite;
+}
+
+.podium-rise-animate {
+  animation: podiumRise 0.8s ease-out forwards;
+}
+
+.badge-fill-animate {
+  background: linear-gradient(90deg, #ffd700 50%, transparent 50%);
+  background-size: 200% 100%;
+  animation: badgeFill 0.5s ease-out forwards;
+}
+
+.trophy-shine-animate {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: trophyShine 1.5s ease-in-out infinite;
+}
+
+.tile-highlight-animate {
+  animation: tileHighlight 1.5s ease-in-out infinite;
+}
+
+.score-reveal-animate {
+  animation: scoreReveal 0.6s ease-out forwards;
+}
+
+.section-slide-in-animate {
+  animation: sectionSlideIn 0.5s ease-out forwards;
+}
