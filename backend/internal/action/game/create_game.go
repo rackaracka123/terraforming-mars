@@ -8,7 +8,6 @@ import (
 
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
-	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/deck"
 )
 
@@ -61,7 +60,7 @@ func (a *CreateGameAction) Execute(
 	newGame := game.NewGame(gameID, "", settings)
 
 	// 4. Initialize deck with cards from selected packs
-	projectCardIDs, corpIDs, preludeIDs := a.getCardIDsByPacks(settings.CardPacks)
+	projectCardIDs, corpIDs, preludeIDs := cards.GetCardIDsByPacks(a.cardRegistry, settings.CardPacks)
 	gameDeck := deck.NewDeck(gameID, projectCardIDs, corpIDs, preludeIDs)
 	newGame.SetDeck(gameDeck)
 	log.Info("✅ Deck initialized",
@@ -87,50 +86,4 @@ func getFirst5(ids []string) []string {
 		return ids
 	}
 	return ids[:5]
-}
-
-// getCardIDsByPacks retrieves card IDs filtered by pack and separated by type
-func (a *CreateGameAction) getCardIDsByPacks(packs []string) (projectCards, corps, preludes []string) {
-	allCards := a.cardRegistry.GetAll()
-
-	log := a.logger.With(
-		zap.Strings("requested_packs", packs),
-		zap.Int("total_cards", len(allCards)),
-	)
-	log.Debug("🔍 Filtering cards by packs")
-
-	// Create a map for quick pack lookup
-	packMap := make(map[string]bool, len(packs))
-	for _, pack := range packs {
-		packMap[pack] = true
-	}
-
-	projectCards = []string{}
-	corps = []string{}
-	preludes = []string{}
-
-	for _, card := range allCards {
-		// Skip cards not in selected packs
-		if !packMap[card.Pack] {
-			continue
-		}
-
-		switch card.Type {
-		case gamecards.CardTypeCorporation:
-			corps = append(corps, card.ID)
-			log.Debug("   Found corporation", zap.String("id", card.ID), zap.String("name", card.Name))
-		case gamecards.CardTypePrelude:
-			preludes = append(preludes, card.ID)
-		default:
-			// All other card types are project cards (Automated, Active, Event)
-			projectCards = append(projectCards, card.ID)
-		}
-	}
-
-	log.Info("📊 Card filtering complete",
-		zap.Int("project_cards", len(projectCards)),
-		zap.Int("corporations", len(corps)),
-		zap.Int("preludes", len(preludes)))
-
-	return projectCards, corps, preludes
 }

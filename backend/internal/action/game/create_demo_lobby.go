@@ -10,7 +10,6 @@ import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/game"
-	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/deck"
 	"terraforming-mars-backend/internal/game/player"
 )
@@ -60,11 +59,13 @@ func (a *CreateDemoLobbyAction) Execute(
 	if settings.PlayerCount < 1 || settings.PlayerCount > 5 {
 		return nil, fmt.Errorf("player count must be between 1 and 5, got %d", settings.PlayerCount)
 	}
+
+	// Apply defaults
 	if len(settings.CardPacks) == 0 {
-		return nil, fmt.Errorf("card packs must not be empty")
+		settings.CardPacks = []string{"base-game"}
 	}
 	if settings.PlayerName == "" {
-		return nil, fmt.Errorf("player name must not be empty")
+		settings.PlayerName = "You"
 	}
 
 	// Generate game ID and create base game
@@ -79,7 +80,7 @@ func (a *CreateDemoLobbyAction) Execute(
 	newGame := game.NewGame(gameID, "", baseSettings)
 
 	// Initialize deck
-	projectCardIDs, corpIDs, preludeIDs := a.getCardIDsByPacks(settings.CardPacks)
+	projectCardIDs, corpIDs, preludeIDs := cards.GetCardIDsByPacks(a.cardRegistry, settings.CardPacks)
 	gameDeck := deck.NewDeck(gameID, projectCardIDs, corpIDs, preludeIDs)
 	newGame.SetDeck(gameDeck)
 	log.Info("Deck initialized",
@@ -112,31 +113,4 @@ func (a *CreateDemoLobbyAction) Execute(
 		PlayerID: playerID,
 		GameDto:  gameDto,
 	}, nil
-}
-
-// getCardIDsByPacks retrieves card IDs filtered by pack and separated by type
-func (a *CreateDemoLobbyAction) getCardIDsByPacks(packs []string) (projectCards, corps, preludes []string) {
-	allCards := a.cardRegistry.GetAll()
-
-	packMap := make(map[string]bool, len(packs))
-	for _, pack := range packs {
-		packMap[pack] = true
-	}
-
-	for _, card := range allCards {
-		if !packMap[card.Pack] {
-			continue
-		}
-
-		switch card.Type {
-		case gamecards.CardTypeCorporation:
-			corps = append(corps, card.ID)
-		case gamecards.CardTypePrelude:
-			preludes = append(preludes, card.ID)
-		default:
-			projectCards = append(projectCards, card.ID)
-		}
-	}
-
-	return projectCards, corps, preludes
 }

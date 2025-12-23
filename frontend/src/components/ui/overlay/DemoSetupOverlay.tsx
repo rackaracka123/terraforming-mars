@@ -16,6 +16,7 @@ import { apiService } from "../../../services/apiService.ts";
 import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
 import GameIcon from "../display/GameIcon.tsx";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
+import CorporationCard from "../cards/CorporationCard.tsx";
 import {
   OVERLAY_CONTAINER_CLASS,
   OVERLAY_HEADER_CLASS,
@@ -414,8 +415,8 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({
             </div>
 
             {/* Column 2: Corporation Selection */}
-            <div className="bg-black/40 border border-space-blue-600/50 rounded-xl p-3">
-              <h3 className="text-white font-semibold mb-2 uppercase tracking-wide text-xs">
+            <div className="bg-black/40 border border-space-blue-600/50 rounded-xl p-3 flex flex-col max-h-[70vh]">
+              <h3 className="text-white font-semibold mb-2 uppercase tracking-wide text-xs shrink-0">
                 Corporation{" "}
                 <span className="text-white/50 font-normal normal-case">
                   ({selectedCorporationId ? "1 selected" : "Random"})
@@ -426,13 +427,13 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({
                 placeholder="Search corporations..."
                 value={corpSearchTerm}
                 onChange={(e) => setCorpSearchTerm(e.target.value)}
-                className="w-full bg-black/60 border border-space-blue-400/30 rounded-lg py-2 px-3 text-white text-sm outline-none focus:border-space-blue-400 mb-3"
+                className="w-full bg-black/60 border border-space-blue-400/30 rounded-lg py-2 px-3 text-white text-sm outline-none focus:border-space-blue-400 mb-3 shrink-0"
               />
-              <div className="flex flex-col gap-3 max-h-[500px] overflow-y-auto pr-1 items-center">
+              <div className="flex flex-col gap-4 items-center flex-1 min-h-0 overflow-y-auto">
                 {/* Random option */}
                 <button
                   onClick={() => setSelectedCorporationId("")}
-                  className={`w-[200px] h-[60px] rounded-lg border-2 p-2 transition-all text-center flex items-center justify-center ${
+                  className={`w-[400px] h-[60px] rounded-lg border-2 p-2 transition-all text-center flex items-center justify-center shrink-0 ${
                     !selectedCorporationId
                       ? "border-yellow-400 bg-yellow-900/30"
                       : "border-white/20 bg-black/30 hover:border-yellow-400/50"
@@ -442,17 +443,43 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({
                     Random Corporation
                   </span>
                 </button>
-                {filteredCorporations.map((corp, index) => (
-                  <div key={corp.id} className="scale-90 origin-top">
-                    <SimpleGameCard
-                      card={corp}
+                {filteredCorporations.map((corp) => (
+                  <div key={corp.id} className="shrink-0">
+                    <CorporationCard
+                      corporation={{
+                        id: corp.id,
+                        name: corp.name,
+                        description: corp.description ?? "",
+                        startingMegaCredits: corp.startingResources?.credits ?? 0,
+                        startingProduction: corp.startingProduction
+                          ? {
+                              credits: corp.startingProduction.credits,
+                              steel: corp.startingProduction.steel,
+                              titanium: corp.startingProduction.titanium,
+                              plants: corp.startingProduction.plants,
+                              energy: corp.startingProduction.energy,
+                              heat: corp.startingProduction.heat,
+                            }
+                          : undefined,
+                        startingResources: corp.startingResources
+                          ? {
+                              credits: corp.startingResources.credits,
+                              steel: corp.startingResources.steel,
+                              titanium: corp.startingResources.titanium,
+                              plants: corp.startingResources.plants,
+                              energy: corp.startingResources.energy,
+                              heat: corp.startingResources.heat,
+                            }
+                          : undefined,
+                        behaviors: corp.behaviors,
+                        logoPath: undefined,
+                      }}
                       isSelected={selectedCorporationId === corp.id}
                       onSelect={() =>
                         setSelectedCorporationId(
                           selectedCorporationId === corp.id ? "" : corp.id,
                         )
                       }
-                      animationDelay={index * 30}
                       showCheckbox
                     />
                   </div>
@@ -461,8 +488,8 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({
             </div>
 
             {/* Column 3: Card Selection */}
-            <div className="bg-black/40 border border-space-blue-600/50 rounded-xl p-3">
-              <h3 className="text-white font-semibold mb-2 uppercase tracking-wide text-xs">
+            <div className="bg-black/40 border border-space-blue-600/50 rounded-xl p-3 flex flex-col max-h-[70vh]">
+              <h3 className="text-white font-semibold mb-2 uppercase tracking-wide text-xs shrink-0">
                 Starting Cards{" "}
                 <span className="text-white/50 font-normal normal-case">
                   ({selectedCardIds.length} selected)
@@ -473,16 +500,16 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({
                 placeholder="Search cards..."
                 value={cardSearchTerm}
                 onChange={(e) => setCardSearchTerm(e.target.value)}
-                className="w-full bg-black/60 border border-space-blue-400/30 rounded-lg py-2 px-3 text-white text-sm outline-none focus:border-space-blue-400 mb-3"
+                className="w-full bg-black/60 border border-space-blue-400/30 rounded-lg py-2 px-3 text-white text-sm outline-none focus:border-space-blue-400 mb-3 shrink-0"
               />
-              <div className="flex flex-wrap gap-3 max-h-[500px] overflow-y-auto pr-1 justify-center">
-                {filteredCards.slice(0, 50).map((card, index) => (
-                  <div key={card.id} className="scale-75 origin-top">
+              <div className="flex flex-wrap gap-2 justify-center content-start flex-1 min-h-0 overflow-y-auto">
+                {filteredCards.slice(0, 50).map((card) => (
+                  <div key={card.id} className="shrink-0">
                     <SimpleGameCard
                       card={card}
                       isSelected={selectedCardIds.includes(card.id)}
                       onSelect={() => toggleCardSelection(card.id)}
-                      animationDelay={index * 20}
+                      animationDelay={0}
                       showCheckbox
                     />
                   </div>

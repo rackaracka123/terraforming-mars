@@ -40,9 +40,3 @@ export const SECONDARY_BUTTON_CLASS =
 export const RESOURCE_LABEL_CLASS = "text-sm text-white/60 uppercase tracking-[0.5px]";
 
 export const RESOURCE_DISPLAY_CLASS = "flex items-center gap-3";
-
-export const INPUT_CLASS =
-  "w-full bg-black/60 border border-space-blue-400/50 rounded-lg py-2 px-3 text-white text-sm outline-none focus:border-space-blue-400";
-
-export const INPUT_SMALL_CLASS =
-  "w-16 bg-black/60 border border-space-blue-400/50 rounded py-1 px-2 text-white text-sm text-center outline-none focus:border-space-blue-400";

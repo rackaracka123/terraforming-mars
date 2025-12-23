@@ -238,25 +238,10 @@ func (h *GameHandler) CreateDemoLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.PlayerCount < 1 || req.PlayerCount > 5 {
-		http.Error(w, "Player count must be between 1 and 5", http.StatusBadRequest)
-		return
-	}
-
-	// Apply defaults for optional fields
-	cardPacks := req.CardPacks
-	if len(cardPacks) == 0 {
-		cardPacks = []string{"base-game"}
-	}
-	playerName := req.PlayerName
-	if playerName == "" {
-		playerName = "You"
-	}
-
 	settings := gameaction.DemoLobbySettings{
 		PlayerCount: req.PlayerCount,
-		CardPacks:   cardPacks,
-		PlayerName:  playerName,
+		CardPacks:   req.CardPacks,
+		PlayerName:  req.PlayerName,
 	}
 
 	result, err := h.createDemoLobbyAction.Execute(ctx, settings)
