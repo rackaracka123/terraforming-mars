@@ -65,9 +65,15 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
                 <div className="flex gap-[3px] items-center">
                   {choice.inputs &&
                     choice.inputs.map((input: any, inputIndex: number) => {
-                      const displayInfo = analyzeResourceDisplayWithConstraints(input, 3, false);
+                      const displayInfo = analyzeResourceDisplayWithConstraints(
+                        input,
+                        3,
+                        false,
+                      );
                       return (
-                        <React.Fragment key={`choice-${choiceIndex}-input-${inputIndex}`}>
+                        <React.Fragment
+                          key={`choice-${choiceIndex}-input-${inputIndex}`}
+                        >
                           <ResourceDisplay
                             displayInfo={displayInfo}
                             isInput={true}
@@ -94,7 +100,11 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
           <div className="flex flex-col gap-0.5 items-center min-w-0">
             {behavior.outputs &&
               behavior.outputs.map((output: any, outputIndex: number) => {
-                const displayInfo = analyzeResourceDisplayWithConstraints(output, 3, false);
+                const displayInfo = analyzeResourceDisplayWithConstraints(
+                  output,
+                  3,
+                  false,
+                );
                 return (
                   <React.Fragment key={`output-${outputIndex}`}>
                     <ResourceDisplay
@@ -127,9 +137,15 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
             <div className="flex flex-col gap-0.5 items-center min-w-0">
               {choice.inputs &&
                 choice.inputs.map((input: any, inputIndex: number) => {
-                  const displayInfo = analyzeResourceDisplayWithConstraints(input, 3, false);
+                  const displayInfo = analyzeResourceDisplayWithConstraints(
+                    input,
+                    3,
+                    false,
+                  );
                   return (
-                    <React.Fragment key={`choice-${choiceIndex}-input-${inputIndex}`}>
+                    <React.Fragment
+                      key={`choice-${choiceIndex}-input-${inputIndex}`}
+                    >
                       <ResourceDisplay
                         displayInfo={displayInfo}
                         isInput={true}
@@ -155,9 +171,15 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
             <div className="flex flex-col gap-0.5 items-center min-w-0">
               {choice.outputs &&
                 choice.outputs.map((output: any, outputIndex: number) => {
-                  const displayInfo = analyzeResourceDisplayWithConstraints(output, 3, false);
+                  const displayInfo = analyzeResourceDisplayWithConstraints(
+                    output,
+                    3,
+                    false,
+                  );
                   return (
-                    <React.Fragment key={`choice-${choiceIndex}-output-${outputIndex}`}>
+                    <React.Fragment
+                      key={`choice-${choiceIndex}-output-${outputIndex}`}
+                    >
                       <ResourceDisplay
                         displayInfo={displayInfo}
                         isInput={false}
@@ -186,13 +208,18 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
 
   // Regular behavior handling
   // Analyze and consolidate card outputs (card-draw, card-peek, card-take, card-buy)
-  const consolidatedCards = behavior.outputs ? analyzeCardOutputs(behavior.outputs) : [];
+  const consolidatedCards = behavior.outputs
+    ? analyzeCardOutputs(behavior.outputs)
+    : [];
 
   // Helper to check if an output is a card resource
   const isCardResource = (output: any): boolean => {
     const type = output.resourceType || output.type || "";
     return (
-      type === "card-draw" || type === "card-peek" || type === "card-take" || type === "card-buy"
+      type === "card-draw" ||
+      type === "card-peek" ||
+      type === "card-take" ||
+      type === "card-buy"
     );
   };
 
@@ -207,7 +234,11 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
       <div className="flex flex-col gap-0.5 items-center min-w-0">
         {behavior.inputs &&
           behavior.inputs.map((input: any, inputIndex: number) => {
-            const displayInfo = analyzeResourceDisplayWithConstraints(input, 3, false);
+            const displayInfo = analyzeResourceDisplayWithConstraints(
+              input,
+              3,
+              false,
+            );
             return (
               <React.Fragment key={`input-${inputIndex}`}>
                 <ResourceDisplay
@@ -233,7 +264,11 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
       <div className="flex flex-col gap-0.5 items-center min-w-0">
         {/* Regular non-card outputs */}
         {nonCardOutputs.map((output: any, outputIndex: number) => {
-          const displayInfo = analyzeResourceDisplayWithConstraints(output, 3, false);
+          const displayInfo = analyzeResourceDisplayWithConstraints(
+            output,
+            3,
+            false,
+          );
           return (
             <React.Fragment key={`output-${outputIndex}`}>
               <ResourceDisplay
@@ -252,7 +287,11 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
         {/* Consolidated card icons (card-draw, card-peek, card-take, card-buy) */}
         {consolidatedCards.map((cardItem, index) => (
           <React.Fragment key={`card-${index}`}>
-            <CardIcon amount={cardItem.amount} badgeType={cardItem.badgeType} isAffordable={true} />
+            <CardIcon
+              amount={cardItem.amount}
+              badgeType={cardItem.badgeType}
+              isAffordable={true}
+            />
           </React.Fragment>
         ))}
       </div>

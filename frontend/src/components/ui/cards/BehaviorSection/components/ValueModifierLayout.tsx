@@ -12,7 +12,9 @@ interface ValueModifierLayoutProps {
  * Display format: [resource-icon] : + [credits-icon-with-amount]
  * Example: [titanium] : + [1 MC] means "Each titanium is worth 1 MC extra"
  */
-const ValueModifierLayout: React.FC<ValueModifierLayoutProps> = ({ behavior }) => {
+const ValueModifierLayout: React.FC<ValueModifierLayoutProps> = ({
+  behavior,
+}) => {
   if (!behavior.outputs || behavior.outputs.length === 0) return null;
 
   const valueModifierOutput = behavior.outputs.find(
