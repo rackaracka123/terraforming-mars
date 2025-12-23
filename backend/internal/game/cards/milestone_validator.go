@@ -6,17 +6,6 @@ import (
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-// MilestoneType represents the type of milestone (duplicated to avoid import cycle)
-type MilestoneType string
-
-const (
-	MilestoneTerraformer MilestoneType = "terraformer"
-	MilestoneMayor       MilestoneType = "mayor"
-	MilestoneGardener    MilestoneType = "gardener"
-	MilestoneBuilder     MilestoneType = "builder"
-	MilestonePlanner     MilestoneType = "planner"
-)
-
 // MilestoneRequirement holds the requirement threshold for a milestone
 type MilestoneRequirement struct {
 	Description string
@@ -24,29 +13,29 @@ type MilestoneRequirement struct {
 }
 
 // GetMilestoneRequirement returns the requirement for a specific milestone type
-func GetMilestoneRequirement(milestoneType MilestoneType) MilestoneRequirement {
+func GetMilestoneRequirement(milestoneType shared.MilestoneType) MilestoneRequirement {
 	switch milestoneType {
-	case MilestoneTerraformer:
+	case shared.MilestoneTerraformer:
 		return MilestoneRequirement{
 			Description: "Terraform Rating of at least 35",
 			Required:    35,
 		}
-	case MilestoneMayor:
+	case shared.MilestoneMayor:
 		return MilestoneRequirement{
 			Description: "Own at least 3 city tiles",
 			Required:    3,
 		}
-	case MilestoneGardener:
+	case shared.MilestoneGardener:
 		return MilestoneRequirement{
 			Description: "Own at least 3 greenery tiles",
 			Required:    3,
 		}
-	case MilestoneBuilder:
+	case shared.MilestoneBuilder:
 		return MilestoneRequirement{
 			Description: "Have at least 8 building tags in play",
 			Required:    8,
 		}
-	case MilestonePlanner:
+	case shared.MilestonePlanner:
 		return MilestoneRequirement{
 			Description: "Have at least 16 cards in hand",
 			Required:    16,
@@ -64,7 +53,7 @@ type CardRegistryInterface interface {
 
 // CanClaimMilestone checks if a player meets the requirements for a milestone
 func CanClaimMilestone(
-	milestoneType MilestoneType,
+	milestoneType shared.MilestoneType,
 	p *player.Player,
 	b *board.Board,
 	cardRegistry CardRegistryInterface,
@@ -76,21 +65,21 @@ func CanClaimMilestone(
 
 // GetPlayerMilestoneProgress returns the current progress for a player towards a milestone
 func GetPlayerMilestoneProgress(
-	milestoneType MilestoneType,
+	milestoneType shared.MilestoneType,
 	p *player.Player,
 	b *board.Board,
 	cardRegistry CardRegistryInterface,
 ) int {
 	switch milestoneType {
-	case MilestoneTerraformer:
+	case shared.MilestoneTerraformer:
 		return p.Resources().TerraformRating()
-	case MilestoneMayor:
+	case shared.MilestoneMayor:
 		return countPlayerTiles(p.ID(), b, shared.ResourceCityTile)
-	case MilestoneGardener:
+	case shared.MilestoneGardener:
 		return countPlayerTiles(p.ID(), b, shared.ResourceGreeneryTile)
-	case MilestoneBuilder:
+	case shared.MilestoneBuilder:
 		return countPlayerBuildingTags(p, cardRegistry)
-	case MilestonePlanner:
+	case shared.MilestonePlanner:
 		return p.Hand().CardCount()
 	default:
 		return 0

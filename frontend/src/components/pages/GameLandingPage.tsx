@@ -103,9 +103,6 @@ const GameLandingPage: React.FC = () => {
         const game = await apiService.getGame(savedGameData.game.id);
         if (!game) {
           // Game no longer exists, clear storage and show error
-          console.log(
-            "Game no longer exists, clearing session and showing error",
-          );
           clearGameSession();
           setError("Game no longer exists");
           setIsFadingOut(false);

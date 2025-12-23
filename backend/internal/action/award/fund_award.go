@@ -57,7 +57,7 @@ func (a *FundAwardAction) Execute(ctx context.Context, gameID string, playerID s
 
 	// 5. Validate award is not already funded
 	awards := g.Awards()
-	at := game.AwardType(awardType)
+	at := shared.AwardType(awardType)
 	if awards.IsFunded(at) {
 		log.Warn("Award already funded", zap.String("award", awardType))
 		return fmt.Errorf("award %s is already funded", awardType)

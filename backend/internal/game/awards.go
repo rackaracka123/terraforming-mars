@@ -7,18 +7,7 @@ import (
 	"time"
 
 	"terraforming-mars-backend/internal/events"
-)
-
-// AwardType represents the type of award
-type AwardType string
-
-// Award types available in the base game
-const (
-	AwardLandlord   AwardType = "landlord"   // Most tiles on Mars
-	AwardBanker     AwardType = "banker"     // Most MC production
-	AwardScientist  AwardType = "scientist"  // Most science tags
-	AwardThermalist AwardType = "thermalist" // Most heat resources
-	AwardMiner      AwardType = "miner"      // Most steel + titanium resources
+	"terraforming-mars-backend/internal/game/shared"
 )
 
 // Award constants
@@ -34,23 +23,23 @@ var AwardFundingCosts = []int{8, 14, 20}
 
 // AwardInfo contains display information about an award
 type AwardInfo struct {
-	Type        AwardType
+	Type        shared.AwardType
 	Name        string
 	Description string
 }
 
 // AllAwards returns all available award types with their info
 var AllAwards = []AwardInfo{
-	{Type: AwardLandlord, Name: "Landlord", Description: "Most tiles on Mars"},
-	{Type: AwardBanker, Name: "Banker", Description: "Highest MC production"},
-	{Type: AwardScientist, Name: "Scientist", Description: "Most science tags in play"},
-	{Type: AwardThermalist, Name: "Thermalist", Description: "Most heat resources"},
-	{Type: AwardMiner, Name: "Miner", Description: "Most steel and titanium resources"},
+	{Type: shared.AwardLandlord, Name: "Landlord", Description: "Most tiles on Mars"},
+	{Type: shared.AwardBanker, Name: "Banker", Description: "Highest MC production"},
+	{Type: shared.AwardScientist, Name: "Scientist", Description: "Most science tags in play"},
+	{Type: shared.AwardThermalist, Name: "Thermalist", Description: "Most heat resources"},
+	{Type: shared.AwardMiner, Name: "Miner", Description: "Most steel and titanium resources"},
 }
 
 // FundedAward represents an award that has been funded by a player
 type FundedAward struct {
-	Type           AwardType
+	Type           shared.AwardType
 	FundedByPlayer string
 	FundingOrder   int // 0, 1, or 2 (order in which it was funded)
 	FundingCost    int
@@ -86,7 +75,7 @@ func (a *Awards) FundedAwards() []FundedAward {
 }
 
 // IsFunded returns true if the specified award has been funded
-func (a *Awards) IsFunded(awardType AwardType) bool {
+func (a *Awards) IsFunded(awardType shared.AwardType) bool {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	for _, funded := range a.funded {
@@ -98,7 +87,7 @@ func (a *Awards) IsFunded(awardType AwardType) bool {
 }
 
 // IsFundedBy returns true if the specified award was funded by the given player
-func (a *Awards) IsFundedBy(awardType AwardType, playerID string) bool {
+func (a *Awards) IsFundedBy(awardType shared.AwardType, playerID string) bool {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	for _, funded := range a.funded {
@@ -139,7 +128,7 @@ func (a *Awards) GetCurrentFundingCost() int {
 // FundAward funds an award for a player
 // Returns an error if the award is already funded or max awards reached
 // Publishes AwardFundedEvent after successful funding
-func (a *Awards) FundAward(ctx context.Context, awardType AwardType, playerID string) error {
+func (a *Awards) FundAward(ctx context.Context, awardType shared.AwardType, playerID string) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -190,7 +179,7 @@ func (a *Awards) FundAward(ctx context.Context, awardType AwardType, playerID st
 }
 
 // GetAwardInfo returns the info for a specific award type
-func GetAwardInfo(awardType AwardType) (AwardInfo, bool) {
+func GetAwardInfo(awardType shared.AwardType) (AwardInfo, bool) {
 	for _, info := range AllAwards {
 		if info.Type == awardType {
 			return info, true
@@ -201,10 +190,5 @@ func GetAwardInfo(awardType AwardType) (AwardInfo, bool) {
 
 // ValidAwardType returns true if the string is a valid award type
 func ValidAwardType(s string) bool {
-	switch AwardType(s) {
-	case AwardLandlord, AwardBanker, AwardScientist, AwardThermalist, AwardMiner:
-		return true
-	default:
-		return false
-	}
+	return shared.ValidAwardType(s)
 }

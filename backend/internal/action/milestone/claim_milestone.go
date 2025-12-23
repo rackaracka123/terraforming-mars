@@ -58,7 +58,7 @@ func (a *ClaimMilestoneAction) Execute(ctx context.Context, gameID string, playe
 
 	// 5. Validate milestone is not already claimed
 	milestones := g.Milestones()
-	mt := game.MilestoneType(milestoneType)
+	mt := shared.MilestoneType(milestoneType)
 	if milestones.IsClaimed(mt) {
 		log.Warn("Milestone already claimed", zap.String("milestone", milestoneType))
 		return fmt.Errorf("milestone %s is already claimed", milestoneType)
@@ -80,7 +80,7 @@ func (a *ClaimMilestoneAction) Execute(ctx context.Context, gameID string, playe
 	}
 
 	// 8. Validate player meets milestone requirements
-	milestoneTypeForValidator := gamecards.MilestoneType(milestoneType)
+	milestoneTypeForValidator := shared.MilestoneType(milestoneType)
 	if !gamecards.CanClaimMilestone(milestoneTypeForValidator, player, g.Board(), a.CardRegistry()) {
 		requirement := gamecards.GetMilestoneRequirement(milestoneTypeForValidator)
 		progress := gamecards.GetPlayerMilestoneProgress(milestoneTypeForValidator, player, g.Board(), a.CardRegistry())

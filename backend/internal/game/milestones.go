@@ -7,18 +7,7 @@ import (
 	"time"
 
 	"terraforming-mars-backend/internal/events"
-)
-
-// MilestoneType represents the type of milestone
-type MilestoneType string
-
-// Milestone types available in the base game
-const (
-	MilestoneTerraformer MilestoneType = "terraformer" // 35+ TR
-	MilestoneMayor       MilestoneType = "mayor"       // 3+ cities
-	MilestoneGardener    MilestoneType = "gardener"    // 3+ greenery tiles
-	MilestoneBuilder     MilestoneType = "builder"     // 8+ building tags
-	MilestonePlanner     MilestoneType = "planner"     // 16+ cards in hand
+	"terraforming-mars-backend/internal/game/shared"
 )
 
 // Milestone constants
@@ -30,7 +19,7 @@ const (
 
 // MilestoneInfo contains display information about a milestone
 type MilestoneInfo struct {
-	Type        MilestoneType
+	Type        shared.MilestoneType
 	Name        string
 	Description string
 	Requirement int // The numeric requirement to claim
@@ -38,16 +27,16 @@ type MilestoneInfo struct {
 
 // AllMilestones returns all available milestone types with their info
 var AllMilestones = []MilestoneInfo{
-	{Type: MilestoneTerraformer, Name: "Terraformer", Description: "Have a Terraform Rating of at least 35", Requirement: 35},
-	{Type: MilestoneMayor, Name: "Mayor", Description: "Own at least 3 city tiles", Requirement: 3},
-	{Type: MilestoneGardener, Name: "Gardener", Description: "Own at least 3 greenery tiles", Requirement: 3},
-	{Type: MilestoneBuilder, Name: "Builder", Description: "Have at least 8 building tags in play", Requirement: 8},
-	{Type: MilestonePlanner, Name: "Planner", Description: "Have at least 16 cards in hand", Requirement: 16},
+	{Type: shared.MilestoneTerraformer, Name: "Terraformer", Description: "Have a Terraform Rating of at least 35", Requirement: 35},
+	{Type: shared.MilestoneMayor, Name: "Mayor", Description: "Own at least 3 city tiles", Requirement: 3},
+	{Type: shared.MilestoneGardener, Name: "Gardener", Description: "Own at least 3 greenery tiles", Requirement: 3},
+	{Type: shared.MilestoneBuilder, Name: "Builder", Description: "Have at least 8 building tags in play", Requirement: 8},
+	{Type: shared.MilestonePlanner, Name: "Planner", Description: "Have at least 16 cards in hand", Requirement: 16},
 }
 
 // ClaimedMilestone represents a milestone that has been claimed by a player
 type ClaimedMilestone struct {
-	Type       MilestoneType
+	Type       shared.MilestoneType
 	PlayerID   string
 	Generation int
 	ClaimedAt  time.Time
@@ -82,7 +71,7 @@ func (m *Milestones) ClaimedMilestones() []ClaimedMilestone {
 }
 
 // IsClaimed returns true if the specified milestone has been claimed
-func (m *Milestones) IsClaimed(milestoneType MilestoneType) bool {
+func (m *Milestones) IsClaimed(milestoneType shared.MilestoneType) bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	for _, claimed := range m.claimed {
@@ -94,7 +83,7 @@ func (m *Milestones) IsClaimed(milestoneType MilestoneType) bool {
 }
 
 // IsClaimedBy returns true if the specified milestone was claimed by the given player
-func (m *Milestones) IsClaimedBy(milestoneType MilestoneType, playerID string) bool {
+func (m *Milestones) IsClaimedBy(milestoneType shared.MilestoneType, playerID string) bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	for _, claimed := range m.claimed {
@@ -137,7 +126,7 @@ func (m *Milestones) GetClaimedByPlayer(playerID string) []ClaimedMilestone {
 // ClaimMilestone claims a milestone for a player
 // Returns an error if the milestone is already claimed or max milestones reached
 // Publishes MilestoneClaimedEvent after successful claim
-func (m *Milestones) ClaimMilestone(ctx context.Context, milestoneType MilestoneType, playerID string, generation int) error {
+func (m *Milestones) ClaimMilestone(ctx context.Context, milestoneType shared.MilestoneType, playerID string, generation int) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -183,7 +172,7 @@ func (m *Milestones) ClaimMilestone(ctx context.Context, milestoneType Milestone
 }
 
 // GetMilestoneInfo returns the info for a specific milestone type
-func GetMilestoneInfo(milestoneType MilestoneType) (MilestoneInfo, bool) {
+func GetMilestoneInfo(milestoneType shared.MilestoneType) (MilestoneInfo, bool) {
 	for _, info := range AllMilestones {
 		if info.Type == milestoneType {
 			return info, true
@@ -194,10 +183,5 @@ func GetMilestoneInfo(milestoneType MilestoneType) (MilestoneInfo, bool) {
 
 // ValidMilestoneType returns true if the string is a valid milestone type
 func ValidMilestoneType(s string) bool {
-	switch MilestoneType(s) {
-	case MilestoneTerraformer, MilestoneMayor, MilestoneGardener, MilestoneBuilder, MilestonePlanner:
-		return true
-	default:
-		return false
-	}
+	return shared.ValidMilestoneType(s)
 }

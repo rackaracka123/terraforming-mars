@@ -50,9 +50,6 @@ const ReconnectingPage: React.FC<ReconnectingPageProps> = () => {
         const game = await apiService.getGame(gameId);
         if (!game) {
           // Game no longer exists, automatically clear storage and redirect
-          console.log(
-            "Game no longer exists, clearing session and returning to landing page",
-          );
           clearGameSession();
           navigate("/", { replace: true });
           return;

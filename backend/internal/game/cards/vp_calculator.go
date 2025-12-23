@@ -317,7 +317,7 @@ func calculateAwardVP(
 	totalVP := 0
 
 	for _, award := range fundedAwards {
-		placements := ScoreAward(AwardType(award.Type), allPlayers, b, cardRegistry)
+		placements := ScoreAward(shared.AwardType(award.Type), allPlayers, b, cardRegistry)
 		for _, placement := range placements {
 			if placement.PlayerID == playerID {
 				totalVP += GetAwardVP(placement.Placement)

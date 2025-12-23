@@ -8,17 +8,6 @@ import (
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-// AwardType represents the type of award (duplicated to avoid import cycle)
-type AwardType string
-
-const (
-	AwardLandlord   AwardType = "landlord"
-	AwardBanker     AwardType = "banker"
-	AwardScientist  AwardType = "scientist"
-	AwardThermalist AwardType = "thermalist"
-	AwardMiner      AwardType = "miner"
-)
-
 // AwardPlacement represents a player's placement in an award
 type AwardPlacement struct {
 	PlayerID  string
@@ -28,27 +17,27 @@ type AwardPlacement struct {
 
 // CalculateAwardScore calculates a player's score for a specific award
 func CalculateAwardScore(
-	awardType AwardType,
+	awardType shared.AwardType,
 	p *player.Player,
 	b *board.Board,
 	cardRegistry CardRegistryInterface,
 ) int {
 	switch awardType {
-	case AwardLandlord:
+	case shared.AwardLandlord:
 		// Most tiles on Mars (owned by player)
 		return countAllPlayerTiles(p.ID(), b)
-	case AwardBanker:
+	case shared.AwardBanker:
 		// Highest MC production
 		production := p.Resources().Production()
 		return production.Credits
-	case AwardScientist:
+	case shared.AwardScientist:
 		// Most science tags in play
 		return countPlayerTagsByType(p, cardRegistry, shared.TagScience)
-	case AwardThermalist:
+	case shared.AwardThermalist:
 		// Most heat resources
 		resources := p.Resources().Get()
 		return resources.Heat
-	case AwardMiner:
+	case shared.AwardMiner:
 		// Most steel + titanium resources
 		resources := p.Resources().Get()
 		return resources.Steel + resources.Titanium
@@ -60,7 +49,7 @@ func CalculateAwardScore(
 // ScoreAward calculates placements for all players for an award
 // Returns a slice of AwardPlacement sorted by placement (1st, 2nd, then others)
 func ScoreAward(
-	awardType AwardType,
+	awardType shared.AwardType,
 	players []*player.Player,
 	b *board.Board,
 	cardRegistry CardRegistryInterface,

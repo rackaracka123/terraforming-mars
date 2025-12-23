@@ -128,7 +128,6 @@ const VPBarChart: FC<VPBarChartProps> = ({
                 `}
               >
                 {score.playerName}
-                {score.isWinner && <span className="ml-1">👑</span>}
               </div>
 
               {/* Stacked bar */}
