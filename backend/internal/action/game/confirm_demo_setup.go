@@ -3,6 +3,7 @@ package game
 import (
 	"context"
 	"fmt"
+	"math/rand"
 
 	"go.uber.org/zap"
 
@@ -10,6 +11,7 @@ import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
 	internalgame "terraforming-mars-backend/internal/game"
+	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
 )
 
@@ -67,10 +69,25 @@ func (a *ConfirmDemoSetupAction) Execute(
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// 4. Set corporation if provided
+	// 4. Set corporation - either specified or random
 	if request.CorporationID != nil && *request.CorporationID != "" {
 		p.SetCorporationID(*request.CorporationID)
 		log.Info("✅ Set corporation", zap.String("corporation_id", *request.CorporationID))
+	} else {
+		// Select random corporation by filtering all cards for corporation type
+		allCards := a.cardRegistry.GetAll()
+		var corporations []gamecards.Card
+		for _, card := range allCards {
+			if card.Type == gamecards.CardTypeCorporation {
+				corporations = append(corporations, card)
+			}
+		}
+		if len(corporations) > 0 {
+			randomIndex := rand.Intn(len(corporations))
+			randomCorpID := corporations[randomIndex].ID
+			p.SetCorporationID(randomCorpID)
+			log.Info("✅ Set random corporation", zap.String("corporation_id", randomCorpID))
+		}
 	}
 
 	// 5. Add cards to hand with proper PlayerCard caching (using shared helper)
@@ -157,6 +174,23 @@ func (a *ConfirmDemoSetupAction) Execute(
 			return fmt.Errorf("failed to update game phase: %w", err)
 		}
 		log.Info("🎉 All players confirmed, transitioning to Action phase")
+
+		// Set first player turn with appropriate action count
+		allPlayers := g.GetAllPlayers()
+		if len(allPlayers) > 0 {
+			firstPlayerID := allPlayers[0].ID()
+			availableActions := 2
+			if len(allPlayers) == 1 {
+				availableActions = -1 // Unlimited for solo mode
+			}
+			if err := g.SetCurrentTurn(ctx, firstPlayerID, availableActions); err != nil {
+				log.Error("Failed to set current turn", zap.Error(err))
+				return fmt.Errorf("failed to set current turn: %w", err)
+			}
+			log.Info("✅ Set first player turn with actions",
+				zap.String("player_id", firstPlayerID),
+				zap.Int("available_actions", availableActions))
+		}
 	}
 
 	return nil

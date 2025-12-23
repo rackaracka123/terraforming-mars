@@ -52,3 +52,31 @@ func (r *InMemoryCardRegistry) GetAll() []gamecards.Card {
 	}
 	return cardList
 }
+
+// GetCardIDsByPacks filters cards by pack and separates them by type.
+// Returns project card IDs, corporation IDs, and prelude IDs.
+func GetCardIDsByPacks(registry CardRegistry, packs []string) (projectCards, corps, preludes []string) {
+	allCards := registry.GetAll()
+
+	packMap := make(map[string]bool, len(packs))
+	for _, pack := range packs {
+		packMap[pack] = true
+	}
+
+	for _, card := range allCards {
+		if !packMap[card.Pack] {
+			continue
+		}
+
+		switch card.Type {
+		case gamecards.CardTypeCorporation:
+			corps = append(corps, card.ID)
+		case gamecards.CardTypePrelude:
+			preludes = append(preludes, card.ID)
+		default:
+			projectCards = append(projectCards, card.ID)
+		}
+	}
+
+	return projectCards, corps, preludes
+}
