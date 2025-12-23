@@ -35,7 +35,9 @@ export class ApiService {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        throw new Error(
+          errorData.error || `HTTP error! status: ${response.status}`,
+        );
       }
 
       const gameResponse: CreateGameResponse = await response.json();
@@ -46,7 +48,9 @@ export class ApiService {
     }
   }
 
-  async createDemoLobby(settings: CreateDemoLobbyRequest): Promise<CreateDemoLobbyResponse> {
+  async createDemoLobby(
+    settings: CreateDemoLobbyRequest,
+  ): Promise<CreateDemoLobbyResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/games/demo/lobby`, {
         method: "POST",
@@ -58,7 +62,9 @@ export class ApiService {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        throw new Error(
+          errorData.error || `HTTP error! status: ${response.status}`,
+        );
       }
 
       return await response.json();
@@ -83,7 +89,9 @@ export class ApiService {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        throw new Error(
+          errorData.error || `HTTP error! status: ${response.status}`,
+        );
       }
 
       const gameResponse: GetGameResponse = await response.json();
@@ -105,7 +113,9 @@ export class ApiService {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        throw new Error(
+          errorData.error || `HTTP error! status: ${response.status}`,
+        );
       }
 
       const data: ListGamesResponse = await response.json();
@@ -116,7 +126,10 @@ export class ApiService {
     }
   }
 
-  async listCards(offset: number = 0, limit: number = 50): Promise<ListCardsResponse> {
+  async listCards(
+    offset: number = 0,
+    limit: number = 50,
+  ): Promise<ListCardsResponse> {
     try {
       const url = new URL(`${this.baseUrl}/cards`);
       url.searchParams.set("offset", offset.toString());
@@ -126,7 +139,9 @@ export class ApiService {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        throw new Error(
+          errorData.error || `HTTP error! status: ${response.status}`,
+        );
       }
 
       const data: ListCardsResponse = await response.json();
