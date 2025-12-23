@@ -7,7 +7,11 @@ export interface WebSocketConnection {
   gameId: string | null;
 
   // Connection
-  playerConnect(playerName: string, gameId: string, playerId?: string): Promise<any>;
+  playerConnect(
+    playerName: string,
+    gameId: string,
+    playerId?: string,
+  ): Promise<any>;
 
   // Standard project actions
   sellPatents(cardCount: number): Promise<string>;

@@ -25,7 +25,9 @@ export function calculatePaymentValue(
   // Add value from payment substitutes
   if (payment.substitutes && playerSubstitutes) {
     for (const [resourceType, amount] of Object.entries(payment.substitutes)) {
-      const substitute = playerSubstitutes.find((sub) => sub.resourceType === resourceType);
+      const substitute = playerSubstitutes.find(
+        (sub) => sub.resourceType === resourceType,
+      );
       if (substitute) {
         total += amount * substitute.conversionRate;
       }
@@ -65,10 +67,12 @@ export function shouldShowPaymentModal(
   }
 
   // Check if card can use steel (has building tag) and player has steel
-  const canUseSteel = (card.tags?.includes(TagBuilding) ?? false) && playerResources.steel > 0;
+  const canUseSteel =
+    (card.tags?.includes(TagBuilding) ?? false) && playerResources.steel > 0;
 
   // Check if card can use titanium (has space tag) and player has titanium
-  const canUseTitanium = (card.tags?.includes(TagSpace) ?? false) && playerResources.titanium > 0;
+  const canUseTitanium =
+    (card.tags?.includes(TagSpace) ?? false) && playerResources.titanium > 0;
 
   // Check if player has any payment substitutes with available resources
   const hasUsableSubstitutes =

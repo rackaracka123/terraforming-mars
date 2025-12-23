@@ -44,7 +44,9 @@ export interface CardSelectionState {
  * Custom hook for managing card selection logic across overlays
  * Handles selection state, cost tracking, validation, and confirmation flow
  */
-export function useCardSelection(config: CardSelectionConfig): CardSelectionState {
+export function useCardSelection(
+  config: CardSelectionConfig,
+): CardSelectionState {
   const {
     cards,
     isOpen,
@@ -98,7 +100,13 @@ export function useCardSelection(config: CardSelectionConfig): CardSelectionStat
     if (selectedCardIds.length > 0 && showConfirmation) {
       setShowConfirmation(false);
     }
-  }, [selectedCardIds, costPerCard, getCardCost, getCardReward, showConfirmation]);
+  }, [
+    selectedCardIds,
+    costPerCard,
+    getCardCost,
+    getCardReward,
+    showConfirmation,
+  ]);
 
   // Check if a specific card can be afforded
   const canAffordCard = useCallback(

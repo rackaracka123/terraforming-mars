@@ -89,7 +89,8 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
     name: "Power Plant",
     type: "active",
     cost: 11,
-    description: "Action: Spend 11 M€ to increase your energy production 1 step.",
+    description:
+      "Action: Spend 11 M€ to increase your energy production 1 step.",
     pack: "standard",
     tags: ["power"],
     behaviors: [
@@ -118,7 +119,8 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
     name: "Asteroid",
     type: "active",
     cost: 14,
-    description: "Action: Spend 14 M€ to raise temperature 1 step and gain 1 TR.",
+    description:
+      "Action: Spend 14 M€ to raise temperature 1 step and gain 1 TR.",
     pack: "standard",
     tags: ["space"],
     behaviors: [
@@ -176,7 +178,8 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
     name: "Greenery",
     type: "active",
     cost: 23,
-    description: "Action: Spend 23 M€ to place a greenery tile, raise oxygen 1%, and gain 1 TR.",
+    description:
+      "Action: Spend 23 M€ to place a greenery tile, raise oxygen 1%, and gain 1 TR.",
     pack: "standard",
     tags: [],
     behaviors: [
@@ -205,7 +208,8 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
     name: "City",
     type: "active",
     cost: 25,
-    description: "Action: Spend 25 M€ to place a city tile and increase M€ production by 1.",
+    description:
+      "Action: Spend 25 M€ to place a city tile and increase M€ production by 1.",
     pack: "standard",
     tags: ["building", "city"],
     behaviors: [
