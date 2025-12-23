@@ -8,7 +8,8 @@ import LoadingOverlay from "../ui/overlay/LoadingOverlay";
 import GameIcon from "../ui/display/GameIcon.tsx";
 
 // UUIDv4 validation regex
-const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_V4_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const JoinGamePage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,7 +18,9 @@ const JoinGamePage: React.FC = () => {
   const [playerName, setPlayerName] = useState("");
   const [isLoadingGameValidation, setIsLoadingGameValidation] = useState(false);
   const [isLoadingJoin, setIsLoadingJoin] = useState(false);
-  const [loadingStep, setLoadingStep] = useState<"game" | "environment" | null>(null);
+  const [loadingStep, setLoadingStep] = useState<"game" | "environment" | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [gameValidated, setGameValidated] = useState(false);
   const [validatedGame, setValidatedGame] = useState<any>(null);
@@ -186,10 +189,13 @@ const JoinGamePage: React.FC = () => {
       // Step 3: Set up one-time listener for game-updated event
       const handleGameUpdated = (gameData: any) => {
         // Extract player info from game data
-        const allPlayers = [gameData.currentPlayer, ...(gameData.otherPlayers || [])].filter(
-          Boolean,
+        const allPlayers = [
+          gameData.currentPlayer,
+          ...(gameData.otherPlayers || []),
+        ].filter(Boolean);
+        const connectedPlayer = allPlayers.find(
+          (p: any) => p.name === playerName.trim(),
         );
-        const connectedPlayer = allPlayers.find((p: any) => p.name === playerName.trim());
 
         if (connectedPlayer) {
           // Store game data
@@ -251,7 +257,9 @@ const JoinGamePage: React.FC = () => {
     }
   };
 
-  const handlePlayerNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handlePlayerNameKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
     if (e.key === "Enter") {
       void handlePlayerNameSubmit(e as React.FormEvent);
     }
@@ -293,7 +301,10 @@ const JoinGamePage: React.FC = () => {
             </h1>
 
             {!gameValidated ? (
-              <form onSubmit={handleGameIdSubmit} className="max-w-[400px] mx-auto">
+              <form
+                onSubmit={handleGameIdSubmit}
+                className="max-w-[400px] mx-auto"
+              >
                 <div className="relative flex items-center bg-space-black-darker/95 border-2 border-space-blue-400 rounded-xl p-0 transition-all duration-200 backdrop-blur-space shadow-[0_0_20px_rgba(30,60,150,0.2)] focus-within:border-space-blue-600 focus-within:shadow-[0_0_30px_rgba(30,60,150,0.4)]">
                   <input
                     type="text"
@@ -324,7 +335,10 @@ const JoinGamePage: React.FC = () => {
                 )}
               </form>
             ) : (
-              <form onSubmit={handlePlayerNameSubmit} className="max-w-[400px] mx-auto">
+              <form
+                onSubmit={handlePlayerNameSubmit}
+                className="max-w-[400px] mx-auto"
+              >
                 <div className="mb-[30px]">
                   <p className="text-white/90 text-base m-0">
                     Game found!
