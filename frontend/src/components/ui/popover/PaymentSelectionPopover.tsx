@@ -44,11 +44,11 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
   // Get dynamic steel/titanium values from paymentSubstitutes (includes value modifiers like Phobolog)
   // Falls back to paymentConstants for backwards compatibility
   const steelValue =
-    playerPaymentSubstitutes?.find((s) => s.resourceType === "steel")
-      ?.conversionRate ?? paymentConstants.steelValue;
+    playerPaymentSubstitutes?.find((s) => s.resourceType === "steel")?.conversionRate ??
+    paymentConstants.steelValue;
   const titaniumValue =
-    playerPaymentSubstitutes?.find((s) => s.resourceType === "titanium")
-      ?.conversionRate ?? paymentConstants.titaniumValue;
+    playerPaymentSubstitutes?.find((s) => s.resourceType === "titanium")?.conversionRate ??
+    paymentConstants.titaniumValue;
 
   // Reset payment when modal opens
   useEffect(() => {
@@ -63,20 +63,14 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
   let substitutesValue = 0;
   if (playerPaymentSubstitutes) {
     for (const [resourceType, amount] of Object.entries(substitutes)) {
-      const substitute = playerPaymentSubstitutes.find(
-        (sub) => sub.resourceType === resourceType,
-      );
+      const substitute = playerPaymentSubstitutes.find((sub) => sub.resourceType === resourceType);
       if (substitute) {
         substitutesValue += amount * substitute.conversionRate;
       }
     }
   }
 
-  const finalCost =
-    card.cost -
-    steel * steelValue -
-    titanium * titaniumValue -
-    substitutesValue;
+  const finalCost = card.cost - steel * steelValue - titanium * titaniumValue - substitutesValue;
 
   // Check which resources to show (only if card has appropriate tag)
   const canUseSteel = card.tags?.includes(TagBuilding);
@@ -88,9 +82,7 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
   remainingCostForSteel -= titanium * titaniumValue;
   if (playerPaymentSubstitutes) {
     for (const [resourceType, amount] of Object.entries(substitutes)) {
-      const sub = playerPaymentSubstitutes.find(
-        (s) => s.resourceType === resourceType,
-      );
+      const sub = playerPaymentSubstitutes.find((s) => s.resourceType === resourceType);
       if (sub) {
         remainingCostForSteel -= amount * sub.conversionRate;
       }
@@ -98,10 +90,7 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
   }
 
   const maxSteelUnits = canUseSteel
-    ? Math.min(
-        playerResources.steel,
-        Math.ceil(Math.max(0, remainingCostForSteel) / steelValue),
-      )
+    ? Math.min(playerResources.steel, Math.ceil(Math.max(0, remainingCostForSteel) / steelValue))
     : 0;
 
   // For titanium: remaining cost excluding titanium itself
@@ -109,9 +98,7 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
   remainingCostForTitanium -= steel * steelValue;
   if (playerPaymentSubstitutes) {
     for (const [resourceType, amount] of Object.entries(substitutes)) {
-      const sub = playerPaymentSubstitutes.find(
-        (s) => s.resourceType === resourceType,
-      );
+      const sub = playerPaymentSubstitutes.find((s) => s.resourceType === resourceType);
       if (sub) {
         remainingCostForTitanium -= amount * sub.conversionRate;
       }
@@ -145,8 +132,7 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
       credits: Math.max(0, finalCost), // Credits needed (0 if overpaying)
       steel,
       titanium,
-      substitutes:
-        Object.keys(substitutes).length > 0 ? substitutes : undefined,
+      substitutes: Object.keys(substitutes).length > 0 ? substitutes : undefined,
     };
 
     onConfirm(payment);
@@ -273,9 +259,7 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
                 >
                   −
                 </button>
-                <span className="w-12 text-center text-lg text-white font-semibold">
-                  {steel}
-                </span>
+                <span className="w-12 text-center text-lg text-white font-semibold">{steel}</span>
                 <button
                   onClick={incrementSteel}
                   disabled={steel >= maxSteelUnits}
@@ -295,8 +279,7 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
                 <div className="flex flex-col">
                   <span className="text-white">Titanium</span>
                   <span className="text-xs text-gray-400">
-                    {titaniumValue} MC each ({playerResources.titanium}{" "}
-                    available)
+                    {titaniumValue} MC each ({playerResources.titanium} available)
                   </span>
                 </div>
               </div>
@@ -325,11 +308,7 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
           {/* Payment Substitutes - shown for each substitute player has (excluding steel/titanium which are handled above) */}
           {playerPaymentSubstitutes &&
             playerPaymentSubstitutes
-              .filter(
-                (sub) =>
-                  sub.resourceType !== "steel" &&
-                  sub.resourceType !== "titanium",
-              )
+              .filter((sub) => sub.resourceType !== "steel" && sub.resourceType !== "titanium")
               .map((substitute) => {
                 const resourceType = substitute.resourceType;
                 let available = 0;
@@ -357,16 +336,13 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
 
                 // Subtract OTHER substitutes' values (not this one)
                 if (playerPaymentSubstitutes) {
-                  for (const [otherResourceType, amount] of Object.entries(
-                    substitutes,
-                  )) {
+                  for (const [otherResourceType, amount] of Object.entries(substitutes)) {
                     if (otherResourceType !== resourceType) {
                       const otherSub = playerPaymentSubstitutes.find(
                         (sub) => sub.resourceType === otherResourceType,
                       );
                       if (otherSub) {
-                        remainingCostForThisSubstitute -=
-                          amount * otherSub.conversionRate;
+                        remainingCostForThisSubstitute -= amount * otherSub.conversionRate;
                       }
                     }
                   }
@@ -375,8 +351,7 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
                 const maxUnits = Math.min(
                   available,
                   Math.ceil(
-                    Math.max(0, remainingCostForThisSubstitute) /
-                      substitute.conversionRate,
+                    Math.max(0, remainingCostForThisSubstitute) / substitute.conversionRate,
                   ),
                 );
 
@@ -411,12 +386,9 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
                     <div className="flex items-center gap-3">
                       <GameIcon iconType={resourceType} size="medium" />
                       <div className="flex flex-col">
-                        <span className="text-white capitalize">
-                          {resourceType}
-                        </span>
+                        <span className="text-white capitalize">{resourceType}</span>
                         <span className="text-xs text-gray-400">
-                          {substitute.conversionRate} MC each ({available}{" "}
-                          available)
+                          {substitute.conversionRate} MC each ({available} available)
                         </span>
                       </div>
                     </div>
@@ -446,8 +418,7 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
           {/* Show message if no alternative payment options */}
           {!canUseSteel &&
             !canUseTitanium &&
-            (!playerPaymentSubstitutes ||
-              playerPaymentSubstitutes.length === 0) && (
+            (!playerPaymentSubstitutes || playerPaymentSubstitutes.length === 0) && (
               <div className="text-center text-gray-400 py-4">
                 This card cannot use alternative payment methods
               </div>
@@ -488,8 +459,7 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
                   cannotAfford ? "opacity-100" : "opacity-0"
                 }`}
               >
-                Can't afford: Need{" "}
-                {Math.max(finalCost - playerResources.credits, 0)} more MC
+                Can't afford: Need {Math.max(finalCost - playerResources.credits, 0)} more MC
               </div>
             </div>
           </div>

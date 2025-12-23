@@ -83,9 +83,7 @@ const AwardSection: FC<AwardSectionProps> = ({
 
   return (
     <div className="section-slide-in-animate flex flex-col items-center gap-4 p-6">
-      <h3 className="font-orbitron text-lg text-white/80 uppercase tracking-wider">
-        Awards
-      </h3>
+      <h3 className="font-orbitron text-lg text-white/80 uppercase tracking-wider">Awards</h3>
 
       <div className="flex flex-wrap justify-center gap-3">
         {awards.map((award, index) => {
@@ -112,10 +110,7 @@ const AwardSection: FC<AwardSectionProps> = ({
             >
               {/* Award icon */}
               <div className="mb-2">
-                <GameIcon
-                  iconType={getAwardIconType(award.type)}
-                  size="medium"
-                />
+                <GameIcon iconType={getAwardIconType(award.type)} size="medium" />
               </div>
 
               {/* Award name */}
@@ -143,17 +138,13 @@ const AwardSection: FC<AwardSectionProps> = ({
               )}
 
               {/* Not funded indicator */}
-              {!isFunded && (
-                <span className="text-xs text-white/40 mt-1">Not funded</span>
-              )}
+              {!isFunded && <span className="text-xs text-white/40 mt-1">Not funded</span>}
 
               {/* VP badge */}
               {placement && isRevealed && (
                 <div
                   className={`absolute -top-2 -right-2 font-bold text-xs px-2 py-1 rounded-full float-up-animate ${
-                    placement === "first"
-                      ? "bg-amber-400 text-black"
-                      : "bg-gray-300 text-black"
+                    placement === "first" ? "bg-amber-400 text-black" : "bg-gray-300 text-black"
                   }`}
                 >
                   +{placement === "first" ? AWARD_FIRST_VP : AWARD_SECOND_VP} VP

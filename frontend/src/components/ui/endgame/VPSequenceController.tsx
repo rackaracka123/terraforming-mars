@@ -1,8 +1,5 @@
 import { FC, useEffect, useState, useCallback } from "react";
-import type {
-  GameDto,
-  FinalScoreDto,
-} from "../../../types/generated/api-types";
+import type { GameDto, FinalScoreDto } from "../../../types/generated/api-types";
 import { TileHighlightType } from "./TileSection";
 
 export type VPSequencePhase =

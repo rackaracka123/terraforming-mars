@@ -51,13 +51,12 @@ export default function SpaceBackground({
     position: [0, 0, 12] as [number, number, number],
     fov: 60,
   });
-  const [skyboxLoadingState, setSkyboxLoadingState] =
-    useState<SkyboxLoadingState>({
-      isLoading: false,
-      isLoaded: false,
-      error: null,
-      texture: null,
-    });
+  const [skyboxLoadingState, setSkyboxLoadingState] = useState<SkyboxLoadingState>({
+    isLoading: false,
+    isLoaded: false,
+    error: null,
+    texture: null,
+  });
 
   // Subscribe to skybox loading state
   useEffect(() => {
@@ -102,11 +101,7 @@ export default function SpaceBackground({
           <ambientLight intensity={0.02} color="#0a0a1a" />
 
           {/* Directional light for subtle depth */}
-          <directionalLight
-            position={[10, 10, 10]}
-            intensity={0.3}
-            color="#1a1a3e"
-          />
+          <directionalLight position={[10, 10, 10]} intensity={0.3} color="#1a1a3e" />
         </Suspense>
       </Canvas>
 

@@ -35,9 +35,7 @@ const VPBarChart: FC<VPBarChartProps> = ({
   const [animationProgress, setAnimationProgress] = useState(0);
 
   // Sort scores by total VP descending
-  const sortedScores = [...scores].sort(
-    (a, b) => b.vpBreakdown.totalVP - a.vpBreakdown.totalVP,
-  );
+  const sortedScores = [...scores].sort((a, b) => b.vpBreakdown.totalVP - a.vpBreakdown.totalVP);
 
   // Find max VP for scaling
   const maxVP = Math.max(...scores.map((s) => s.vpBreakdown.totalVP), 1);
@@ -78,9 +76,7 @@ const VPBarChart: FC<VPBarChartProps> = ({
       </h3>
 
       {/* Legend - more compact in vertical mode */}
-      <div
-        className={`flex flex-wrap justify-center text-xs ${vertical ? "gap-2" : "gap-4"}`}
-      >
+      <div className={`flex flex-wrap justify-center text-xs ${vertical ? "gap-2" : "gap-4"}`}>
         {VP_CATEGORIES.map((category) => (
           <div key={category.key} className="flex items-center gap-1">
             <div
@@ -135,10 +131,8 @@ const VPBarChart: FC<VPBarChartProps> = ({
                 className={`flex-1 bg-gray-800/50 rounded-lg overflow-hidden relative ${vertical ? "h-6" : "h-8"}`}
               >
                 {segments.map((segment) => {
-                  const segmentWidth =
-                    (segment.value / maxVP) * 100 * animationProgress;
-                  const left =
-                    (cumulativeWidth / maxVP) * 100 * animationProgress;
+                  const segmentWidth = (segment.value / maxVP) * 100 * animationProgress;
+                  const left = (cumulativeWidth / maxVP) * 100 * animationProgress;
                   cumulativeWidth += segment.value;
 
                   if (segment.value === 0) return null;

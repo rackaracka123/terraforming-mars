@@ -2,10 +2,7 @@ import React, { useEffect, useState } from "react";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
 import CorporationCard from "../cards/CorporationCard.tsx";
 import GameIcon from "../display/GameIcon.tsx";
-import {
-  CardDto,
-  ResourceTypeCredit,
-} from "../../../types/generated/api-types.ts";
+import { CardDto, ResourceTypeCredit } from "../../../types/generated/api-types.ts";
 import { useCardSelection } from "../../../hooks/useCardSelection.ts";
 import {
   OVERLAY_CONTAINER_CLASS,
@@ -27,21 +24,15 @@ interface StartingCardSelectionOverlayProps {
   onSelectCards: (selectedCardIds: string[], corporationId: string) => void;
 }
 
-const StartingCardSelectionOverlay: React.FC<
-  StartingCardSelectionOverlayProps
-> = ({
+const StartingCardSelectionOverlay: React.FC<StartingCardSelectionOverlayProps> = ({
   isOpen,
   cards,
   availableCorporations,
   playerCredits,
   onSelectCards,
 }) => {
-  const [selectedCorporationId, setSelectedCorporationId] = useState<
-    string | null
-  >(null);
-  const [currentStep, setCurrentStep] = useState<"corporation" | "cards">(
-    "corporation",
-  );
+  const [selectedCorporationId, setSelectedCorporationId] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState<"corporation" | "cards">("corporation");
 
   const {
     selectedCardIds,
@@ -101,9 +92,7 @@ const StartingCardSelectionOverlay: React.FC<
         {/* Header */}
         <div className={OVERLAY_HEADER_CLASS}>
           <h2 className={OVERLAY_TITLE_CLASS}>
-            {currentStep === "corporation"
-              ? "Select Your Corporation"
-              : "Select Starting Cards"}
+            {currentStep === "corporation" ? "Select Your Corporation" : "Select Starting Cards"}
           </h2>
           <p className={OVERLAY_DESCRIPTION_CLASS}>
             {currentStep === "corporation"
@@ -193,9 +182,7 @@ const StartingCardSelectionOverlay: React.FC<
           {currentStep === "corporation" && (
             <>
               <div className="text-sm text-white/70">
-                {selectedCorporationId
-                  ? "Corporation selected"
-                  : "Please select a corporation"}
+                {selectedCorporationId ? "Corporation selected" : "Please select a corporation"}
               </div>
               <button
                 className={PRIMARY_BUTTON_CLASS}
@@ -213,33 +200,20 @@ const StartingCardSelectionOverlay: React.FC<
               <div className="flex gap-8 items-center max-[768px]:w-full max-[768px]:justify-between">
                 <div className={RESOURCE_DISPLAY_CLASS}>
                   <span className={RESOURCE_LABEL_CLASS}>Your Credits:</span>
-                  <GameIcon
-                    iconType={ResourceTypeCredit}
-                    amount={playerCredits}
-                    size="large"
-                  />
+                  <GameIcon iconType={ResourceTypeCredit} amount={playerCredits} size="large" />
                 </div>
                 <div className={RESOURCE_DISPLAY_CLASS}>
                   <span className={RESOURCE_LABEL_CLASS}>Total Cost:</span>
                   {totalCost > 0 ? (
-                    <GameIcon
-                      iconType={ResourceTypeCredit}
-                      amount={totalCost}
-                      size="large"
-                    />
+                    <GameIcon iconType={ResourceTypeCredit} amount={totalCost} size="large" />
                   ) : (
-                    <span className="!text-[#4caf50] font-bold tracking-[1px]">
-                      FREE
-                    </span>
+                    <span className="!text-[#4caf50] font-bold tracking-[1px]">FREE</span>
                   )}
                 </div>
               </div>
 
               <div className="flex items-center gap-4 max-[768px]:w-full max-[768px]:flex-col max-[768px]:gap-3">
-                <button
-                  className={SECONDARY_BUTTON_CLASS}
-                  onClick={handleNextToCorporation}
-                >
+                <button className={SECONDARY_BUTTON_CLASS} onClick={handleNextToCorporation}>
                   ← Back
                 </button>
 

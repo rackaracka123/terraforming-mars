@@ -29,8 +29,7 @@ const BehaviorIcon: React.FC<BehaviorIconProps> = ({
   if (!icon) return null;
 
   // Check if this is a tile placement that should be scaled up
-  const isScaledTile =
-    tileScaleInfo.scale > 1 && cleanType === tileScaleInfo.tileType;
+  const isScaledTile = tileScaleInfo.scale > 1 && cleanType === tileScaleInfo.tileType;
 
   let iconClass: string;
   if (isScaledTile) {
@@ -71,9 +70,7 @@ const BehaviorIcon: React.FC<BehaviorIconProps> = ({
 
   // Check if this should be a standalone larger icon
   const isStandaloneTile =
-    cleanType === "city-tile" ||
-    cleanType === "greenery-tile" ||
-    cleanType === "ocean-tile";
+    cleanType === "city-tile" || cleanType === "greenery-tile" || cleanType === "ocean-tile";
   const isStandaloneCard = cleanType === "card-draw" || cleanType === "card";
   const shouldUseStandaloneSize =
     context === "standalone" && (isStandaloneTile || isStandaloneCard);

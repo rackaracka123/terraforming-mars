@@ -1,9 +1,5 @@
 import { FC, useState, useCallback, useEffect, useRef } from "react";
-import type {
-  GameDto,
-  FinalScoreDto,
-  CardVPDetailDto,
-} from "../../../types/generated/api-types";
+import type { GameDto, FinalScoreDto, CardVPDetailDto } from "../../../types/generated/api-types";
 import { TileHighlightType } from "../endgame/TileSection";
 import GameIcon from "../display/GameIcon";
 import VPBarChart from "../endgame/VPBarChart";
@@ -87,8 +83,7 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
   onReturnToMenu,
 }) => {
   const [currentPhase, setCurrentPhase] = useState<VPSequencePhase>("intro");
-  const [tileCountingState, setTileCountingState] =
-    useState<TileCountingState | null>(null);
+  const [tileCountingState, setTileCountingState] = useState<TileCountingState | null>(null);
   const [vpIndicators, setVPIndicators] = useState<TileVPIndicator[]>([]);
   const [cardVPState, setCardVPState] = useState<CardVPState | null>(null);
   const [isDrawerHidden, setIsDrawerHidden] = useState(false);
@@ -99,14 +94,10 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
     playerId: string;
     type: "greenery" | "city";
   } | null>(null);
-  const [hoveredCardPlayerId, setHoveredCardPlayerId] = useState<string | null>(
-    null,
-  );
+  const [hoveredCardPlayerId, setHoveredCardPlayerId] = useState<string | null>(null);
 
   const allScores = game.finalScores ?? [];
-  const sortedScores = [...allScores].sort(
-    (a, b) => b.vpBreakdown.totalVP - a.vpBreakdown.totalVP,
-  );
+  const sortedScores = [...allScores].sort((a, b) => b.vpBreakdown.totalVP - a.vpBreakdown.totalVP);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -130,9 +121,7 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
     // Don't override active tile counting animation
     if (currentPhase === "tiles" && tileCountingState) return;
 
-    const score = sortedScores.find(
-      (s) => s.playerId === hoveredTileType.playerId,
-    );
+    const score = sortedScores.find((s) => s.playerId === hoveredTileType.playerId);
     if (!score) return;
 
     const hoverIndicators: TileVPIndicator[] = [];
@@ -269,9 +258,7 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
         timerRef.current = setTimeout(() => {
           // Stop animation on this tile
           setVPIndicators((prev) =>
-            prev.map((ind) =>
-              ind.coordinate === coord ? { ...ind, isAnimating: false } : ind,
-            ),
+            prev.map((ind) => (ind.coordinate === coord ? { ...ind, isAnimating: false } : ind)),
           );
           // Move to next tile after brief display
           setTimeout(() => {
@@ -315,30 +302,23 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
         };
 
         // Adjacent greeneries just get highlight, no VP text
-        const greeneryIndicators: TileVPIndicator[] =
-          adjacentGreeneryCoords.map((greenCoord) => ({
-            coordinate: greenCoord,
-            amount: 1,
-            type: "city-adjacency" as const,
-            playerId: currentPlayer.playerId,
-            isAnimating: false,
-            showVPText: false,
-          }));
+        const greeneryIndicators: TileVPIndicator[] = adjacentGreeneryCoords.map((greenCoord) => ({
+          coordinate: greenCoord,
+          amount: 1,
+          type: "city-adjacency" as const,
+          playerId: currentPlayer.playerId,
+          isAnimating: false,
+          showVPText: false,
+        }));
 
-        setVPIndicators((prev) => [
-          ...prev,
-          cityIndicator,
-          ...greeneryIndicators,
-        ]);
+        setVPIndicators((prev) => [...prev, cityIndicator, ...greeneryIndicators]);
 
         // Delay before moving to next city
         timerRef.current = setTimeout(() => {
           // Stop animation on this city
           setVPIndicators((prev) =>
             prev.map((ind) =>
-              ind.coordinate === cityCoord
-                ? { ...ind, isAnimating: false }
-                : ind,
+              ind.coordinate === cityCoord ? { ...ind, isAnimating: false } : ind,
             ),
           );
           // Move to next city after brief display
@@ -424,9 +404,7 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
     // Show each card for 3 seconds
     const CARD_VP_DISPLAY_MS = 3000;
     timerRef.current = setTimeout(() => {
-      setCardVPState((prev) =>
-        prev ? { ...prev, currentCardIndex: currentCardIndex + 1 } : null,
-      );
+      setCardVPState((prev) => (prev ? { ...prev, currentCardIndex: currentCardIndex + 1 } : null));
     }, CARD_VP_DISPLAY_MS);
   }, [cardVPState, currentPhase, advanceToPhase]);
 
@@ -435,9 +413,7 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
     return (
       <div className="fixed right-0 top-0 bottom-0 w-80 z-[1000] bg-black/90 backdrop-blur-md flex items-center justify-center">
         <div className="text-center p-4">
-          <h2 className="font-orbitron text-lg text-red-400 mb-4">
-            No scores available
-          </h2>
+          <h2 className="font-orbitron text-lg text-red-400 mb-4">No scores available</h2>
           <button onClick={onReturnToMenu} className={PRIMARY_BUTTON_CLASS}>
             Return to Menu
           </button>
@@ -463,9 +439,7 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
       {/* Card VP Hover Modal - shown when hovering card badge */}
       {hoveredCardPlayerId && currentPhase !== "cards" && (
         <CardVPHoverModal
-          playerScore={sortedScores.find(
-            (s) => s.playerId === hoveredCardPlayerId,
-          )}
+          playerScore={sortedScores.find((s) => s.playerId === hoveredCardPlayerId)}
         />
       )}
 
@@ -522,15 +496,11 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
             {currentPhase === "tiles" && (
               <>
                 Tile VP:{" "}
-                {tileCountingState &&
-                  sortedScores[tileCountingState.currentPlayerIndex] && (
-                    <span className="text-white">
-                      {
-                        sortedScores[tileCountingState.currentPlayerIndex]
-                          .playerName
-                      }
-                    </span>
-                  )}
+                {tileCountingState && sortedScores[tileCountingState.currentPlayerIndex] && (
+                  <span className="text-white">
+                    {sortedScores[tileCountingState.currentPlayerIndex].playerName}
+                  </span>
+                )}
               </>
             )}
             {currentPhase === "cards" && "Card VP"}
@@ -551,8 +521,7 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
                 isCurrentPlayer={score.playerId === playerId}
                 currentPhase={currentPhase}
                 isCountingTiles={
-                  tileCountingState?.currentPlayerIndex === idx &&
-                  currentPhase === "tiles"
+                  tileCountingState?.currentPlayerIndex === idx && currentPhase === "tiles"
                 }
                 onHoverTileType={setHoveredTileType}
                 onHoverCardVP={setHoveredCardPlayerId}
@@ -563,17 +532,12 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
           {/* Milestones compact display */}
           {(currentPhase === "milestones" ||
             (currentPhase !== "intro" && currentPhase !== "tr")) && (
-            <MilestoneCompact
-              milestones={game.milestones ?? []}
-              scores={sortedScores}
-            />
+            <MilestoneCompact milestones={game.milestones ?? []} scores={sortedScores} />
           )}
 
           {/* Awards compact display */}
           {(currentPhase === "awards" ||
-            ["tiles", "cards", "summary", "rankings", "complete"].includes(
-              currentPhase,
-            )) && (
+            ["tiles", "cards", "summary", "rankings", "complete"].includes(currentPhase)) && (
             <AwardCompact awards={game.awards ?? []} scores={sortedScores} />
           )}
 
@@ -596,19 +560,14 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
               <p className="text-amber-400 font-orbitron text-lg winner-glow-animate">
                 {winner.playerName} Wins!
               </p>
-              <p className="text-white/60 text-sm">
-                {winner.vpBreakdown.totalVP} VP
-              </p>
+              <p className="text-white/60 text-sm">{winner.vpBreakdown.totalVP} VP</p>
             </div>
           )}
 
           {/* Return to Menu */}
           {currentPhase === "complete" && (
             <div className="pt-4">
-              <button
-                onClick={onReturnToMenu}
-                className={`${PRIMARY_BUTTON_CLASS} w-full`}
-              >
+              <button onClick={onReturnToMenu} className={`${PRIMARY_BUTTON_CLASS} w-full`}>
                 Return to Menu
               </button>
             </div>
@@ -656,24 +615,11 @@ const PlayerVPCard: FC<{
     "rankings",
     "complete",
   ].includes(currentPhase);
-  const showAwards = [
-    "awards",
-    "tiles",
-    "cards",
-    "summary",
-    "rankings",
-    "complete",
-  ].includes(currentPhase);
-  const showTiles = [
-    "tiles",
-    "cards",
-    "summary",
-    "rankings",
-    "complete",
-  ].includes(currentPhase);
-  const showCards = ["cards", "summary", "rankings", "complete"].includes(
+  const showAwards = ["awards", "tiles", "cards", "summary", "rankings", "complete"].includes(
     currentPhase,
   );
+  const showTiles = ["tiles", "cards", "summary", "rankings", "complete"].includes(currentPhase);
+  const showCards = ["cards", "summary", "rankings", "complete"].includes(currentPhase);
 
   const revealedTotal =
     (showTR ? vpBreakdown.terraformRating : 0) +
@@ -707,26 +653,16 @@ const PlayerVPCard: FC<{
             {score.playerName}
           </span>
         </div>
-        <span className="font-orbitron text-xl font-bold text-white">
-          {revealedTotal}
-        </span>
+        <span className="font-orbitron text-xl font-bold text-white">{revealedTotal}</span>
       </div>
 
       {/* VP breakdown row */}
       <div className="flex flex-wrap gap-2 text-xs">
         {showTR && (
-          <VPBadge
-            icon="terraform-rating"
-            value={vpBreakdown.terraformRating}
-            color="blue"
-          />
+          <VPBadge icon="terraform-rating" value={vpBreakdown.terraformRating} color="blue" />
         )}
         {showMilestones && vpBreakdown.milestoneVP > 0 && (
-          <VPBadge
-            icon="milestone"
-            value={vpBreakdown.milestoneVP}
-            color="purple"
-          />
+          <VPBadge icon="milestone" value={vpBreakdown.milestoneVP} color="purple" />
         )}
         {showAwards && vpBreakdown.awardVP > 0 && (
           <VPBadge icon="award" value={vpBreakdown.awardVP} color="yellow" />
@@ -749,9 +685,7 @@ const PlayerVPCard: FC<{
               icon="city-tile"
               value={vpBreakdown.cityVP}
               color="gray"
-              onMouseEnter={() =>
-                onHoverTileType?.({ playerId: score.playerId, type: "city" })
-              }
+              onMouseEnter={() => onHoverTileType?.({ playerId: score.playerId, type: "city" })}
               onMouseLeave={() => onHoverTileType?.(null)}
             />
           </>
@@ -782,11 +716,9 @@ const VPBadge: FC<{
     blue: "bg-blue-500/20 text-blue-400",
     purple: "bg-purple-500/20 text-purple-400",
     yellow: "bg-amber-500/20 text-amber-400",
-    green:
-      "bg-green-500/20 text-green-400 hover:bg-green-500/30 cursor-pointer",
+    green: "bg-green-500/20 text-green-400 hover:bg-green-500/30 cursor-pointer",
     gray: "bg-gray-500/20 text-gray-400 hover:bg-gray-500/30 cursor-pointer",
-    indigo:
-      "bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 cursor-pointer",
+    indigo: "bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 cursor-pointer",
   };
 
   return (
@@ -819,15 +751,10 @@ const MilestoneCompact: FC<{
 
   return (
     <div className="border-t border-white/10 pt-3">
-      <h3 className="text-xs text-white/50 uppercase tracking-wider mb-2">
-        Milestones
-      </h3>
+      <h3 className="text-xs text-white/50 uppercase tracking-wider mb-2">Milestones</h3>
       <div className="space-y-1">
         {claimedMilestones.map((m) => (
-          <div
-            key={m.type}
-            className="flex items-center justify-between text-sm"
-          >
+          <div key={m.type} className="flex items-center justify-between text-sm">
             <span className="text-white/80">{m.name}</span>
             <span className="text-amber-400">{getPlayerName(m.claimedBy)}</span>
           </div>
@@ -847,15 +774,10 @@ const AwardCompact: FC<{
 
   return (
     <div className="border-t border-white/10 pt-3">
-      <h3 className="text-xs text-white/50 uppercase tracking-wider mb-2">
-        Awards
-      </h3>
+      <h3 className="text-xs text-white/50 uppercase tracking-wider mb-2">Awards</h3>
       <div className="space-y-1">
         {fundedAwards.map((a) => (
-          <div
-            key={a.type}
-            className="flex items-center justify-between text-sm"
-          >
+          <div key={a.type} className="flex items-center justify-between text-sm">
             <span className="text-white/80">{a.name}</span>
             <span className="text-gray-400">Funded</span>
           </div>
@@ -911,22 +833,14 @@ const CardVPHoverModal: FC<{
         {/* Cards list */}
         <div className="space-y-3">
           {cardsWithVP.map((card, idx) => (
-            <div
-              key={idx}
-              className="bg-purple-900/30 border border-purple-500/30 rounded-lg p-3"
-            >
+            <div key={idx} className="bg-purple-900/30 border border-purple-500/30 rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-white font-medium">{card.cardName}</span>
-                <span className="text-purple-400 font-orbitron font-bold">
-                  +{card.totalVP} VP
-                </span>
+                <span className="text-purple-400 font-orbitron font-bold">+{card.totalVP} VP</span>
               </div>
               {/* Condition breakdown */}
               {card.conditions.map((condition, condIdx) => (
-                <div
-                  key={condIdx}
-                  className="text-xs text-white/60 flex items-center gap-2"
-                >
+                <div key={condIdx} className="text-xs text-white/60 flex items-center gap-2">
                   <span
                     className={`
                       uppercase px-1.5 py-0.5 rounded text-[10px]

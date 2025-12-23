@@ -32,9 +32,7 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
         // Fixed VP amount
         if (condition.amount === 0) return null;
         return (
-          <div
-            className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}
-          >
+          <div className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}>
             <img
               src={vpIconPath || ""}
               alt="VP"
@@ -71,9 +69,7 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
             : "text-[calc(100%*0.45)]"; // Even smaller for longer text
 
         return (
-          <div
-            className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}
-          >
+          <div className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}>
             <img
               src={vpIconPath || ""}
               alt="VP"
@@ -99,9 +95,7 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
         // Once condition - similar to fixed but different styling?
         if (condition.amount === 0) return null;
         return (
-          <div
-            className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}
-          >
+          <div className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}>
             <img
               src={vpIconPath || ""}
               alt="VP"
@@ -152,9 +146,7 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
             : "text-[calc(100%*0.45)]"; // Even smaller for longer text
 
         return (
-          <div
-            className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}
-          >
+          <div className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}>
             <img
               src={vpIconPath || ""}
               alt="VP"
@@ -178,9 +170,7 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
         );
       } else if (totalFixed > 0) {
         return (
-          <div
-            className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}
-          >
+          <div className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}>
             <img
               src={vpIconPath || ""}
               alt="VP"
@@ -203,9 +193,7 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
   }
 
   return (
-    <div
-      className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}
-    >
+    <div className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}>
       <img
         src={vpIconPath || ""}
         alt="VP"

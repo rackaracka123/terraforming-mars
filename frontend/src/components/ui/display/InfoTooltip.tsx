@@ -13,12 +13,14 @@ const sizeConfig = {
   small: {
     icon: "text-sm w-[16px] h-[16px]",
     tooltip: "w-[260px] text-[12px]",
-    shadow: "shadow-[0_0_8px_rgba(30,60,150,0.2)] group-hover:shadow-[0_0_12px_rgba(30,60,150,0.4)]",
+    shadow:
+      "shadow-[0_0_8px_rgba(30,60,150,0.2)] group-hover:shadow-[0_0_12px_rgba(30,60,150,0.4)]",
   },
   medium: {
     icon: "text-base w-[18px] h-[18px]",
     tooltip: "w-[280px] text-[13px]",
-    shadow: "shadow-[0_0_10px_rgba(30,60,150,0.2)] group-hover:shadow-[0_0_15px_rgba(30,60,150,0.4)]",
+    shadow:
+      "shadow-[0_0_10px_rgba(30,60,150,0.2)] group-hover:shadow-[0_0_15px_rgba(30,60,150,0.4)]",
   },
 };
 

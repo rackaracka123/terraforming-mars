@@ -32,16 +32,10 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   const hasUnlimitedActions = player.availableActions === -1;
 
   // For unlimited actions, calculate actionsRemaining and button text differently
-  const actionsRemaining = hasUnlimitedActions
-    ? -1
-    : totalActions - actionsUsed;
+  const actionsRemaining = hasUnlimitedActions ? -1 : totalActions - actionsUsed;
 
   // Determine button text - always PASS for unlimited actions, otherwise SKIP if actions used
-  const buttonText = hasUnlimitedActions
-    ? "PASS"
-    : actionsUsed > 0
-      ? "SKIP"
-      : "PASS";
+  const buttonText = hasUnlimitedActions ? "PASS" : actionsUsed > 0 ? "SKIP" : "PASS";
 
   return (
     <div

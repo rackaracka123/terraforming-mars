@@ -65,9 +65,7 @@ const MilestoneSection: FC<MilestoneSectionProps> = ({
 
   return (
     <div className="section-slide-in-animate flex flex-col items-center gap-4 p-6">
-      <h3 className="font-orbitron text-lg text-white/80 uppercase tracking-wider">
-        Milestones
-      </h3>
+      <h3 className="font-orbitron text-lg text-white/80 uppercase tracking-wider">Milestones</h3>
 
       <div className="flex flex-wrap justify-center gap-3">
         {milestones.map((milestone, index) => {
@@ -93,10 +91,7 @@ const MilestoneSection: FC<MilestoneSectionProps> = ({
             >
               {/* Milestone icon */}
               <div className="mb-2">
-                <GameIcon
-                  iconType={getMilestoneIconType(milestone.type)}
-                  size="medium"
-                />
+                <GameIcon iconType={getMilestoneIconType(milestone.type)} size="medium" />
               </div>
 
               {/* Milestone name */}

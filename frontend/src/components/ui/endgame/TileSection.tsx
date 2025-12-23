@@ -53,8 +53,7 @@ const TileSection: FC<TileSectionProps> = ({
   };
 
   // Show greenery when: not animating, or in greenery phase, or greenery is done
-  const showGreenery =
-    !isAnimating || highlightPhase === "greenery" || greeneryDone;
+  const showGreenery = !isAnimating || highlightPhase === "greenery" || greeneryDone;
   // Show city when: not animating, or in city phase, or city is done
   const showCity = !isAnimating || highlightPhase === "city" || cityDone;
 
@@ -80,9 +79,7 @@ const TileSection: FC<TileSectionProps> = ({
         >
           <GameIcon iconType="greenery-tile" size="large" />
 
-          <span className="font-orbitron text-sm text-green-400 uppercase">
-            Greenery Tiles
-          </span>
+          <span className="font-orbitron text-sm text-green-400 uppercase">Greenery Tiles</span>
 
           <div className="text-4xl font-orbitron font-bold text-green-400">
             {isAnimating && highlightPhase === "greenery" ? (
@@ -97,9 +94,7 @@ const TileSection: FC<TileSectionProps> = ({
             <span className="text-xl text-white/60 ml-2">VP</span>
           </div>
 
-          <p className="text-xs text-white/50 text-center">
-            1 VP per greenery tile you own
-          </p>
+          <p className="text-xs text-white/50 text-center">1 VP per greenery tile you own</p>
         </div>
 
         {/* City VP */}
@@ -117,17 +112,11 @@ const TileSection: FC<TileSectionProps> = ({
         >
           <GameIcon iconType="city-tile" size="large" />
 
-          <span className="font-orbitron text-sm text-gray-300 uppercase">
-            City Adjacency
-          </span>
+          <span className="font-orbitron text-sm text-gray-300 uppercase">City Adjacency</span>
 
           <div className="text-4xl font-orbitron font-bold text-gray-300">
             {isAnimating && highlightPhase === "city" ? (
-              <AnimatedNumber
-                value={cityVP}
-                duration={3000}
-                onComplete={handleCityComplete}
-              />
+              <AnimatedNumber value={cityVP} duration={3000} onComplete={handleCityComplete} />
             ) : (
               cityVP
             )}

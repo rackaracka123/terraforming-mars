@@ -12,9 +12,7 @@ const BASE_HEAT_FOR_TEMPERATURE = 8;
  * @param playerEffects - The player's active effects
  * @returns The required number of plants after discounts (minimum 1)
  */
-export function calculatePlantsForGreenery(
-  playerEffects?: PlayerEffectDto[],
-): number {
+export function calculatePlantsForGreenery(playerEffects?: PlayerEffectDto[]): number {
   return calculateDiscountedCost(
     BASE_PLANTS_FOR_GREENERY,
     playerEffects,
@@ -27,9 +25,7 @@ export function calculatePlantsForGreenery(
  * @param playerEffects - The player's active effects
  * @returns The required number of heat after discounts (minimum 1)
  */
-export function calculateHeatForTemperature(
-  playerEffects?: PlayerEffectDto[],
-): number {
+export function calculateHeatForTemperature(playerEffects?: PlayerEffectDto[]): number {
   return calculateDiscountedCost(
     BASE_HEAT_FOR_TEMPERATURE,
     playerEffects,

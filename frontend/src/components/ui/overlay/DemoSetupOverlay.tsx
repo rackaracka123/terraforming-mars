@@ -144,12 +144,9 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
   const [generation, setGeneration] = useState(game.generation ?? 1);
 
   // Player setup
-  const [availableCorporations, setAvailableCorporations] = useState<CardDto[]>(
-    [],
-  );
+  const [availableCorporations, setAvailableCorporations] = useState<CardDto[]>([]);
   const [availableCards, setAvailableCards] = useState<CardDto[]>([]);
-  const [selectedCorporationId, setSelectedCorporationId] =
-    useState<string>("");
+  const [selectedCorporationId, setSelectedCorporationId] = useState<string>("");
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [cardSearchTerm, setCardSearchTerm] = useState("");
   const [corpSearchTerm, setCorpSearchTerm] = useState("");
@@ -208,9 +205,7 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
   useEffect(() => {
     if (!selectedCorporationId) return;
 
-    const corp = availableCorporations.find(
-      (c) => c.id === selectedCorporationId,
-    );
+    const corp = availableCorporations.find((c) => c.id === selectedCorporationId);
     if (corp) {
       if (corp.startingResources) {
         setResources({
@@ -237,9 +232,7 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
 
   const toggleCardSelection = (cardId: string) => {
     setSelectedCardIds((prev) =>
-      prev.includes(cardId)
-        ? prev.filter((id) => id !== cardId)
-        : [...prev, cardId],
+      prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId],
     );
   };
 

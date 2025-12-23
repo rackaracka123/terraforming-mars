@@ -30,28 +30,18 @@ interface AdminCommandPanelProps {
   onClose?: () => void;
 }
 
-const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
-  gameState,
-  onClose,
-}) => {
+const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState, onClose }) => {
   const [selectedCommand, setSelectedCommand] = useState<string>("");
-  const [validationErrors, setValidationErrors] = useState<
-    Record<string, boolean>
-  >({});
+  const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
 
   // Shared styling functions
 
-  const getInputStyle = (
-    hasError: boolean = false,
-    disabled: boolean = false,
-  ) => ({
+  const getInputStyle = (hasError: boolean = false, disabled: boolean = false) => ({
     width: "100%",
     padding: "6px 10px",
     marginTop: "2px",
     background: disabled ? "rgba(0, 0, 0, 0.4)" : "rgba(0, 0, 0, 0.8)",
-    border: hasError
-      ? "1px solid #ff4444"
-      : "1px solid rgba(155, 89, 182, 0.3)",
+    border: hasError ? "1px solid #ff4444" : "1px solid rgba(155, 89, 182, 0.3)",
     borderRadius: "4px",
     color: disabled ? "#666" : "white",
     fontSize: "12px",
@@ -66,9 +56,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     padding: "6px 10px",
     marginTop: "2px",
     background: "rgba(0, 0, 0, 0.8)",
-    border: hasError
-      ? "1px solid #ff4444"
-      : "1px solid rgba(155, 89, 182, 0.3)",
+    border: hasError ? "1px solid #ff4444" : "1px solid rgba(155, 89, 182, 0.3)",
     borderRadius: "4px",
     color: "white",
     fontSize: "12px",
@@ -85,8 +73,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
 
   const buttonStyle = {
     padding: "8px 16px",
-    background:
-      "linear-gradient(135deg, rgba(155, 89, 182, 0.8), rgba(155, 89, 182, 0.6))",
+    background: "linear-gradient(135deg, rgba(155, 89, 182, 0.8), rgba(155, 89, 182, 0.6))",
     border: "1px solid rgba(155, 89, 182, 0.5)",
     borderRadius: "6px",
     color: "white",
@@ -148,9 +135,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
   // Update forms when player selection changes
   useEffect(() => {
     if (resourcesForm.playerId) {
-      const selectedPlayer = allPlayers.find(
-        (p) => p.id === resourcesForm.playerId,
-      );
+      const selectedPlayer = allPlayers.find((p) => p.id === resourcesForm.playerId);
       if (selectedPlayer && selectedPlayer.resources) {
         setResourcesForm((prev) => ({
           ...prev,
@@ -178,9 +163,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
 
   useEffect(() => {
     if (productionForm.playerId) {
-      const selectedPlayer = allPlayers.find(
-        (p) => p.id === productionForm.playerId,
-      );
+      const selectedPlayer = allPlayers.find((p) => p.id === productionForm.playerId);
       if (selectedPlayer && selectedPlayer.production) {
         setProductionForm((prev) => ({
           ...prev,
@@ -297,9 +280,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     return cards.filter((card) => {
       switch (parsed.type) {
         case "tag":
-          return card.tags?.some((tag) =>
-            tag.toLowerCase().includes(parsed.value),
-          );
+          return card.tags?.some((tag) => tag.toLowerCase().includes(parsed.value));
         case "behavior":
           return card.behaviors?.some((behavior) => {
             const inputMatch = behavior.inputs?.some((input) =>
@@ -329,9 +310,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
   }, [allCards, giveCardQuery]);
 
   const filteredCorporations = useMemo(() => {
-    const corporations = allCards.filter(
-      (card) => card.type === CardTypeCorporation,
-    );
+    const corporations = allCards.filter((card) => card.type === CardTypeCorporation);
     if (!corporationQuery.trim()) return [];
     return filterCardsByQuery(corporations, corporationQuery).slice(0, 3);
   }, [allCards, corporationQuery]);
@@ -343,12 +322,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
   };
 
   // Helper to clamp and validate numeric value on blur
-  const clampValue = (
-    value: string,
-    min: number,
-    max: number,
-    defaultVal: number,
-  ): string => {
+  const clampValue = (value: string, min: number, max: number, defaultVal: number): string => {
     if (value === "" || value === "-") return defaultVal.toString();
     const num = parseInt(value, 10);
     if (isNaN(num)) return defaultVal.toString();
@@ -368,17 +342,13 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     }
   };
 
-  const handleProductionKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-  ) => {
+  const handleProductionKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       void handleSetProduction();
     }
   };
 
-  const handleGlobalParamsKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-  ) => {
+  const handleGlobalParamsKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       void handleSetGlobalParams();
     }
@@ -455,25 +425,11 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     if (!resourcesForm.playerId) errors.setResourcesPlayerId = true;
 
     // Validate that all resource values are valid numbers
-    const resourceFields = [
-      "credit",
-      "steel",
-      "titanium",
-      "plant",
-      "energy",
-      "heat",
-    ];
+    const resourceFields = ["credit", "steel", "titanium", "plant", "energy", "heat"];
     for (const field of resourceFields) {
-      const value = resourcesForm[
-        field as keyof typeof resourcesForm
-      ] as string;
-      if (
-        value !== "" &&
-        (isNaN(parseInt(value, 10)) || parseInt(value, 10) < 0)
-      ) {
-        errors[
-          `setResources${field.charAt(0).toUpperCase() + field.slice(1)}`
-        ] = true;
+      const value = resourcesForm[field as keyof typeof resourcesForm] as string;
+      if (value !== "" && (isNaN(parseInt(value, 10)) || parseInt(value, 10) < 0)) {
+        errors[`setResources${field.charAt(0).toUpperCase() + field.slice(1)}`] = true;
       }
     }
 
@@ -505,25 +461,11 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     if (!productionForm.playerId) errors.setProductionPlayerId = true;
 
     // Validate that all production values are valid numbers
-    const productionFields = [
-      "credit",
-      "steel",
-      "titanium",
-      "plant",
-      "energy",
-      "heat",
-    ];
+    const productionFields = ["credit", "steel", "titanium", "plant", "energy", "heat"];
     for (const field of productionFields) {
-      const value = productionForm[
-        field as keyof typeof productionForm
-      ] as string;
-      if (
-        value !== "" &&
-        (isNaN(parseInt(value, 10)) || parseInt(value, 10) < 0)
-      ) {
-        errors[
-          `setProduction${field.charAt(0).toUpperCase() + field.slice(1)}`
-        ] = true;
+      const value = productionForm[field as keyof typeof productionForm] as string;
+      if (value !== "" && (isNaN(parseInt(value, 10)) || parseInt(value, 10) < 0)) {
+        errors[`setProduction${field.charAt(0).toUpperCase() + field.slice(1)}`] = true;
       }
     }
 
@@ -593,8 +535,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     const errors: Record<string, boolean> = {};
 
     if (!setCorporationForm.playerId) errors.setCorporationPlayerId = true;
-    if (!setCorporationForm.corporationId)
-      errors.setCorporationCorporationId = true;
+    if (!setCorporationForm.corporationId) errors.setCorporationCorporationId = true;
 
     setValidationErrors(errors);
 
@@ -648,9 +589,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
       }}
     >
       <div style={{ marginBottom: "16px" }}>
-        <label
-          style={{ color: "#9b59b6", fontSize: "12px", fontWeight: "bold" }}
-        >
+        <label style={{ color: "#9b59b6", fontSize: "12px", fontWeight: "bold" }}>
           Select Admin Command:
         </label>
         <select
@@ -677,15 +616,11 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
 
       {selectedCommand === "give-card" && (
         <div style={{ marginBottom: "16px" }}>
-          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>
-            Give Card to Player
-          </h4>
+          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>Give Card to Player</h4>
           <div style={{ marginBottom: "8px" }}>
             <select
               value={giveCardForm.playerId}
-              onChange={(e) =>
-                setGiveCardForm({ ...giveCardForm, playerId: e.target.value })
-              }
+              onChange={(e) => setGiveCardForm({ ...giveCardForm, playerId: e.target.value })}
               style={getSelectStyle(validationErrors.giveCardPlayerId)}
             >
               <option value="">Select player...</option>
@@ -721,9 +656,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
                       ...giveCardForm,
                       cardId: filteredCards[0].id,
                     });
-                    setGiveCardQuery(
-                      `${filteredCards[0].id} - ${filteredCards[0].name}`,
-                    );
+                    setGiveCardQuery(`${filteredCards[0].id} - ${filteredCards[0].name}`);
                     setShowGiveCardDropdown(false);
                   } else if (giveCardForm.cardId) {
                     void handleGiveCard();
@@ -777,16 +710,11 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
                         transition: "background 0.15s ease",
                       }}
                       onMouseEnter={(e) =>
-                        (e.currentTarget.style.background =
-                          "rgba(155, 89, 182, 0.2)")
+                        (e.currentTarget.style.background = "rgba(155, 89, 182, 0.2)")
                       }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.background = "transparent")
-                      }
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
-                      <span style={{ color: "#9b59b6", fontWeight: "bold" }}>
-                        {card.id}
-                      </span>
+                      <span style={{ color: "#9b59b6", fontWeight: "bold" }}>{card.id}</span>
                       <span style={{ color: "#abb2bf" }}> - {card.name}</span>
                     </div>
                   ))
@@ -813,9 +741,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
 
       {selectedCommand === "set-phase" && (
         <div style={{ marginBottom: "16px" }}>
-          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>
-            Set Game Phase
-          </h4>
+          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>Set Game Phase</h4>
           <div style={{ marginBottom: "8px" }}>
             <select
               value={setPhaseForm.phase}
@@ -839,15 +765,11 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
 
       {selectedCommand === "set-resources" && (
         <div style={{ marginBottom: "16px" }}>
-          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>
-            Set Player Resources
-          </h4>
+          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>Set Player Resources</h4>
           <div style={{ marginBottom: "8px" }}>
             <select
               value={resourcesForm.playerId}
-              onChange={(e) =>
-                setResourcesForm({ ...resourcesForm, playerId: e.target.value })
-              }
+              onChange={(e) => setResourcesForm({ ...resourcesForm, playerId: e.target.value })}
               style={getSelectStyle(validationErrors.setResourcesPlayerId)}
             >
               <option value="">Select player...</option>
@@ -867,57 +789,51 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
               padding: "0 4px",
             }}
           >
-            {["credit", "steel", "titanium", "plant", "energy", "heat"].map(
-              (resource) => (
-                <div key={resource} style={{ minWidth: 0 }}>
-                  <label
-                    style={{
-                      color: "#abb2bf",
-                      fontSize: "11px",
-                      textTransform: "capitalize",
-                      display: "block",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    {resource}:
-                  </label>
-                  <input
-                    type="text"
-                    value={
-                      resourcesForm[
-                        resource as keyof typeof resourcesForm
-                      ] as string
-                    }
-                    onChange={(e) =>
+            {["credit", "steel", "titanium", "plant", "energy", "heat"].map((resource) => (
+              <div key={resource} style={{ minWidth: 0 }}>
+                <label
+                  style={{
+                    color: "#abb2bf",
+                    fontSize: "11px",
+                    textTransform: "capitalize",
+                    display: "block",
+                    marginBottom: "4px",
+                  }}
+                >
+                  {resource}:
+                </label>
+                <input
+                  type="text"
+                  value={resourcesForm[resource as keyof typeof resourcesForm] as string}
+                  onChange={(e) =>
+                    setResourcesForm({
+                      ...resourcesForm,
+                      [resource]: filterNumericInput(e.target.value),
+                    })
+                  }
+                  onBlur={(e) => {
+                    const val = e.target.value;
+                    if (val === "" || val === "-") return;
+                    const num = parseInt(val, 10);
+                    if (isNaN(num) || num < 0) {
                       setResourcesForm({
                         ...resourcesForm,
-                        [resource]: filterNumericInput(e.target.value),
-                      })
+                        [resource]: "0",
+                      });
                     }
-                    onBlur={(e) => {
-                      const val = e.target.value;
-                      if (val === "" || val === "-") return;
-                      const num = parseInt(val, 10);
-                      if (isNaN(num) || num < 0) {
-                        setResourcesForm({
-                          ...resourcesForm,
-                          [resource]: "0",
-                        });
-                      }
-                    }}
-                    onKeyDown={handleResourcesKeyDown}
-                    disabled={!resourcesForm.playerId}
-                    style={{
-                      ...getInputStyle(false, !resourcesForm.playerId),
-                      fontSize: "11px",
-                      width: "100%",
-                      minWidth: 0,
-                      boxSizing: "border-box" as const,
-                    }}
-                  />
-                </div>
-              ),
-            )}
+                  }}
+                  onKeyDown={handleResourcesKeyDown}
+                  disabled={!resourcesForm.playerId}
+                  style={{
+                    ...getInputStyle(false, !resourcesForm.playerId),
+                    fontSize: "11px",
+                    width: "100%",
+                    minWidth: 0,
+                    boxSizing: "border-box" as const,
+                  }}
+                />
+              </div>
+            ))}
           </div>
           <button onClick={handleSetResources} style={buttonStyle}>
             Set Resources
@@ -927,9 +843,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
 
       {selectedCommand === "set-production" && (
         <div style={{ marginBottom: "16px" }}>
-          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>
-            Set Player Production
-          </h4>
+          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>Set Player Production</h4>
           <div style={{ marginBottom: "8px" }}>
             <select
               value={productionForm.playerId}
@@ -958,58 +872,52 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
               padding: "0 4px",
             }}
           >
-            {["credit", "steel", "titanium", "plant", "energy", "heat"].map(
-              (resource) => (
-                <div key={resource} style={{ minWidth: 0 }}>
-                  <label
-                    style={{
-                      color: "#abb2bf",
-                      fontSize: "11px",
-                      textTransform: "capitalize",
-                      display: "block",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    {resource}:
-                  </label>
-                  <input
-                    type="text"
-                    value={
-                      productionForm[
-                        resource as keyof typeof productionForm
-                      ] as string
-                    }
-                    onChange={(e) =>
+            {["credit", "steel", "titanium", "plant", "energy", "heat"].map((resource) => (
+              <div key={resource} style={{ minWidth: 0 }}>
+                <label
+                  style={{
+                    color: "#abb2bf",
+                    fontSize: "11px",
+                    textTransform: "capitalize",
+                    display: "block",
+                    marginBottom: "4px",
+                  }}
+                >
+                  {resource}:
+                </label>
+                <input
+                  type="text"
+                  value={productionForm[resource as keyof typeof productionForm] as string}
+                  onChange={(e) =>
+                    setProductionForm({
+                      ...productionForm,
+                      [resource]: filterNumericInput(e.target.value),
+                    })
+                  }
+                  onBlur={(e) => {
+                    const val = e.target.value;
+                    if (val === "" || val === "-") return;
+                    const num = parseInt(val, 10);
+                    // Production can be negative (credits can go to -5)
+                    if (isNaN(num)) {
                       setProductionForm({
                         ...productionForm,
-                        [resource]: filterNumericInput(e.target.value),
-                      })
+                        [resource]: "0",
+                      });
                     }
-                    onBlur={(e) => {
-                      const val = e.target.value;
-                      if (val === "" || val === "-") return;
-                      const num = parseInt(val, 10);
-                      // Production can be negative (credits can go to -5)
-                      if (isNaN(num)) {
-                        setProductionForm({
-                          ...productionForm,
-                          [resource]: "0",
-                        });
-                      }
-                    }}
-                    onKeyDown={handleProductionKeyDown}
-                    disabled={!productionForm.playerId}
-                    style={{
-                      ...getInputStyle(false, !productionForm.playerId),
-                      fontSize: "11px",
-                      width: "100%",
-                      minWidth: 0,
-                      boxSizing: "border-box" as const,
-                    }}
-                  />
-                </div>
-              ),
-            )}
+                  }}
+                  onKeyDown={handleProductionKeyDown}
+                  disabled={!productionForm.playerId}
+                  style={{
+                    ...getInputStyle(false, !productionForm.playerId),
+                    fontSize: "11px",
+                    width: "100%",
+                    minWidth: 0,
+                    boxSizing: "border-box" as const,
+                  }}
+                />
+              </div>
+            ))}
           </div>
           <button onClick={handleSetProduction} style={buttonStyle}>
             Set Production
@@ -1019,9 +927,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
 
       {selectedCommand === "set-global-params" && (
         <div style={{ marginBottom: "16px" }}>
-          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>
-            Set Global Parameters
-          </h4>
+          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>Set Global Parameters</h4>
           <div
             style={{
               display: "grid",
@@ -1138,9 +1044,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
 
       {selectedCommand === "start-tile-selection" && (
         <div style={{ marginBottom: "16px" }}>
-          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>
-            Start Tile Selection (Demo)
-          </h4>
+          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>Start Tile Selection (Demo)</h4>
           <div style={{ marginBottom: "8px" }}>
             <select
               value={tileSelectionForm.playerId}
@@ -1191,18 +1095,16 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
               color: "#ffc107",
             }}
           >
-            <strong>Demo:</strong> This will trigger tile selection for the
-            chosen player. Available hexes will be highlighted on the Mars
-            board. Click a highlighted hex to complete the tile placement.
+            <strong>Demo:</strong> This will trigger tile selection for the chosen player. Available
+            hexes will be highlighted on the Mars board. Click a highlighted hex to complete the
+            tile placement.
           </div>
         </div>
       )}
 
       {selectedCommand === "set-corporation" && (
         <div style={{ marginBottom: "16px" }}>
-          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>
-            Set Player Corporation
-          </h4>
+          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>Set Player Corporation</h4>
           <div style={{ marginBottom: "8px" }}>
             <select
               value={setCorporationForm.playerId}
@@ -1309,16 +1211,11 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
                         transition: "background 0.15s ease",
                       }}
                       onMouseEnter={(e) =>
-                        (e.currentTarget.style.background =
-                          "rgba(155, 89, 182, 0.2)")
+                        (e.currentTarget.style.background = "rgba(155, 89, 182, 0.2)")
                       }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.background = "transparent")
-                      }
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
-                      <span style={{ color: "#ffc107", fontWeight: "bold" }}>
-                        {card.id}
-                      </span>
+                      <span style={{ color: "#ffc107", fontWeight: "bold" }}>{card.id}</span>
                       <span style={{ color: "#abb2bf" }}> - {card.name}</span>
                     </div>
                   ))
@@ -1352,22 +1249,19 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
               lineHeight: "1.5",
             }}
           >
-            <div
-              style={{ marginBottom: "6px", color: "#fff", fontWeight: "bold" }}
-            >
+            <div style={{ marginBottom: "6px", color: "#fff", fontWeight: "bold" }}>
               What happens:
             </div>
             <div style={{ color: "#ff6b6b", marginBottom: "4px" }}>
-              <strong>Cleared:</strong> Old corp effects, actions, card storage,
-              payment substitutes, value modifiers
+              <strong>Cleared:</strong> Old corp effects, actions, card storage, payment
+              substitutes, value modifiers
             </div>
             <div style={{ color: "#4caf50", marginBottom: "4px" }}>
-              <strong>Applied:</strong> New corp starting resources, production,
-              effects, actions, payment bonuses
+              <strong>Applied:</strong> New corp starting resources, production, effects, actions,
+              payment bonuses
             </div>
             <div style={{ color: "#888" }}>
-              <strong>Kept:</strong> Current resources, production, played
-              cards, terraform rating
+              <strong>Kept:</strong> Current resources, production, played cards, terraform rating
             </div>
           </div>
         </div>

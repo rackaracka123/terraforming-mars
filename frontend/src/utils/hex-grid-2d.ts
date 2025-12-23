@@ -94,10 +94,7 @@ export class HexGrid2D {
   /**
    * Calculate resource bonuses for specific tiles
    */
-  private static calculateBonuses(
-    row: number,
-    col: number,
-  ): { [key: string]: number } {
+  private static calculateBonuses(row: number, col: number): { [key: string]: number } {
     const bonuses: { [key: string]: number } = {};
     const tileIndex = row * 10 + col;
 

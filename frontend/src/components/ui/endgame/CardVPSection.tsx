@@ -100,11 +100,7 @@ const CardVPSection: FC<CardVPSectionProps> = ({
         <div className="flex flex-col items-center gap-2">
           <div className="text-5xl font-orbitron font-bold text-purple-400">
             {isAnimating ? (
-              <AnimatedNumber
-                value={cardVP}
-                duration={4000}
-                onComplete={onAnimationComplete}
-              />
+              <AnimatedNumber value={cardVP} duration={4000} onComplete={onAnimationComplete} />
             ) : (
               cardVP
             )}
