@@ -1,21 +1,13 @@
 import { FC, useState, useCallback, useEffect, useRef } from "react";
-import type { GameDto, FinalScoreDto, CardVPDetailDto } from "../../../types/generated/api-types";
-import { TileHighlightType } from "../endgame/TileSection";
-import GameIcon from "../display/GameIcon";
+import type { GameDto, CardVPDetailDto } from "../../../types/generated/api-types";
+import { ANIMATION_TIMINGS, VPSequencePhase, TileHighlightType } from "../../../constants/gameConstants";
 import VPBarChart from "../endgame/VPBarChart";
 import CardVPOverlay from "../endgame/CardVPOverlay";
+import PlayerVPCard, { TileHoverType } from "../endgame/PlayerVPCard";
+import MilestoneCompact from "../endgame/MilestoneCompact";
+import AwardCompact from "../endgame/AwardCompact";
+import CardVPHoverModal from "../endgame/CardVPHoverModal";
 import { PRIMARY_BUTTON_CLASS } from "./overlayStyles";
-
-export type VPSequencePhase =
-  | "intro"
-  | "tr"
-  | "milestones"
-  | "awards"
-  | "tiles"
-  | "cards"
-  | "summary"
-  | "rankings"
-  | "complete";
 
 /** VP indicator to show floating above a tile */
 export interface TileVPIndicator {
@@ -57,7 +49,7 @@ interface EndGameOverlayProps {
   onReturnToMenu?: () => void;
 }
 
-const TILE_VP_DELAY_MS = 400; // Time between each tile VP animation
+const TILE_VP_DELAY_MS = ANIMATION_TIMINGS.TILE_REVEAL;
 
 /**
  * EndGameOverlay - Mars-Centered End Game VP Display
@@ -90,10 +82,7 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Hover states for showing VP indicators on badge hover
-  const [hoveredTileType, setHoveredTileType] = useState<{
-    playerId: string;
-    type: "greenery" | "city";
-  } | null>(null);
+  const [hoveredTileType, setHoveredTileType] = useState<TileHoverType | null>(null);
   const [hoveredCardPlayerId, setHoveredCardPlayerId] = useState<string | null>(null);
 
   const allScores = game.finalScores ?? [];
@@ -175,13 +164,13 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
   // Auto-advance phases
   useEffect(() => {
     if (currentPhase === "intro") {
-      timerRef.current = setTimeout(() => advanceToPhase("tr"), 1500);
+      timerRef.current = setTimeout(() => advanceToPhase("tr"), ANIMATION_TIMINGS.PHASE_INTRO);
     } else if (currentPhase === "tr") {
-      timerRef.current = setTimeout(() => advanceToPhase("milestones"), 2000);
+      timerRef.current = setTimeout(() => advanceToPhase("milestones"), ANIMATION_TIMINGS.PHASE_TR);
     } else if (currentPhase === "milestones") {
-      timerRef.current = setTimeout(() => advanceToPhase("awards"), 2000);
+      timerRef.current = setTimeout(() => advanceToPhase("awards"), ANIMATION_TIMINGS.PHASE_MILESTONES);
     } else if (currentPhase === "awards") {
-      timerRef.current = setTimeout(() => advanceToPhase("tiles"), 2000);
+      timerRef.current = setTimeout(() => advanceToPhase("tiles"), ANIMATION_TIMINGS.PHASE_AWARDS);
     } else if (currentPhase === "tiles" && !tileCountingState) {
       // Start per-player tile counting
       startTileCounting();
@@ -189,9 +178,9 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
       // Start card VP cycling
       startCardVPCycle();
     } else if (currentPhase === "summary") {
-      timerRef.current = setTimeout(() => advanceToPhase("rankings"), 3000);
+      timerRef.current = setTimeout(() => advanceToPhase("rankings"), ANIMATION_TIMINGS.PHASE_SUMMARY);
     } else if (currentPhase === "rankings") {
-      timerRef.current = setTimeout(() => advanceToPhase("complete"), 4000);
+      timerRef.current = setTimeout(() => advanceToPhase("complete"), ANIMATION_TIMINGS.PHASE_RANKINGS);
     }
 
     return () => {
@@ -271,7 +260,7 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
                   }
                 : null,
             );
-          }, 300);
+          }, ANIMATION_TIMINGS.BRIEF_PAUSE);
         }, TILE_VP_DELAY_MS);
       } else {
         // Greenery phase complete - clear and move to cities phase
@@ -280,7 +269,7 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
           setTileCountingState((prev) =>
             prev ? { ...prev, phase: "cities", currentTileIndex: 0 } : null,
           );
-        }, 500);
+        }, ANIMATION_TIMINGS.PHASE_CLEANUP);
       }
     } else if (phase === "cities") {
       if (currentTileIndex < cityDetails.length) {
@@ -333,7 +322,7 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
                   }
                 : null,
             );
-          }, 300);
+          }, ANIMATION_TIMINGS.BRIEF_PAUSE);
         }, TILE_VP_DELAY_MS * 2);
       } else {
         // Cities phase complete - clear and move to next player or finish
@@ -351,9 +340,9 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
             // All players done
             setTileCountingState(null);
             onTileHighlight?.(null);
-            timerRef.current = setTimeout(() => advanceToPhase("cards"), 1000);
+            timerRef.current = setTimeout(() => advanceToPhase("cards"), ANIMATION_TIMINGS.POST_TILES_DELAY);
           }
-        }, 500);
+        }, ANIMATION_TIMINGS.PHASE_CLEANUP);
       }
     }
   }, [tileCountingState]);
@@ -397,15 +386,13 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
     if (currentCardIndex >= allCardsWithVP.length) {
       // All cards shown, advance to summary
       setCardVPState(null);
-      timerRef.current = setTimeout(() => advanceToPhase("summary"), 500);
+      timerRef.current = setTimeout(() => advanceToPhase("summary"), ANIMATION_TIMINGS.PHASE_CLEANUP);
       return;
     }
 
-    // Show each card for 3 seconds
-    const CARD_VP_DISPLAY_MS = 3000;
     timerRef.current = setTimeout(() => {
       setCardVPState((prev) => (prev ? { ...prev, currentCardIndex: currentCardIndex + 1 } : null));
-    }, CARD_VP_DISPLAY_MS);
+    }, ANIMATION_TIMINGS.CARD_VP_DISPLAY);
   }, [cardVPState, currentPhase, advanceToPhase]);
 
   // Error state
@@ -575,329 +562,6 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
         </div>
       </div>
     </>
-  );
-};
-
-/** Hover type for tile VP indicators */
-interface TileHoverType {
-  playerId: string;
-  type: "greenery" | "city";
-}
-
-/** Compact player VP card */
-const PlayerVPCard: FC<{
-  score: FinalScoreDto;
-  placement: number;
-  isCurrentPlayer: boolean;
-  currentPhase: VPSequencePhase;
-  isCountingTiles: boolean;
-  onHoverTileType?: (hover: TileHoverType | null) => void;
-  onHoverCardVP?: (playerId: string | null) => void;
-}> = ({
-  score,
-  placement,
-  isCurrentPlayer,
-  currentPhase,
-  isCountingTiles,
-  onHoverTileType,
-  onHoverCardVP,
-}) => {
-  const { vpBreakdown } = score;
-
-  // Determine which VP categories are revealed based on phase
-  const showTR = currentPhase !== "intro";
-  const showMilestones = [
-    "milestones",
-    "awards",
-    "tiles",
-    "cards",
-    "summary",
-    "rankings",
-    "complete",
-  ].includes(currentPhase);
-  const showAwards = ["awards", "tiles", "cards", "summary", "rankings", "complete"].includes(
-    currentPhase,
-  );
-  const showTiles = ["tiles", "cards", "summary", "rankings", "complete"].includes(currentPhase);
-  const showCards = ["cards", "summary", "rankings", "complete"].includes(currentPhase);
-
-  const revealedTotal =
-    (showTR ? vpBreakdown.terraformRating : 0) +
-    (showMilestones ? vpBreakdown.milestoneVP : 0) +
-    (showAwards ? vpBreakdown.awardVP : 0) +
-    (showTiles ? vpBreakdown.greeneryVP + vpBreakdown.cityVP : 0) +
-    (showCards ? vpBreakdown.cardVP : 0);
-
-  return (
-    <div
-      className={`
-        p-3 rounded-lg border transition-all duration-300
-        ${isCurrentPlayer ? "border-amber-400/50 bg-amber-400/10" : "border-white/10 bg-white/5"}
-        ${isCountingTiles ? "ring-2 ring-green-400/50" : ""}
-        ${placement === 1 && currentPhase === "complete" ? "winner-glow-animate" : ""}
-      `}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span
-            className={`
-              w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
-              ${placement === 1 ? "bg-amber-400 text-black" : placement === 2 ? "bg-gray-300 text-black" : placement === 3 ? "bg-amber-700 text-white" : "bg-gray-600 text-white"}
-            `}
-          >
-            {placement}
-          </span>
-          <span
-            className={`font-orbitron text-sm ${isCurrentPlayer ? "text-amber-400" : "text-white"}`}
-          >
-            {score.playerName}
-          </span>
-        </div>
-        <span className="font-orbitron text-xl font-bold text-white">{revealedTotal}</span>
-      </div>
-
-      {/* VP breakdown row */}
-      <div className="flex flex-wrap gap-2 text-xs">
-        {showTR && (
-          <VPBadge icon="terraform-rating" value={vpBreakdown.terraformRating} color="blue" />
-        )}
-        {showMilestones && vpBreakdown.milestoneVP > 0 && (
-          <VPBadge icon="milestone" value={vpBreakdown.milestoneVP} color="purple" />
-        )}
-        {showAwards && vpBreakdown.awardVP > 0 && (
-          <VPBadge icon="award" value={vpBreakdown.awardVP} color="yellow" />
-        )}
-        {showTiles && (
-          <>
-            <VPBadge
-              icon="greenery-tile"
-              value={vpBreakdown.greeneryVP}
-              color="green"
-              onMouseEnter={() =>
-                onHoverTileType?.({
-                  playerId: score.playerId,
-                  type: "greenery",
-                })
-              }
-              onMouseLeave={() => onHoverTileType?.(null)}
-            />
-            <VPBadge
-              icon="city-tile"
-              value={vpBreakdown.cityVP}
-              color="gray"
-              onMouseEnter={() => onHoverTileType?.({ playerId: score.playerId, type: "city" })}
-              onMouseLeave={() => onHoverTileType?.(null)}
-            />
-          </>
-        )}
-        {showCards && (
-          <VPBadge
-            icon="card"
-            value={vpBreakdown.cardVP}
-            color="indigo"
-            onMouseEnter={() => onHoverCardVP?.(score.playerId)}
-            onMouseLeave={() => onHoverCardVP?.(null)}
-          />
-        )}
-      </div>
-    </div>
-  );
-};
-
-/** Small VP badge with icon */
-const VPBadge: FC<{
-  icon: string;
-  value: number;
-  color: string;
-  onMouseEnter?: () => void;
-  onMouseLeave?: () => void;
-}> = ({ icon, value, color, onMouseEnter, onMouseLeave }) => {
-  const colorClasses: Record<string, string> = {
-    blue: "bg-blue-500/20 text-blue-400",
-    purple: "bg-purple-500/20 text-purple-400",
-    yellow: "bg-amber-500/20 text-amber-400",
-    green: "bg-green-500/20 text-green-400 hover:bg-green-500/30 cursor-pointer",
-    gray: "bg-gray-500/20 text-gray-400 hover:bg-gray-500/30 cursor-pointer",
-    indigo: "bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 cursor-pointer",
-  };
-
-  return (
-    <div
-      className={`flex items-center gap-1 px-2 py-0.5 rounded transition-colors ${colorClasses[color] ?? colorClasses.gray}`}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-    >
-      <GameIcon iconType={icon} size="small" />
-      <span>{value}</span>
-    </div>
-  );
-};
-
-/** Compact milestone display */
-const MilestoneCompact: FC<{
-  milestones: Array<{
-    type: string;
-    name: string;
-    isClaimed: boolean;
-    claimedBy?: string;
-  }>;
-  scores: FinalScoreDto[];
-}> = ({ milestones, scores }) => {
-  const claimedMilestones = milestones.filter((m) => m.isClaimed);
-  if (claimedMilestones.length === 0) return null;
-
-  const getPlayerName = (id?: string) =>
-    scores.find((s) => s.playerId === id)?.playerName ?? "Unknown";
-
-  return (
-    <div className="border-t border-white/10 pt-3">
-      <h3 className="text-xs text-white/50 uppercase tracking-wider mb-2">Milestones</h3>
-      <div className="space-y-1">
-        {claimedMilestones.map((m) => (
-          <div key={m.type} className="flex items-center justify-between text-sm">
-            <span className="text-white/80">{m.name}</span>
-            <div className="flex items-center gap-2">
-              <span className="text-amber-400">{getPlayerName(m.claimedBy)}</span>
-              <span className="text-green-400 text-xs">+5 VP</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-/** Compact award display */
-const AwardCompact: FC<{
-  awards: Array<{ type: string; name: string; isFunded: boolean }>;
-  scores: FinalScoreDto[];
-  awardResults?: Array<{ awardType: string; firstPlaceIds: string[]; secondPlaceIds: string[] }>;
-  playerId: string;
-}> = ({ awards, scores, awardResults, playerId }) => {
-  const fundedAwards = awards.filter((a) => a.isFunded);
-  if (fundedAwards.length === 0) return null;
-
-  const getPlayerName = (id: string) =>
-    scores.find((s) => s.playerId === id)?.playerName ?? "Unknown";
-
-  return (
-    <div className="border-t border-white/10 pt-3">
-      <h3 className="text-xs text-white/50 uppercase tracking-wider mb-2">Awards</h3>
-      <div className="space-y-1">
-        {fundedAwards.map((a) => {
-          const result = awardResults?.find((r) => r.awardType === a.type);
-          const isFirst = result?.firstPlaceIds?.includes(playerId) ?? false;
-          const isSecond = result?.secondPlaceIds?.includes(playerId) ?? false;
-
-          // Get first place winner name for display
-          const firstPlaceWinner = result?.firstPlaceIds?.[0];
-
-          return (
-            <div key={a.type} className="flex items-center justify-between text-sm">
-              <span className="text-white/80">{a.name}</span>
-              <div className="flex items-center gap-2">
-                {isFirst && (
-                  <>
-                    <span className="text-amber-400">{getPlayerName(playerId)}</span>
-                    <span className="text-amber-400 text-xs">1st +5 VP</span>
-                  </>
-                )}
-                {isSecond && (
-                  <>
-                    <span className="text-gray-300">{getPlayerName(playerId)}</span>
-                    <span className="text-gray-300 text-xs">2nd +2 VP</span>
-                  </>
-                )}
-                {!isFirst && !isSecond && firstPlaceWinner && (
-                  <>
-                    <span className="text-amber-400 text-xs">{getPlayerName(firstPlaceWinner)}</span>
-                    <span className="text-gray-500">-</span>
-                  </>
-                )}
-                {!isFirst && !isSecond && !firstPlaceWinner && (
-                  <span className="text-gray-500">-</span>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-/** Card VP hover modal - shows all cards with VP for a player */
-const CardVPHoverModal: FC<{
-  playerScore: FinalScoreDto | undefined;
-}> = ({ playerScore }) => {
-  if (!playerScore) return null;
-
-  const cardVPDetails = playerScore.vpBreakdown.cardVPDetails ?? [];
-  const cardsWithVP = cardVPDetails.filter((card) => card.totalVP > 0);
-
-  if (cardsWithVP.length === 0) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center z-[900] pointer-events-none">
-        <div className="bg-space-black/95 backdrop-blur-lg border-2 border-purple-500/50 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
-          <div className="flex items-center gap-2 mb-4">
-            <GameIcon iconType="card" size="medium" />
-            <span className="text-purple-400 font-orbitron text-sm">
-              {playerScore.playerName}&apos;s Cards
-            </span>
-          </div>
-          <p className="text-white/60 text-center">No cards with VP</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="fixed inset-0 flex items-center justify-center z-[900] pointer-events-none">
-      <div className="bg-space-black/95 backdrop-blur-lg border-2 border-purple-500/50 rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl max-h-[70vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <GameIcon iconType="card" size="medium" />
-            <span className="text-purple-400 font-orbitron text-sm">
-              {playerScore.playerName}&apos;s Cards
-            </span>
-          </div>
-          <div className="bg-purple-600/30 px-3 py-1 rounded-lg">
-            <span className="text-purple-300 font-orbitron text-sm">
-              Total: {playerScore.vpBreakdown.cardVP} VP
-            </span>
-          </div>
-        </div>
-
-        {/* Cards list */}
-        <div className="space-y-3">
-          {cardsWithVP.map((card, idx) => (
-            <div key={idx} className="bg-purple-900/30 border border-purple-500/30 rounded-lg p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-white font-medium">{card.cardName}</span>
-                <span className="text-purple-400 font-orbitron font-bold">+{card.totalVP} VP</span>
-              </div>
-              {/* Condition breakdown */}
-              {card.conditions.map((condition, condIdx) => (
-                <div key={condIdx} className="text-xs text-white/60 flex items-center gap-2">
-                  <span
-                    className={`
-                      uppercase px-1.5 py-0.5 rounded text-[10px]
-                      ${condition.conditionType === "fixed" ? "bg-blue-600/50 text-blue-200" : ""}
-                      ${condition.conditionType === "per" ? "bg-green-600/50 text-green-200" : ""}
-                      ${condition.conditionType === "once" ? "bg-yellow-600/50 text-yellow-200" : ""}
-                    `}
-                  >
-                    {condition.conditionType}
-                  </span>
-                  <span>{condition.explanation}</span>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
   );
 };
 
