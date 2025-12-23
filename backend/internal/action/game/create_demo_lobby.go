@@ -56,20 +56,15 @@ func (a *CreateDemoLobbyAction) Execute(
 	log := a.logger.With(zap.String("action", "create_demo_lobby"))
 	log.Info("Creating demo lobby", zap.Int("player_count", settings.PlayerCount))
 
-	// Validate player count
-	if settings.PlayerCount < 1 {
-		settings.PlayerCount = 1
+	// Validate required fields
+	if settings.PlayerCount < 1 || settings.PlayerCount > 5 {
+		return nil, fmt.Errorf("player count must be between 1 and 5, got %d", settings.PlayerCount)
 	}
-	if settings.PlayerCount > 5 {
-		settings.PlayerCount = 5
-	}
-
-	// Apply defaults
 	if len(settings.CardPacks) == 0 {
-		settings.CardPacks = []string{"base-game"}
+		return nil, fmt.Errorf("card packs must not be empty")
 	}
 	if settings.PlayerName == "" {
-		settings.PlayerName = "You"
+		return nil, fmt.Errorf("player name must not be empty")
 	}
 
 	// Generate game ID and create base game
@@ -127,10 +122,6 @@ func (a *CreateDemoLobbyAction) getCardIDsByPacks(packs []string) (projectCards,
 	for _, pack := range packs {
 		packMap[pack] = true
 	}
-
-	projectCards = []string{}
-	corps = []string{}
-	preludes = []string{}
 
 	for _, card := range allCards {
 		if !packMap[card.Pack] {

@@ -22,6 +22,8 @@ import {
   OVERLAY_DESCRIPTION_CLASS,
   OVERLAY_FOOTER_CLASS,
   PRIMARY_BUTTON_CLASS,
+  INPUT_CLASS,
+  INPUT_SMALL_CLASS,
 } from "./overlayStyles.ts";
 
 interface DemoSetupOverlayProps {
@@ -88,10 +90,16 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
     const loadCardsData = async () => {
       try {
         const response = await apiService.listCards(0, 1000);
-        const corps = response.cards.filter((card) => card.type === "corporation");
-        const projectCards = response.cards.filter(
-          (card) => card.type !== "corporation" && card.type !== "prelude",
-        );
+        // Single pass to categorize cards
+        const corps: CardDto[] = [];
+        const projectCards: CardDto[] = [];
+        for (const card of response.cards) {
+          if (card.type === "corporation") {
+            corps.push(card);
+          } else if (card.type !== "prelude") {
+            projectCards.push(card);
+          }
+        }
         setAvailableCorporations(corps);
         setAvailableCards(projectCards);
       } catch (err) {
@@ -189,6 +197,9 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
     { key: "heat" as const, icon: ResourceTypeHeat, label: "Heat" },
   ];
 
+  // Select all text on focus for better UX with number inputs
+  const handleSelectAll = (e: React.FocusEvent<HTMLInputElement>) => e.target.select();
+
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-[fadeIn_0.3s_ease]">
       <div className={`${OVERLAY_CONTAINER_CLASS} max-w-[1000px]`}>
@@ -233,7 +244,8 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                             ),
                           }))
                         }
-                        className="w-full bg-black/60 border border-space-blue-400/50 rounded-lg py-2 px-3 text-white text-sm outline-none focus:border-space-blue-400"
+                        onFocus={handleSelectAll}
+                        className={INPUT_CLASS}
                       />
                     </div>
 
@@ -256,7 +268,8 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                             ),
                           }))
                         }
-                        className="w-full bg-black/60 border border-space-blue-400/50 rounded-lg py-2 px-3 text-white text-sm outline-none focus:border-space-blue-400"
+                        onFocus={handleSelectAll}
+                        className={INPUT_CLASS}
                       />
                     </div>
 
@@ -279,7 +292,8 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                             ),
                           }))
                         }
-                        className="w-full bg-black/60 border border-space-blue-400/50 rounded-lg py-2 px-3 text-white text-sm outline-none focus:border-space-blue-400"
+                        onFocus={handleSelectAll}
+                        className={INPUT_CLASS}
                       />
                     </div>
 
@@ -301,7 +315,8 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                             ),
                           )
                         }
-                        className="w-full bg-black/60 border border-space-blue-400/50 rounded-lg py-2 px-3 text-white text-sm outline-none focus:border-space-blue-400"
+                        onFocus={handleSelectAll}
+                        className={INPUT_CLASS}
                       />
                     </div>
                   </div>
@@ -316,7 +331,7 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                 <select
                   value={selectedCorporationId}
                   onChange={(e) => setSelectedCorporationId(e.target.value)}
-                  className="w-full bg-black/60 border border-space-blue-400/50 rounded-lg py-2 px-3 text-white text-sm outline-none focus:border-space-blue-400 transition-all"
+                  className={`${INPUT_CLASS} transition-all`}
                 >
                   <option value="">Random corporation</option>
                   {availableCorporations.map((corp) => (
@@ -419,7 +434,8 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                     min={0}
                     value={terraformRating}
                     onChange={(e) => setTerraformRating(Math.max(0, parseInt(e.target.value) || 0))}
-                    className="w-20 bg-black/60 border border-space-blue-400/50 rounded-lg py-2 px-3 text-white text-sm text-center outline-none focus:border-space-blue-400"
+                    onFocus={handleSelectAll}
+                    className={`${INPUT_SMALL_CLASS} w-20 rounded-lg`}
                   />
                   <button
                     onClick={() => setTerraformRating((prev) => prev + 1)}
@@ -444,7 +460,8 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                         min={0}
                         value={resources[key]}
                         onChange={(e) => handleResourceChange(key, parseInt(e.target.value) || 0)}
-                        className="w-16 bg-black/60 border border-space-blue-400/50 rounded py-1 px-2 text-white text-sm text-center outline-none focus:border-space-blue-400"
+                        onFocus={handleSelectAll}
+                        className={INPUT_SMALL_CLASS}
                         title={label}
                       />
                     </div>
@@ -469,7 +486,8 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                         min={key === "credits" ? -5 : 0}
                         value={production[key]}
                         onChange={(e) => handleProductionChange(key, parseInt(e.target.value) || 0)}
-                        className="w-16 bg-black/60 border border-space-blue-400/50 rounded py-1 px-2 text-white text-sm text-center outline-none focus:border-space-blue-400"
+                        onFocus={handleSelectAll}
+                        className={INPUT_SMALL_CLASS}
                         title={`${label} Production`}
                       />
                     </div>

@@ -6,17 +6,15 @@ import CopyLinkButton from "../buttons/CopyLinkButton.tsx";
 interface WaitingRoomOverlayProps {
   game: GameDto;
   playerId: string;
-  onStartGame?: () => void;
 }
 
-const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({ game, playerId, onStartGame }) => {
+const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({ game, playerId }) => {
   const isHost = game.hostPlayerId === playerId;
   const joinUrl = `${window.location.origin}/join?code=${game.id}`;
 
   const handleStartGame = () => {
     if (!isHost) return;
     void globalWebSocketManager.startGame();
-    onStartGame?.();
   };
 
   const playerCount = (game.currentPlayer ? 1 : 0) + (game.otherPlayers?.length || 0);

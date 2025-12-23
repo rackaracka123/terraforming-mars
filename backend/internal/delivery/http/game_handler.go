@@ -243,10 +243,20 @@ func (h *GameHandler) CreateDemoLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Apply defaults for optional fields
+	cardPacks := req.CardPacks
+	if len(cardPacks) == 0 {
+		cardPacks = []string{"base-game"}
+	}
+	playerName := req.PlayerName
+	if playerName == "" {
+		playerName = "You"
+	}
+
 	settings := gameaction.DemoLobbySettings{
 		PlayerCount: req.PlayerCount,
-		CardPacks:   req.CardPacks,
-		PlayerName:  req.PlayerName,
+		CardPacks:   cardPacks,
+		PlayerName:  playerName,
 	}
 
 	result, err := h.createDemoLobbyAction.Execute(ctx, settings)

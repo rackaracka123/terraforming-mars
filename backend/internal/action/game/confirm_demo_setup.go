@@ -3,16 +3,13 @@ package game
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"go.uber.org/zap"
 
+	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/events"
 	internalgame "terraforming-mars-backend/internal/game"
-	gamecards "terraforming-mars-backend/internal/game/cards"
-	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 )
 
@@ -76,9 +73,9 @@ func (a *ConfirmDemoSetupAction) Execute(
 		log.Info("✅ Set corporation", zap.String("corporation_id", *request.CorporationID))
 	}
 
-	// 5. Add cards to hand with proper PlayerCard caching
+	// 5. Add cards to hand with proper PlayerCard caching (using shared helper)
 	if len(request.CardIDs) > 0 {
-		a.addCardsToPlayerHand(request.CardIDs, p, g, log)
+		action.AddCardsToPlayerHand(request.CardIDs, p, g, a.cardRegistry, log)
 		log.Info("✅ Added cards to hand", zap.Int("card_count", len(request.CardIDs)))
 	}
 
@@ -163,153 +160,4 @@ func (a *ConfirmDemoSetupAction) Execute(
 	}
 
 	return nil
-}
-
-// addCardsToPlayerHand adds cards to a player's hand and creates PlayerCard instances with state.
-func (a *ConfirmDemoSetupAction) addCardsToPlayerHand(
-	cardIDs []string,
-	p *player.Player,
-	g *internalgame.Game,
-	log *zap.Logger,
-) {
-	for _, cardID := range cardIDs {
-		// Add card ID to hand (triggers CardHandUpdatedEvent)
-		p.Hand().AddCard(cardID)
-
-		// Get card from registry
-		card, err := a.cardRegistry.GetByID(cardID)
-		if err != nil {
-			log.Warn("Failed to get card from registry, skipping PlayerCard creation",
-				zap.String("card_id", cardID),
-				zap.Error(err))
-			continue
-		}
-
-		// Create and cache PlayerCard with state and event listeners
-		a.createAndCachePlayerCard(card, p, g)
-	}
-}
-
-// createAndCachePlayerCard creates a PlayerCard with event listeners and initial state.
-func (a *ConfirmDemoSetupAction) createAndCachePlayerCard(
-	card *gamecards.Card,
-	p *player.Player,
-	g *internalgame.Game,
-) *player.PlayerCard {
-	// Create PlayerCard data holder
-	pc := player.NewPlayerCard(card)
-
-	// Register event listeners for state recalculation
-	a.registerPlayerCardEventListeners(pc, p, g)
-
-	// Calculate initial state
-	a.recalculatePlayerCard(pc, p, g)
-
-	// Cache in Hand
-	p.Hand().AddPlayerCard(card.ID, pc)
-
-	return pc
-}
-
-// registerPlayerCardEventListeners registers event listeners on a PlayerCard.
-func (a *ConfirmDemoSetupAction) registerPlayerCardEventListeners(
-	pc *player.PlayerCard,
-	p *player.Player,
-	g *internalgame.Game,
-) {
-	eventBus := g.EventBus()
-
-	// When player resources change, recalculate affordability
-	subID1 := events.Subscribe(eventBus, func(event events.ResourcesChangedEvent) {
-		if event.PlayerID == p.ID() {
-			a.recalculatePlayerCard(pc, p, g)
-		}
-	})
-	pc.AddUnsubscriber(func() { eventBus.Unsubscribe(subID1) })
-
-	// When temperature changes, recalculate requirements
-	subID2 := events.Subscribe(eventBus, func(event events.TemperatureChangedEvent) {
-		a.recalculatePlayerCard(pc, p, g)
-	})
-	pc.AddUnsubscriber(func() { eventBus.Unsubscribe(subID2) })
-
-	// When oxygen changes, recalculate requirements
-	subID3 := events.Subscribe(eventBus, func(event events.OxygenChangedEvent) {
-		a.recalculatePlayerCard(pc, p, g)
-	})
-	pc.AddUnsubscriber(func() { eventBus.Unsubscribe(subID3) })
-
-	// When oceans change, recalculate requirements
-	subID4 := events.Subscribe(eventBus, func(event events.OceansChangedEvent) {
-		a.recalculatePlayerCard(pc, p, g)
-	})
-	pc.AddUnsubscriber(func() { eventBus.Unsubscribe(subID4) })
-
-	// When player effects change (requirement modifiers), recalculate cost
-	subID5 := events.Subscribe(eventBus, func(event events.PlayerEffectsChangedEvent) {
-		if event.PlayerID == p.ID() {
-			a.recalculatePlayerCard(pc, p, g)
-		}
-	})
-	pc.AddUnsubscriber(func() { eventBus.Unsubscribe(subID5) })
-
-	// When game phase changes, recalculate state
-	subID6 := events.Subscribe(eventBus, func(event events.GamePhaseChangedEvent) {
-		if event.GameID == g.ID() {
-			a.recalculatePlayerCard(pc, p, g)
-		}
-	})
-	pc.AddUnsubscriber(func() { eventBus.Unsubscribe(subID6) })
-
-	// When general game state changes, recalculate availability
-	subID7 := events.Subscribe(eventBus, func(event events.GameStateChangedEvent) {
-		a.recalculatePlayerCard(pc, p, g)
-	})
-	pc.AddUnsubscriber(func() { eventBus.Unsubscribe(subID7) })
-}
-
-// recalculatePlayerCard recalculates and updates PlayerCard state.
-// For demo setup, we use a simplified calculation that marks cards as playable
-// based on cost vs available credits.
-func (a *ConfirmDemoSetupAction) recalculatePlayerCard(
-	pc *player.PlayerCard,
-	p *player.Player,
-	g *internalgame.Game,
-) {
-	card, ok := pc.Card().(*gamecards.Card)
-	if !ok {
-		return
-	}
-
-	var errors []player.StateError
-	costMap := make(map[string]int)
-
-	// Calculate effective cost with discounts
-	calculator := gamecards.NewRequirementModifierCalculator(a.cardRegistry)
-	discountAmount := calculator.CalculateCardDiscounts(p, card)
-	effectiveCost := card.Cost - discountAmount
-	if effectiveCost < 0 {
-		effectiveCost = 0
-	}
-	if effectiveCost > 0 {
-		costMap[string(shared.ResourceCredit)] = effectiveCost
-	}
-
-	// Check affordability
-	credits := p.Resources().Get().Credits
-	if credits < effectiveCost {
-		errors = append(errors, player.StateError{
-			Code:     player.ErrorCodeInsufficientCredits,
-			Category: player.ErrorCategoryCost,
-			Message:  fmt.Sprintf("Need %d credits, have %d", effectiveCost, credits),
-		})
-	}
-
-	state := player.EntityState{
-		Errors:         errors,
-		Cost:           costMap,
-		Metadata:       make(map[string]interface{}),
-		LastCalculated: time.Now(),
-	}
-	pc.UpdateState(state)
 }
