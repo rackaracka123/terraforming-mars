@@ -4,6 +4,7 @@ import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/board"
+	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
 )
 
@@ -122,6 +123,7 @@ func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string) G
 		PaymentConstants: paymentConstants,
 		Milestones:       ToMilestonesDto(g.Milestones()),
 		Awards:           ToAwardsDto(g.Awards()),
+		AwardResults:     ToAwardResultsDto(g, cardRegistry),
 		FinalScores:      finalScoreDtos,
 	}
 }
@@ -211,6 +213,33 @@ func ToAwardsDto(awards *game.Awards) []AwardDto {
 		}
 	}
 	return dtos
+}
+
+// ToAwardResultsDto converts funded awards to placement results
+func ToAwardResultsDto(g *game.Game, cardRegistry cards.CardRegistry) []AwardResultDto {
+	fundedAwards := g.Awards().FundedAwards()
+	results := make([]AwardResultDto, 0, len(fundedAwards))
+
+	for _, funded := range fundedAwards {
+		placements := gamecards.ScoreAward(funded.Type, g.GetAllPlayers(), g.Board(), cardRegistry)
+
+		firstPlace := make([]string, 0)
+		secondPlace := make([]string, 0)
+		for _, p := range placements {
+			if p.Placement == 1 {
+				firstPlace = append(firstPlace, p.PlayerID)
+			} else if p.Placement == 2 {
+				secondPlace = append(secondPlace, p.PlayerID)
+			}
+		}
+
+		results = append(results, AwardResultDto{
+			AwardType:      string(funded.Type),
+			FirstPlaceIds:  firstPlace,
+			SecondPlaceIds: secondPlace,
+		})
+	}
+	return results
 }
 
 // ToCardVPConditionDetailDto converts a card VP condition detail to DTO

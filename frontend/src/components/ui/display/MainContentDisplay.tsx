@@ -5,6 +5,7 @@ import { TileVPIndicator } from "../../ui/overlay/EndGameOverlay.tsx";
 import { useMainContent } from "@/contexts/MainContentContext.tsx";
 import CostDisplay from "./CostDisplay.tsx";
 import { GameDto } from "@/types/generated/api-types.ts";
+import { webSocketService } from "@/services/webSocketService.ts";
 
 interface Milestone {
   id: string;
@@ -15,6 +16,8 @@ interface Milestone {
   claimed: boolean;
   claimedBy?: string;
   available: boolean;
+  progress?: number;
+  required?: number;
 }
 
 interface Award {
@@ -39,10 +42,30 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
   tileHighlightMode,
   vpIndicators = [],
 }) => {
-  const { contentType, contentData, setContentType } = useMainContent();
+  const { contentType, setContentType } = useMainContent();
+
+  // Helper to resolve player ID to name
+  const getPlayerName = (playerId: string | undefined): string => {
+    if (!playerId) return "Unknown";
+    if (playerId === gameState.currentPlayer.id) return gameState.currentPlayer.name;
+    const otherPlayer = gameState.otherPlayers.find((p) => p.id === playerId);
+    return otherPlayer?.name ?? "Unknown";
+  };
 
   const renderMilestones = () => {
-    const milestones: Milestone[] = (contentData?.milestones as Milestone[]) || [];
+    // Read directly from gameState to get live updates
+    const milestones: Milestone[] = gameState.currentPlayer.milestones.map((m) => ({
+      id: m.type,
+      name: m.name,
+      description: m.description,
+      reward: "5 VP",
+      cost: m.claimCost,
+      claimed: m.isClaimed,
+      claimedBy: m.claimedBy ? getPlayerName(m.claimedBy) : undefined,
+      available: m.available,
+      progress: m.progress,
+      required: m.required,
+    }));
 
     return (
       <div className="main-content-container">
@@ -68,6 +91,11 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
               </div>
               <div className="item-description">{milestone.description}</div>
               <div className="item-reward">Reward: {milestone.reward}</div>
+              {milestone.progress !== undefined && milestone.required !== undefined && !milestone.claimed && (
+                <div className={`milestone-progress ${milestone.progress >= milestone.required ? "met" : ""}`}>
+                  Progress: {milestone.progress}/{milestone.required}
+                </div>
+              )}
               {milestone.claimed && milestone.claimedBy && (
                 <div className="claimed-by">Claimed by {milestone.claimedBy}</div>
               )}
@@ -75,6 +103,7 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
                 <button
                   className="action-btn claim-btn"
                   disabled={milestone.claimed || !milestone.available}
+                  onClick={() => void webSocketService.claimMilestone(milestone.id)}
                 >
                   {milestone.claimed ? "Claimed" : "Claim"}
                 </button>
@@ -87,7 +116,16 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
   };
 
   const renderAwards = () => {
-    const awards: Award[] = (contentData?.awards as Award[]) || [];
+    // Read directly from gameState to get live updates
+    const awards: Award[] = gameState.currentPlayer.awards.map((a) => ({
+      id: a.type,
+      name: a.name,
+      description: a.description,
+      fundingCost: a.fundingCost,
+      funded: a.isFunded,
+      fundedBy: a.fundedBy ? getPlayerName(a.fundedBy) : undefined,
+      available: a.available,
+    }));
 
     return (
       <div className="main-content-container">
@@ -120,7 +158,11 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
                 {award.winner && <div className="current-winner">Leading: {award.winner}</div>}
               </div>
               <div className="item-actions">
-                <button className="action-btn fund-btn" disabled={award.funded || !award.available}>
+                <button
+                  className="action-btn fund-btn"
+                  disabled={award.funded || !award.available}
+                  onClick={() => void webSocketService.fundAward(award.id)}
+                >
                   {award.funded ? "Funded" : "Fund"}
                 </button>
               </div>
@@ -651,6 +693,17 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
           color: rgba(150, 255, 150, 0.9);
           margin-bottom: 8px;
           font-weight: 500;
+        }
+
+        .milestone-progress {
+          font-size: 12px;
+          color: rgba(255, 200, 100, 0.9);
+          margin-bottom: 8px;
+          font-weight: 500;
+        }
+
+        .milestone-progress.met {
+          color: rgba(150, 255, 150, 0.9);
         }
 
         .award-info {

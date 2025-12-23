@@ -307,7 +307,7 @@ export interface CardPaymentDto {
   credits: number /* int */; // MC spent
   steel: number /* int */; // Steel resources used (2 MC value each)
   titanium: number /* int */; // Titanium resources used (3 MC value each)
-  substitutes?: { [key: string]: number /* int */ }; // Payment substitutes (e.g., heat for Helion)
+  substitutes?: { [key: string]: number /* int */}; // Payment substitutes (e.g., heat for Helion)
 }
 
 //////////
@@ -357,8 +357,7 @@ export const StandardProjectCity: StandardProject = "city";
  * Resource Conversion Actions (resource-based, not M€)
  */
 export const StandardProjectConvertPlantsToGreenery: StandardProject = "convert-plants-to-greenery";
-export const StandardProjectConvertHeatToTemperature: StandardProject =
-  "convert-heat-to-temperature";
+export const StandardProjectConvertHeatToTemperature: StandardProject = "convert-heat-to-temperature";
 /**
  * CardTag represents different card categories and attributes
  */
@@ -499,8 +498,7 @@ export const TriggerTilePlaced: TriggerType = "tile-placed";
 export type ResourceTriggerType = string;
 export const ResourceTriggerManual: ResourceTriggerType = "manual";
 export const ResourceTriggerAuto: ResourceTriggerType = "auto";
-export const ResourceTriggerAutoCorporationFirstAction: ResourceTriggerType =
-  "auto-corporation-first-action";
+export const ResourceTriggerAutoCorporationFirstAction: ResourceTriggerType = "auto-corporation-first-action";
 export const ResourceTriggerAutoCorporationStart: ResourceTriggerType = "auto-corporation-start";
 /**
  * ResourceSet represents a collection of resources and their amounts
@@ -569,7 +567,7 @@ export interface ResourceTriggerConditionDto {
   affectedCardTypes?: CardType[]; // Card types that trigger this effect (for card-played)
   target?: TargetType;
   requiredOriginalCost?: MinMaxValueDto;
-  requiredResourceChange?: { [key: ResourceType]: MinMaxValueDto };
+  requiredResourceChange?: { [key: ResourceType]: MinMaxValueDto};
 }
 /**
  * CardBehaviorDto represents a card behavior for client consumption
@@ -640,7 +638,8 @@ export interface SelectStartingCardsPhaseDto {
   availableCards: CardDto[]; // Cards available for selection
   availableCorporations: CardDto[]; // Corporation cards available for selection (2 corporations)
 }
-export interface SelectStartingCardsOtherPlayerDto {}
+export interface SelectStartingCardsOtherPlayerDto {
+}
 /**
  * ProductionPhaseDto represents card selection and production phase state for a player
  */
@@ -803,7 +802,7 @@ export interface PlayerCardDto {
   available: boolean; // Computed: len(Errors) == 0
   errors: StateErrorDto[]; // Single source of truth for availability
   effectiveCost: number /* int */; // Effective cost after discounts (credits)
-  discounts?: { [key: string]: number /* int */ }; // Discount amounts per resource type (if any)
+  discounts?: { [key: string]: number /* int */}; // Discount amounts per resource type (if any)
 }
 /**
  * PlayerEffectDto represents ongoing effects that a player has active for client consumption
@@ -841,15 +840,15 @@ export interface PlayerActionDto {
  */
 export interface PlayerStandardProjectDto {
   projectType: string; // Standard project type (e.g., "sell_patents", "aquifer")
-  baseCost: { [key: string]: number /* int */ }; // Base cost per resource type (e.g., {"credits": 23} or {"plants": 8})
+  baseCost: { [key: string]: number /* int */}; // Base cost per resource type (e.g., {"credits": 23} or {"plants": 8})
   /**
    * Calculated availability state (from EntityState)
    */
   available: boolean; // Computed: project is available
   errors: StateErrorDto[]; // Reasons why project is not available
-  effectiveCost: { [key: string]: number /* int */ }; // Cost per resource type after discounts
-  discounts?: { [key: string]: number /* int */ }; // Discount amounts per resource type (if any)
-  metadata?: { [key: string]: any }; // Project-specific context (e.g., oceansRemaining)
+  effectiveCost: { [key: string]: number /* int */}; // Cost per resource type after discounts
+  discounts?: { [key: string]: number /* int */}; // Discount amounts per resource type (if any)
+  metadata?: { [key: string]: any}; // Project-specific context (e.g., oceansRemaining)
 }
 /**
  * ForcedFirstActionDto represents an action that must be completed as the player's first turn action
@@ -873,8 +872,8 @@ export interface PendingTileSelectionDto {
  */
 export interface PendingCardSelectionDto {
   availableCards: CardDto[]; // Card IDs player can select from
-  cardCosts: { [key: string]: number /* int */ }; // Card ID -> cost to select (0 for sell patents, 3 for buying cards)
-  cardRewards: { [key: string]: number /* int */ }; // Card ID -> reward for selecting (1 MC for sell patents)
+  cardCosts: { [key: string]: number /* int */}; // Card ID -> cost to select (0 for sell patents, 3 for buying cards)
+  cardRewards: { [key: string]: number /* int */}; // Card ID -> reward for selecting (1 MC for sell patents)
   source: string; // What triggered this selection ("sell-patents", card ID, etc.)
   minCards: number /* int */; // Minimum cards to select (0 for sell patents)
   maxCards: number /* int */; // Maximum cards to select (hand size for sell patents)
@@ -917,6 +916,8 @@ export interface PlayerDto {
   effects: PlayerEffectDto[]; // Active ongoing effects (discounts, special abilities, etc.)
   actions: PlayerActionDto[]; // Available actions from played cards with manual triggers
   standardProjects: PlayerStandardProjectDto[]; // Standard projects with availability state (Player-Scoped Architecture)
+  milestones: PlayerMilestoneDto[]; // Milestones with player eligibility state
+  awards: PlayerAwardDto[]; // Awards with player eligibility state
   selectStartingCardsPhase?: SelectStartingCardsPhaseDto;
   productionPhase?: ProductionPhaseDto;
   startingCards: CardDto[]; // Cards dealt at game start (from selectStartingCardsPhase.availableCards)
@@ -939,7 +940,7 @@ export interface PlayerDto {
   /**
    * Resource storage - maps card IDs to resource counts stored on those cards
    */
-  resourceStorage: { [key: string]: number /* int */ }; // Card ID -> resource count
+  resourceStorage: { [key: string]: number /* int */}; // Card ID -> resource count
   /**
    * Payment substitutes - alternative resources usable as payment for credits
    */
@@ -969,7 +970,7 @@ export interface OtherPlayerDto {
   /**
    * Resource storage - maps card IDs to resource counts stored on those cards (public information)
    */
-  resourceStorage: { [key: string]: number /* int */ }; // Card ID -> resource count
+  resourceStorage: { [key: string]: number /* int */}; // Card ID -> resource count
   /**
    * Payment substitutes - alternative resources usable as payment for credits (public information)
    */
@@ -995,6 +996,7 @@ export interface GameDto {
   paymentConstants: PaymentConstantsDto; // Conversion rates for alternative payments
   milestones: MilestoneDto[]; // All milestones with claim status
   awards: AwardDto[]; // All awards with funding status
+  awardResults: AwardResultDto[]; // Current award placements (1st/2nd place per award)
   finalScores?: FinalScoreDto[]; // Final scores (only when game completed)
 }
 /**
@@ -1090,6 +1092,42 @@ export interface AwardDto {
   isFunded: boolean;
   fundedBy?: string;
   fundingCost: number /* int */;
+}
+/**
+ * AwardResultDto represents the placement results for a single funded award
+ */
+export interface AwardResultDto {
+  awardType: string;
+  firstPlaceIds: string[];
+  secondPlaceIds: string[];
+}
+/**
+ * PlayerMilestoneDto represents a milestone with player-specific eligibility state
+ */
+export interface PlayerMilestoneDto {
+  type: string;
+  name: string;
+  description: string;
+  claimCost: number /* int */;
+  isClaimed: boolean;
+  claimedBy?: string;
+  available: boolean; // Can this player claim this milestone?
+  progress: number /* int */; // Current progress towards requirement
+  required: number /* int */; // Requirement threshold
+  errors: StateErrorDto[]; // Reasons why not available
+}
+/**
+ * PlayerAwardDto represents an award with player-specific eligibility state
+ */
+export interface PlayerAwardDto {
+  type: string;
+  name: string;
+  description: string;
+  fundingCost: number /* int */; // Current cost to fund (increases as more are funded)
+  isFunded: boolean;
+  fundedBy?: string;
+  available: boolean; // Can this player fund this award?
+  errors: StateErrorDto[]; // Reasons why not available
 }
 /**
  * CardVPConditionDetailDto represents the detailed calculation of a single VP condition
@@ -1260,30 +1298,24 @@ export const MessageTypeProductionPhaseStarted: MessageType = "production-phase-
  * Standard project message types
  */
 export const MessageTypeActionSellPatents: MessageType = "action.standard-project.sell-patents";
-export const MessageTypeActionConfirmSellPatents: MessageType =
-  "action.standard-project.confirm-sell-patents";
-export const MessageTypeActionLaunchAsteroid: MessageType =
-  "action.standard-project.launch-asteroid";
-export const MessageTypeActionBuildPowerPlant: MessageType =
-  "action.standard-project.build-power-plant";
+export const MessageTypeActionConfirmSellPatents: MessageType = "action.standard-project.confirm-sell-patents";
+export const MessageTypeActionLaunchAsteroid: MessageType = "action.standard-project.launch-asteroid";
+export const MessageTypeActionBuildPowerPlant: MessageType = "action.standard-project.build-power-plant";
 export const MessageTypeActionBuildAquifer: MessageType = "action.standard-project.build-aquifer";
 export const MessageTypeActionPlantGreenery: MessageType = "action.standard-project.plant-greenery";
 export const MessageTypeActionBuildCity: MessageType = "action.standard-project.build-city";
 /**
  * Resource conversion message types
  */
-export const MessageTypeActionConvertPlantsToGreenery: MessageType =
-  "action.resource-conversion.convert-plants-to-greenery";
-export const MessageTypeActionConvertHeatToTemperature: MessageType =
-  "action.resource-conversion.convert-heat-to-temperature";
+export const MessageTypeActionConvertPlantsToGreenery: MessageType = "action.resource-conversion.convert-plants-to-greenery";
+export const MessageTypeActionConvertHeatToTemperature: MessageType = "action.resource-conversion.convert-heat-to-temperature";
 /**
  * Game management message types
  */
 export const MessageTypeCreateGame: MessageType = "create-game";
 export const MessageTypeActionStartGame: MessageType = "action.game-management.start-game";
 export const MessageTypeActionSkipAction: MessageType = "action.game-management.skip-action";
-export const MessageTypeActionConfirmDemoSetup: MessageType =
-  "action.game-management.confirm-demo-setup";
+export const MessageTypeActionConfirmDemoSetup: MessageType = "action.game-management.confirm-demo-setup";
 /**
  * Milestone and award message types
  */
@@ -1300,8 +1332,7 @@ export const MessageTypeActionPlayCard: MessageType = "action.card.play-card";
 export const MessageTypeActionCardAction: MessageType = "action.card.card-action";
 export const MessageTypeActionSelectStartingCard: MessageType = "action.card.select-starting-card";
 export const MessageTypeActionSelectCards: MessageType = "action.card.select-cards";
-export const MessageTypeActionConfirmProductionCards: MessageType =
-  "action.card.confirm-production-cards";
+export const MessageTypeActionConfirmProductionCards: MessageType = "action.card.confirm-production-cards";
 export const MessageTypeActionCardDrawConfirmed: MessageType = "action.card.card-draw-confirmed";
 /**
  * Admin message types (development mode only)

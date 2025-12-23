@@ -28,6 +28,12 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 	// Get standard projects with availability state (Player-Scoped Card Architecture)
 	standardProjects := mapPlayerStandardProjects(p, g, cardRegistry)
 
+	// Get milestones with player eligibility state
+	milestones := mapPlayerMilestones(p, g, cardRegistry)
+
+	// Get awards with player eligibility state
+	awards := mapPlayerAwards(p, g)
+
 	// Only include turn-specific data if it's this player's turn
 	var pendingTileSelection *PendingTileSelectionDto
 	var forcedFirstAction *ForcedFirstActionDto
@@ -68,6 +74,8 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 		Effects:          convertPlayerEffects(p.Effects().List()),
 		Actions:          convertPlayerActions(p.Actions().List()),
 		StandardProjects: standardProjects, // PlayerStandardProjectDto[] with state
+		Milestones:       milestones,       // PlayerMilestoneDto[] with eligibility
+		Awards:           awards,           // PlayerAwardDto[] with eligibility
 
 		SelectStartingCardsPhase: convertSelectStartingCardsPhase(g.GetSelectStartingCardsPhase(p.ID()), cardRegistry),
 		ProductionPhase:          convertProductionPhase(g.GetProductionPhase(p.ID()), cardRegistry),
@@ -564,6 +572,101 @@ func mapPlayerStandardProjects(p *player.Player, g *game.Game, cardRegistry card
 			Metadata:      state.Metadata,
 		}
 
+		result = append(result, dto)
+	}
+
+	return result
+}
+
+// mapPlayerMilestones maps cached PlayerMilestone instances to DTOs.
+// Uses cached state from Player.Milestones() which is updated via event listeners.
+func mapPlayerMilestones(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry) []PlayerMilestoneDto {
+	result := make([]PlayerMilestoneDto, 0, len(game.AllMilestones))
+	gameMilestones := g.Milestones()
+	playerMilestones := p.Milestones().GetAll()
+
+	for _, info := range game.AllMilestones {
+		// Get cached state (falls back to calculating if not cached)
+		var state player.EntityState
+		if pm, exists := playerMilestones[info.Type]; exists {
+			state = pm.State()
+		} else {
+			// Fallback: calculate state if not cached (shouldn't happen if initialization is correct)
+			state = action.CalculateMilestoneState(info.Type, p, g, cardRegistry)
+		}
+
+		// Get claim status from game-level milestones
+		isClaimed := gameMilestones.IsClaimed(info.Type)
+		var claimedBy *string
+		for _, claimed := range gameMilestones.ClaimedMilestones() {
+			if claimed.Type == info.Type {
+				claimedBy = &claimed.PlayerID
+				break
+			}
+		}
+
+		// Extract progress from metadata
+		progress := 0
+		if prog, ok := state.Metadata["progress"].(int); ok {
+			progress = prog
+		}
+
+		dto := PlayerMilestoneDto{
+			Type:        string(info.Type),
+			Name:        info.Name,
+			Description: info.Description,
+			ClaimCost:   game.MilestoneClaimCost,
+			IsClaimed:   isClaimed,
+			ClaimedBy:   claimedBy,
+			Available:   state.Available(),
+			Progress:    progress,
+			Required:    info.Requirement,
+			Errors:      convertStateErrors(state.Errors),
+		}
+		result = append(result, dto)
+	}
+
+	return result
+}
+
+// mapPlayerAwards maps cached PlayerAward instances to DTOs.
+// Uses cached state from Player.Awards() which is updated via event listeners.
+func mapPlayerAwards(p *player.Player, g *game.Game) []PlayerAwardDto {
+	result := make([]PlayerAwardDto, 0, len(game.AllAwards))
+	gameAwards := g.Awards()
+	playerAwards := p.Awards().GetAll()
+	currentCost := gameAwards.GetCurrentFundingCost()
+
+	for _, info := range game.AllAwards {
+		// Get cached state (falls back to calculating if not cached)
+		var state player.EntityState
+		if pa, exists := playerAwards[info.Type]; exists {
+			state = pa.State()
+		} else {
+			// Fallback: calculate state if not cached (shouldn't happen if initialization is correct)
+			state = action.CalculateAwardState(info.Type, p, g)
+		}
+
+		// Get funding status from game-level awards
+		isFunded := gameAwards.IsFunded(info.Type)
+		var fundedBy *string
+		for _, funded := range gameAwards.FundedAwards() {
+			if funded.Type == info.Type {
+				fundedBy = &funded.FundedByPlayer
+				break
+			}
+		}
+
+		dto := PlayerAwardDto{
+			Type:        string(info.Type),
+			Name:        info.Name,
+			Description: info.Description,
+			FundingCost: currentCost,
+			IsFunded:    isFunded,
+			FundedBy:    fundedBy,
+			Available:   state.Available(),
+			Errors:      convertStateErrors(state.Errors),
+		}
 		result = append(result, dto)
 	}
 

@@ -890,3 +890,161 @@ func formatInsufficientTagsMessage(tag string) string {
 func formatTooManyTagsMessage(tag string) string {
 	return fmt.Sprintf("Too many %s tags", strings.ToLower(tag))
 }
+
+// ========================================
+// Milestone State Calculation
+// ========================================
+
+// CalculateMilestoneState computes eligibility state for claiming a milestone.
+// Returns EntityState with errors indicating why the milestone cannot be claimed.
+func CalculateMilestoneState(
+	milestoneType shared.MilestoneType,
+	p *player.Player,
+	g *game.Game,
+	cardRegistry cards.CardRegistry,
+) player.EntityState {
+	var errors []player.StateError
+	metadata := make(map[string]interface{})
+
+	// Get milestone info
+	milestoneInfo, found := game.GetMilestoneInfo(milestoneType)
+	if !found {
+		errors = append(errors, player.StateError{
+			Code:     player.ErrorCodeInvalidRequirement,
+			Category: player.ErrorCategoryConfiguration,
+			Message:  fmt.Sprintf("Unknown milestone type: %s", milestoneType),
+		})
+		return player.EntityState{
+			Errors:         errors,
+			Cost:           make(map[string]int),
+			Metadata:       metadata,
+			LastCalculated: time.Now(),
+		}
+	}
+
+	milestones := g.Milestones()
+
+	// 1. Check if already claimed
+	if milestones.IsClaimed(milestoneType) {
+		errors = append(errors, player.StateError{
+			Code:     player.ErrorCodeMilestoneAlreadyClaimed,
+			Category: player.ErrorCategoryAchievement,
+			Message:  "This milestone has already been claimed",
+		})
+	}
+
+	// 2. Check if max milestones reached
+	if milestones.ClaimedCount() >= game.MaxClaimedMilestones {
+		errors = append(errors, player.StateError{
+			Code:     player.ErrorCodeMaxMilestonesClaimed,
+			Category: player.ErrorCategoryAchievement,
+			Message:  fmt.Sprintf("Maximum milestones (%d) have been claimed", game.MaxClaimedMilestones),
+		})
+	}
+
+	// 3. Calculate progress and check requirement
+	progress := gamecards.GetPlayerMilestoneProgress(milestoneType, p, g.Board(), cardRegistry)
+	required := milestoneInfo.Requirement
+	metadata["progress"] = progress
+	metadata["required"] = required
+
+	if progress < required {
+		errors = append(errors, player.StateError{
+			Code:     player.ErrorCodeMilestoneRequirementNotMet,
+			Category: player.ErrorCategoryRequirement,
+			Message:  milestoneInfo.Description,
+		})
+	}
+
+	// 4. Check affordability
+	cost := game.MilestoneClaimCost
+	if p.Resources().Get().Credits < cost {
+		errors = append(errors, player.StateError{
+			Code:     player.ErrorCodeInsufficientCredits,
+			Category: player.ErrorCategoryCost,
+			Message:  fmt.Sprintf("Need %d MC to claim milestone", cost),
+		})
+	}
+
+	// Build cost map
+	costMap := map[string]int{string(shared.ResourceCredit): cost}
+
+	return player.EntityState{
+		Errors:         errors,
+		Cost:           costMap,
+		Metadata:       metadata,
+		LastCalculated: time.Now(),
+	}
+}
+
+// ========================================
+// Award State Calculation
+// ========================================
+
+// CalculateAwardState computes eligibility state for funding an award.
+// Returns EntityState with errors indicating why the award cannot be funded.
+func CalculateAwardState(
+	awardType shared.AwardType,
+	p *player.Player,
+	g *game.Game,
+) player.EntityState {
+	var errors []player.StateError
+	metadata := make(map[string]interface{})
+
+	// Validate award type
+	if !shared.ValidAwardType(string(awardType)) {
+		errors = append(errors, player.StateError{
+			Code:     player.ErrorCodeInvalidRequirement,
+			Category: player.ErrorCategoryConfiguration,
+			Message:  fmt.Sprintf("Unknown award type: %s", awardType),
+		})
+		return player.EntityState{
+			Errors:         errors,
+			Cost:           make(map[string]int),
+			Metadata:       metadata,
+			LastCalculated: time.Now(),
+		}
+	}
+
+	awards := g.Awards()
+
+	// 1. Check if already funded
+	if awards.IsFunded(awardType) {
+		errors = append(errors, player.StateError{
+			Code:     player.ErrorCodeAwardAlreadyFunded,
+			Category: player.ErrorCategoryAchievement,
+			Message:  "This award has already been funded",
+		})
+	}
+
+	// 2. Check if max awards reached
+	if awards.FundedCount() >= game.MaxFundedAwards {
+		errors = append(errors, player.StateError{
+			Code:     player.ErrorCodeMaxAwardsFunded,
+			Category: player.ErrorCategoryAchievement,
+			Message:  fmt.Sprintf("Maximum awards (%d) have been funded", game.MaxFundedAwards),
+		})
+	}
+
+	// 3. Get current funding cost and check affordability
+	cost := awards.GetCurrentFundingCost()
+	metadata["fundingCost"] = cost
+
+	if p.Resources().Get().Credits < cost {
+		errors = append(errors, player.StateError{
+			Code:     player.ErrorCodeInsufficientCredits,
+			Category: player.ErrorCategoryCost,
+			Message:  fmt.Sprintf("Need %d MC to fund award", cost),
+		})
+	}
+
+	// Build cost map
+	costMap := map[string]int{string(shared.ResourceCredit): cost}
+
+	return player.EntityState{
+		Errors:         errors,
+		Cost:           costMap,
+		Metadata:       metadata,
+		LastCalculated: time.Now(),
+	}
+}

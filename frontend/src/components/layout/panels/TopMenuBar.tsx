@@ -1,13 +1,16 @@
 import React, { useEffect } from "react";
 import { useMainContent } from "@/contexts/MainContentContext.tsx";
+import { GameDto } from "@/types/generated/api-types.ts";
 
 interface TopMenuBarProps {
+  gameState: GameDto;
   showStandardProjectsPopover?: boolean;
   onToggleStandardProjectsPopover?: () => void;
   standardProjectsButtonRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
 const TopMenuBar: React.FC<TopMenuBarProps> = ({
+  gameState,
   showStandardProjectsPopover,
   onToggleStandardProjectsPopover,
   standardProjectsButtonRef,
@@ -27,79 +30,34 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
     { id: "awards" as const, label: "AWARDS", color: "#f39c12" },
   ];
 
-  // Mock data for different content types - normally this would come from game state
-  const getMockData = (type: "milestones" | "projects" | "awards") => {
-    if (type === "milestones") {
-      return {
-        milestones: [
-          {
-            id: "terraformer",
-            name: "Terraformer",
-            description: "Have a terraform rating of at least 35",
-            reward: "5 VP",
-            cost: 8,
-            claimed: false,
-            available: true,
-          },
-          {
-            id: "mayor",
-            name: "Mayor",
-            description: "Own at least 3 city tiles",
-            reward: "5 VP",
-            cost: 8,
-            claimed: true,
-            claimedBy: "Alice Chen",
-            available: false,
-          },
-          {
-            id: "gardener",
-            name: "Gardener",
-            description: "Own at least 3 greenery tiles",
-            reward: "5 VP",
-            cost: 8,
-            claimed: false,
-            available: true,
-          },
-        ],
-      };
-    }
+  // Transform player-specific milestones to display format (includes eligibility from backend)
+  const getMilestoneData = () => ({
+    milestones: gameState.currentPlayer.milestones.map((m) => ({
+      id: m.type,
+      name: m.name,
+      description: m.description,
+      reward: "5 VP",
+      cost: m.claimCost,
+      claimed: m.isClaimed,
+      claimedBy: m.claimedBy,
+      available: m.available, // Backend-calculated eligibility
+      progress: m.progress,
+      required: m.required,
+    })),
+  });
 
-    if (type === "awards") {
-      return {
-        awards: [
-          {
-            id: "landlord",
-            name: "Landlord",
-            description: "Most tiles on Mars",
-            fundingCost: 8,
-            funded: true,
-            fundedBy: "Bob Martinez",
-            winner: "Alice Chen",
-            available: false,
-          },
-          {
-            id: "banker",
-            name: "Banker",
-            description: "Highest M€ production",
-            fundingCost: 8,
-            funded: false,
-            available: true,
-          },
-          {
-            id: "scientist",
-            name: "Scientist",
-            description: "Most science tags",
-            fundingCost: 8,
-            funded: true,
-            fundedBy: "Carol Kim",
-            available: false,
-          },
-        ],
-      };
-    }
-
-    return {};
-  };
+  // Transform player-specific awards to display format (includes eligibility from backend)
+  const getAwardData = () => ({
+    awards: gameState.currentPlayer.awards.map((a) => ({
+      id: a.type,
+      name: a.name,
+      description: a.description,
+      fundingCost: a.fundingCost,
+      funded: a.isFunded,
+      fundedBy: a.fundedBy,
+      available: a.available, // Backend-calculated eligibility
+    })),
+  });
 
   const handleTabClick = (tabId: "milestones" | "projects" | "awards") => {
     // For standard projects, toggle the popover
@@ -107,7 +65,8 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
       onToggleStandardProjectsPopover?.();
       return;
     }
-    const data = getMockData(tabId);
+
+    const data = tabId === "milestones" ? getMilestoneData() : getAwardData();
     setContentData(data);
     setContentType(tabId);
   };

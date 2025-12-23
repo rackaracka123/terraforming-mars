@@ -580,6 +580,8 @@ type PlayerDto struct {
 	Effects          []PlayerEffectDto          `json:"effects" ts:"PlayerEffectDto[]"`                   // Active ongoing effects (discounts, special abilities, etc.)
 	Actions          []PlayerActionDto          `json:"actions" ts:"PlayerActionDto[]"`                   // Available actions from played cards with manual triggers
 	StandardProjects []PlayerStandardProjectDto `json:"standardProjects" ts:"PlayerStandardProjectDto[]"` // Standard projects with availability state (Player-Scoped Architecture)
+	Milestones       []PlayerMilestoneDto       `json:"milestones" ts:"PlayerMilestoneDto[]"`             // Milestones with player eligibility state
+	Awards           []PlayerAwardDto           `json:"awards" ts:"PlayerAwardDto[]"`                     // Awards with player eligibility state
 
 	SelectStartingCardsPhase *SelectStartingCardsPhaseDto `json:"selectStartingCardsPhase" ts:"SelectStartingCardsPhaseDto | null"`
 	ProductionPhase          *ProductionPhaseDto          `json:"productionPhase" ts:"ProductionPhaseDto | null"`
@@ -643,6 +645,7 @@ type GameDto struct {
 	PaymentConstants PaymentConstantsDto `json:"paymentConstants" ts:"PaymentConstantsDto"`              // Conversion rates for alternative payments
 	Milestones       []MilestoneDto      `json:"milestones" ts:"MilestoneDto[]"`                         // All milestones with claim status
 	Awards           []AwardDto          `json:"awards" ts:"AwardDto[]"`                                 // All awards with funding status
+	AwardResults     []AwardResultDto    `json:"awardResults" ts:"AwardResultDto[]"`                     // Current award placements (1st/2nd place per award)
 	FinalScores      []FinalScoreDto     `json:"finalScores,omitempty" ts:"FinalScoreDto[] | undefined"` // Final scores (only when game completed)
 }
 
@@ -708,6 +711,39 @@ type AwardDto struct {
 	IsFunded    bool    `json:"isFunded" ts:"boolean"`
 	FundedBy    *string `json:"fundedBy" ts:"string | null"`
 	FundingCost int     `json:"fundingCost" ts:"number"`
+}
+
+// AwardResultDto represents the placement results for a single funded award
+type AwardResultDto struct {
+	AwardType      string   `json:"awardType" ts:"string"`
+	FirstPlaceIds  []string `json:"firstPlaceIds" ts:"string[]"`
+	SecondPlaceIds []string `json:"secondPlaceIds" ts:"string[]"`
+}
+
+// PlayerMilestoneDto represents a milestone with player-specific eligibility state
+type PlayerMilestoneDto struct {
+	Type        string          `json:"type" ts:"string"`
+	Name        string          `json:"name" ts:"string"`
+	Description string          `json:"description" ts:"string"`
+	ClaimCost   int             `json:"claimCost" ts:"number"`
+	IsClaimed   bool            `json:"isClaimed" ts:"boolean"`
+	ClaimedBy   *string         `json:"claimedBy" ts:"string | null"`
+	Available   bool            `json:"available" ts:"boolean"`      // Can this player claim this milestone?
+	Progress    int             `json:"progress" ts:"number"`        // Current progress towards requirement
+	Required    int             `json:"required" ts:"number"`        // Requirement threshold
+	Errors      []StateErrorDto `json:"errors" ts:"StateErrorDto[]"` // Reasons why not available
+}
+
+// PlayerAwardDto represents an award with player-specific eligibility state
+type PlayerAwardDto struct {
+	Type        string          `json:"type" ts:"string"`
+	Name        string          `json:"name" ts:"string"`
+	Description string          `json:"description" ts:"string"`
+	FundingCost int             `json:"fundingCost" ts:"number"` // Current cost to fund (increases as more are funded)
+	IsFunded    bool            `json:"isFunded" ts:"boolean"`
+	FundedBy    *string         `json:"fundedBy" ts:"string | null"`
+	Available   bool            `json:"available" ts:"boolean"`      // Can this player fund this award?
+	Errors      []StateErrorDto `json:"errors" ts:"StateErrorDto[]"` // Reasons why not available
 }
 
 // CardVPConditionDetailDto represents the detailed calculation of a single VP condition

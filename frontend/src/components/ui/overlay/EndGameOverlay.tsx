@@ -538,7 +538,7 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
           {/* Awards compact display */}
           {(currentPhase === "awards" ||
             ["tiles", "cards", "summary", "rankings", "complete"].includes(currentPhase)) && (
-            <AwardCompact awards={game.awards ?? []} scores={sortedScores} />
+            <AwardCompact awards={game.awards ?? []} scores={sortedScores} awardResults={game.awardResults} playerId={playerId} />
           )}
 
           {/* Summary phase - show bar chart */}
@@ -756,7 +756,10 @@ const MilestoneCompact: FC<{
         {claimedMilestones.map((m) => (
           <div key={m.type} className="flex items-center justify-between text-sm">
             <span className="text-white/80">{m.name}</span>
-            <span className="text-amber-400">{getPlayerName(m.claimedBy)}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-amber-400">{getPlayerName(m.claimedBy)}</span>
+              <span className="text-green-400 text-xs">+5 VP</span>
+            </div>
           </div>
         ))}
       </div>
@@ -768,20 +771,56 @@ const MilestoneCompact: FC<{
 const AwardCompact: FC<{
   awards: Array<{ type: string; name: string; isFunded: boolean }>;
   scores: FinalScoreDto[];
-}> = ({ awards }) => {
+  awardResults?: Array<{ awardType: string; firstPlaceIds: string[]; secondPlaceIds: string[] }>;
+  playerId: string;
+}> = ({ awards, scores, awardResults, playerId }) => {
   const fundedAwards = awards.filter((a) => a.isFunded);
   if (fundedAwards.length === 0) return null;
+
+  const getPlayerName = (id: string) =>
+    scores.find((s) => s.playerId === id)?.playerName ?? "Unknown";
 
   return (
     <div className="border-t border-white/10 pt-3">
       <h3 className="text-xs text-white/50 uppercase tracking-wider mb-2">Awards</h3>
       <div className="space-y-1">
-        {fundedAwards.map((a) => (
-          <div key={a.type} className="flex items-center justify-between text-sm">
-            <span className="text-white/80">{a.name}</span>
-            <span className="text-gray-400">Funded</span>
-          </div>
-        ))}
+        {fundedAwards.map((a) => {
+          const result = awardResults?.find((r) => r.awardType === a.type);
+          const isFirst = result?.firstPlaceIds?.includes(playerId) ?? false;
+          const isSecond = result?.secondPlaceIds?.includes(playerId) ?? false;
+
+          // Get first place winner name for display
+          const firstPlaceWinner = result?.firstPlaceIds?.[0];
+
+          return (
+            <div key={a.type} className="flex items-center justify-between text-sm">
+              <span className="text-white/80">{a.name}</span>
+              <div className="flex items-center gap-2">
+                {isFirst && (
+                  <>
+                    <span className="text-amber-400">{getPlayerName(playerId)}</span>
+                    <span className="text-amber-400 text-xs">1st +5 VP</span>
+                  </>
+                )}
+                {isSecond && (
+                  <>
+                    <span className="text-gray-300">{getPlayerName(playerId)}</span>
+                    <span className="text-gray-300 text-xs">2nd +2 VP</span>
+                  </>
+                )}
+                {!isFirst && !isSecond && firstPlaceWinner && (
+                  <>
+                    <span className="text-amber-400 text-xs">{getPlayerName(firstPlaceWinner)}</span>
+                    <span className="text-gray-500">-</span>
+                  </>
+                )}
+                {!isFirst && !isSecond && !firstPlaceWinner && (
+                  <span className="text-gray-500">-</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
