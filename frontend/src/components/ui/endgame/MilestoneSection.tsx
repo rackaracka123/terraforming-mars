@@ -1,6 +1,9 @@
-import { FC, useEffect, useState } from "react";
+import { FC } from "react";
 import { MilestoneDto } from "../../../types/generated/api-types";
 import GameIcon from "../display/GameIcon";
+import { getMilestoneIconType } from "../../../utils/achievementIcons";
+import { VP_VALUES, ANIMATION_TIMINGS } from "../../../constants/gameConstants";
+import { useSequentialAnimation, isItemVisible } from "../../../hooks/useSequentialAnimation";
 
 interface MilestoneSectionProps {
   /** All milestones with claim status */
@@ -13,8 +16,6 @@ interface MilestoneSectionProps {
   onAnimationComplete?: () => void;
 }
 
-const MILESTONE_VP = 5;
-
 /**
  * MilestoneSection - Displays milestone badges with VP awards
  */
@@ -24,44 +25,14 @@ const MilestoneSection: FC<MilestoneSectionProps> = ({
   isAnimating,
   onAnimationComplete,
 }) => {
-  const [animatedIndex, setAnimatedIndex] = useState(-1);
+  const animatedIndex = useSequentialAnimation(
+    milestones.length,
+    ANIMATION_TIMINGS.ITEM_REVEAL,
+    isAnimating,
+    onAnimationComplete,
+  );
   const playerMilestones = milestones.filter((m) => m.claimedBy === playerId);
-  const totalMilestoneVP = playerMilestones.length * MILESTONE_VP;
-
-  useEffect(() => {
-    if (!isAnimating) return;
-
-    // Animate milestones one by one
-    let currentIndex = 0;
-    const interval = setInterval(() => {
-      if (currentIndex < milestones.length) {
-        setAnimatedIndex(currentIndex);
-        currentIndex++;
-      } else {
-        clearInterval(interval);
-        onAnimationComplete?.();
-      }
-    }, 400);
-
-    return () => clearInterval(interval);
-  }, [isAnimating, milestones.length, onAnimationComplete]);
-
-  const getMilestoneIconType = (type: string): string => {
-    switch (type) {
-      case "terraformer":
-        return "tr";
-      case "mayor":
-        return "city-tile";
-      case "gardener":
-        return "greenery-tile";
-      case "builder":
-        return "building";
-      case "planner":
-        return "card";
-      default:
-        return "milestone";
-    }
-  };
+  const totalMilestoneVP = playerMilestones.length * VP_VALUES.MILESTONE;
 
   return (
     <div className="section-slide-in-animate flex flex-col items-center gap-4 p-6">
@@ -70,7 +41,7 @@ const MilestoneSection: FC<MilestoneSectionProps> = ({
       <div className="flex flex-wrap justify-center gap-3">
         {milestones.map((milestone, index) => {
           const isPlayerMilestone = milestone.claimedBy === playerId;
-          const isRevealed = !isAnimating || index <= animatedIndex;
+          const isRevealed = isItemVisible(index, animatedIndex, isAnimating);
           const isClaimed = milestone.isClaimed;
 
           return (
@@ -113,7 +84,7 @@ const MilestoneSection: FC<MilestoneSectionProps> = ({
               {/* VP badge for player's milestones */}
               {isPlayerMilestone && isRevealed && (
                 <div className="absolute -top-2 -right-2 bg-amber-400 text-black font-bold text-xs px-2 py-1 rounded-full float-up-animate">
-                  +{MILESTONE_VP} VP
+                  +{VP_VALUES.MILESTONE} VP
                 </div>
               )}
             </div>

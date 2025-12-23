@@ -33,8 +33,6 @@ type Player struct {
 	selection   *Selection
 	actions     *Actions
 	effects     *Effects
-	milestones  *PlayerMilestones
-	awards      *PlayerAwards
 }
 
 // NewPlayer creates a new player with initialized components
@@ -54,8 +52,6 @@ func NewPlayer(eventBus *events.EventBusImpl, gameID, playerID, name string) *Pl
 		selection:     newSelection(eventBus, gameID, playerID),
 		actions:       NewActions(),
 		effects:       NewEffects(),
-		milestones:    newPlayerMilestones(eventBus, gameID, playerID),
-		awards:        newPlayerAwards(eventBus, gameID, playerID),
 	}
 }
 
@@ -122,14 +118,6 @@ func (p *Player) Actions() *Actions {
 
 func (p *Player) Effects() *Effects {
 	return p.effects
-}
-
-func (p *Player) Milestones() *PlayerMilestones {
-	return p.milestones
-}
-
-func (p *Player) Awards() *PlayerAwards {
-	return p.awards
 }
 
 // ==================== Turn State ====================

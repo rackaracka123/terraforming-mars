@@ -257,14 +257,10 @@ func ToCardVPConditionDetailDto(detail game.CardVPConditionDetail) CardVPConditi
 
 // ToCardVPDetailDto converts a card VP detail to DTO
 func ToCardVPDetailDto(detail game.CardVPDetail) CardVPDetailDto {
-	conditions := make([]CardVPConditionDetailDto, len(detail.Conditions))
-	for i, cond := range detail.Conditions {
-		conditions[i] = ToCardVPConditionDetailDto(cond)
-	}
 	return CardVPDetailDto{
 		CardID:     detail.CardID,
 		CardName:   detail.CardName,
-		Conditions: conditions,
+		Conditions: mapSlice(detail.Conditions, ToCardVPConditionDetailDto),
 		TotalVP:    detail.TotalVP,
 	}
 }
@@ -288,31 +284,16 @@ func ToCityVPDetailDto(detail game.CityVPDetail) CityVPDetailDto {
 
 // ToVPBreakdownDto converts a VP breakdown to DTO
 func ToVPBreakdownDto(breakdown game.VPBreakdown) VPBreakdownDto {
-	cardVPDetails := make([]CardVPDetailDto, len(breakdown.CardVPDetails))
-	for i, detail := range breakdown.CardVPDetails {
-		cardVPDetails[i] = ToCardVPDetailDto(detail)
-	}
-
-	greeneryVPDetails := make([]GreeneryVPDetailDto, len(breakdown.GreeneryVPDetails))
-	for i, detail := range breakdown.GreeneryVPDetails {
-		greeneryVPDetails[i] = ToGreeneryVPDetailDto(detail)
-	}
-
-	cityVPDetails := make([]CityVPDetailDto, len(breakdown.CityVPDetails))
-	for i, detail := range breakdown.CityVPDetails {
-		cityVPDetails[i] = ToCityVPDetailDto(detail)
-	}
-
 	return VPBreakdownDto{
 		TerraformRating:   breakdown.TerraformRating,
 		CardVP:            breakdown.CardVP,
-		CardVPDetails:     cardVPDetails,
+		CardVPDetails:     mapSlice(breakdown.CardVPDetails, ToCardVPDetailDto),
 		MilestoneVP:       breakdown.MilestoneVP,
 		AwardVP:           breakdown.AwardVP,
 		GreeneryVP:        breakdown.GreeneryVP,
-		GreeneryVPDetails: greeneryVPDetails,
+		GreeneryVPDetails: mapSlice(breakdown.GreeneryVPDetails, ToGreeneryVPDetailDto),
 		CityVP:            breakdown.CityVP,
-		CityVPDetails:     cityVPDetails,
+		CityVPDetails:     mapSlice(breakdown.CityVPDetails, ToCityVPDetailDto),
 		TotalVP:           breakdown.TotalVP,
 	}
 }

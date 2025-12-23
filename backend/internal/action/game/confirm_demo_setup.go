@@ -175,15 +175,8 @@ func (a *ConfirmDemoSetupAction) Execute(
 		}
 		log.Info("🎉 All players confirmed, transitioning to Action phase")
 
-		// Initialize milestones and awards for all players (event-driven state caching)
-		allPlayers := g.GetAllPlayers()
-		for _, pl := range allPlayers {
-			action.InitializePlayerMilestones(pl, g, a.cardRegistry)
-			action.InitializePlayerAwards(pl, g)
-		}
-		log.Info("✅ Milestones and awards initialized for all players")
-
 		// Set first player turn with appropriate action count
+		allPlayers := g.GetAllPlayers()
 		if len(allPlayers) > 0 {
 			firstPlayerID := allPlayers[0].ID()
 			availableActions := 2

@@ -249,13 +249,6 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 			return fmt.Errorf("failed to transition game phase: %w", err)
 		}
 
-		// Initialize milestones and awards for all players (event-driven state caching)
-		for _, p := range allPlayers {
-			baseaction.InitializePlayerMilestones(p, g, a.cardRegistry)
-			baseaction.InitializePlayerAwards(p, g)
-		}
-		log.Info("✅ Milestones and awards initialized for all players")
-
 		// Set current turn to first player from turn order (randomized in start_game)
 		turnOrder := g.TurnOrder()
 		if len(turnOrder) > 0 {

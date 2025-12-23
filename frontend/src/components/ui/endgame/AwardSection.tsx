@@ -1,6 +1,9 @@
-import { FC, useEffect, useState } from "react";
+import { FC } from "react";
 import { AwardDto, VPBreakdownDto } from "../../../types/generated/api-types";
 import GameIcon from "../display/GameIcon";
+import { getAwardIconType } from "../../../utils/achievementIcons";
+import { VP_VALUES, ANIMATION_TIMINGS } from "../../../constants/gameConstants";
+import { useSequentialAnimation, isItemVisible } from "../../../hooks/useSequentialAnimation";
 
 interface AwardResult {
   awardType: string;
@@ -23,9 +26,6 @@ interface AwardSectionProps {
   onAnimationComplete?: () => void;
 }
 
-const AWARD_FIRST_VP = 5;
-const AWARD_SECOND_VP = 2;
-
 /**
  * AwardSection - Displays award badges with placements and VP
  */
@@ -37,41 +37,12 @@ const AwardSection: FC<AwardSectionProps> = ({
   isAnimating,
   onAnimationComplete,
 }) => {
-  const [animatedIndex, setAnimatedIndex] = useState(-1);
-
-  useEffect(() => {
-    if (!isAnimating) return;
-
-    let currentIndex = 0;
-    const interval = setInterval(() => {
-      if (currentIndex < awards.length) {
-        setAnimatedIndex(currentIndex);
-        currentIndex++;
-      } else {
-        clearInterval(interval);
-        onAnimationComplete?.();
-      }
-    }, 500);
-
-    return () => clearInterval(interval);
-  }, [isAnimating, awards.length, onAnimationComplete]);
-
-  const getAwardIconType = (type: string): string => {
-    switch (type) {
-      case "landlord":
-        return "city-tile";
-      case "banker":
-        return "credit";
-      case "scientist":
-        return "science";
-      case "thermalist":
-        return "heat";
-      case "miner":
-        return "steel";
-      default:
-        return "award";
-    }
-  };
+  const animatedIndex = useSequentialAnimation(
+    awards.length,
+    ANIMATION_TIMINGS.SECTION_TRANSITION,
+    isAnimating,
+    onAnimationComplete,
+  );
 
   const getPlayerPlacement = (awardType: string): "first" | "second" | null => {
     const result = awardResults.find((r) => r.awardType === awardType);
@@ -87,7 +58,7 @@ const AwardSection: FC<AwardSectionProps> = ({
 
       <div className="flex flex-wrap justify-center gap-3">
         {awards.map((award, index) => {
-          const isRevealed = !isAnimating || index <= animatedIndex;
+          const isRevealed = isItemVisible(index, animatedIndex, isAnimating);
           const placement = getPlayerPlacement(award.type);
           const isFunded = award.isFunded;
 
@@ -147,7 +118,7 @@ const AwardSection: FC<AwardSectionProps> = ({
                     placement === "first" ? "bg-amber-400 text-black" : "bg-gray-300 text-black"
                   }`}
                 >
-                  +{placement === "first" ? AWARD_FIRST_VP : AWARD_SECOND_VP} VP
+                  +{placement === "first" ? VP_VALUES.AWARD_FIRST : VP_VALUES.AWARD_SECOND} VP
                 </div>
               )}
             </div>
