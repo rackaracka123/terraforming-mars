@@ -284,6 +284,12 @@ class GlobalWebSocketManager implements WebSocketConnection {
   get gameId() {
     return webSocketService.gameId;
   }
+
+  disconnect() {
+    webSocketService.disconnect();
+    this.isInitialized = false;
+    this.currentPlayerId = null;
+  }
 }
 
 // Singleton instance - initialized once globally
