@@ -19,6 +19,7 @@ import (
 type ConfirmDemoSetupAction struct {
 	gameRepo     internalgame.GameRepository
 	cardRegistry cards.CardRegistry
+	corpProc     *gamecards.CorporationProcessor
 	logger       *zap.Logger
 }
 
@@ -31,6 +32,7 @@ func NewConfirmDemoSetupAction(
 	return &ConfirmDemoSetupAction{
 		gameRepo:     gameRepo,
 		cardRegistry: cardRegistry,
+		corpProc:     gamecards.NewCorporationProcessor(logger),
 		logger:       logger,
 	}
 }
@@ -70,9 +72,9 @@ func (a *ConfirmDemoSetupAction) Execute(
 	}
 
 	// 4. Set corporation - either specified or random
+	var corporationID string
 	if request.CorporationID != nil && *request.CorporationID != "" {
-		p.SetCorporationID(*request.CorporationID)
-		log.Info("✅ Set corporation", zap.String("corporation_id", *request.CorporationID))
+		corporationID = *request.CorporationID
 	} else {
 		// Select random corporation by filtering all cards for corporation type
 		allCards := a.cardRegistry.GetAll()
@@ -84,10 +86,65 @@ func (a *ConfirmDemoSetupAction) Execute(
 		}
 		if len(corporations) > 0 {
 			randomIndex := rand.Intn(len(corporations))
-			randomCorpID := corporations[randomIndex].ID
-			p.SetCorporationID(randomCorpID)
-			log.Info("✅ Set random corporation", zap.String("corporation_id", randomCorpID))
+			corporationID = corporations[randomIndex].ID
 		}
+	}
+
+	// 4a. Apply corporation with all effects
+	if corporationID != "" {
+		p.SetCorporationID(corporationID)
+		log.Info("✅ Set corporation ID", zap.String("corporation_id", corporationID))
+
+		// Fetch corporation card and apply effects
+		corpCard, err := a.cardRegistry.GetByID(corporationID)
+		if err != nil {
+			log.Error("Failed to fetch corporation card", zap.Error(err))
+			return fmt.Errorf("corporation card not found: %s", corporationID)
+		}
+
+		// Apply corporation auto effects (payment substitutes, value modifiers, etc.)
+		if err := a.corpProc.ApplyAutoEffects(ctx, corpCard, p, g); err != nil {
+			log.Error("Failed to apply corporation auto effects", zap.Error(err))
+			return fmt.Errorf("failed to apply corporation auto effects: %w", err)
+		}
+
+		// Register corporation auto effects for display
+		autoEffects := a.corpProc.GetAutoEffects(corpCard)
+		for _, effect := range autoEffects {
+			p.Effects().AddEffect(effect)
+			log.Debug("✅ Registered auto effect",
+				zap.String("card_name", effect.CardName),
+				zap.Int("behavior_index", effect.BehaviorIndex))
+		}
+
+		// Register corporation trigger effects and subscribe to events
+		triggerEffects := a.corpProc.GetTriggerEffects(corpCard)
+		for _, effect := range triggerEffects {
+			p.Effects().AddEffect(effect)
+			log.Debug("✅ Registered trigger effect",
+				zap.String("card_name", effect.CardName),
+				zap.Int("behavior_index", effect.BehaviorIndex))
+
+			// Subscribe trigger effects to relevant events
+			action.SubscribePassiveEffectToEvents(ctx, g, p, effect, log)
+		}
+
+		// Register corporation manual actions
+		manualActions := a.corpProc.GetManualActions(corpCard)
+		for _, act := range manualActions {
+			p.Actions().AddAction(act)
+			log.Debug("✅ Registered manual action",
+				zap.String("card_name", act.CardName),
+				zap.Int("behavior_index", act.BehaviorIndex))
+		}
+
+		// Setup forced first action if corporation requires it
+		if err := a.corpProc.SetupForcedFirstAction(ctx, corpCard, g, playerID); err != nil {
+			log.Error("Failed to setup forced first action", zap.Error(err))
+			return fmt.Errorf("failed to setup forced first action: %w", err)
+		}
+
+		log.Info("✅ Applied corporation effects", zap.String("corporation_name", corpCard.Name))
 	}
 
 	// 5. Add cards to hand with proper PlayerCard caching (using shared helper)
