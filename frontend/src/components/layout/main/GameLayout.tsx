@@ -129,6 +129,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
         currentPlayer={currentPlayer}
         turnPlayerId={gameState?.currentTurn || ""}
         currentPhase={gameState?.currentPhase}
+        hasPendingTilePlacement={!!currentPlayer?.pendingTileSelection}
       />
 
       <RightSidebar

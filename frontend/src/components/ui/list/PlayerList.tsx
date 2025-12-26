@@ -8,6 +8,7 @@ interface PlayerListProps {
   currentPlayer: PlayerDto | null;
   turnPlayerId: string;
   currentPhase?: GamePhase;
+  hasPendingTilePlacement?: boolean;
 }
 
 const PlayerList: React.FC<PlayerListProps> = ({
@@ -15,6 +16,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
   currentPlayer,
   turnPlayerId,
   currentPhase,
+  hasPendingTilePlacement = false,
 }) => {
   const isActionPhase = currentPhase === "action";
 
@@ -51,6 +53,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
           isActionPhase={isActionPhase}
           onSkipAction={handleSkipAction}
           totalPlayers={players.length}
+          hasPendingTilePlacement={hasPendingTilePlacement}
         />
       ))}
     </div>
