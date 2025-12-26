@@ -41,6 +41,9 @@ const (
 	// Award error codes
 	ErrorCodeAwardAlreadyFunded StateErrorCode = "award-already-funded"
 	ErrorCodeMaxAwardsFunded    StateErrorCode = "max-awards-funded"
+
+	// Tile selection error codes
+	ErrorCodeActiveTileSelection StateErrorCode = "active-tile-selection"
 )
 
 // StateErrorCategory represents categories for error grouping.
