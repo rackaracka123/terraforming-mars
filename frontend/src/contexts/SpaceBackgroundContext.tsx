@@ -8,19 +8,13 @@ interface SpaceBackgroundContextType {
   preloadSkybox: () => Promise<void>;
 }
 
-const SpaceBackgroundContext = createContext<
-  SpaceBackgroundContextType | undefined
->(undefined);
+const SpaceBackgroundContext = createContext<SpaceBackgroundContextType | undefined>(undefined);
 
 /**
  * SpaceBackgroundProvider - Manages 3D space background state globally
  * Ensures skybox stays loaded in memory across route changes
  */
-export function SpaceBackgroundProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function SpaceBackgroundProvider({ children }: { children: React.ReactNode }) {
   const [loadingState, setLoadingState] = useState<SkyboxLoadingState>({
     isLoading: false,
     isLoaded: false,
@@ -70,9 +64,7 @@ export function SpaceBackgroundProvider({
 export function useSpaceBackground() {
   const context = useContext(SpaceBackgroundContext);
   if (context === undefined) {
-    throw new Error(
-      "useSpaceBackground must be used within a SpaceBackgroundProvider",
-    );
+    throw new Error("useSpaceBackground must be used within a SpaceBackgroundProvider");
   }
   return context;
 }

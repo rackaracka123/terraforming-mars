@@ -8,10 +8,7 @@ interface WaitingRoomOverlayProps {
   playerId: string;
 }
 
-const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
-  game,
-  playerId,
-}) => {
+const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({ game, playerId }) => {
   const isHost = game.hostPlayerId === playerId;
   const joinUrl = `${window.location.origin}/join?code=${game.id}`;
 
@@ -20,8 +17,7 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
     void globalWebSocketManager.startGame();
   };
 
-  const playerCount =
-    (game.currentPlayer ? 1 : 0) + (game.otherPlayers?.length || 0);
+  const playerCount = (game.currentPlayer ? 1 : 0) + (game.otherPlayers?.length || 0);
 
   return (
     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] w-[450px] max-w-[90vw] max-h-[90vh] overflow-y-auto animate-[modalFadeIn_0.3s_ease-out]">
@@ -45,9 +41,7 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
 
         {/* Player List */}
         <div className="mb-6">
-          <h3 className="text-white text-sm font-semibold mb-2 uppercase tracking-wide">
-            Players
-          </h3>
+          <h3 className="text-white text-sm font-semibold mb-2 uppercase tracking-wide">Players</h3>
           <div className="flex flex-col gap-2">
             {(() => {
               const playerMap = new Map();
@@ -70,9 +64,7 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
                   key={player.id}
                   className="flex justify-between items-center py-2 px-3 bg-black/40 rounded-lg border border-space-blue-600/50"
                 >
-                  <span className="text-white text-sm font-medium">
-                    {player.name}
-                  </span>
+                  <span className="text-white text-sm font-medium">{player.name}</span>
                   <div className="flex gap-1.5 items-center">
                     {player.id === playerId && (
                       <span className="bg-space-blue-800 text-white py-0.5 px-1.5 rounded text-[10px] font-bold uppercase">
@@ -110,9 +102,7 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
         )}
 
         {!isHost && (
-          <p className="text-white/50 text-sm text-center">
-            Waiting for host to start the game...
-          </p>
+          <p className="text-white/50 text-sm text-center">Waiting for host to start the game...</p>
         )}
       </div>
     </div>

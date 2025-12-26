@@ -56,10 +56,6 @@ export function useSequentialAnimation(
  * @param isAnimating - Whether animation is running
  * @returns true if the item should be visible
  */
-export function isItemVisible(
-  index: number,
-  animatedIndex: number,
-  isAnimating: boolean,
-): boolean {
+export function isItemVisible(index: number, animatedIndex: number, isAnimating: boolean): boolean {
   return !isAnimating || index <= animatedIndex;
 }

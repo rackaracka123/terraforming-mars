@@ -191,9 +191,7 @@ export class TabManager {
 
     // Handle storage events to detect when another tab takes over
     window.addEventListener("storage", (event) => {
-      const expectedKey = this.playerName
-        ? `${TAB_STORAGE_KEY_PREFIX}-${this.playerName}`
-        : null;
+      const expectedKey = this.playerName ? `${TAB_STORAGE_KEY_PREFIX}-${this.playerName}` : null;
 
       if (event.key === expectedKey && this.isActive) {
         const newTabState = event.newValue ? JSON.parse(event.newValue) : null;

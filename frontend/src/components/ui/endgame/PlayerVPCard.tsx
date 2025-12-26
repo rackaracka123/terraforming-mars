@@ -1,9 +1,6 @@
 import { FC } from "react";
 import type { FinalScoreDto } from "../../../types/generated/api-types";
-import {
-  VPSequencePhase,
-  isPhaseAtOrAfter,
-} from "../../../constants/gameConstants";
+import { VPSequencePhase, isPhaseAtOrAfter } from "../../../constants/gameConstants";
 import VPBadge from "./VPBadge";
 
 /** Hover type for tile VP indicators */
@@ -79,26 +76,16 @@ const PlayerVPCard: FC<PlayerVPCardProps> = ({
             {score.playerName}
           </span>
         </div>
-        <span className="font-orbitron text-xl font-bold text-white">
-          {revealedTotal}
-        </span>
+        <span className="font-orbitron text-xl font-bold text-white">{revealedTotal}</span>
       </div>
 
       {/* VP breakdown row */}
       <div className="flex flex-wrap gap-2 text-xs">
         {showTR && (
-          <VPBadge
-            icon="terraform-rating"
-            value={vpBreakdown.terraformRating}
-            color="blue"
-          />
+          <VPBadge icon="terraform-rating" value={vpBreakdown.terraformRating} color="blue" />
         )}
         {showMilestones && vpBreakdown.milestoneVP > 0 && (
-          <VPBadge
-            icon="milestone"
-            value={vpBreakdown.milestoneVP}
-            color="purple"
-          />
+          <VPBadge icon="milestone" value={vpBreakdown.milestoneVP} color="purple" />
         )}
         {showAwards && vpBreakdown.awardVP > 0 && (
           <VPBadge icon="award" value={vpBreakdown.awardVP} color="yellow" />
@@ -121,9 +108,7 @@ const PlayerVPCard: FC<PlayerVPCardProps> = ({
               icon="city-tile"
               value={vpBreakdown.cityVP}
               color="gray"
-              onMouseEnter={() =>
-                onHoverTileType?.({ playerId: score.playerId, type: "city" })
-              }
+              onMouseEnter={() => onHoverTileType?.({ playerId: score.playerId, type: "city" })}
               onMouseLeave={() => onHoverTileType?.(null)}
             />
           </>

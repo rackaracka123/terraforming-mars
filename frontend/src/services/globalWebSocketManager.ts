@@ -89,13 +89,10 @@ class GlobalWebSocketManager implements WebSocketConnection {
       this.emit("full-state", statePayload);
     });
 
-    webSocketService.on(
-      "player-disconnected",
-      (payload: PlayerDisconnectedPayload) => {
-        // WebSocket: Player disconnected
-        this.emit("player-disconnected", payload);
-      },
-    );
+    webSocketService.on("player-disconnected", (payload: PlayerDisconnectedPayload) => {
+      // WebSocket: Player disconnected
+      this.emit("player-disconnected", payload);
+    });
 
     webSocketService.on("available-cards", (payload: any) => {
       // WebSocket: Available cards received
@@ -140,9 +137,7 @@ class GlobalWebSocketManager implements WebSocketConnection {
 
   off(event: string, callback: (data: any) => void) {
     if (this.eventCallbacks[event]) {
-      this.eventCallbacks[event] = this.eventCallbacks[event].filter(
-        (cb) => cb !== callback,
-      );
+      this.eventCallbacks[event] = this.eventCallbacks[event].filter((cb) => cb !== callback);
     }
   }
 
@@ -152,10 +147,7 @@ class GlobalWebSocketManager implements WebSocketConnection {
         try {
           callback(data);
         } catch (error) {
-          console.error(
-            `Error in WebSocket event callback for ${event}:`,
-            error,
-          );
+          console.error(`Error in WebSocket event callback for ${event}:`, error);
         }
       });
     }
@@ -228,12 +220,7 @@ class GlobalWebSocketManager implements WebSocketConnection {
     cardStorageTarget?: string,
   ): Promise<string> {
     await this.ensureConnected();
-    return webSocketService.playCard(
-      cardId,
-      payment,
-      choiceIndex,
-      cardStorageTarget,
-    );
+    return webSocketService.playCard(cardId, payment, choiceIndex, cardStorageTarget);
   }
 
   async playCardAction(
@@ -243,18 +230,10 @@ class GlobalWebSocketManager implements WebSocketConnection {
     cardStorageTarget?: string,
   ): Promise<string> {
     await this.ensureConnected();
-    return webSocketService.playCardAction(
-      cardId,
-      behaviorIndex,
-      choiceIndex,
-      cardStorageTarget,
-    );
+    return webSocketService.playCardAction(cardId, behaviorIndex, choiceIndex, cardStorageTarget);
   }
 
-  async selectStartingCard(
-    cardIds: string[],
-    corporationId: string,
-  ): Promise<string> {
+  async selectStartingCard(cardIds: string[], corporationId: string): Promise<string> {
     await this.ensureConnected();
     return webSocketService.selectStartingCard(cardIds, corporationId);
   }
@@ -269,20 +248,13 @@ class GlobalWebSocketManager implements WebSocketConnection {
     return webSocketService.confirmProductionCards(cardIds);
   }
 
-  async confirmCardDraw(
-    cardsToTake: string[],
-    cardsToBuy: string[],
-  ): Promise<string> {
+  async confirmCardDraw(cardsToTake: string[], cardsToBuy: string[]): Promise<string> {
     await this.ensureConnected();
     return webSocketService.confirmCardDraw(cardsToTake, cardsToBuy);
   }
 
   // Tile selection actions
-  async selectTile(coordinate: {
-    q: number;
-    r: number;
-    s: number;
-  }): Promise<string> {
+  async selectTile(coordinate: { q: number; r: number; s: number }): Promise<string> {
     await this.ensureConnected();
     return webSocketService.selectTile(coordinate);
   }
@@ -297,9 +269,7 @@ class GlobalWebSocketManager implements WebSocketConnection {
   async sendAdminCommand(adminRequest: any): Promise<string> {
     await this.ensureConnected();
     // Import the message type dynamically to avoid circular dependencies
-    const { MessageTypeAdminCommand } = await import(
-      "../types/generated/api-types.ts"
-    );
+    const { MessageTypeAdminCommand } = await import("../types/generated/api-types.ts");
     return webSocketService.send(MessageTypeAdminCommand, adminRequest);
   }
 

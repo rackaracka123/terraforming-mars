@@ -14,9 +14,7 @@ const CreateGamePage: React.FC = () => {
   const [developmentMode, setDevelopmentMode] = useState(true);
   const [selectedPacks, setSelectedPacks] = useState<string[]>(["base-game"]);
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingStep, setLoadingStep] = useState<"game" | "environment" | null>(
-    null,
-  );
+  const [loadingStep, setLoadingStep] = useState<"game" | "environment" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [skyboxReady, setSkyboxReady] = useState(false);
   const [isFadedIn, setIsFadedIn] = useState(false);
@@ -73,14 +71,11 @@ const CreateGamePage: React.FC = () => {
       // Step 4: Set up one-time listener for game-updated event
       const handleGameUpdated = (gameData: any) => {
         // Extract player info from game data
-        const allPlayers = [
-          gameData.currentPlayer,
-          ...(gameData.otherPlayers || []),
-        ].filter(Boolean);
-
-        const connectedPlayer = allPlayers.find(
-          (p: any) => p.name === playerName.trim(),
+        const allPlayers = [gameData.currentPlayer, ...(gameData.otherPlayers || [])].filter(
+          Boolean,
         );
+
+        const connectedPlayer = allPlayers.find((p: any) => p.name === playerName.trim());
 
         if (connectedPlayer) {
           // Store game data
@@ -90,10 +85,7 @@ const CreateGamePage: React.FC = () => {
             playerName: playerName.trim(),
             createdAt: new Date().toISOString(),
           };
-          localStorage.setItem(
-            "terraforming-mars-game",
-            JSON.stringify(storedData),
-          );
+          localStorage.setItem("terraforming-mars-game", JSON.stringify(storedData));
 
           // Navigate to the main game interface with the complete game state
           navigate("/game", {
@@ -212,10 +204,9 @@ const CreateGamePage: React.FC = () => {
                   <span className="text-white text-base font-medium leading-none m-0 flex items-center gap-2">
                     Development Mode
                     <InfoTooltip size="medium">
-                      Enable admin commands for debugging and testing. Allows
-                      you to give cards to players, modify resources/production,
-                      change game phases, and adjust global parameters through
-                      the debug panel.
+                      Enable admin commands for debugging and testing. Allows you to give cards to
+                      players, modify resources/production, change game phases, and adjust global
+                      parameters through the debug panel.
                     </InfoTooltip>
                   </span>
                 </label>
@@ -223,9 +214,7 @@ const CreateGamePage: React.FC = () => {
 
               {/* Card Pack Selection */}
               <div className="mt-6 bg-space-black-darker/95 border-2 border-space-blue-400 rounded-xl p-4 backdrop-blur-space shadow-[0_0_20px_rgba(30,60,150,0.2)]">
-                <h3 className="text-white text-sm font-semibold mb-3 text-center">
-                  Card Packs
-                </h3>
+                <h3 className="text-white text-sm font-semibold mb-3 text-center">Card Packs</h3>
                 <div className="flex flex-col gap-2">
                   <label className="flex items-center gap-3 cursor-pointer py-2 px-2 rounded hover:bg-space-blue-400/10 transition-all duration-200">
                     <input
@@ -234,8 +223,7 @@ const CreateGamePage: React.FC = () => {
                       onChange={() => handlePackToggle("base-game")}
                       disabled={
                         isLoading ||
-                        (selectedPacks.includes("base-game") &&
-                          selectedPacks.length === 1)
+                        (selectedPacks.includes("base-game") && selectedPacks.length === 1)
                       }
                       className="w-[18px] h-[18px] accent-space-blue-solid cursor-pointer m-0 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
@@ -243,8 +231,8 @@ const CreateGamePage: React.FC = () => {
                       Base Game
                       <span className="text-white/50 text-xs">(22 cards)</span>
                       <InfoTooltip size="small">
-                        Includes tested cards with comprehensive test coverage.
-                        All cards have verified implementations.
+                        Includes tested cards with comprehensive test coverage. All cards have
+                        verified implementations.
                       </InfoTooltip>
                     </span>
                   </label>
@@ -256,8 +244,7 @@ const CreateGamePage: React.FC = () => {
                       onChange={() => handlePackToggle("future")}
                       disabled={
                         isLoading ||
-                        (selectedPacks.includes("future") &&
-                          selectedPacks.length === 1)
+                        (selectedPacks.includes("future") && selectedPacks.length === 1)
                       }
                       className="w-[18px] h-[18px] accent-space-blue-solid cursor-pointer m-0 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
@@ -265,8 +252,8 @@ const CreateGamePage: React.FC = () => {
                       Future Content
                       <span className="text-white/50 text-xs">(431 cards)</span>
                       <InfoTooltip size="small">
-                        Includes complex and untested cards for future
-                        implementation. May have incomplete effects or bugs.
+                        Includes complex and untested cards for future implementation. May have
+                        incomplete effects or bugs.
                       </InfoTooltip>
                     </span>
                   </label>

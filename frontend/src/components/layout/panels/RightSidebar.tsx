@@ -33,9 +33,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
       {/* Generation Counter - matching reference design */}
       <div className="mb-[15px] shrink-0">
         <div className="w-9 h-9 bg-gradient-to-br from-[#4a4a4a] via-[#2a2a2a] to-[#1a1a1a] [clip-path:polygon(30%_0%,70%_0%,100%_50%,70%_100%,30%_100%,0%_50%)] flex flex-col items-center justify-center text-white font-bold border border-[#666] shadow-[inset_0_1px_2px_rgba(255,255,255,0.1),0_2px_4px_rgba(0,0,0,0.5)] relative before:content-[''] before:absolute before:top-[2px] before:left-[2px] before:right-[2px] before:bottom-[2px] before:bg-gradient-to-br before:from-[rgba(255,255,255,0.1)] before:to-transparent before:[clip-path:polygon(30%_0%,70%_0%,100%_50%,70%_100%,30%_100%,0%_50%)] before:pointer-events-none max-xl:w-8 max-xl:h-8 max-lg:w-7 max-lg:h-7">
-          <div className="text-[8px] leading-none max-xl:text-[7px] max-lg:text-[6px]">
-            GEN
-          </div>
+          <div className="text-[8px] leading-none max-xl:text-[7px] max-lg:text-[6px]">GEN</div>
           <div className="text-base leading-none max-xl:text-sm max-lg:text-xs">
             {generation || 1}
           </div>
@@ -61,36 +59,31 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
 
               {/* Internal step markings for oxygen - every single step */}
               <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map(
-                  (oxygen) => (
-                    <div
-                      key={oxygen}
-                      className="absolute left-0 right-0 h-px bg-[rgba(0,255,0,0.3)] border-t border-t-[rgba(0,255,0,0.5)]"
-                      style={{
-                        bottom: `${(oxygen / 14) * 90}%`,
-                      }}
-                    ></div>
-                  ),
-                )}
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((oxygen) => (
+                  <div
+                    key={oxygen}
+                    className="absolute left-0 right-0 h-px bg-[rgba(0,255,0,0.3)] border-t border-t-[rgba(0,255,0,0.5)]"
+                    style={{
+                      bottom: `${(oxygen / 14) * 90}%`,
+                    }}
+                  ></div>
+                ))}
               </div>
 
               {/* Internal oxygen numbers */}
               <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none">
-                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map(
-                  (oxygen) => (
-                    <div
-                      key={oxygen}
-                      className="absolute w-full flex items-center justify-center text-[10px] font-bold transition-opacity duration-300 -translate-y-1/2 text-[#00ff00] [text-shadow:0_0_3px_rgba(0,255,0,0.8)]"
-                      style={{
-                        bottom: `${(oxygen / 14) * 90}%`,
-                        opacity:
-                          (globalParameters?.oxygen || 0) > oxygen ? 0 : 1,
-                      }}
-                    >
-                      {oxygen}
-                    </div>
-                  ),
-                )}
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((oxygen) => (
+                  <div
+                    key={oxygen}
+                    className="absolute w-full flex items-center justify-center text-[10px] font-bold transition-opacity duration-300 -translate-y-1/2 text-[#00ff00] [text-shadow:0_0_3px_rgba(0,255,0,0.8)]"
+                    style={{
+                      bottom: `${(oxygen / 14) * 90}%`,
+                      opacity: (globalParameters?.oxygen || 0) > oxygen ? 0 : 1,
+                    }}
+                  >
+                    {oxygen}
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -136,8 +129,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                     className="absolute w-full flex items-center justify-center text-[10px] font-bold transition-opacity duration-300 -translate-y-1/2 text-[#ff8c00] [text-shadow:0_0_3px_rgba(255,140,0,0.8)]"
                     style={{
                       bottom: `${((temp + 30) / 38) * 90}%`,
-                      opacity:
-                        (globalParameters?.temperature || -30) > temp ? 0 : 1,
+                      opacity: (globalParameters?.temperature || -30) > temp ? 0 : 1,
                     }}
                   >
                     {temp}
