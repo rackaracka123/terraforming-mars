@@ -128,7 +128,7 @@ func main() {
 	playerReconnectedAction := connAction.NewPlayerReconnectedAction(gameRepo, log)
 	playerDisconnectedAction := connAction.NewPlayerDisconnectedAction(gameRepo, log)
 
-	// Admin actions (8)
+	// Admin actions (9)
 	adminSetPhaseAction := admin.NewSetPhaseAction(gameRepo, log)
 	adminSetCurrentTurnAction := admin.NewSetCurrentTurnAction(gameRepo, log)
 	adminSetResourcesAction := admin.NewSetResourcesAction(gameRepo, log)
@@ -137,6 +137,7 @@ func main() {
 	adminGiveCardAction := admin.NewGiveCardAction(gameRepo, cardRegistry, log)
 	adminSetCorporationAction := admin.NewSetCorporationAction(gameRepo, cardRegistry, log)
 	adminStartTileSelectionAction := admin.NewStartTileSelectionAction(gameRepo, log)
+	adminSetTRAction := admin.NewSetTRAction(gameRepo, log)
 
 	// Query actions for HTTP (4)
 	getGameAction := query.NewGetGameAction(gameRepo, log)
@@ -154,7 +155,7 @@ func main() {
 	log.Info("   📌 Confirmations (3): ConfirmSellPatents, ConfirmProductionCards, ConfirmCardDraw")
 	log.Info("   📌 Connection Management (2): PlayerReconnected, PlayerDisconnected")
 	log.Info("   📌 Milestones & Awards (2): ClaimMilestone, FundAward")
-	log.Info("   📌 Admin Actions (8): SetPhase, SetCurrentTurn, SetResources, SetProduction, SetGlobalParameters, GiveCard, SetCorporation, StartTileSelection")
+	log.Info("   📌 Admin Actions (9): SetPhase, SetCurrentTurn, SetResources, SetProduction, SetGlobalParameters, GiveCard, SetCorporation, StartTileSelection, SetTR")
 	log.Info("   📌 Query Actions (4): GetGame, ListGames, ListCards, GetPlayer")
 
 	// ========== Register Migration Handlers with WebSocket Hub ==========
@@ -203,6 +204,7 @@ func main() {
 		adminGiveCardAction,
 		adminSetCorporationAction,
 		adminStartTileSelectionAction,
+		adminSetTRAction,
 	)
 
 	log.Info("🎯 Migration handlers registered with WebSocket hub (24 handlers)")

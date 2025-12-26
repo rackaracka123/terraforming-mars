@@ -77,6 +77,7 @@ func RegisterHandlers(
 	adminGiveCardAction *adminAction.GiveCardAction,
 	adminSetCorporationAction *adminAction.SetCorporationAction,
 	adminStartTileSelectionAction *adminAction.StartTileSelectionAction,
+	adminSetTRAction *adminAction.SetTRAction,
 ) {
 	log := logger.Get()
 	log.Info("🔄 Registering migration handlers with explicit broadcasting")
@@ -177,6 +178,7 @@ func RegisterHandlers(
 		adminGiveCardAction,
 		adminSetCorporationAction,
 		adminStartTileSelectionAction,
+		adminSetTRAction,
 		broadcaster,
 	)
 	hub.RegisterHandler(dto.MessageTypeAdminCommand, adminCommandHandler)
@@ -191,7 +193,7 @@ func RegisterHandlers(
 	log.Info("   ✅ Confirmations (3): ConfirmSellPatents, ConfirmProductionCards, ConfirmCardDraw")
 	log.Info("   ✅ Connection (1): PlayerDisconnected")
 	log.Info("   ✅ Milestones & Awards (2): ClaimMilestone, FundAward")
-	log.Info("   ✅ Admin (1): AdminCommand (routes to 8 sub-commands)")
+	log.Info("   ✅ Admin (1): AdminCommand (routes to 9 sub-commands)")
 	log.Info("   📌 Total: 24 handlers registered")
 }
 

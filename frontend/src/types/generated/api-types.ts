@@ -246,6 +246,7 @@ export const AdminCommandTypeSetGlobalParams: AdminCommandType = "set-global-par
 export const AdminCommandTypeStartTileSelection: AdminCommandType = "start-tile-selection";
 export const AdminCommandTypeSetCurrentTurn: AdminCommandType = "set-current-turn";
 export const AdminCommandTypeSetCorporation: AdminCommandType = "set-corporation";
+export const AdminCommandTypeSetTR: AdminCommandType = "set-tr";
 /**
  * AdminCommandRequest contains the admin command data
  */
@@ -299,6 +300,13 @@ export interface StartTileSelectionAdminCommand {
 export interface SetCorporationAdminCommand {
   playerId: string;
   corporationId: string;
+}
+/**
+ * SetTRAdminCommand represents setting a player's terraform rating
+ */
+export interface SetTRAdminCommand {
+  playerId: string;
+  terraformRating: number /* int */;
 }
 /**
  * CardPaymentDto represents how a player is paying for a card
