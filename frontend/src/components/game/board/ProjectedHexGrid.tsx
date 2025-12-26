@@ -3,7 +3,11 @@ import * as THREE from "three";
 import { HexGrid2D } from "../../../utils/hex-grid-2d";
 import ProjectedHexTile, { TileHighlightMode } from "./ProjectedHexTile";
 import { TileVPIndicator } from "../../ui/overlay/EndGameOverlay";
-import { GameDto, TileDto, TileBonusDto } from "../../../types/generated/api-types";
+import {
+  GameDto,
+  TileDto,
+  TileBonusDto,
+} from "../../../types/generated/api-types";
 
 interface ProjectedHexGridProps {
   gameState?: GameDto;
@@ -63,7 +67,8 @@ export default function ProjectedHexGrid({
 
     // Priority 2: Use global highlight mode
     if (!globalHighlightMode) return null;
-    if (globalHighlightMode === "greenery" && tileType === "greenery") return "greenery";
+    if (globalHighlightMode === "greenery" && tileType === "greenery")
+      return "greenery";
     if (globalHighlightMode === "city" && tileType === "city") return "city";
     // "adjacent" mode could be used for highlighting greeneries adjacent to cities
     return null;
@@ -170,7 +175,8 @@ export default function ProjectedHexGrid({
   };
 
   // Get available hexes from current player's pending tile selection
-  const availableHexes = gameState?.currentPlayer?.pendingTileSelection?.availableHexes || [];
+  const availableHexes =
+    gameState?.currentPlayer?.pendingTileSelection?.availableHexes || [];
 
   return (
     <>
@@ -191,7 +197,11 @@ export default function ProjectedHexGrid({
               onHexClick?.(hexKey);
             }}
             isAvailableForPlacement={isAvailable}
-            highlightMode={getHighlightModeForTile(tileData.type, tileHighlightMode, vpIndicator)}
+            highlightMode={getHighlightModeForTile(
+              tileData.type,
+              tileHighlightMode,
+              vpIndicator,
+            )}
             vpAmount={vpIndicator?.showVPText ? vpIndicator.amount : undefined}
             vpAnimating={vpIndicator?.isAnimating}
           />
@@ -205,7 +215,10 @@ export default function ProjectedHexGrid({
  * Project a 2D point onto the surface of a sphere
  * This simulates "wrapping" the flat hex grid around the sphere
  */
-function projectToSphere(position2D: { x: number; y: number }, radius: number): THREE.Vector3 {
+function projectToSphere(
+  position2D: { x: number; y: number },
+  radius: number,
+): THREE.Vector3 {
   // Scale the 2D coordinates to fit nicely on the sphere
   const scale = 0.4; // Reduced scale to bring hexagons closer together
   const x = position2D.x * scale;

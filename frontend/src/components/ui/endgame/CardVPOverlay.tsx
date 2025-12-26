@@ -40,7 +40,9 @@ const CardVPOverlay: FC<CardVPOverlayProps> = ({
   }
 
   const currentCard =
-    currentCardIndex < cardVPDetails.length ? cardVPDetails[currentCardIndex] : null;
+    currentCardIndex < cardVPDetails.length
+      ? cardVPDetails[currentCardIndex]
+      : null;
 
   if (!currentCard) {
     return null;
@@ -65,7 +67,9 @@ const CardVPOverlay: FC<CardVPOverlayProps> = ({
             </span>
           </div>
           <div className="bg-purple-600/30 px-3 py-1 rounded-lg">
-            <span className="text-purple-300 font-orbitron text-sm">Total: {totalCardVP} VP</span>
+            <span className="text-purple-300 font-orbitron text-sm">
+              Total: {totalCardVP} VP
+            </span>
           </div>
         </div>
 
@@ -77,7 +81,10 @@ const CardVPOverlay: FC<CardVPOverlayProps> = ({
         {/* VP Breakdown */}
         <div className="space-y-3">
           {currentCard.conditions.map((condition, idx) => (
-            <div key={idx} className="bg-purple-900/30 border border-purple-500/30 rounded-lg p-4">
+            <div
+              key={idx}
+              className="bg-purple-900/30 border border-purple-500/30 rounded-lg p-4"
+            >
               {/* Condition type badge */}
               <div className="flex items-center justify-between mb-2">
                 <span
@@ -105,12 +112,13 @@ const CardVPOverlay: FC<CardVPOverlayProps> = ({
                     <span>Count: {condition.count}</span>
                     <span className="text-white/40">|</span>
                     <span>Triggers: {condition.actualTriggers}</span>
-                    {condition.maxTrigger !== null && condition.maxTrigger !== undefined && (
-                      <>
-                        <span className="text-white/40">|</span>
-                        <span>Max: {condition.maxTrigger}</span>
-                      </>
-                    )}
+                    {condition.maxTrigger !== null &&
+                      condition.maxTrigger !== undefined && (
+                        <>
+                          <span className="text-white/40">|</span>
+                          <span>Max: {condition.maxTrigger}</span>
+                        </>
+                      )}
                   </div>
                 </div>
               )}

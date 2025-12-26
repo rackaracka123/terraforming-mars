@@ -65,7 +65,11 @@ export const calculateIconRequirements = (
     // Regular behavior handling
     if (behavior.inputs && behavior.inputs.length > 0) {
       const inputIcons = behavior.inputs.reduce((sum: number, input: any) => {
-        const analysis = analyzeResourceDisplayWithConstraints(input, MAX_HORIZONTAL_ICONS, false);
+        const analysis = analyzeResourceDisplayWithConstraints(
+          input,
+          MAX_HORIZONTAL_ICONS,
+          false,
+        );
         return sum + analysis.iconCount;
       }, 0);
       totalIcons += inputIcons;
@@ -79,17 +83,27 @@ export const calculateIconRequirements = (
       separatorCount = 1;
       separatorPositions = [totalIcons];
       totalIcons += 1;
-    } else if (behaviorType === "triggered-effect" || behaviorType === "discount") {
+    } else if (
+      behaviorType === "triggered-effect" ||
+      behaviorType === "discount"
+    ) {
       separatorCount = 1;
       separatorPositions = [totalIcons];
       totalIcons += 1;
     }
 
     if (behavior.outputs && behavior.outputs.length > 0) {
-      const outputIcons = behavior.outputs.reduce((sum: number, output: any) => {
-        const analysis = analyzeResourceDisplayWithConstraints(output, MAX_HORIZONTAL_ICONS, false);
-        return sum + analysis.iconCount;
-      }, 0);
+      const outputIcons = behavior.outputs.reduce(
+        (sum: number, output: any) => {
+          const analysis = analyzeResourceDisplayWithConstraints(
+            output,
+            MAX_HORIZONTAL_ICONS,
+            false,
+          );
+          return sum + analysis.iconCount;
+        },
+        0,
+      );
       totalIcons += outputIcons;
     }
   }
@@ -112,7 +126,10 @@ export const calculateIconRequirements = (
  * @param behaviorType - Type of behavior
  * @returns Layout plan with rows and separators
  */
-export const createLayoutPlan = (behavior: any, behaviorType: string): LayoutPlan => {
+export const createLayoutPlan = (
+  behavior: any,
+  behaviorType: string,
+): LayoutPlan => {
   const requirements = calculateIconRequirements(behavior, behaviorType);
 
   if (!requirements.needsMultipleRows) {
@@ -123,7 +140,13 @@ export const createLayoutPlan = (behavior: any, behaviorType: string): LayoutPla
       behavior.choices.forEach((choice: any) => {
         if (choice.inputs) {
           choice.inputs.forEach((input: any) => {
-            row.push(analyzeResourceDisplayWithConstraints(input, MAX_HORIZONTAL_ICONS, false));
+            row.push(
+              analyzeResourceDisplayWithConstraints(
+                input,
+                MAX_HORIZONTAL_ICONS,
+                false,
+              ),
+            );
           });
         }
 
@@ -134,7 +157,13 @@ export const createLayoutPlan = (behavior: any, behaviorType: string): LayoutPla
 
         if (choice.outputs) {
           choice.outputs.forEach((output: any) => {
-            row.push(analyzeResourceDisplayWithConstraints(output, MAX_HORIZONTAL_ICONS, false));
+            row.push(
+              analyzeResourceDisplayWithConstraints(
+                output,
+                MAX_HORIZONTAL_ICONS,
+                false,
+              ),
+            );
           });
         }
       });
@@ -142,13 +171,25 @@ export const createLayoutPlan = (behavior: any, behaviorType: string): LayoutPla
       // Regular behavior handling
       if (behavior.inputs) {
         behavior.inputs.forEach((input: any) => {
-          row.push(analyzeResourceDisplayWithConstraints(input, MAX_HORIZONTAL_ICONS, false));
+          row.push(
+            analyzeResourceDisplayWithConstraints(
+              input,
+              MAX_HORIZONTAL_ICONS,
+              false,
+            ),
+          );
         });
       }
 
       if (behavior.outputs) {
         behavior.outputs.forEach((output: any) => {
-          row.push(analyzeResourceDisplayWithConstraints(output, MAX_HORIZONTAL_ICONS, false));
+          row.push(
+            analyzeResourceDisplayWithConstraints(
+              output,
+              MAX_HORIZONTAL_ICONS,
+              false,
+            ),
+          );
         });
       }
     }
@@ -186,7 +227,9 @@ export const createMultiRowLayout = (
   if (behaviorType === "manual-action") {
     // Special handling for actions: balance inputs and outputs around separator
     const inputs = behavior.inputs
-      ? behavior.inputs.map((input: any) => analyzeResourceDisplayWithConstraints(input, 3, false))
+      ? behavior.inputs.map((input: any) =>
+          analyzeResourceDisplayWithConstraints(input, 3, false),
+        )
       : [];
     const outputs = behavior.outputs
       ? behavior.outputs.map((output: any) =>
@@ -194,7 +237,10 @@ export const createMultiRowLayout = (
         )
       : [];
 
-    const inputRows = distributeIconsAcrossRows(inputs, Math.floor((MAX_HORIZONTAL_ICONS - 1) / 2)); // Reserve space for separator
+    const inputRows = distributeIconsAcrossRows(
+      inputs,
+      Math.floor((MAX_HORIZONTAL_ICONS - 1) / 2),
+    ); // Reserve space for separator
     const outputRows = distributeIconsAcrossRows(
       outputs,
       Math.floor((MAX_HORIZONTAL_ICONS - 1) / 2),
@@ -214,12 +260,22 @@ export const createMultiRowLayout = (
 
     if (behavior.outputs) {
       behavior.outputs.forEach((output: any) => {
-        allItems.push(analyzeResourceDisplayWithConstraints(output, MAX_HORIZONTAL_ICONS, false));
+        allItems.push(
+          analyzeResourceDisplayWithConstraints(
+            output,
+            MAX_HORIZONTAL_ICONS,
+            false,
+          ),
+        );
       });
     }
 
-    const distributedRows = distributeIconsAcrossRows(allItems, MAX_HORIZONTAL_ICONS);
-    const separators = behaviorType !== "auto-no-background" ? [{ position: 0, type: ":" }] : [];
+    const distributedRows = distributeIconsAcrossRows(
+      allItems,
+      MAX_HORIZONTAL_ICONS,
+    );
+    const separators =
+      behaviorType !== "auto-no-background" ? [{ position: 0, type: ":" }] : [];
 
     return {
       rows: distributedRows,
@@ -254,7 +310,10 @@ export const distributeIconsAcrossRows = (
   let currentRowIconCount = 0;
 
   for (const item of items) {
-    if (currentRowIconCount + item.iconCount > maxPerRow && currentRow.length > 0) {
+    if (
+      currentRowIconCount + item.iconCount > maxPerRow &&
+      currentRow.length > 0
+    ) {
       // Start new row
       rows.push(currentRow);
       currentRow = [item];

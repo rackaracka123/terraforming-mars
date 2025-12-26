@@ -22,7 +22,12 @@ interface AwardCompactProps {
 }
 
 /** Compact award display for end game overlay */
-const AwardCompact: FC<AwardCompactProps> = ({ awards, scores, awardResults, playerId }) => {
+const AwardCompact: FC<AwardCompactProps> = ({
+  awards,
+  scores,
+  awardResults,
+  playerId,
+}) => {
   const fundedAwards = awards.filter((a) => a.isFunded);
   if (fundedAwards.length === 0) return null;
 
@@ -31,7 +36,9 @@ const AwardCompact: FC<AwardCompactProps> = ({ awards, scores, awardResults, pla
 
   return (
     <div className="border-t border-white/10 pt-3">
-      <h3 className="text-xs text-white/50 uppercase tracking-wider mb-2">Awards</h3>
+      <h3 className="text-xs text-white/50 uppercase tracking-wider mb-2">
+        Awards
+      </h3>
       <div className="space-y-1">
         {fundedAwards.map((a) => {
           const result = awardResults?.find((r) => r.awardType === a.type);
@@ -40,28 +47,43 @@ const AwardCompact: FC<AwardCompactProps> = ({ awards, scores, awardResults, pla
           const firstPlaceWinner = result?.firstPlaceIds?.[0];
 
           return (
-            <div key={a.type} className="flex items-center justify-between text-sm">
+            <div
+              key={a.type}
+              className="flex items-center justify-between text-sm"
+            >
               <span className="text-white/80">{a.name}</span>
               <div className="flex items-center gap-2">
                 {isFirst && (
                   <>
-                    <span className="text-amber-400">{getPlayerName(playerId)}</span>
-                    <span className="text-amber-400 text-xs">1st +{VP_VALUES.AWARD_FIRST} VP</span>
+                    <span className="text-amber-400">
+                      {getPlayerName(playerId)}
+                    </span>
+                    <span className="text-amber-400 text-xs">
+                      1st +{VP_VALUES.AWARD_FIRST} VP
+                    </span>
                   </>
                 )}
                 {isSecond && (
                   <>
-                    <span className="text-gray-300">{getPlayerName(playerId)}</span>
-                    <span className="text-gray-300 text-xs">2nd +{VP_VALUES.AWARD_SECOND} VP</span>
+                    <span className="text-gray-300">
+                      {getPlayerName(playerId)}
+                    </span>
+                    <span className="text-gray-300 text-xs">
+                      2nd +{VP_VALUES.AWARD_SECOND} VP
+                    </span>
                   </>
                 )}
                 {!isFirst && !isSecond && firstPlaceWinner && (
                   <>
-                    <span className="text-amber-400 text-xs">{getPlayerName(firstPlaceWinner)}</span>
+                    <span className="text-amber-400 text-xs">
+                      {getPlayerName(firstPlaceWinner)}
+                    </span>
                     <span className="text-gray-500">-</span>
                   </>
                 )}
-                {!isFirst && !isSecond && !firstPlaceWinner && <span className="text-gray-500">-</span>}
+                {!isFirst && !isSecond && !firstPlaceWinner && (
+                  <span className="text-gray-500">-</span>
+                )}
               </div>
             </div>
           );

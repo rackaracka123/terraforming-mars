@@ -60,7 +60,10 @@ export type VPSequencePhase = (typeof VP_PHASE_ORDER)[number];
  * Check if the current phase is at or after a target phase.
  * Useful for progressive VP reveal logic.
  */
-export function isPhaseAtOrAfter(current: VPSequencePhase, target: VPSequencePhase): boolean {
+export function isPhaseAtOrAfter(
+  current: VPSequencePhase,
+  target: VPSequencePhase,
+): boolean {
   return VP_PHASE_ORDER.indexOf(current) >= VP_PHASE_ORDER.indexOf(target);
 }
 

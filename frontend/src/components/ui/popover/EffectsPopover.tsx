@@ -105,7 +105,9 @@ const EffectsPopover: React.FC<EffectsPopoverProps> = ({
             <div className="mb-[15px] opacity-60">
               <GameIcon iconType="asterisk" size="medium" />
             </div>
-            <div className="text-white text-sm font-medium mb-2">No card effects active</div>
+            <div className="text-white text-sm font-medium mb-2">
+              No card effects active
+            </div>
             <div className="text-white/60 text-xs leading-[1.4]">
               Play cards with ongoing effects to gain bonuses
             </div>
@@ -126,7 +128,10 @@ const EffectsPopover: React.FC<EffectsPopoverProps> = ({
                   </div>
 
                   <div className="relative w-full min-h-[32px] [&>div]:!relative [&>div]:!bottom-auto [&>div]:!left-auto [&>div]:!right-auto [&>div]:w-full [&>div:hover]:!transform-none [&>div:hover]:!shadow-none [&>div:hover]:!filter-none">
-                    <BehaviorSection behaviors={[effect.behavior]} greyOutAll={false} />
+                    <BehaviorSection
+                      behaviors={[effect.behavior]}
+                      greyOutAll={false}
+                    />
                   </div>
                 </div>
               </div>

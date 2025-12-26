@@ -1,4 +1,8 @@
-import { GameDto, GameStatusActive, GamePhaseAction } from "@/types/generated/api-types.ts";
+import {
+  GameDto,
+  GameStatusActive,
+  GamePhaseAction,
+} from "@/types/generated/api-types.ts";
 
 /**
  * Utility functions for handling player actions and available actions logic
@@ -26,8 +30,11 @@ export const canPerformActions = (gameState?: GameDto): boolean => {
 
   const isGameActive = gameState.status === GameStatusActive;
   const isActionPhase = gameState.currentPhase === GamePhaseAction;
-  const isCurrentPlayerTurn = gameState.currentTurn === gameState.viewingPlayerId;
-  const hasActions = hasActionsAvailable(gameState.currentPlayer.availableActions);
+  const isCurrentPlayerTurn =
+    gameState.currentTurn === gameState.viewingPlayerId;
+  const hasActions = hasActionsAvailable(
+    gameState.currentPlayer.availableActions,
+  );
 
   return isGameActive && isActionPhase && isCurrentPlayerTurn && hasActions;
 };

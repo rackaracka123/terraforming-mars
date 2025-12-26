@@ -47,34 +47,42 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
   // Helper to resolve player ID to name
   const getPlayerName = (playerId: string | undefined): string => {
     if (!playerId) return "Unknown";
-    if (playerId === gameState.currentPlayer.id) return gameState.currentPlayer.name;
+    if (playerId === gameState.currentPlayer.id)
+      return gameState.currentPlayer.name;
     const otherPlayer = gameState.otherPlayers.find((p) => p.id === playerId);
     return otherPlayer?.name ?? "Unknown";
   };
 
   const renderMilestones = () => {
     // Read directly from gameState to get live updates
-    const milestones: Milestone[] = gameState.currentPlayer.milestones.map((m) => ({
-      id: m.type,
-      name: m.name,
-      description: m.description,
-      reward: "5 VP",
-      cost: m.claimCost,
-      claimed: m.isClaimed,
-      claimedBy: m.claimedBy ? getPlayerName(m.claimedBy) : undefined,
-      available: m.available,
-      progress: m.progress,
-      required: m.required,
-    }));
+    const milestones: Milestone[] = gameState.currentPlayer.milestones.map(
+      (m) => ({
+        id: m.type,
+        name: m.name,
+        description: m.description,
+        reward: "5 VP",
+        cost: m.claimCost,
+        claimed: m.isClaimed,
+        claimedBy: m.claimedBy ? getPlayerName(m.claimedBy) : undefined,
+        available: m.available,
+        progress: m.progress,
+        required: m.required,
+      }),
+    );
 
     return (
       <div className="main-content-container">
         <div className="content-header">
-          <button className="back-button" onClick={() => setContentType("game")}>
+          <button
+            className="back-button"
+            onClick={() => setContentType("game")}
+          >
             ← Back to Game
           </button>
           <h2>Milestones</h2>
-          <div className="subtitle">Claim milestones to earn victory points</div>
+          <div className="subtitle">
+            Claim milestones to earn victory points
+          </div>
         </div>
 
         <div className="items-grid">
@@ -91,19 +99,27 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
               </div>
               <div className="item-description">{milestone.description}</div>
               <div className="item-reward">Reward: {milestone.reward}</div>
-              {milestone.progress !== undefined && milestone.required !== undefined && !milestone.claimed && (
-                <div className={`milestone-progress ${milestone.progress >= milestone.required ? "met" : ""}`}>
-                  Progress: {milestone.progress}/{milestone.required}
-                </div>
-              )}
+              {milestone.progress !== undefined &&
+                milestone.required !== undefined &&
+                !milestone.claimed && (
+                  <div
+                    className={`milestone-progress ${milestone.progress >= milestone.required ? "met" : ""}`}
+                  >
+                    Progress: {milestone.progress}/{milestone.required}
+                  </div>
+                )}
               {milestone.claimed && milestone.claimedBy && (
-                <div className="claimed-by">Claimed by {milestone.claimedBy}</div>
+                <div className="claimed-by">
+                  Claimed by {milestone.claimedBy}
+                </div>
               )}
               <div className="item-actions">
                 <button
                   className="action-btn claim-btn"
                   disabled={milestone.claimed || !milestone.available}
-                  onClick={() => void webSocketService.claimMilestone(milestone.id)}
+                  onClick={() =>
+                    void webSocketService.claimMilestone(milestone.id)
+                  }
                 >
                   {milestone.claimed ? "Claimed" : "Claim"}
                 </button>
@@ -130,11 +146,16 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
     return (
       <div className="main-content-container">
         <div className="content-header">
-          <button className="back-button" onClick={() => setContentType("game")}>
+          <button
+            className="back-button"
+            onClick={() => setContentType("game")}
+          >
             ← Back to Game
           </button>
           <h2>Awards</h2>
-          <div className="subtitle">Fund awards and compete for victory points</div>
+          <div className="subtitle">
+            Fund awards and compete for victory points
+          </div>
         </div>
 
         <div className="items-grid">
@@ -151,11 +172,15 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
               </div>
               <div className="item-description">{award.description}</div>
               <div className="award-info">
-                <div className="award-rewards">1st place: 5 VP, 2nd place: 2 VP</div>
+                <div className="award-rewards">
+                  1st place: 5 VP, 2nd place: 2 VP
+                </div>
                 {award.funded && award.fundedBy && (
                   <div className="funded-by">Funded by {award.fundedBy}</div>
                 )}
-                {award.winner && <div className="current-winner">Leading: {award.winner}</div>}
+                {award.winner && (
+                  <div className="current-winner">Leading: {award.winner}</div>
+                )}
               </div>
               <div className="item-actions">
                 <button

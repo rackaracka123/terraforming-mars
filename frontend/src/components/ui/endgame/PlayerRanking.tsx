@@ -15,7 +15,11 @@ interface PlayerRankingProps {
 /**
  * PlayerRanking - Podium display with winner spotlight
  */
-const PlayerRanking: FC<PlayerRankingProps> = ({ scores, isAnimating, onAnimationComplete }) => {
+const PlayerRanking: FC<PlayerRankingProps> = ({
+  scores,
+  isAnimating,
+  onAnimationComplete,
+}) => {
   const [showPodium, setShowPodium] = useState(!isAnimating);
   const [revealedPlaces, setRevealedPlaces] = useState<number[]>([]);
 
@@ -128,7 +132,9 @@ const PlayerRanking: FC<PlayerRankingProps> = ({ scores, isAnimating, onAnimatio
                   animationDelay: isRevealed ? "0ms" : "1000ms",
                 }}
               >
-                <span className={`font-orbitron font-bold ${style.text}`}>{style.label}</span>
+                <span className={`font-orbitron font-bold ${style.text}`}>
+                  {style.label}
+                </span>
               </div>
             </div>
           );
@@ -143,11 +149,15 @@ const PlayerRanking: FC<PlayerRankingProps> = ({ scores, isAnimating, onAnimatio
               key={player.playerId}
               className="flex items-center gap-4 px-4 py-2 bg-gray-800/50 rounded-lg"
             >
-              <span className="font-orbitron text-gray-400 w-8">{player.placement}th</span>
+              <span className="font-orbitron text-gray-400 w-8">
+                {player.placement}th
+              </span>
               <span className="font-orbitron text-white/80 flex-1 truncate">
                 {player.playerName}
               </span>
-              <span className="font-bold text-white">{player.vpBreakdown.totalVP} VP</span>
+              <span className="font-bold text-white">
+                {player.vpBreakdown.totalVP} VP
+              </span>
             </div>
           ))}
         </div>

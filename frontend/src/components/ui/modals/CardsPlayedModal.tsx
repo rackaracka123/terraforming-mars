@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { CardDto, ResourceTypeCredit } from "../../../types/generated/api-types.ts";
+import {
+  CardDto,
+  ResourceTypeCredit,
+} from "../../../types/generated/api-types.ts";
 import { CardType } from "../../../types/cards.tsx";
 import GameIcon from "../display/GameIcon.tsx";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
@@ -19,7 +22,11 @@ type FilterType =
   | CardType.PRELUDE;
 type SortType = "cost" | "name" | "type";
 
-const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({ isVisible, onClose, cards }) => {
+const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
+  isVisible,
+  onClose,
+  cards,
+}) => {
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [sortType, setSortType] = useState<SortType>("cost");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
@@ -53,7 +60,8 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({ isVisible, onClose,
         glowColor: "rgba(0, 255, 120, 0.5)",
       },
       [CardType.AUTOMATED]: {
-        background: "linear-gradient(145deg, rgba(30, 60, 90, 0.4) 0%, rgba(20, 40, 70, 0.3) 100%)",
+        background:
+          "linear-gradient(145deg, rgba(30, 60, 90, 0.4) 0%, rgba(20, 40, 70, 0.3) 100%)",
         borderColor: "rgba(30, 60, 150, 0.5)",
         glowColor: "rgba(100, 150, 255, 0.5)",
       },
@@ -139,10 +147,16 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({ isVisible, onClose,
                 <span className="text-lg font-bold font-[Courier_New,monospace] text-white">
                   {cardStats.total}
                 </span>
-                <span className="text-white/70 text-xs uppercase tracking-[0.5px]">Cards</span>
+                <span className="text-white/70 text-xs uppercase tracking-[0.5px]">
+                  Cards
+                </span>
               </div>
               <div className="flex flex-col items-center gap-1">
-                <GameIcon iconType={ResourceTypeCredit} amount={cardStats.totalCost} size="large" />
+                <GameIcon
+                  iconType={ResourceTypeCredit}
+                  amount={cardStats.totalCost}
+                  size="large"
+                />
               </div>
             </div>
           </div>
@@ -178,7 +192,9 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({ isVisible, onClose,
                 </select>
                 <button
                   className="bg-[#9664ff]/20 border border-[#9664ff]/40 rounded text-white py-1.5 px-2 cursor-pointer text-base transition-all duration-200 hover:bg-[#9664ff]/30 hover:scale-110"
-                  onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                  onClick={() =>
+                    setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                  }
                   title={`Sort ${sortOrder === "asc" ? "Descending" : "Ascending"}`}
                 >
                   {sortOrder === "asc" ? "↑" : "↓"}
@@ -230,7 +246,8 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({ isVisible, onClose,
           {Object.entries(cardStats.byType).map(([type, count]) => {
             if (count === 0) return null;
             const cardType = type as keyof typeof cardStats.byType;
-            const cardTypeEnum = CardType[cardType.toUpperCase() as keyof typeof CardType];
+            const cardTypeEnum =
+              CardType[cardType.toUpperCase() as keyof typeof CardType];
             const style = getCardTypeStyle(cardTypeEnum);
 
             return (
@@ -240,14 +257,19 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({ isVisible, onClose,
                 style={{
                   borderColor: style.borderColor,
                   background: style.background,
-                  boxShadow: filterType === cardTypeEnum ? `0 0 15px ${style.glowColor}` : "none",
+                  boxShadow:
+                    filterType === cardTypeEnum
+                      ? `0 0 15px ${style.glowColor}`
+                      : "none",
                 }}
                 onClick={() => setFilterType(cardTypeEnum as FilterType)}
               >
                 <span className="text-white text-base font-bold font-[Courier_New,monospace]">
                   {count}
                 </span>
-                <span className="text-white/80 text-[10px] uppercase tracking-[0.5px]">{type}</span>
+                <span className="text-white/80 text-[10px] uppercase tracking-[0.5px]">
+                  {type}
+                </span>
               </div>
             );
           })}
@@ -257,14 +279,19 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({ isVisible, onClose,
               borderColor: "#9664ff",
               background:
                 "linear-gradient(145deg, rgba(150, 100, 255, 0.2) 0%, rgba(120, 80, 200, 0.3) 100%)",
-              boxShadow: filterType === "all" ? "0 0 15px rgba(150, 100, 255, 0.5)" : "none",
+              boxShadow:
+                filterType === "all"
+                  ? "0 0 15px rgba(150, 100, 255, 0.5)"
+                  : "none",
             }}
             onClick={() => setFilterType("all")}
           >
             <span className="text-white text-base font-bold font-[Courier_New,monospace]">
               {cardStats.total}
             </span>
-            <span className="text-white/80 text-[10px] uppercase tracking-[0.5px]">All</span>
+            <span className="text-white/80 text-[10px] uppercase tracking-[0.5px]">
+              All
+            </span>
           </div>
         </div>
       </div>

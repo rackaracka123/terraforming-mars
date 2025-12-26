@@ -194,7 +194,8 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   const requiredHeat = calculateHeatForTemperature(currentPlayer?.effects);
 
   // Check if player can afford conversions
-  const canConvertPlants = (currentPlayer?.resources.plants ?? 0) >= requiredPlants;
+  const canConvertPlants =
+    (currentPlayer?.resources.plants ?? 0) >= requiredPlants;
   const canConvertHeat =
     (currentPlayer?.resources.heat ?? 0) >= requiredHeat &&
     (gameState?.globalParameters?.temperature ?? -30) < 8; // Same check as Asteroid standard project
@@ -237,8 +238,12 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       <div className="flex-[2] -translate-y-[30px] pointer-events-auto relative">
         <div className="grid grid-cols-6 gap-[15px] max-w-[500px] items-end">
           {playerResources.map((resource) => {
-            const resourceChanged = hasPathChanged(`currentPlayer.resources.${resource.id}`);
-            const productionChanged = hasPathChanged(`currentPlayer.production.${resource.id}`);
+            const resourceChanged = hasPathChanged(
+              `currentPlayer.resources.${resource.id}`,
+            );
+            const productionChanged = hasPathChanged(
+              `currentPlayer.production.${resource.id}`,
+            );
 
             // Check if this resource has a conversion button
             const showConversionButton =
@@ -275,7 +280,8 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (isConversionDisabled || !showConversionButton) return;
+                          if (isConversionDisabled || !showConversionButton)
+                            return;
                           // Execute conversion immediately
                           if (resource.id === "plant") {
                             void onConvertPlantsToGreenery?.();
@@ -292,7 +298,9 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
                           e.currentTarget.style.boxShadow = "none";
                         }}
                       >
-                        <span className="text-[15px] font-bold text-white/90">+</span>
+                        <span className="text-[15px] font-bold text-white/90">
+                          +
+                        </span>
                         <GameIcon
                           iconType={
                             resource.id === "plant"
@@ -323,7 +331,10 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
                     </div>
                   ) : (
                     <div className="flex items-center gap-1.5 min-w-[52px]">
-                      <GameIcon iconType={getResourceType(resource.id)} size="medium" />
+                      <GameIcon
+                        iconType={getResourceType(resource.id)}
+                        size="medium"
+                      />
                       <div
                         className={`text-lg font-bold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] ${resourceChanged ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""}`}
                       >
@@ -345,7 +356,8 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#ff6464] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
           style={{ boxShadow: "0 0 10px #ff646440" }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #ff6464";
+            e.currentTarget.style.boxShadow =
+              "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #ff6464";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.boxShadow = "0 0 10px #ff646440";
@@ -375,7 +387,8 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#ff96ff] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
           style={{ boxShadow: "0 0 10px #ff96ff40" }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #ff96ff";
+            e.currentTarget.style.boxShadow =
+              "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #ff96ff";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.boxShadow = "0 0 10px #ff96ff40";
@@ -407,7 +420,8 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#64ff96] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
           style={{ boxShadow: "0 0 10px #64ff9640" }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #64ff96";
+            e.currentTarget.style.boxShadow =
+              "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #64ff96";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.boxShadow = "0 0 10px #64ff9640";
@@ -440,7 +454,8 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#6496c8] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
           style={{ boxShadow: "0 0 10px #6496c840" }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #6496c8";
+            e.currentTarget.style.boxShadow =
+              "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #6496c8";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.boxShadow = "0 0 10px #6496c840";
@@ -472,7 +487,8 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#9664ff] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
           style={{ boxShadow: "0 0 10px #9664ff40" }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #9664ff";
+            e.currentTarget.style.boxShadow =
+              "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #9664ff";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.boxShadow = "0 0 10px #9664ff40";
@@ -499,7 +515,8 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#ffc864] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
           style={{ boxShadow: "0 0 10px #ffc86440" }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #ffc864";
+            e.currentTarget.style.boxShadow =
+              "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #ffc864";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.boxShadow = "0 0 10px #ffc86440";

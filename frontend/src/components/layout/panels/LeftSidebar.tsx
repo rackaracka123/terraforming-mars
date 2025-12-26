@@ -1,5 +1,10 @@
 import React from "react";
-import { PlayerDto, OtherPlayerDto, GameDto, GamePhase } from "@/types/generated/api-types.ts";
+import {
+  PlayerDto,
+  OtherPlayerDto,
+  GameDto,
+  GamePhase,
+} from "@/types/generated/api-types.ts";
 import PlayerList from "@/components/ui/list/PlayerList.tsx";
 
 interface LeftSidebarProps {

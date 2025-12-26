@@ -2,7 +2,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { globalWebSocketManager } from "../../services/globalWebSocketManager.ts";
 import { apiService } from "../../services/apiService.ts";
-import { clearGameSession, getGameSession, saveGameSession } from "../../utils/sessionStorage.ts";
+import {
+  clearGameSession,
+  getGameSession,
+  saveGameSession,
+} from "../../utils/sessionStorage.ts";
 
 const ReconnectingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -50,7 +54,11 @@ const ReconnectingPage: React.FC = () => {
 
         // Ensure WebSocket is ready and attempt reconnection
         // playerConnect sends the reconnect message, game state updates come via WebSocket
-        await globalWebSocketManager.playerConnect(playerName, gameId, playerId);
+        await globalWebSocketManager.playerConnect(
+          playerName,
+          gameId,
+          playerId,
+        );
 
         // CRITICAL FIX: Set the current player ID in globalWebSocketManager
         // This ensures the GameInterface component knows which player this client represents

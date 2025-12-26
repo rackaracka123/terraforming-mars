@@ -132,7 +132,9 @@ const StoragesPopover: React.FC<StoragesPopoverProps> = ({
             <div className="mb-[15px] opacity-60">
               <GameIcon iconType="card" size="medium" />
             </div>
-            <div className="text-white text-sm font-medium mb-2">No card storages</div>
+            <div className="text-white text-sm font-medium mb-2">
+              No card storages
+            </div>
             <div className="text-white/60 text-xs leading-[1.4]">
               Play cards with resource storage to see them here
             </div>

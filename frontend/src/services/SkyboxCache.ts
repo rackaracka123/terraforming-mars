@@ -87,7 +87,9 @@ class SkyboxCacheService {
             resolve(texture);
           } catch (error) {
             const err =
-              error instanceof Error ? error : new Error("Failed to configure skybox texture");
+              error instanceof Error
+                ? error
+                : new Error("Failed to configure skybox texture");
             this.loadingState = {
               isLoading: false,
               isLoaded: false,
@@ -105,7 +107,10 @@ class SkyboxCacheService {
           // console.log("EXR Loading progress:", (progress.loaded / progress.total) * 100 + "%");
         },
         (error) => {
-          const err = error instanceof Error ? error : new Error("Failed to load EXR skybox");
+          const err =
+            error instanceof Error
+              ? error
+              : new Error("Failed to load EXR skybox");
 
           this.loadingState = {
             isLoading: false,

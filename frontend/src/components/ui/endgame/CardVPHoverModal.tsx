@@ -50,14 +50,22 @@ const CardVPHoverModal: FC<CardVPHoverModalProps> = ({ playerScore }) => {
         {/* Cards list */}
         <div className="space-y-3">
           {cardsWithVP.map((card, idx) => (
-            <div key={idx} className="bg-purple-900/30 border border-purple-500/30 rounded-lg p-3">
+            <div
+              key={idx}
+              className="bg-purple-900/30 border border-purple-500/30 rounded-lg p-3"
+            >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-white font-medium">{card.cardName}</span>
-                <span className="text-purple-400 font-orbitron font-bold">+{card.totalVP} VP</span>
+                <span className="text-purple-400 font-orbitron font-bold">
+                  +{card.totalVP} VP
+                </span>
               </div>
               {/* Condition breakdown */}
               {card.conditions.map((condition, condIdx) => (
-                <div key={condIdx} className="text-xs text-white/60 flex items-center gap-2">
+                <div
+                  key={condIdx}
+                  className="text-xs text-white/60 flex items-center gap-2"
+                >
                   <span
                     className={`
                       uppercase px-1.5 py-0.5 rounded text-[10px]
