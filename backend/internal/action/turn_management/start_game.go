@@ -93,13 +93,7 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 		return fmt.Errorf("failed to update game status: %w", err)
 	}
 
-	// 8. BUSINESS LOGIC: Update game phase to StartingCardSelection
-	if err := g.UpdatePhase(ctx, game.GamePhaseStartingCardSelection); err != nil {
-		log.Error("Failed to update game phase", zap.Error(err))
-		return fmt.Errorf("failed to update game phase: %w", err)
-	}
-
-	// 9. BUSINESS LOGIC: Set first player's turn (use randomized turn order)
+	// 8. BUSINESS LOGIC: Set first player's turn (use randomized turn order)
 	if len(playerIDs) > 0 {
 		firstPlayerID := playerIDs[0]
 		if err := g.SetCurrentTurn(ctx, firstPlayerID, 0); err != nil {
@@ -107,16 +101,30 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 			return fmt.Errorf("failed to set current turn: %w", err)
 		}
 		log.Info("✅ Set initial turn", zap.String("first_player_id", firstPlayerID))
-		// Note: Available actions will be set when transitioning to Action phase
 	}
 
-	// 10. BUSINESS LOGIC: Distribute starting cards to all players
-	if err := a.distributeStartingCards(ctx, g, players); err != nil {
-		log.Error("Failed to distribute starting cards", zap.Error(err))
-		return fmt.Errorf("failed to distribute starting cards: %w", err)
-	}
+	// 9. BUSINESS LOGIC: Demo games go to DemoSetup phase, normal games to StartingCardSelection
+	if g.Settings().DemoGame {
+		// Demo game: go to demo setup phase where players configure their setup
+		if err := g.UpdatePhase(ctx, game.GamePhaseDemoSetup); err != nil {
+			log.Error("Failed to update game phase", zap.Error(err))
+			return fmt.Errorf("failed to update game phase: %w", err)
+		}
+		log.Info("🎮 Demo game entering setup phase")
+	} else {
+		// Normal game: go to starting card selection phase
+		if err := g.UpdatePhase(ctx, game.GamePhaseStartingCardSelection); err != nil {
+			log.Error("Failed to update game phase", zap.Error(err))
+			return fmt.Errorf("failed to update game phase: %w", err)
+		}
 
-	log.Info("✅ Starting cards distributed to all players")
+		// Distribute starting cards to all players
+		if err := a.distributeStartingCards(ctx, g, players); err != nil {
+			log.Error("Failed to distribute starting cards", zap.Error(err))
+			return fmt.Errorf("failed to distribute starting cards: %w", err)
+		}
+		log.Info("✅ Starting cards distributed to all players")
+	}
 
 	log.Info("🎉 Game started successfully")
 	return nil

@@ -82,9 +82,11 @@ func main() {
 
 	// ========== Initialize Game Actions ==========
 
-	// Game lifecycle (2)
+	// Game lifecycle (4)
 	createGameAction := gameAction.NewCreateGameAction(gameRepo, cardRegistry, log)
+	createDemoLobbyAction := gameAction.NewCreateDemoLobbyAction(gameRepo, cardRegistry, log)
 	joinGameAction := gameAction.NewJoinGameAction(gameRepo, cardRegistry, log)
+	confirmDemoSetupAction := gameAction.NewConfirmDemoSetupAction(gameRepo, cardRegistry, log)
 
 	// Card actions (2)
 	playCardAction := cardAction.NewPlayCardAction(gameRepo, cardRegistry, log)
@@ -136,7 +138,7 @@ func main() {
 	getPlayerAction := query.NewGetPlayerAction(gameRepo, log)
 
 	log.Info("✅ All migration actions initialized")
-	log.Info("   📌 Game Lifecycle (2): CreateGame, JoinGame")
+	log.Info("   📌 Game Lifecycle (4): CreateGame, CreateDemoLobby, JoinGame, ConfirmDemoSetup")
 	log.Info("   📌 Card Actions (2): PlayCard, UseCardAction")
 	log.Info("   📌 Standard Projects (6): LaunchAsteroid, BuildPowerPlant, BuildAquifer, BuildCity, PlantGreenery, SellPatents")
 	log.Info("   📌 Resource Conversions (2): ConvertHeat, ConvertPlants")
@@ -154,6 +156,7 @@ func main() {
 		// Game lifecycle
 		createGameAction,
 		joinGameAction,
+		confirmDemoSetupAction,
 		// Card actions
 		playCardAction,
 		useCardActionAction,
@@ -191,7 +194,7 @@ func main() {
 		adminStartTileSelectionAction,
 	)
 
-	log.Info("🎯 Migration handlers registered with WebSocket hub (21 handlers)")
+	log.Info("🎯 Migration handlers registered with WebSocket hub (22 handlers)")
 
 	// ========== Start WebSocket Hub ==========
 	ctx, cancel := context.WithCancel(context.Background())
@@ -207,6 +210,7 @@ func main() {
 	// Setup API router with migration actions
 	apiRouter := httpHandler.SetupRouter(
 		createGameAction,
+		createDemoLobbyAction,
 		getGameAction,
 		listGamesAction,
 		listCardsAction,
@@ -225,6 +229,7 @@ func main() {
 
 	log.Info("🌐 HTTP routes configured")
 	log.Info("   📌 POST /api/v1/games - Create game")
+	log.Info("   📌 POST /api/v1/games/demo/lobby - Create demo lobby")
 	log.Info("   📌 GET  /api/v1/games - List games")
 	log.Info("   📌 GET  /api/v1/games/{gameId} - Get game")
 	log.Info("   📌 GET  /api/v1/cards - List cards")

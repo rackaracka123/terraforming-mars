@@ -140,6 +140,18 @@ export interface ActionSkipActionRequest {
   type: ActionType;
 }
 /**
+ * ConfirmDemoSetupRequest contains the player's demo setup configuration
+ */
+export interface ConfirmDemoSetupRequest {
+  corporationId?: string;
+  cardIds: string[];
+  resources: ResourcesDto;
+  production: ProductionDto;
+  terraformRating: number /* int */;
+  globalParameters?: GlobalParametersDto; // Host only
+  generation?: number /* int */; // Host only
+}
+/**
  * ActionPlayCardRequest contains the action data for play card actions
  */
 export interface ActionPlayCardRequest {
@@ -308,6 +320,7 @@ export type GamePhase = string;
 export const GamePhaseWaitingForGameStart: GamePhase = "waiting_for_game_start";
 export const GamePhaseStartingCardSelection: GamePhase = "starting_card_selection";
 export const GamePhaseStartGameSelection: GamePhase = "start_game_selection";
+export const GamePhaseDemoSetup: GamePhase = "demo_setup";
 export const GamePhaseAction: GamePhase = "action";
 export const GamePhaseProductionAndCardDraw: GamePhase = "production_and_card_draw";
 export const GamePhaseComplete: GamePhase = "complete";
@@ -654,6 +667,7 @@ export interface ProductionPhaseOtherPlayerDto {
 export interface GameSettingsDto {
   maxPlayers: number /* int */;
   developmentMode: boolean;
+  demoGame: boolean;
   cardPacks?: string[];
 }
 /**
@@ -733,6 +747,9 @@ export const ErrorCodeInsufficientProduction: StateErrorCode = "insufficient-pro
  * Availability errors
  */
 export const ErrorCodeNoOceanTiles: StateErrorCode = "no-ocean-tiles";
+export const ErrorCodeNoCityPlacements: StateErrorCode = "no-city-placements";
+export const ErrorCodeNoGreeneryPlacements: StateErrorCode = "no-greenery-placements";
+export const ErrorCodeNoCardsInHand: StateErrorCode = "no-cards-in-hand";
 export const ErrorCodeInvalidProjectType: StateErrorCode = "invalid-project-type";
 export const ErrorCodeInvalidRequirement: StateErrorCode = "invalid-requirement";
 /**
@@ -1115,6 +1132,21 @@ export interface ErrorResponse {
   code?: string;
   details?: string;
 }
+/**
+ * CreateDemoLobbyRequest represents the request body for creating a demo lobby
+ */
+export interface CreateDemoLobbyRequest {
+  playerCount: number /* int */;
+  cardPacks?: string[];
+  playerName?: string;
+}
+/**
+ * CreateDemoLobbyResponse represents the response for creating a demo lobby
+ */
+export interface CreateDemoLobbyResponse {
+  game: GameDto;
+  playerId: string;
+}
 
 //////////
 // source: message_types.go
@@ -1164,6 +1196,8 @@ export const MessageTypeActionConvertHeatToTemperature: MessageType =
 export const MessageTypeCreateGame: MessageType = "create-game";
 export const MessageTypeActionStartGame: MessageType = "action.game-management.start-game";
 export const MessageTypeActionSkipAction: MessageType = "action.game-management.skip-action";
+export const MessageTypeActionConfirmDemoSetup: MessageType =
+  "action.game-management.confirm-demo-setup";
 /**
  * Tile selection message types
  */

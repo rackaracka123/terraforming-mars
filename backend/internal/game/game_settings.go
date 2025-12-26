@@ -11,6 +11,7 @@ type GameSettings struct {
 	Oxygen          *int     // Default: 0%
 	Oceans          *int     // Default: 0
 	DevelopmentMode bool     // Default: false
+	DemoGame        bool     // Default: false - enables lobby corp/card selection
 	CardPacks       []string // Default: ["base-game"]
 }
 

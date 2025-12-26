@@ -362,6 +362,34 @@ func (g *Game) AdvanceGeneration(ctx context.Context) error {
 	return nil
 }
 
+// SetGeneration sets the generation number directly and publishes GenerationAdvancedEvent
+// This is used for demo/admin purposes to set an arbitrary generation
+func (g *Game) SetGeneration(ctx context.Context, generation int) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	var oldGeneration, newGeneration int
+
+	g.mu.Lock()
+	oldGeneration = g.generation
+	g.generation = generation
+	newGeneration = g.generation
+	g.updatedAt = time.Now()
+	g.mu.Unlock()
+
+	// Publish event AFTER releasing lock
+	if g.eventBus != nil && oldGeneration != newGeneration {
+		events.Publish(g.eventBus, events.GenerationAdvancedEvent{
+			GameID:        g.id,
+			OldGeneration: oldGeneration,
+			NewGeneration: newGeneration,
+		})
+	}
+
+	return nil
+}
+
 // SetCurrentTurn sets the current turn to a specific player with a specific action count
 func (g *Game) SetCurrentTurn(ctx context.Context, playerID string, actionsRemaining int) error {
 	if err := ctx.Err(); err != nil {

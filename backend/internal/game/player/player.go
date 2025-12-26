@@ -23,6 +23,9 @@ type Player struct {
 	// Turn state
 	hasPassed bool
 
+	// Demo setup state (for demo games)
+	demoSetupConfirmed bool
+
 	// Delegated Components (private, exposed via accessors)
 	hand        *Hand
 	playedCards *PlayedCards
@@ -128,4 +131,14 @@ func (p *Player) SetPassed(passed bool) {
 
 	if p.eventBus != nil {
 	}
+}
+
+// ==================== Demo Setup State ====================
+
+func (p *Player) DemoSetupConfirmed() bool {
+	return p.demoSetupConfirmed
+}
+
+func (p *Player) SetDemoSetupConfirmed(confirmed bool) {
+	p.demoSetupConfirmed = confirmed
 }

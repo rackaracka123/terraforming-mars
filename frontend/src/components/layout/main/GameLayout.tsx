@@ -34,6 +34,7 @@ interface GameLayoutProps {
   showStandardProjectsPopover?: boolean;
   onToggleStandardProjectsPopover?: () => void;
   standardProjectsButtonRef?: React.RefObject<HTMLButtonElement | null>;
+  onLeaveGame?: () => void;
 }
 
 const GameLayout: React.FC<GameLayoutProps> = ({
@@ -55,6 +56,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   showStandardProjectsPopover = false,
   onToggleStandardProjectsPopover,
   standardProjectsButtonRef,
+  onLeaveGame,
 }) => {
   // Create a map of all players (current + others) for easy lookup
   const playerMap = new Map<string, PlayerDto | OtherPlayerDto>();
@@ -83,6 +85,8 @@ const GameLayout: React.FC<GameLayoutProps> = ({
             showStandardProjectsPopover={showStandardProjectsPopover}
             onToggleStandardProjectsPopover={onToggleStandardProjectsPopover}
             standardProjectsButtonRef={standardProjectsButtonRef}
+            onLeaveGame={onLeaveGame}
+            gameId={gameState?.id}
           />
         )}
 

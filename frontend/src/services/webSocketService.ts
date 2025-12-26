@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import {
   CardPaymentDto,
+  ConfirmDemoSetupRequest,
   ErrorPayload,
   FullStatePayload,
   GameUpdatedPayload,
@@ -29,6 +30,7 @@ import {
   MessageTypeActionTileSelected,
   MessageTypeActionConvertPlantsToGreenery,
   MessageTypeActionConvertHeatToTemperature,
+  MessageTypeActionConfirmDemoSetup,
   // Payload types
   PlayerConnectedPayload,
   PlayerDisconnectedPayload,
@@ -303,6 +305,11 @@ export class WebSocketService {
     // Convert coordinate object to "q,r,s" string format expected by backend
     const hex = `${coordinate.q},${coordinate.r},${coordinate.s}`;
     return this.send(MessageTypeActionTileSelected, { hex });
+  }
+
+  // Demo setup
+  confirmDemoSetup(request: ConfirmDemoSetupRequest): string {
+    return this.send(MessageTypeActionConfirmDemoSetup, request);
   }
 
   on(event: string, callback: EventCallback) {

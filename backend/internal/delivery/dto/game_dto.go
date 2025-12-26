@@ -7,6 +7,7 @@ const (
 	GamePhaseWaitingForGameStart   GamePhase = "waiting_for_game_start"
 	GamePhaseStartingCardSelection GamePhase = "starting_card_selection"
 	GamePhaseStartGameSelection    GamePhase = "start_game_selection"
+	GamePhaseDemoSetup             GamePhase = "demo_setup"
 	GamePhaseAction                GamePhase = "action"
 	GamePhaseProductionAndCardDraw GamePhase = "production_and_card_draw"
 	GamePhaseComplete              GamePhase = "complete"
@@ -350,6 +351,7 @@ type ProductionPhaseOtherPlayerDto struct {
 type GameSettingsDto struct {
 	MaxPlayers      int      `json:"maxPlayers" ts:"number"`
 	DevelopmentMode bool     `json:"developmentMode" ts:"boolean"`
+	DemoGame        bool     `json:"demoGame" ts:"boolean"`
 	CardPacks       []string `json:"cardPacks,omitempty" ts:"string[] | undefined"`
 }
 

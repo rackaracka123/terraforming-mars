@@ -11,6 +11,7 @@ import PaymentSelectionPopover from "../../ui/popover/PaymentSelectionPopover.ts
 import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
 import DevModeChip from "../../ui/debug/DevModeChip.tsx";
 import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
+import DemoSetupOverlay from "../../ui/overlay/DemoSetupOverlay.tsx";
 import TabConflictOverlay from "../../ui/overlay/TabConflictOverlay.tsx";
 import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelectionOverlay.tsx";
 import PendingCardSelectionOverlay from "../../ui/overlay/PendingCardSelectionOverlay.tsx";
@@ -30,6 +31,7 @@ import {
   CardPaymentDto,
   FullStatePayload,
   GameDto,
+  GamePhaseDemoSetup,
   GamePhaseStartingCardSelection,
   GameStatusActive,
   GameStatusLobby,
@@ -135,6 +137,9 @@ export default function GameInterface() {
     gameId: string;
     playerName: string;
   } | null>(null);
+
+  // Leave game confirmation
+  const [showLeaveGameConfirm, setShowLeaveGameConfirm] = useState(false);
 
   // Change detection
   const previousGameRef = useRef<GameDto | null>(null);
@@ -830,6 +835,18 @@ export default function GameInterface() {
     void globalWebSocketManager.convertHeatToTemperature();
   }, []);
 
+  // Leave game handler - shows confirmation dialog
+  const handleLeaveGame = useCallback(() => {
+    setShowLeaveGameConfirm(true);
+  }, []);
+
+  // Confirm leave game - disconnects but keeps session for reconnect
+  const handleConfirmLeaveGame = useCallback(() => {
+    globalWebSocketManager.disconnect();
+    // Don't clear session - allow reconnecting from landing page
+    navigate("/", { replace: true });
+  }, [navigate]);
+
   // Tab conflict handlers
   const handleTabTakeOver = () => {
     if (conflictingTabInfo) {
@@ -1144,6 +1161,7 @@ export default function GameInterface() {
           setShowStandardProjectsPopover(!showStandardProjectsPopover)
         }
         standardProjectsButtonRef={standardProjectsButtonRef}
+        onLeaveGame={handleLeaveGame}
       />
 
       <CardsPlayedModal
@@ -1205,12 +1223,59 @@ export default function GameInterface() {
 
       {isLobbyPhase && game && playerId && <WaitingRoomOverlay game={game} playerId={playerId} />}
 
+      {/* Demo setup overlay - shown after start game in demo mode */}
+      {game?.currentPhase === GamePhaseDemoSetup && game && playerId && (
+        <DemoSetupOverlay game={game} playerId={playerId} />
+      )}
+
       {showTabConflict && conflictingTabInfo && (
         <TabConflictOverlay
           activeGameInfo={conflictingTabInfo}
           onTakeOver={handleTabTakeOver}
           onCancel={handleTabCancel}
         />
+      )}
+
+      {/* Leave game confirmation dialog */}
+      {showLeaveGameConfirm && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center animate-[dialogBackdropFadeIn_0.2s_ease-out]">
+          <div className="bg-space-black-darker border-2 border-space-blue-500 rounded-xl p-8 max-w-md text-center shadow-glow animate-[dialogSlideIn_0.2s_ease-out]">
+            <h2 className="text-2xl font-bold text-white mb-4 font-orbitron">Leave game?</h2>
+            <p className="text-white/80 mb-8">
+              You can reconnect to the game again without losing any progress.
+            </p>
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={() => setShowLeaveGameConfirm(false)}
+                className="px-6 py-3 bg-white/10 border border-white/20 rounded-lg text-white font-semibold hover:bg-white/20 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmLeaveGame}
+                className="px-6 py-3 bg-red-600 border border-red-500 rounded-lg text-white font-semibold hover:bg-red-500 transition-colors"
+              >
+                Leave
+              </button>
+            </div>
+          </div>
+          <style>{`
+            @keyframes dialogBackdropFadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            @keyframes dialogSlideIn {
+              from {
+                opacity: 0;
+                transform: scale(0.95) translateY(-10px);
+              }
+              to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+              }
+            }
+          `}</style>
+        </div>
       )}
 
       {/* Starting card selection overlay */}

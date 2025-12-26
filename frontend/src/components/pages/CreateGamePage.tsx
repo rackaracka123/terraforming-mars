@@ -52,6 +52,7 @@ const CreateGamePage: React.FC = () => {
         maxPlayers: 4, // Default max players
         developmentMode: developmentMode,
         cardPacks: selectedPacks,
+        demoGame: false,
       };
 
       const game = await apiService.createGame(gameSettings);

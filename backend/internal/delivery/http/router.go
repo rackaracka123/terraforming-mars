@@ -15,6 +15,7 @@ import (
 // Includes both query (GET) and mutation (POST) endpoints
 func SetupRouter(
 	createGameAction *gameaction.CreateGameAction,
+	createDemoLobbyAction *gameaction.CreateDemoLobbyAction,
 	getGameAction *query.GetGameAction,
 	listGamesAction *query.ListGamesAction,
 	listCardsAction *query.ListCardsAction,
@@ -22,7 +23,7 @@ func SetupRouter(
 	cardRegistry cards.CardRegistry,
 ) *mux.Router {
 	// Create handlers
-	gameHandler := NewGameHandler(createGameAction, getGameAction, listGamesAction, listCardsAction, cardRegistry)
+	gameHandler := NewGameHandler(createGameAction, createDemoLobbyAction, getGameAction, listGamesAction, listCardsAction, cardRegistry)
 	playerHandler := NewPlayerHandler(getPlayerAction, getGameAction, cardRegistry)
 	healthHandler := NewHealthHandler()
 
@@ -47,6 +48,7 @@ func SetupRouter(
 	gameRoutes := api.PathPrefix("/games").Subrouter()
 	gameRoutes.HandleFunc("", gameHandler.CreateGame).Methods(http.MethodPost)
 	gameRoutes.HandleFunc("", gameHandler.ListGames).Methods(http.MethodGet)
+	gameRoutes.HandleFunc("/demo/lobby", gameHandler.CreateDemoLobby).Methods(http.MethodPost)
 	gameRoutes.HandleFunc("/{gameId}", gameHandler.GetGame).Methods(http.MethodGet)
 
 	// Player routes (query only)

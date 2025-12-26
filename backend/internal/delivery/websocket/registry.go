@@ -34,6 +34,7 @@ func RegisterHandlers(
 	// Game lifecycle
 	createGameAction *gameAction.CreateGameAction,
 	joinGameAction *gameAction.JoinGameAction,
+	confirmDemoSetupAction *gameAction.ConfirmDemoSetupAction,
 	// Card actions
 	playCardAction *cardAction.PlayCardAction,
 	useCardActionAction *cardAction.UseCardActionAction,
@@ -80,6 +81,9 @@ func RegisterHandlers(
 	joinGameHandler := game.NewJoinGameHandler(joinGameAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypePlayerConnect, joinGameHandler) // Primary handler
 	hub.RegisterHandler(dto.MessageTypeJoinGame, joinGameHandler)      // Alternative for backwards compatibility
+
+	confirmDemoSetupHandler := game.NewConfirmDemoSetupHandler(confirmDemoSetupAction, broadcaster)
+	hub.RegisterHandler(dto.MessageTypeActionConfirmDemoSetup, confirmDemoSetupHandler)
 
 	// ========== Card Actions ==========
 	playCardHandler := card.NewPlayCardHandler(playCardAction, broadcaster)
@@ -164,7 +168,7 @@ func RegisterHandlers(
 	hub.RegisterHandler(dto.MessageTypeAdminCommand, adminCommandHandler)
 
 	log.Info("🎯 Migration handlers registered successfully")
-	log.Info("   ✅ Game Lifecycle (2): create-game, player-connect/join-game (both supported)")
+	log.Info("   ✅ Game Lifecycle (3): create-game, player-connect/join-game, confirm-demo-setup")
 	log.Info("   ✅ Card Actions (2): PlayCard, UseCardAction")
 	log.Info("   ✅ Standard Projects (6): LaunchAsteroid, BuildPowerPlant, BuildAquifer, BuildCity, PlantGreenery, SellPatents")
 	log.Info("   ✅ Resource Conversions (2): ConvertHeat, ConvertPlants")
@@ -173,7 +177,7 @@ func RegisterHandlers(
 	log.Info("   ✅ Confirmations (3): ConfirmSellPatents, ConfirmProductionCards, ConfirmCardDraw")
 	log.Info("   ✅ Connection (1): PlayerDisconnected")
 	log.Info("   ✅ Admin (1): AdminCommand (routes to 8 sub-commands)")
-	log.Info("   📌 Total: 21 handlers registered (OLD handlers overwritten)")
+	log.Info("   📌 Total: 22 handlers registered (OLD handlers overwritten)")
 }
 
 // MigrateSingleHandler migrates a specific message type from old to new handler
