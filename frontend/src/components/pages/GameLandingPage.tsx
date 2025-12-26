@@ -37,30 +37,24 @@ const GameLandingPage: React.FC = () => {
               throw new Error("Saved game not found on server");
             }
 
-            // Automatically reconnect to the game
-            setIsFadingOut(true);
-            setTimeout(() => {
-              navigate("/game", {
-                state: {
-                  game: game,
-                  playerId: playerId,
-                  playerName: playerName,
-                  isReconnection: true,
-                },
-              });
-            }, 300);
+            // Show reconnect card instead of auto-reconnecting
+            setSavedGameData({
+              game: game,
+              playerId: playerId,
+              playerName: playerName,
+            });
           }
         }
       } catch (err: any) {
         void err;
         // Clear invalid saved game data
         clearGameSession();
-        setError("Unable to load previous game");
+        setSavedGameData(null);
       }
     };
 
     void checkExistingGame();
-  }, [preloadSkybox, navigate]);
+  }, [preloadSkybox]);
 
   const handleCreateGame = (e: React.MouseEvent<HTMLAnchorElement>) => {
     // Allow CTRL+Click, CMD+Click, and middle mouse button to open in new tab
@@ -228,10 +222,33 @@ const GameLandingPage: React.FC = () => {
           {/* Reconnect card - shown when saved game exists */}
           {savedGameData && (
             <div className="flex justify-center mb-10">
-              <div className="w-[500px] bg-space-black-darker/90 border-2 border-space-blue-500 rounded-xl p-8 backdrop-blur-space transition-all duration-300 hover:border-space-blue-900 hover:shadow-glow hover:shadow-glow-lg hover:-translate-y-1">
+              <div className="relative w-[500px] bg-space-black-darker/90 border-2 border-space-blue-500 rounded-xl p-8 backdrop-blur-space transition-all duration-300 hover:border-space-blue-900 hover:shadow-glow hover:shadow-glow-lg hover:-translate-y-1">
+                {/* Dismiss button */}
+                <button
+                  onClick={() => {
+                    clearGameSession();
+                    setSavedGameData(null);
+                  }}
+                  className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center text-white/40 hover:text-white/80 transition-colors rounded-full hover:bg-white/10"
+                  title="Dismiss"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+
                 {/* Corporation Logo */}
                 <div className="mb-6 flex justify-center">
-                  {savedGameData.game.currentPlayer.corporation ? (
+                  {savedGameData.game.currentPlayer?.corporation ? (
                     getCorporationLogo(
                       savedGameData.game.currentPlayer.corporation.name.toLowerCase(),
                     )
@@ -244,10 +261,12 @@ const GameLandingPage: React.FC = () => {
                 <div className="flex justify-center gap-6 mb-4 text-white/90 text-base">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">
-                      {1 + savedGameData.game.otherPlayers.length}
+                      {1 + (savedGameData.game.otherPlayers?.length || 0)}
                     </span>
                     <span className="text-white/70">
-                      {1 + savedGameData.game.otherPlayers.length === 1 ? "Player" : "Players"}
+                      {1 + (savedGameData.game.otherPlayers?.length || 0) === 1
+                        ? "Player"
+                        : "Players"}
                     </span>
                   </div>
                   <div className="text-white/40">•</div>
@@ -259,7 +278,7 @@ const GameLandingPage: React.FC = () => {
 
                 {/* Reconnect Button */}
                 <button
-                  onClick={handleReconnect}
+                  onClick={() => void handleReconnect()}
                   className="w-full bg-space-blue-600 border-2 border-space-blue-500 rounded-lg py-4 px-6 cursor-pointer transition-all duration-300 text-white text-lg font-bold font-orbitron tracking-wide hover:bg-space-blue-500 hover:border-space-blue-900 hover:shadow-glow hover:shadow-glow-lg"
                 >
                   RECONNECT
