@@ -46,13 +46,13 @@ const AwardCompact: FC<AwardCompactProps> = ({ awards, scores, awardResults, pla
                 {isFirst && (
                   <>
                     <span className="text-amber-400">{getPlayerName(playerId)}</span>
-                    <span className="text-amber-400 text-xs">1st +{VP_VALUES.AWARD_FIRST} VP</span>
+                    <span className="text-green-400 text-xs">1st +{VP_VALUES.AWARD_FIRST} VP</span>
                   </>
                 )}
                 {isSecond && (
                   <>
                     <span className="text-gray-300">{getPlayerName(playerId)}</span>
-                    <span className="text-gray-300 text-xs">2nd +{VP_VALUES.AWARD_SECOND} VP</span>
+                    <span className="text-green-400 text-xs">2nd +{VP_VALUES.AWARD_SECOND} VP</span>
                   </>
                 )}
                 {!isFirst && !isSecond && firstPlaceWinner && (

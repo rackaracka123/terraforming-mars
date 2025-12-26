@@ -75,6 +75,11 @@ const PlayerVPCard: FC<PlayerVPCardProps> = ({
           >
             {score.playerName}
           </span>
+          {isCurrentPlayer && (
+            <span className="px-1.5 py-px rounded-lg text-[8px] font-semibold uppercase tracking-[0.3px] shadow-[0_1px_2px_rgba(0,0,0,0.2)] bg-[linear-gradient(135deg,#00d4ff,#0099cc)] text-white border-2 border-[rgba(0,212,255,0.8)] [text-shadow:0_0_12px_rgba(0,212,255,0.8),0_2px_4px_rgba(0,0,0,0.6)] shadow-[0_0_16px_rgba(0,212,255,0.4),inset_0_1px_0_rgba(255,255,255,0.3)]">
+              YOU
+            </span>
+          )}
         </div>
         <span className="font-orbitron text-xl font-bold text-white">{revealedTotal}</span>
       </div>

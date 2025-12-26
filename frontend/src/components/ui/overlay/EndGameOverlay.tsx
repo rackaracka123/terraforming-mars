@@ -165,15 +165,23 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
     onTileHighlight?.(null);
   }, [onTileHighlight]);
 
+  // Check if there are claimed milestones or funded awards
+  const hasClaimedMilestones = (game.milestones ?? []).some((m) => m.isClaimed);
+  const hasFundedAwards = (game.awards ?? []).some((a) => a.isFunded);
+
   // Auto-advance phases
   useEffect(() => {
     if (currentPhase === "intro") {
       timerRef.current = setTimeout(() => advanceToPhase("tr"), ANIMATION_TIMINGS.PHASE_INTRO);
     } else if (currentPhase === "tr") {
-      timerRef.current = setTimeout(() => advanceToPhase("milestones"), ANIMATION_TIMINGS.PHASE_TR);
+      // Skip milestones/awards phases if none exist
+      const nextPhase = hasClaimedMilestones ? "milestones" : hasFundedAwards ? "awards" : "tiles";
+      timerRef.current = setTimeout(() => advanceToPhase(nextPhase), ANIMATION_TIMINGS.PHASE_TR);
     } else if (currentPhase === "milestones") {
+      // Skip awards phase if no funded awards
+      const nextPhase = hasFundedAwards ? "awards" : "tiles";
       timerRef.current = setTimeout(
-        () => advanceToPhase("awards"),
+        () => advanceToPhase(nextPhase),
         ANIMATION_TIMINGS.PHASE_MILESTONES,
       );
     } else if (currentPhase === "awards") {
@@ -201,7 +209,7 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
         clearTimeout(timerRef.current);
       }
     };
-  }, [currentPhase, tileCountingState]);
+  }, [currentPhase, tileCountingState, hasClaimedMilestones, hasFundedAwards]);
 
   // Backend provides greeneryVPDetails and cityVPDetails in FinalScoreDto
   // No need to calculate locally - use backend data for accuracy
