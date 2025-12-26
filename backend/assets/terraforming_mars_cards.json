@@ -10173,7 +10173,21 @@
             "type": "discount",
             "amount": 3,
             "target": "self-player",
-            "affectedTags": ["power"],
+            "affectedTags": ["power"]
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "discount",
+            "amount": 3,
+            "target": "self-player",
             "affectedStandardProjects": ["power-plant"]
           }
         ]

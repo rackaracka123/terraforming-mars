@@ -5,6 +5,79 @@ interface DiscountLayoutProps {
   behavior: any;
 }
 
+// Map standard project names to their icon representations
+const getStandardProjectIcon = (project: string): string | null => {
+  const mapping: { [key: string]: string } = {
+    "power-plant": "power-tag", // Power tag icon for power plant SP
+    "convert-plants-to-greenery": "greenery-tile",
+    "convert-heat-to-temperature": "heat",
+    aquifer: "ocean-tile",
+    asteroid: "temperature",
+    "air-scrapping": "venus",
+  };
+  return mapping[project] || null;
+};
+
+// Render an icon with optional "SP" badge overlay
+const IconWithBadge: React.FC<{
+  iconType: string;
+  showSpBadge?: boolean;
+}> = ({ iconType, showSpBadge = false }) => {
+  return (
+    <div className="relative inline-flex items-center justify-center">
+      <GameIcon iconType={iconType} size="small" />
+      {showSpBadge && (
+        <span className="absolute -bottom-[2px] -right-[2px] text-[8px] font-black text-white bg-[rgba(80,80,80,0.9)] px-[3px] py-[1px] rounded-[2px] leading-none [text-shadow:0_0_2px_rgba(0,0,0,0.8)]">
+          SP
+        </span>
+      )}
+    </div>
+  );
+};
+
+// Render the discount amount with resource icon
+const DiscountAmount: React.FC<{
+  amount: number;
+  resourceType: string;
+}> = ({ amount, resourceType }) => {
+  // Credits are special - show amount inside the icon
+  if (resourceType === "credit") {
+    return <GameIcon iconType="credit" amount={-amount} size="small" />;
+  }
+
+  // Other resources: show "-N" text followed by icon
+  return (
+    <div className="flex items-center gap-[2px]">
+      <span className="text-base font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
+        -{amount}
+      </span>
+      <GameIcon iconType={resourceType} size="small" />
+    </div>
+  );
+};
+
+// Single discount row component
+const DiscountRow: React.FC<{
+  icons: React.ReactNode;
+  amount: number;
+  resourceType: string;
+}> = ({ icons, amount, resourceType }) => {
+  return (
+    <div className="flex gap-[3px] items-center justify-center">
+      {/* Left side: icons */}
+      <div className="flex gap-[3px] items-center">{icons}</div>
+
+      {/* Separator */}
+      <span className="text-base font-bold text-white mx-[3px] [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
+        :
+      </span>
+
+      {/* Right side: discount amount */}
+      <DiscountAmount amount={amount} resourceType={resourceType} />
+    </div>
+  );
+};
+
 const DiscountLayout: React.FC<DiscountLayoutProps> = ({ behavior }) => {
   if (!behavior.outputs || behavior.outputs.length === 0) return null;
 
@@ -12,42 +85,80 @@ const DiscountLayout: React.FC<DiscountLayoutProps> = ({ behavior }) => {
   if (!discountOutput) return null;
 
   const amount = Math.abs(discountOutput.amount ?? 0);
-  const affectedTags = discountOutput.affectedTags || [];
+  const affectedTags: string[] = discountOutput.affectedTags || [];
+  const affectedStandardProjects: string[] = discountOutput.affectedStandardProjects || [];
+  const affectedResources: string[] = discountOutput.affectedResources || [];
 
-  // Note: affectedStandardProjects is not rendered in BehaviorSection for now
-  // Standard project discounts are shown in the standard project UI instead
+  // Use affectedResources if set (e.g., "plant" for Ecoline), otherwise default to "credit"
+  const discountResourceType = affectedResources.length > 0 ? affectedResources[0] : "credit";
 
-  return (
-    <div className="flex gap-[3px] items-center justify-center">
-      {/* Left side: affected tags only */}
-      <div className="flex gap-[3px] items-center">
-        {/* Render affected tags - use -tag suffix to force tag icon lookup */}
-        {affectedTags.map((tag: string, tagIndex: number) => (
-          <React.Fragment key={`tag-${tagIndex}`}>
-            {tagIndex > 0 && (
-              <span className="text-base font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
-                /
-              </span>
-            )}
-            <GameIcon iconType={`${tag.toLowerCase()}-tag`} size="small" />
-          </React.Fragment>
-        ))}
-      </div>
+  const rows: React.ReactNode[] = [];
 
-      {/* Separator */}
-      <span className="text-base font-bold text-white mx-[3px] [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
-        :
-      </span>
+  // Render tag discounts row (if any tags)
+  if (affectedTags.length > 0) {
+    const tagIcons = affectedTags.map((tag: string, tagIndex: number) => (
+      <React.Fragment key={`tag-${tagIndex}`}>
+        {tagIndex > 0 && (
+          <span className="text-base font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
+            /
+          </span>
+        )}
+        <IconWithBadge iconType={`${tag.toLowerCase()}-tag`} showSpBadge={false} />
+      </React.Fragment>
+    ));
 
-      {/* Right side: Credits icon with -amount inside */}
-      <div className="relative flex items-center justify-center">
-        <GameIcon iconType="credit" size="small" />
-        <span className="absolute inset-0 flex items-center justify-center text-[13px] font-black font-[Prototype,Arial_Black,Arial,sans-serif] text-black [text-shadow:0_0_2px_rgba(255,255,255,0.3)] tracking-[0.5px] [-webkit-font-smoothing:antialiased] [-moz-osx-font-smoothing:grayscale] [text-rendering:optimizeLegibility] pointer-events-none max-md:text-[11px]">
-          -{amount}
-        </span>
-      </div>
-    </div>
-  );
+    rows.push(
+      <DiscountRow
+        key="tags"
+        icons={tagIcons}
+        amount={amount}
+        resourceType={discountResourceType}
+      />,
+    );
+  }
+
+  // Render standard project discounts row (if any)
+  if (affectedStandardProjects.length > 0) {
+    const spIcons = affectedStandardProjects.map((project: string, spIndex: number) => {
+      const iconType = getStandardProjectIcon(project);
+      if (!iconType) return null;
+
+      return (
+        <React.Fragment key={`sp-${spIndex}`}>
+          {spIndex > 0 && (
+            <span className="text-base font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
+              /
+            </span>
+          )}
+          <IconWithBadge iconType={iconType} showSpBadge={true} />
+        </React.Fragment>
+      );
+    });
+
+    // Only add if we have valid icons
+    const validIcons = spIcons.filter((icon) => icon !== null);
+    if (validIcons.length > 0) {
+      rows.push(
+        <DiscountRow
+          key="standard-projects"
+          icons={validIcons}
+          amount={amount}
+          resourceType={discountResourceType}
+        />,
+      );
+    }
+  }
+
+  // If no rows, return null
+  if (rows.length === 0) return null;
+
+  // Single row: return directly
+  if (rows.length === 1) {
+    return <>{rows[0]}</>;
+  }
+
+  // Multiple rows: stack vertically
+  return <div className="flex flex-col gap-1 items-center">{rows}</div>;
 };
 
 export default DiscountLayout;
