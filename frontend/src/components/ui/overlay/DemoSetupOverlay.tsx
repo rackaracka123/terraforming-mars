@@ -40,14 +40,16 @@ const OCEANS_MAX = 9;
 const GENERATION_MIN = 1;
 const GENERATION_MAX = 14;
 
-// Stepper component - just +/- buttons and a value display
+// Stepper component with optional icon
 interface StepperProps {
   value: number;
   onChange: (value: number) => void;
   min?: number;
   max?: number;
   step?: number;
-  label?: string;
+  defaultValue?: number; // If provided, shows grayed hint until modified
+  icon?: string; // Optional icon to display
+  iconLabel?: string; // Optional text label instead of icon
 }
 
 const Stepper: React.FC<StepperProps> = ({
@@ -56,42 +58,112 @@ const Stepper: React.FC<StepperProps> = ({
   min = 0,
   max = 999,
   step = 1,
-  label,
+  defaultValue,
+  icon,
+  iconLabel,
 }) => {
+  const [isModified, setIsModified] = useState(
+    defaultValue !== undefined ? value !== defaultValue : true,
+  );
+  const [inputValue, setInputValue] = useState(value.toString());
+
+  // Update input value when external value changes
+  useEffect(() => {
+    setInputValue(value.toString());
+    if (defaultValue !== undefined) {
+      setIsModified(value !== defaultValue);
+    }
+  }, [value, defaultValue]);
+
   const canDecrease = value > min;
   const canIncrease = value < max;
 
+  const handleDecrease = () => {
+    if (canDecrease) {
+      const newValue = Math.max(min, value - step);
+      onChange(newValue);
+      setIsModified(true);
+    }
+  };
+
+  const handleIncrease = () => {
+    if (canIncrease) {
+      const newValue = Math.min(max, value + step);
+      onChange(newValue);
+      setIsModified(true);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    setInputValue(raw);
+
+    // Allow typing negative for negative mins
+    const filtered = raw.replace(/[^0-9-]/g, "").replace(/(?!^)-/g, "");
+    const num = parseInt(filtered, 10);
+    if (!isNaN(num)) {
+      const clamped = Math.max(min, Math.min(max, num));
+      onChange(clamped);
+      setIsModified(true);
+    }
+  };
+
+  const handleInputBlur = () => {
+    // On blur, reset input display to actual value
+    setInputValue(value.toString());
+  };
+
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    // Select all text on focus for easy replacement
+    e.target.select();
+  };
+
+  // Show grayed style if at default and not yet modified
+  const isAtDefault = defaultValue !== undefined && !isModified;
+
   return (
-    <div className="flex items-center gap-1">
-      {label && <span className="text-white/60 text-xs mr-2 min-w-[60px]">{label}</span>}
-      <button
-        onClick={() => canDecrease && onChange(Math.max(min, value - step))}
-        disabled={!canDecrease}
-        className={`w-8 h-8 text-lg rounded border transition-all ${
-          canDecrease
-            ? "bg-black/60 border-space-blue-400/50 text-white hover:border-space-blue-400 hover:bg-space-blue-600/30"
-            : "bg-black/30 border-white/10 text-white/30 cursor-not-allowed"
-        }`}
-      >
-        -
-      </button>
-      <span className="w-12 text-center text-white font-medium text-sm">{value}</span>
-      <button
-        onClick={() => canIncrease && onChange(Math.min(max, value + step))}
-        disabled={!canIncrease}
-        className={`w-8 h-8 text-lg rounded border transition-all ${
-          canIncrease
-            ? "bg-black/60 border-space-blue-400/50 text-white hover:border-space-blue-400 hover:bg-space-blue-600/30"
-            : "bg-black/30 border-white/10 text-white/30 cursor-not-allowed"
-        }`}
-      >
-        +
-      </button>
+    <div className="flex items-center gap-2 bg-black/30 rounded-lg p-2">
+      {icon && <GameIcon iconType={icon} size="small" />}
+      {iconLabel && <span className="text-white/60 text-xs font-medium w-6">{iconLabel}</span>}
+      <div className="flex items-center gap-1">
+        <button
+          onClick={handleDecrease}
+          disabled={!canDecrease}
+          className={`w-6 h-6 text-sm rounded transition-all ${
+            canDecrease
+              ? "bg-black/40 text-white hover:bg-black/60 cursor-pointer"
+              : "bg-black/30 text-white/30"
+          }`}
+        >
+          -
+        </button>
+        <input
+          type="text"
+          value={inputValue}
+          onChange={handleInputChange}
+          onBlur={handleInputBlur}
+          onFocus={handleInputFocus}
+          className={`w-10 h-6 text-center font-medium text-sm bg-black/60 border border-white/30 rounded outline-none focus:border-white/60 cursor-text ${
+            isAtDefault ? "text-white/40" : "text-white"
+          }`}
+        />
+        <button
+          onClick={handleIncrease}
+          disabled={!canIncrease}
+          className={`w-6 h-6 text-sm rounded transition-all ${
+            canIncrease
+              ? "bg-black/40 text-white hover:bg-black/60 cursor-pointer"
+              : "bg-black/30 text-white/30"
+          }`}
+        >
+          +
+        </button>
+      </div>
     </div>
   );
 };
 
-// Resource stepper with icon
+// Resource stepper with icon - uses Stepper internally
 interface ResourceStepperProps {
   icon: string;
   value: number;
@@ -108,27 +180,13 @@ const ResourceStepper: React.FC<ResourceStepperProps> = ({
   isProduction = false,
 }) => {
   return (
-    <div className="flex items-center gap-2 bg-black/30 rounded-lg p-2">
-      <div className="relative">
-        <GameIcon iconType={icon} size="small" />
-        {isProduction && (
-          <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-amber-600 rounded-full border border-black/50" />
-        )}
-      </div>
-      <button
-        onClick={() => onChange(Math.max(min, value - 1))}
-        className="w-6 h-6 text-sm rounded bg-black/40 border border-space-blue-400/30 text-white hover:border-space-blue-400 transition-all"
-      >
-        -
-      </button>
-      <span className="w-8 text-center text-white font-medium text-sm">{value}</span>
-      <button
-        onClick={() => onChange(value + 1)}
-        className="w-6 h-6 text-sm rounded bg-black/40 border border-space-blue-400/30 text-white hover:border-space-blue-400 transition-all"
-      >
-        +
-      </button>
-    </div>
+    <Stepper
+      value={value}
+      onChange={onChange}
+      min={min}
+      defaultValue={0}
+      icon={isProduction ? `${icon}-production` : icon}
+    />
   );
 };
 
@@ -299,38 +357,42 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
               {/* Global Parameters (Host only) */}
               {isHost && (
                 <div className="bg-black/40 border border-space-blue-600/50 rounded-xl p-3">
-                  <h3 className="text-white font-semibold mb-3 uppercase tracking-wide text-xs">
+                  <h3 className="text-white font-semibold mb-3 uppercase tracking-wide text-xs text-center">
                     Global Parameters
                   </h3>
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <Stepper
-                      label="Temp"
                       value={globalParams.temperature}
                       onChange={(v) => setGlobalParams((p) => ({ ...p, temperature: v }))}
                       min={TEMP_MIN}
                       max={TEMP_MAX}
                       step={2}
+                      defaultValue={TEMP_MIN}
+                      icon="temperature"
                     />
                     <Stepper
-                      label="Oxygen"
                       value={globalParams.oxygen}
                       onChange={(v) => setGlobalParams((p) => ({ ...p, oxygen: v }))}
                       min={OXYGEN_MIN}
                       max={OXYGEN_MAX}
+                      defaultValue={OXYGEN_MIN}
+                      icon="oxygen"
                     />
                     <Stepper
-                      label="Oceans"
                       value={globalParams.oceans}
                       onChange={(v) => setGlobalParams((p) => ({ ...p, oceans: v }))}
                       min={OCEANS_MIN}
                       max={OCEANS_MAX}
+                      defaultValue={OCEANS_MIN}
+                      icon="ocean"
                     />
                     <Stepper
-                      label="Gen"
                       value={generation}
                       onChange={setGeneration}
                       min={GENERATION_MIN}
                       max={GENERATION_MAX}
+                      defaultValue={GENERATION_MIN}
+                      iconLabel="Gen"
                     />
                   </div>
                 </div>
@@ -338,10 +400,19 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
 
               {/* Terraform Rating */}
               <div className="bg-black/40 border border-space-blue-600/50 rounded-xl p-3">
-                <h3 className="text-white font-semibold mb-3 uppercase tracking-wide text-xs">
+                <h3 className="text-white font-semibold mb-3 uppercase tracking-wide text-xs text-center">
                   Terraform Rating
                 </h3>
-                <Stepper value={terraformRating} onChange={setTerraformRating} min={0} max={100} />
+                <div className="flex justify-center">
+                  <Stepper
+                    value={terraformRating}
+                    onChange={setTerraformRating}
+                    min={0}
+                    max={100}
+                    defaultValue={20}
+                    icon="tr"
+                  />
+                </div>
               </div>
 
               {/* Resources */}
@@ -396,7 +467,7 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                 onChange={(e) => setCorpSearchTerm(e.target.value)}
                 className="w-full bg-black/60 border border-space-blue-400/30 rounded-lg py-2 px-3 text-white text-sm outline-none focus:border-space-blue-400 mb-3 shrink-0"
               />
-              <div className="flex flex-col gap-4 items-center flex-1 min-h-0 overflow-y-auto">
+              <div className="flex flex-col gap-2 items-center flex-1 min-h-0 overflow-y-auto">
                 {/* Random option */}
                 <button
                   onClick={() => setSelectedCorporationId("")}
@@ -409,7 +480,7 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                   <span className="text-white/80 text-sm font-medium">Random Corporation</span>
                 </button>
                 {filteredCorporations.map((corp) => (
-                  <div key={corp.id} className="shrink-0">
+                  <div key={corp.id} className="scale-90">
                     <CorporationCard
                       corporation={{
                         id: corp.id,
@@ -465,9 +536,9 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                 onChange={(e) => setCardSearchTerm(e.target.value)}
                 className="w-full bg-black/60 border border-space-blue-400/30 rounded-lg py-2 px-3 text-white text-sm outline-none focus:border-space-blue-400 mb-3 shrink-0"
               />
-              <div className="flex flex-wrap gap-2 justify-center content-start flex-1 min-h-0 overflow-y-auto">
+              <div className="flex flex-wrap gap-x-1 gap-y-2 justify-center content-start flex-1 min-h-0 overflow-y-auto ">
                 {filteredCards.slice(0, 50).map((card) => (
-                  <div key={card.id} className="shrink-0">
+                  <div className="scale-80">
                     <SimpleGameCard
                       card={card}
                       isSelected={selectedCardIds.includes(card.id)}
