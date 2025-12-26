@@ -161,10 +161,7 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
               {!project.available && project.errors && project.errors.length > 0 && (
                 <div className="absolute top-2 right-2 z-[4] bg-[linear-gradient(135deg,#e74c3c,#c0392b)] text-white text-[9px] font-bold px-2 py-1 rounded border border-[rgba(231,76,60,0.8)] shadow-[0_2px_8px_rgba(231,76,60,0.4)] flex items-center gap-1">
                   <span>⚠</span>
-                  <span
-                    className="max-w-[140px] truncate"
-                    title={project.errors.map((e) => e.message).join(", ")}
-                  >
+                  <span className="max-w-[140px] truncate">
                     {project.errors[0].message}
                     {project.errors.length > 1 && ` (+${project.errors.length - 1})`}
                   </span>

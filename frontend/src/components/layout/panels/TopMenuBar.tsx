@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useMainContent } from "@/contexts/MainContentContext.tsx";
 import { GameDto } from "@/types/generated/api-types.ts";
 
 interface TopMenuBarProps {
@@ -7,19 +6,30 @@ interface TopMenuBarProps {
   showStandardProjectsPopover?: boolean;
   onToggleStandardProjectsPopover?: () => void;
   standardProjectsButtonRef?: React.RefObject<HTMLButtonElement | null>;
+  showMilestonePopover?: boolean;
+  onToggleMilestonePopover?: () => void;
+  milestonesButtonRef?: React.RefObject<HTMLButtonElement | null>;
+  showAwardPopover?: boolean;
+  onToggleAwardPopover?: () => void;
+  awardsButtonRef?: React.RefObject<HTMLButtonElement | null>;
   onLeaveGame?: () => void;
   gameId?: string;
 }
 
 const TopMenuBar: React.FC<TopMenuBarProps> = ({
-  gameState,
+  gameState: _gameState,
   showStandardProjectsPopover,
   onToggleStandardProjectsPopover,
   standardProjectsButtonRef,
+  showMilestonePopover,
+  onToggleMilestonePopover,
+  milestonesButtonRef,
+  showAwardPopover,
+  onToggleAwardPopover,
+  awardsButtonRef,
   onLeaveGame,
   gameId,
 }) => {
-  const { setContentType, setContentData } = useMainContent();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -49,75 +59,72 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
     onLeaveGame?.();
   };
 
-  // Reset button inline border style when popover closes
+  // Reset button inline border style when popovers close
   useEffect(() => {
     if (!showStandardProjectsPopover && standardProjectsButtonRef?.current) {
-      standardProjectsButtonRef.current.style.borderColor = "transparent";
+      standardProjectsButtonRef.current.style.borderColor = "rgba(255,255,255,0.2)";
     }
   }, [showStandardProjectsPopover, standardProjectsButtonRef]);
 
+  useEffect(() => {
+    if (!showMilestonePopover && milestonesButtonRef?.current) {
+      milestonesButtonRef.current.style.borderColor = "rgba(255,255,255,0.2)";
+    }
+  }, [showMilestonePopover, milestonesButtonRef]);
+
+  useEffect(() => {
+    if (!showAwardPopover && awardsButtonRef?.current) {
+      awardsButtonRef.current.style.borderColor = "rgba(255,255,255,0.2)";
+    }
+  }, [showAwardPopover, awardsButtonRef]);
+
   const menuItems = [
-    { id: "milestones" as const, label: "MILESTONES", color: "#ff6b35" },
     { id: "projects" as const, label: "STANDARD PROJECTS", color: "#4a90e2" },
+    { id: "milestones" as const, label: "MILESTONES", color: "#ff6b35" },
     { id: "awards" as const, label: "AWARDS", color: "#f39c12" },
   ];
 
-  // Transform player-specific milestones to display format (includes eligibility from backend)
-  const getMilestoneData = () => ({
-    milestones: gameState.currentPlayer.milestones.map((m) => ({
-      id: m.type,
-      name: m.name,
-      description: m.description,
-      reward: "5 VP",
-      cost: m.claimCost,
-      claimed: m.isClaimed,
-      claimedBy: m.claimedBy,
-      available: m.available, // Backend-calculated eligibility
-      progress: m.progress,
-      required: m.required,
-    })),
-  });
-
-  // Transform player-specific awards to display format (includes eligibility from backend)
-  const getAwardData = () => ({
-    awards: gameState.currentPlayer.awards.map((a) => ({
-      id: a.type,
-      name: a.name,
-      description: a.description,
-      fundingCost: a.fundingCost,
-      funded: a.isFunded,
-      fundedBy: a.fundedBy,
-      available: a.available, // Backend-calculated eligibility
-    })),
-  });
-
   const handleTabClick = (tabId: "milestones" | "projects" | "awards") => {
-    // For standard projects, toggle the popover
     if (tabId === "projects") {
       onToggleStandardProjectsPopover?.();
-      return;
+    } else if (tabId === "milestones") {
+      onToggleMilestonePopover?.();
+    } else if (tabId === "awards") {
+      onToggleAwardPopover?.();
     }
+  };
 
-    const data = tabId === "milestones" ? getMilestoneData() : getAwardData();
-    setContentData(data);
-    setContentType(tabId);
+  // Get the appropriate ref for each button
+  const getButtonRef = (itemId: "projects" | "milestones" | "awards") => {
+    if (itemId === "projects") return standardProjectsButtonRef;
+    if (itemId === "milestones") return milestonesButtonRef;
+    if (itemId === "awards") return awardsButtonRef;
+    return null;
+  };
+
+  // Check if a popover is currently open for a given item
+  const isPopoverOpen = (itemId: "projects" | "milestones" | "awards") => {
+    if (itemId === "projects") return showStandardProjectsPopover;
+    if (itemId === "milestones") return showMilestonePopover;
+    if (itemId === "awards") return showAwardPopover;
+    return false;
   };
 
   return (
-    <div className="bg-black/95 border-b border-[#333] relative z-[100]">
+    <div className="bg-transparent relative z-[100] pointer-events-none">
       <div className="flex justify-between items-center px-5 h-[60px] max-lg:px-[15px] max-lg:h-[50px] max-md:px-2.5 max-md:flex-wrap max-sm:px-2.5 max-sm:flex-wrap">
-        <div className="flex gap-5 max-md:order-2 max-md:flex-[0_0_100%] max-md:mt-2.5">
+        <div className="flex gap-3 max-md:order-2 max-md:flex-[0_0_100%] max-md:mt-2.5">
           {menuItems.map((item) => (
             <button
               key={item.id}
-              ref={item.id === "projects" ? standardProjectsButtonRef : null}
-              className={`bg-none border-2 text-white text-sm font-bold py-2.5 px-5 cursor-pointer rounded transition-all duration-200 hover:bg-white/10 max-lg:text-xs max-lg:py-2 max-lg:px-[15px] max-md:py-2 max-md:px-[15px] max-md:text-xs max-sm:py-1.5 max-sm:px-3 max-sm:text-[11px] ${item.id === "projects" && showStandardProjectsPopover ? `border-[${item.color}]` : "border-transparent"}`}
+              ref={getButtonRef(item.id)}
+              className={`pointer-events-auto bg-black border-2 text-white text-sm font-bold font-orbitron py-2.5 px-5 cursor-pointer rounded-xl transition-all duration-200 hover:bg-white/10 max-lg:text-xs max-lg:py-2 max-lg:px-[15px] max-md:py-2 max-md:px-[15px] max-md:text-xs max-sm:py-1.5 max-sm:px-3 max-sm:text-[11px] ${isPopoverOpen(item.id) ? `border-[${item.color}]` : "border-white/20"}`}
               onClick={() => handleTabClick(item.id)}
               style={{ "--item-color": item.color } as React.CSSProperties}
               onMouseEnter={(e) => (e.currentTarget.style.borderColor = item.color)}
               onMouseLeave={(e) => {
-                if (item.id !== "projects" || !showStandardProjectsPopover) {
-                  e.currentTarget.style.borderColor = "transparent";
+                if (!isPopoverOpen(item.id)) {
+                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
                 }
               }}
             >
@@ -126,10 +133,10 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
           ))}
         </div>
 
-        <div className="relative" ref={menuRef}>
+        <div className="relative pointer-events-auto" ref={menuRef}>
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="bg-white/10 border border-[#333] text-white p-2 rounded cursor-pointer hover:bg-white/20 transition-colors"
+            className="bg-black border-2 border-white/20 text-white p-2 rounded-xl cursor-pointer hover:bg-white/20 transition-colors"
             aria-label="Menu"
           >
             {/* Hamburger icon */}

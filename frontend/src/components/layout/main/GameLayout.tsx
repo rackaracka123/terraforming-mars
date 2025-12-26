@@ -8,7 +8,6 @@ import { TileVPIndicator } from "../../ui/overlay/EndGameOverlay.tsx";
 import BottomResourceBar from "../../ui/overlay/BottomResourceBar.tsx";
 import PlayerOverlay from "../../ui/overlay/PlayerOverlay.tsx";
 import CorporationViewer from "../../ui/display/CorporationViewer.tsx";
-import { MainContentProvider } from "../../../contexts/MainContentContext.tsx";
 import {
   GameDto,
   PlayerDto,
@@ -38,6 +37,12 @@ interface GameLayoutProps {
   showStandardProjectsPopover?: boolean;
   onToggleStandardProjectsPopover?: () => void;
   standardProjectsButtonRef?: React.RefObject<HTMLButtonElement | null>;
+  showMilestonePopover?: boolean;
+  onToggleMilestonePopover?: () => void;
+  milestonesButtonRef?: React.RefObject<HTMLButtonElement | null>;
+  showAwardPopover?: boolean;
+  onToggleAwardPopover?: () => void;
+  awardsButtonRef?: React.RefObject<HTMLButtonElement | null>;
   onLeaveGame?: () => void;
 }
 
@@ -62,6 +67,12 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   showStandardProjectsPopover = false,
   onToggleStandardProjectsPopover,
   standardProjectsButtonRef,
+  showMilestonePopover = false,
+  onToggleMilestonePopover,
+  milestonesButtonRef,
+  showAwardPopover = false,
+  onToggleAwardPopover,
+  awardsButtonRef,
   onLeaveGame,
 }) => {
   // Create a map of all players (current + others) for easy lookup
@@ -84,65 +95,71 @@ const GameLayout: React.FC<GameLayoutProps> = ({
     allPlayers.find((player) => player.id === gameState?.currentTurn) || null;
 
   return (
-    <MainContentProvider>
-      <div className="grid grid-rows-[auto_1fr] w-screen h-screen bg-[#000011] bg-[url('/assets/background-noise.png')] [background-attachment:fixed] bg-repeat text-white overflow-hidden">
-        {!isLobbyPhase && !showCardSelection && (
-          <TopMenuBar
-            gameState={gameState}
-            showStandardProjectsPopover={showStandardProjectsPopover}
-            onToggleStandardProjectsPopover={onToggleStandardProjectsPopover}
-            standardProjectsButtonRef={standardProjectsButtonRef}
-            onLeaveGame={onLeaveGame}
-            gameId={gameState?.id}
-          />
-        )}
-
-        <div className="grid grid-cols-1 min-h-0 gap-0 relative">
-          <MainContentDisplay
-            gameState={gameState}
-            tileHighlightMode={tileHighlightMode}
-            vpIndicators={vpIndicators}
-          />
-        </div>
-
-        {/* Overlay Components */}
-        <LeftSidebar
-          players={allPlayers}
-          currentPlayer={currentPlayer}
-          currentPlayerId={gameState?.currentTurn || ""}
-          currentPhase={gameState?.currentPhase}
+    <div className="relative w-screen h-screen bg-[#000011] bg-[url('/assets/background-noise.png')] [background-attachment:fixed] bg-repeat text-white overflow-hidden">
+      {/* Game content takes full screen */}
+      <div className="absolute inset-0">
+        <MainContentDisplay
           gameState={gameState}
+          tileHighlightMode={tileHighlightMode}
+          vpIndicators={vpIndicators}
         />
-
-        <RightSidebar
-          globalParameters={gameState?.globalParameters}
-          generation={gameState?.generation}
-          currentPlayer={currentTurnPlayer}
-        />
-
-        <PlayerOverlay players={allPlayers} currentPlayer={currentPlayer} />
-
-        {!isLobbyPhase && !showCardSelection && (
-          <>
-            <BottomResourceBar
-              currentPlayer={currentPlayer}
-              gameState={gameState}
-              playedCards={playedCards}
-              changedPaths={changedPaths}
-              onOpenCardEffectsModal={onOpenCardEffectsModal}
-              onOpenCardsPlayedModal={onOpenCardsPlayedModal}
-              onOpenVictoryPointsModal={onOpenVictoryPointsModal}
-              onOpenActionsModal={onOpenActionsModal}
-              onActionSelect={onActionSelect}
-              onConvertPlantsToGreenery={onConvertPlantsToGreenery}
-              onConvertHeatToTemperature={onConvertHeatToTemperature}
-            />
-
-            {corporationCard && <CorporationViewer corporation={corporationCard} />}
-          </>
-        )}
       </div>
-    </MainContentProvider>
+
+      {/* TopMenuBar overlays on top */}
+      {!isLobbyPhase && !showCardSelection && (
+        <TopMenuBar
+          gameState={gameState}
+          showStandardProjectsPopover={showStandardProjectsPopover}
+          onToggleStandardProjectsPopover={onToggleStandardProjectsPopover}
+          standardProjectsButtonRef={standardProjectsButtonRef}
+          showMilestonePopover={showMilestonePopover}
+          onToggleMilestonePopover={onToggleMilestonePopover}
+          milestonesButtonRef={milestonesButtonRef}
+          showAwardPopover={showAwardPopover}
+          onToggleAwardPopover={onToggleAwardPopover}
+          awardsButtonRef={awardsButtonRef}
+          onLeaveGame={onLeaveGame}
+          gameId={gameState?.id}
+        />
+      )}
+
+      {/* Overlay Components */}
+      <LeftSidebar
+        players={allPlayers}
+        currentPlayer={currentPlayer}
+        currentPlayerId={gameState?.currentTurn || ""}
+        currentPhase={gameState?.currentPhase}
+        gameState={gameState}
+      />
+
+      <RightSidebar
+        globalParameters={gameState?.globalParameters}
+        generation={gameState?.generation}
+        currentPlayer={currentTurnPlayer}
+      />
+
+      <PlayerOverlay players={allPlayers} currentPlayer={currentPlayer} />
+
+      {!isLobbyPhase && !showCardSelection && (
+        <>
+          <BottomResourceBar
+            currentPlayer={currentPlayer}
+            gameState={gameState}
+            playedCards={playedCards}
+            changedPaths={changedPaths}
+            onOpenCardEffectsModal={onOpenCardEffectsModal}
+            onOpenCardsPlayedModal={onOpenCardsPlayedModal}
+            onOpenVictoryPointsModal={onOpenVictoryPointsModal}
+            onOpenActionsModal={onOpenActionsModal}
+            onActionSelect={onActionSelect}
+            onConvertPlantsToGreenery={onConvertPlantsToGreenery}
+            onConvertHeatToTemperature={onConvertHeatToTemperature}
+          />
+
+          {corporationCard && <CorporationViewer corporation={corporationCard} />}
+        </>
+      )}
+    </div>
   );
 };
 
