@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import CorporationCard from "../cards/CorporationCard.tsx";
 import { CardBehaviorDto } from "@/types/generated/api-types.ts";
+import { getCorporationBorderColor } from "@/utils/corporationColors.ts";
 
 interface Corporation {
   id: string;
@@ -91,6 +92,7 @@ const CorporationSelectionModal: React.FC<CorporationSelectionModalProps> = ({
               corporation={corp}
               isSelected={selectedCorporation === corp.id}
               onSelect={handleCorporationSelect}
+              borderColor={getCorporationBorderColor(corp.name)}
             />
           ))}
         </div>

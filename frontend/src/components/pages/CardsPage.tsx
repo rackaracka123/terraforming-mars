@@ -6,6 +6,7 @@ import CorporationCard from "../ui/cards/CorporationCard";
 import CopyLinkButton from "../ui/buttons/CopyLinkButton";
 import { CardDto, CardTypeCorporation } from "@/types/generated/api-types";
 import GameIcon from "../ui/display/GameIcon.tsx";
+import { getCorporationBorderColor } from "@/utils/corporationColors.ts";
 
 const CardsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -712,6 +713,7 @@ const CardsPage: React.FC = () => {
                   isSelected={selectedCards.has(card.id)}
                   onSelect={handleCardSelect}
                   showCheckbox={!isPermalinkView}
+                  borderColor={getCorporationBorderColor(card.name)}
                 />
               ) : (
                 <SimpleGameCard

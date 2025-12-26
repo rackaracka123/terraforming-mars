@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { CardDto } from "@/types/generated/api-types.ts";
 import { getCorporationLogo } from "@/utils/corporationLogos.tsx";
+import { getCorporationBorderColor } from "@/utils/corporationColors.ts";
 import CorporationCard from "../cards/CorporationCard.tsx";
 
 interface CorporationViewerProps {
@@ -9,18 +10,33 @@ interface CorporationViewerProps {
 
 const CorporationViewer: React.FC<CorporationViewerProps> = ({ corporation }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showExpanded, setShowExpanded] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const borderColor = getCorporationBorderColor(corporation.name);
 
-  const toggleExpanded = (e: React.MouseEvent) => {
+  const handleOpen = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsExpanded(!isExpanded);
+    setShowExpanded(true);
+    // Small delay to allow DOM to render before animating
+    requestAnimationFrame(() => {
+      setIsExpanded(true);
+    });
+  };
+
+  const handleClose = () => {
+    setIsExpanded(false);
+    // Wait for animation to complete before hiding
+    setTimeout(() => {
+      setShowExpanded(false);
+    }, 200);
   };
 
   // Close when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsExpanded(false);
+        handleClose();
       }
     };
 
@@ -37,21 +53,41 @@ const CorporationViewer: React.FC<CorporationViewerProps> = ({ corporation }) =>
     <div
       ref={containerRef}
       className="fixed bottom-[150px] left-[30px] z-[999] pointer-events-auto"
-      title={isExpanded ? "" : `${corporation.name}\n${corporation.description}`}
     >
-      {!isExpanded ? (
-        /* Collapsed: Logo Only */
-        <div
-          className="bg-black/95 rounded-lg backdrop-blur-space transition-all duration-300 cursor-pointer p-1.5 shadow-[0_0_15px_rgba(30,60,150,0.39)] hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(30,60,150,0.65)]"
-          onClick={toggleExpanded}
-        >
-          <div className="rounded-lg p-1 bg-black/30 flex items-center justify-center [&>*]:box-content [&>*]:[filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.8))] [&>*]:rounded-[4px] [&>*>*]:rounded-[4px] [&>*>*]:[filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.8))]">
-            {getCorporationLogo(corporation.name.toLowerCase())}
-          </div>
+      {/* Collapsed: Logo Only */}
+      <div
+        className={`bg-black/95 rounded-lg backdrop-blur-space transition-all duration-200 cursor-pointer p-2 origin-bottom-left ${
+          showExpanded ? "opacity-0 scale-75 pointer-events-none" : "opacity-100 scale-100"
+        }`}
+        style={{
+          boxShadow: isHovered ? `0 0 20px ${borderColor}80` : `0 0 12px ${borderColor}50`,
+        }}
+        onClick={handleOpen}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <div className="rounded-lg p-2 bg-black/30 flex items-center justify-center min-w-[120px] min-h-[60px] [&>*]:box-content [&>*]:[filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.8))] [&>*]:rounded-[4px] [&>*>*]:rounded-[4px] [&>*>*]:[filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.8))]">
+          {getCorporationLogo(corporation.name.toLowerCase())}
         </div>
-      ) : (
-        /* Expanded: Full Corporation Card */
-        <div onClick={toggleExpanded}>
+      </div>
+
+      {/* Expanded: Full Corporation Card */}
+      {showExpanded && (
+        <div
+          className={`absolute bottom-0 left-0 origin-bottom-left transition-all duration-200 ${
+            isExpanded ? "opacity-100 scale-100" : "opacity-0 scale-90"
+          }`}
+        >
+          {/* Close button - inside card, top right */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClose();
+            }}
+            className="absolute top-4 right-4 text-white/70 hover:text-white text-xl leading-none transition-colors z-10 cursor-pointer"
+          >
+            ×
+          </button>
           <CorporationCard
             corporation={{
               id: corporation.id,
@@ -65,6 +101,8 @@ const CorporationViewer: React.FC<CorporationViewerProps> = ({ corporation }) =>
             isSelected={false}
             onSelect={() => {}} // No-op for in-game view
             showCheckbox={false}
+            borderColor={borderColor}
+            disableInteraction={true}
           />
         </div>
       )}

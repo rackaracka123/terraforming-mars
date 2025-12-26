@@ -3,6 +3,7 @@ import SimpleGameCard from "../cards/SimpleGameCard.tsx";
 import CorporationCard from "../cards/CorporationCard.tsx";
 import GameIcon from "../display/GameIcon.tsx";
 import { CardDto, ResourceTypeCredit } from "../../../types/generated/api-types.ts";
+import { getCorporationBorderColor } from "@/utils/corporationColors.ts";
 import { useCardSelection } from "../../../hooks/useCardSelection.ts";
 import {
   OVERLAY_CONTAINER_CLASS,
@@ -146,6 +147,7 @@ const StartingCardSelectionOverlay: React.FC<StartingCardSelectionOverlayProps> 
                     }}
                     isSelected={selectedCorporationId === corp.id}
                     onSelect={handleCorporationSelect}
+                    borderColor={getCorporationBorderColor(corp.name)}
                   />
                 </div>
               ))}
