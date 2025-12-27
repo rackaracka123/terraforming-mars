@@ -210,6 +210,7 @@ export default function ProjectedHexTile({
       fragmentShader: `
         uniform float time;
         uniform vec3 highlightColor;
+        uniform float opacity;
         varying vec2 vUv;
 
         void main() {
@@ -225,7 +226,7 @@ export default function ProjectedHexTile({
           // Pulsing animation - slower and more pronounced
           float pulse = 0.6 + 0.4 * sin(time * 3.0);
 
-          float alpha = gradient * pulse * 0.7;
+          float alpha = gradient * pulse * 0.7 * opacity;
 
           gl_FragColor = vec4(highlightColor, alpha);
         }
@@ -233,6 +234,7 @@ export default function ProjectedHexTile({
       uniforms: {
         time: { value: 0.0 },
         highlightColor: { value: new THREE.Vector3(0.13, 0.77, 0.27) }, // Default green
+        opacity: { value: 0.0 },
       },
       transparent: true,
       side: THREE.DoubleSide,
@@ -264,6 +266,14 @@ export default function ProjectedHexTile({
 
     if (endGameHighlightMaterial.uniforms) {
       endGameHighlightMaterial.uniforms.time.value = state.clock.elapsedTime;
+
+      // Animate opacity based on highlight mode (fade in/out smoothly)
+      const targetOpacity = highlightMode ? 1.0 : 0.0;
+      endGameHighlightMaterial.uniforms.opacity.value = THREE.MathUtils.lerp(
+        endGameHighlightMaterial.uniforms.opacity.value,
+        targetOpacity,
+        0.1, // Smooth fade speed
+      );
 
       // Update highlight color based on mode
       if (highlightMode) {
@@ -440,14 +450,12 @@ export default function ProjectedHexTile({
         />
       )}
 
-      {/* End game VP counting highlight effect */}
-      {highlightMode && (
-        <mesh
-          position={[0, 0, 0.003]}
-          geometry={oceanGradientGeometry}
-          material={endGameHighlightMaterial}
-        />
-      )}
+      {/* End game VP counting highlight effect - always rendered, opacity controlled via shader */}
+      <mesh
+        position={[0, 0, 0.003]}
+        geometry={oceanGradientGeometry}
+        material={endGameHighlightMaterial}
+      />
 
       {/* Tile type 3D model (city, greenery, ocean) */}
       {(tileType === "city" || tileType === "greenery" || tileType === "ocean") && (
