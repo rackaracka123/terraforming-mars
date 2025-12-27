@@ -514,6 +514,41 @@ func CreateTestCardRegistry() cards.CardRegistry {
 			Tags:        []shared.CardTag{shared.TagPower, shared.TagBuilding},
 			Description: "Increase temperature 1 step. Increase your energy production 1 step.",
 		},
+		// Card with choice for testing choice-based cards
+		{
+			ID:          "card-artificial-photosynthesis",
+			Name:        "Artificial Photosynthesis",
+			Type:        gamecards.CardTypeAutomated,
+			Pack:        "base",
+			Cost:        12,
+			Tags:        []shared.CardTag{shared.TagScience},
+			Description: "Increase your plant production 1 step or your energy production 2 steps.",
+			Behaviors: []shared.CardBehavior{
+				{
+					Triggers: []shared.Trigger{{Type: shared.TriggerTypeAuto}},
+					Choices: []shared.Choice{
+						{
+							Outputs: []shared.ResourceCondition{
+								{
+									ResourceType: shared.ResourcePlantProduction,
+									Amount:       1,
+									Target:       "self-player",
+								},
+							},
+						},
+						{
+							Outputs: []shared.ResourceCondition{
+								{
+									ResourceType: shared.ResourceEnergyProduction,
+									Amount:       2,
+									Target:       "self-player",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	return cards.NewInMemoryCardRegistry(testCards)

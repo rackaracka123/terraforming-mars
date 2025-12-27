@@ -94,13 +94,23 @@ func (h *PlayCardHandler) HandleMessage(ctx context.Context, connection *core.Co
 		}
 	}
 
+	// Extract optional choiceIndex for cards with choices
+	var choiceIndex *int
+	if choiceIndexFloat, ok := payload["choiceIndex"].(float64); ok {
+		idx := int(choiceIndexFloat)
+		choiceIndex = &idx
+	}
+
 	log.Debug("Payment extracted",
 		zap.Int("credits", payment.Credits),
 		zap.Int("steel", payment.Steel),
 		zap.Int("titanium", payment.Titanium),
 		zap.Any("substitutes", payment.Substitutes))
+	if choiceIndex != nil {
+		log.Debug("Choice index extracted", zap.Int("choice_index", *choiceIndex))
+	}
 
-	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, cardID, payment)
+	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, cardID, payment, choiceIndex)
 	if err != nil {
 		log.Error("Failed to execute play card action", zap.Error(err))
 		h.sendError(connection, err.Error())

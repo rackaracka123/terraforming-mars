@@ -47,11 +47,15 @@ func (a *PlayCardAction) Execute(
 	playerID string,
 	cardID string,
 	payment PaymentRequest,
+	choiceIndex *int,
 ) error {
 	log := a.InitLogger(gameID, playerID).With(
 		zap.String("card_id", cardID),
 		zap.String("action", "play_card"),
 	)
+	if choiceIndex != nil {
+		log = log.With(zap.Int("choice_index", *choiceIndex))
+	}
 	log.Info("🃏 Player attempting to play card")
 
 	// 1. Validate game exists and is active
@@ -181,7 +185,7 @@ func (a *PlayCardAction) Execute(
 		zap.Any("substitutes", payment.Substitutes))
 
 	// 15. BUSINESS LOGIC: Apply card immediate effects and register behaviors
-	if err := a.applyCardBehaviors(ctx, g, card, player, log); err != nil {
+	if err := a.applyCardBehaviors(ctx, g, card, player, choiceIndex, log); err != nil {
 		log.Error("Failed to apply card behaviors", zap.Error(err))
 		return fmt.Errorf("failed to apply card behaviors: %w", err)
 	}
@@ -327,6 +331,7 @@ func (a *PlayCardAction) applyCardBehaviors(
 	g *game.Game,
 	card *gamecards.Card,
 	p *player.Player,
+	choiceIndex *int,
 	log *zap.Logger,
 ) error {
 	if len(card.Behaviors) == 0 {
@@ -345,13 +350,16 @@ func (a *PlayCardAction) applyCardBehaviors(
 
 		// Apply auto-trigger behaviors immediately
 		if gamecards.HasAutoTrigger(behavior) {
+			// Extract inputs and outputs, incorporating choice if present
+			_, outputs := behavior.ExtractInputsOutputs(choiceIndex)
+
 			log.Info("✨ Found auto-trigger behavior, applying outputs immediately",
-				zap.Int("output_count", len(behavior.Outputs)))
+				zap.Int("output_count", len(outputs)))
 
 			// Use BehaviorApplier for consistent output handling
 			applier := gamecards.NewBehaviorApplier(p, g, card.Name, log).
 				WithSourceCardID(card.ID)
-			if err := applier.ApplyOutputs(ctx, behavior.Outputs); err != nil {
+			if err := applier.ApplyOutputs(ctx, outputs); err != nil {
 				return fmt.Errorf("failed to apply auto behavior %d outputs: %w", behaviorIndex, err)
 			}
 

@@ -45,7 +45,7 @@ func TestPlayCardAction_DiscountEffectRegistered(t *testing.T) {
 	// Play Space Station
 	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
 	payment := cardAction.PaymentRequest{Credits: 10}
-	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-space-station", payment)
+	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-space-station", payment, nil)
 	testutil.AssertNoError(t, err, "Failed to play Space Station")
 
 	// Verify: effect should be registered
@@ -61,6 +61,96 @@ func TestPlayCardAction_DiscountEffectRegistered(t *testing.T) {
 
 	discount := calculator.CalculateCardDiscounts(player, spaceMirrorsCard)
 	testutil.AssertEqual(t, 2, discount, "Space Mirrors should have 2 credit discount from Space Station effect")
+}
+
+func TestPlayCardAction_ChoiceCardPlantProduction(t *testing.T) {
+	// Setup: Create game with player who has Artificial Photosynthesis in hand
+	broadcaster := testutil.NewMockBroadcaster()
+	testGame, repo := testutil.CreateTestGameWithPlayers(t, 1, broadcaster)
+	cardRegistry := testutil.CreateTestCardRegistry()
+	logger := testutil.TestLogger()
+	ctx := context.Background()
+
+	// Get player and set corporation
+	players := testGame.GetAllPlayers()
+	player := players[0]
+	player.SetCorporationID("corp-tharsis-republic")
+
+	// Set game to active status and action phase for playing cards
+	testGame.UpdateStatus(ctx, game.GameStatusActive)
+	testGame.UpdatePhase(ctx, game.GamePhaseAction)
+	testGame.SetCurrentTurn(ctx, player.ID(), 2)
+
+	// Give player enough credits and add Artificial Photosynthesis to hand
+	player.Resources().Add(map[shared.ResourceType]int{
+		shared.ResourceCredit: 100,
+	})
+	player.Hand().AddCard("card-artificial-photosynthesis")
+
+	// Verify initial production state
+	productionBefore := player.Resources().Production()
+	testutil.AssertEqual(t, 0, productionBefore.Plants, "Should have 0 plant production initially")
+	testutil.AssertEqual(t, 0, productionBefore.Energy, "Should have 0 energy production initially")
+
+	// Play Artificial Photosynthesis with choice index 0 (plant production +1)
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	payment := cardAction.PaymentRequest{Credits: 12}
+	choiceIndex := 0
+	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-artificial-photosynthesis", payment, &choiceIndex)
+	testutil.AssertNoError(t, err, "Failed to play Artificial Photosynthesis with choice 0")
+
+	// Verify: plant production increased by 1, energy unchanged
+	productionAfter := player.Resources().Production()
+	testutil.AssertEqual(t, 1, productionAfter.Plants, "Should have 1 plant production after choice 0")
+	testutil.AssertEqual(t, 0, productionAfter.Energy, "Should have 0 energy production after choice 0")
+
+	// Verify card was played
+	testutil.AssertFalse(t, player.Hand().HasCard("card-artificial-photosynthesis"), "Card should not be in hand")
+}
+
+func TestPlayCardAction_ChoiceCardEnergyProduction(t *testing.T) {
+	// Setup: Create game with player who has Artificial Photosynthesis in hand
+	broadcaster := testutil.NewMockBroadcaster()
+	testGame, repo := testutil.CreateTestGameWithPlayers(t, 1, broadcaster)
+	cardRegistry := testutil.CreateTestCardRegistry()
+	logger := testutil.TestLogger()
+	ctx := context.Background()
+
+	// Get player and set corporation
+	players := testGame.GetAllPlayers()
+	player := players[0]
+	player.SetCorporationID("corp-tharsis-republic")
+
+	// Set game to active status and action phase for playing cards
+	testGame.UpdateStatus(ctx, game.GameStatusActive)
+	testGame.UpdatePhase(ctx, game.GamePhaseAction)
+	testGame.SetCurrentTurn(ctx, player.ID(), 2)
+
+	// Give player enough credits and add Artificial Photosynthesis to hand
+	player.Resources().Add(map[shared.ResourceType]int{
+		shared.ResourceCredit: 100,
+	})
+	player.Hand().AddCard("card-artificial-photosynthesis")
+
+	// Verify initial production state
+	productionBefore := player.Resources().Production()
+	testutil.AssertEqual(t, 0, productionBefore.Plants, "Should have 0 plant production initially")
+	testutil.AssertEqual(t, 0, productionBefore.Energy, "Should have 0 energy production initially")
+
+	// Play Artificial Photosynthesis with choice index 1 (energy production +2)
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	payment := cardAction.PaymentRequest{Credits: 12}
+	choiceIndex := 1
+	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-artificial-photosynthesis", payment, &choiceIndex)
+	testutil.AssertNoError(t, err, "Failed to play Artificial Photosynthesis with choice 1")
+
+	// Verify: energy production increased by 2, plants unchanged
+	productionAfter := player.Resources().Production()
+	testutil.AssertEqual(t, 0, productionAfter.Plants, "Should have 0 plant production after choice 1")
+	testutil.AssertEqual(t, 2, productionAfter.Energy, "Should have 2 energy production after choice 1")
+
+	// Verify card was played
+	testutil.AssertFalse(t, player.Hand().HasCard("card-artificial-photosynthesis"), "Card should not be in hand")
 }
 
 func TestPlayCardAction_DiscountCalculatedOnDemand(t *testing.T) {
@@ -90,7 +180,7 @@ func TestPlayCardAction_DiscountCalculatedOnDemand(t *testing.T) {
 	// Play Space Station to register the discount effect
 	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
 	payment := cardAction.PaymentRequest{Credits: 10}
-	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-space-station", payment)
+	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-space-station", payment, nil)
 	testutil.AssertNoError(t, err, "Failed to play Space Station")
 
 	// Verify: effect registered
