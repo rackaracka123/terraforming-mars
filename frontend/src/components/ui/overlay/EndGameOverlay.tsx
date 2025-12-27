@@ -153,8 +153,8 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
     setCurrentPhase(nextPhase);
   }, []);
 
-  // Skip to end
-  const skipToEnd = useCallback(() => {
+  // Skip to summary/complete
+  const viewSummary = useCallback(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
     }
@@ -165,9 +165,79 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
     onTileHighlight?.(null);
   }, [onTileHighlight]);
 
+  // Replay animation from the beginning
+  const replayAnimation = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    setCurrentPhase("intro");
+    setTileCountingState(null);
+    setCardVPState(null);
+    setVPIndicators([]);
+    onTileHighlight?.(null);
+  }, [onTileHighlight]);
+
   // Check if there are claimed milestones or funded awards
   const hasClaimedMilestones = (game.milestones ?? []).some((m) => m.isClaimed);
   const hasFundedAwards = (game.awards ?? []).some((a) => a.isFunded);
+
+  // Calculate revealed tile VP for a player based on current tile counting state
+  const getRevealedTileVP = useCallback(
+    (
+      playerIndex: number,
+    ): { revealedGreeneryVP: number | undefined; revealedCityVP: number | undefined } => {
+      // Not in tiles phase or no counting state - use undefined to show final values
+      if (currentPhase !== "tiles" || !tileCountingState) {
+        return { revealedGreeneryVP: undefined, revealedCityVP: undefined };
+      }
+
+      const { currentPlayerIndex, phase, currentTileIndex } = tileCountingState;
+      const playerScore = sortedScores[playerIndex];
+      if (!playerScore) {
+        return { revealedGreeneryVP: 0, revealedCityVP: 0 };
+      }
+
+      const greeneryDetails = playerScore.vpBreakdown.greeneryVPDetails ?? [];
+      const cityDetails = playerScore.vpBreakdown.cityVPDetails ?? [];
+
+      // Players after the current player: show 0 (not yet counted)
+      if (playerIndex > currentPlayerIndex) {
+        return { revealedGreeneryVP: 0, revealedCityVP: 0 };
+      }
+
+      // Players before the current player: show full VP (already counted)
+      if (playerIndex < currentPlayerIndex) {
+        return { revealedGreeneryVP: undefined, revealedCityVP: undefined };
+      }
+
+      // Current player being counted
+      if (phase === "done") {
+        // Done phase - show full values
+        return { revealedGreeneryVP: undefined, revealedCityVP: undefined };
+      }
+
+      if (phase === "greenery") {
+        // Sum VP for greeneries 0 to currentTileIndex (inclusive, as we just added indicator)
+        const revealedGreeneryVP = greeneryDetails
+          .slice(0, currentTileIndex + 1)
+          .reduce((sum, detail) => sum + detail.vp, 0);
+        return { revealedGreeneryVP, revealedCityVP: 0 };
+      }
+
+      if (phase === "cities") {
+        // Greenery phase complete - show full greenery VP
+        const fullGreeneryVP = greeneryDetails.reduce((sum, detail) => sum + detail.vp, 0);
+        // Sum VP for cities 0 to currentTileIndex (inclusive)
+        const revealedCityVP = cityDetails
+          .slice(0, currentTileIndex + 1)
+          .reduce((sum, detail) => sum + detail.vp, 0);
+        return { revealedGreeneryVP: fullGreeneryVP, revealedCityVP };
+      }
+
+      return { revealedGreeneryVP: undefined, revealedCityVP: undefined };
+    },
+    [currentPhase, tileCountingState, sortedScores],
+  );
 
   // Auto-advance phases
   useEffect(() => {
@@ -232,7 +302,8 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
 
   // Process next tile in counting sequence using backend VP details
   useEffect(() => {
-    if (!tileCountingState || currentPhase !== "tiles") return;
+    if (!tileCountingState || currentPhase !== "tiles" || tileCountingState.phase === "done")
+      return;
 
     const { currentPlayerIndex, phase, currentTileIndex } = tileCountingState;
     const currentPlayer = sortedScores[currentPlayerIndex];
@@ -358,13 +429,19 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
               adjacentCoords: [],
             });
           } else {
-            // All players done
-            setTileCountingState(null);
+            // All players done - use "done" phase to prevent startTileCounting from re-triggering
+            setTileCountingState({
+              currentPlayerIndex,
+              phase: "done",
+              currentTileIndex: 0,
+              activeTileCoord: null,
+              adjacentCoords: [],
+            });
             onTileHighlight?.(null);
-            timerRef.current = setTimeout(
-              () => advanceToPhase("cards"),
-              ANIMATION_TIMINGS.POST_TILES_DELAY,
-            );
+            timerRef.current = setTimeout(() => {
+              setTileCountingState(null);
+              advanceToPhase("cards");
+            }, ANIMATION_TIMINGS.POST_TILES_DELAY);
           }
         }, ANIMATION_TIMINGS.PHASE_CLEANUP);
       }
@@ -492,13 +569,17 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
                   ? "Final Results"
                   : "Counting VP..."}
             </h1>
-            {currentPhase !== "complete" && (
+            {/* Replay button in header - only during counting phases */}
+            {currentPhase !== "intro" && currentPhase !== "complete" ? (
               <button
-                onClick={skipToEnd}
-                className="text-xs text-white/50 hover:text-white px-2 py-1 border border-white/20 rounded"
+                onClick={replayAnimation}
+                className="p-1 text-white/50 hover:text-white hover:bg-white/10 rounded transition-colors"
+                title="Replay Animation"
               >
-                Skip
+                <span className="text-base">↻</span>
               </button>
+            ) : (
+              <div className="w-6" /> // Spacer for alignment
             )}
           </div>
 
@@ -518,40 +599,56 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
               </>
             )}
             {currentPhase === "cards" && "Card VP"}
-            {currentPhase === "summary" && "Final Scores"}
+            {currentPhase === "summary" && "Rankings"}
             {currentPhase === "rankings" && "Rankings"}
           </div>
         </div>
 
         {/* Main content */}
         <div className="p-4 space-y-4">
-          {/* Player VP Summary - always visible */}
-          <div className="space-y-3">
-            {sortedScores.map((score, idx) => (
-              <PlayerVPCard
-                key={score.playerId}
-                score={score}
-                placement={idx + 1}
-                isCurrentPlayer={score.playerId === playerId}
-                currentPhase={currentPhase}
-                isCountingTiles={
-                  tileCountingState?.currentPlayerIndex === idx && currentPhase === "tiles"
-                }
-                onHoverTileType={setHoveredTileType}
-                onHoverCardVP={setHoveredCardPlayerId}
-              />
-            ))}
-          </div>
+          {/* Player VP Summary - hidden in complete phase (bar chart shows scores) */}
+          {currentPhase !== "complete" && (
+            <div className="space-y-3">
+              {sortedScores.map((score, idx) => {
+                const { revealedGreeneryVP, revealedCityVP } = getRevealedTileVP(idx);
+                return (
+                  <PlayerVPCard
+                    key={score.playerId}
+                    score={score}
+                    placement={idx + 1}
+                    isCurrentPlayer={score.playerId === playerId}
+                    currentPhase={currentPhase}
+                    isCountingTiles={
+                      tileCountingState?.currentPlayerIndex === idx && currentPhase === "tiles"
+                    }
+                    revealedGreeneryVP={revealedGreeneryVP}
+                    revealedCityVP={revealedCityVP}
+                    onHoverTileType={setHoveredTileType}
+                    onHoverCardVP={setHoveredCardPlayerId}
+                  />
+                );
+              })}
+              {/* View Summary button - directly under player boxes during counting phases */}
+              {currentPhase !== "intro" && (
+                <button
+                  onClick={viewSummary}
+                  className="w-full text-sm text-white/50 hover:text-white px-3 py-2 border border-white/20 rounded hover:bg-white/10 transition-colors mt-2"
+                >
+                  View Summary
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Milestones compact display */}
           {(currentPhase === "milestones" ||
-            (currentPhase !== "intro" && currentPhase !== "tr")) && (
+            (currentPhase !== "intro" && currentPhase !== "tr" && currentPhase !== "complete")) && (
             <MilestoneCompact milestones={game.milestones ?? []} scores={sortedScores} />
           )}
 
           {/* Awards compact display */}
           {(currentPhase === "awards" ||
-            ["tiles", "cards", "summary", "rankings", "complete"].includes(currentPhase)) && (
+            ["tiles", "cards", "summary", "rankings"].includes(currentPhase)) && (
             <AwardCompact
               awards={game.awards ?? []}
               scores={sortedScores}
@@ -573,19 +670,28 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
             </div>
           )}
 
-          {/* Rankings phase */}
+          {/* Rankings/Winner announcement */}
           {(currentPhase === "rankings" || currentPhase === "complete") && (
             <div className="text-center py-4">
               <p className="text-amber-400 font-orbitron text-lg winner-glow-animate">
                 {winner.playerName} Wins!
               </p>
-              <p className="text-white/60 text-sm">{winner.vpBreakdown.totalVP} VP</p>
+              <p className="text-white/60 text-sm mb-3">{winner.vpBreakdown.totalVP} VP</p>
+              {/* View Details button - under winner announcement in complete phase */}
+              {currentPhase === "complete" && (
+                <button
+                  onClick={replayAnimation}
+                  className="text-sm text-white/50 hover:text-white px-3 py-2 border border-white/20 rounded hover:bg-white/10 transition-colors"
+                >
+                  View Details
+                </button>
+              )}
             </div>
           )}
 
-          {/* Return to Menu */}
+          {/* Return to Menu - in complete phase */}
           {currentPhase === "complete" && (
-            <div className="pt-4">
+            <div className="pt-4 border-t border-white/10">
               <button onClick={onReturnToMenu} className={`${PRIMARY_BUTTON_CLASS} w-full`}>
                 Return to Menu
               </button>

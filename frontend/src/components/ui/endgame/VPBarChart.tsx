@@ -69,12 +69,6 @@ const VPBarChart: FC<VPBarChartProps> = ({
     <div
       className={`section-slide-in-animate flex flex-col w-full ${vertical ? "gap-3 p-2" : "gap-6 p-6 max-w-2xl"}`}
     >
-      <h3
-        className={`font-orbitron text-white/80 uppercase tracking-wider text-center ${vertical ? "text-sm" : "text-lg"}`}
-      >
-        Final Scores
-      </h3>
-
       {/* Legend - more compact in vertical mode */}
       <div className={`flex flex-wrap justify-center text-xs ${vertical ? "gap-2" : "gap-4"}`}>
         {VP_CATEGORIES.map((category) => (

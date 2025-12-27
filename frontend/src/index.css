@@ -801,6 +801,22 @@ code {
   animation: winnerGlow 2s ease-in-out infinite;
 }
 
+/* Badge appear animation for VP badges */
+@keyframes badgeAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-badge-appear {
+  animation: badgeAppear 0.3s ease-out forwards;
+}
+
 .podium-rise-animate {
   animation: podiumRise 0.8s ease-out forwards;
 }

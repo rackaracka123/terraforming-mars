@@ -22,7 +22,7 @@ interface VPBadgeProps {
 const VPBadge: FC<VPBadgeProps> = ({ icon, value, color, onMouseEnter, onMouseLeave }) => {
   return (
     <div
-      className={`flex items-center gap-1 px-2 py-0.5 rounded transition-colors ${COLOR_CLASSES[color] ?? COLOR_CLASSES.gray}`}
+      className={`flex items-center gap-1 px-2 py-0.5 rounded transition-colors animate-badge-appear ${COLOR_CLASSES[color] ?? COLOR_CLASSES.gray}`}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
