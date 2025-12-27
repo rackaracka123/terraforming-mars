@@ -10,10 +10,12 @@ import (
 	"time"
 
 	admin "terraforming-mars-backend/internal/action/admin"
+	awardAction "terraforming-mars-backend/internal/action/award"
 	cardAction "terraforming-mars-backend/internal/action/card"
 	confirmAction "terraforming-mars-backend/internal/action/confirmation"
 	connAction "terraforming-mars-backend/internal/action/connection"
 	gameAction "terraforming-mars-backend/internal/action/game"
+	milestoneAction "terraforming-mars-backend/internal/action/milestone"
 	query "terraforming-mars-backend/internal/action/query"
 	resconvAction "terraforming-mars-backend/internal/action/resource_conversion"
 	stdprojAction "terraforming-mars-backend/internal/action/standard_project"
@@ -82,11 +84,16 @@ func main() {
 
 	// ========== Initialize Game Actions ==========
 
-	// Game lifecycle (4)
+	// Game lifecycle (5)
 	createGameAction := gameAction.NewCreateGameAction(gameRepo, cardRegistry, log)
 	createDemoLobbyAction := gameAction.NewCreateDemoLobbyAction(gameRepo, cardRegistry, log)
 	joinGameAction := gameAction.NewJoinGameAction(gameRepo, cardRegistry, log)
 	confirmDemoSetupAction := gameAction.NewConfirmDemoSetupAction(gameRepo, cardRegistry, log)
+	finalScoringAction := gameAction.NewFinalScoringAction(gameRepo, cardRegistry, log)
+
+	// Milestones & Awards (2)
+	claimMilestoneAction := milestoneAction.NewClaimMilestoneAction(gameRepo, cardRegistry)
+	fundAwardAction := awardAction.NewFundAwardAction(gameRepo, cardRegistry)
 
 	// Card actions (2)
 	playCardAction := cardAction.NewPlayCardAction(gameRepo, cardRegistry, log)
@@ -109,7 +116,7 @@ func main() {
 
 	// Turn management (3)
 	startGameAction := turnAction.NewStartGameAction(gameRepo, log)
-	skipActionAction := turnAction.NewSkipActionAction(gameRepo, log)
+	skipActionAction := turnAction.NewSkipActionAction(gameRepo, finalScoringAction, log)
 	selectStartingCardsAction := turnAction.NewSelectStartingCardsAction(gameRepo, cardRegistry, log)
 
 	// Confirmations (3)
@@ -121,7 +128,7 @@ func main() {
 	playerReconnectedAction := connAction.NewPlayerReconnectedAction(gameRepo, log)
 	playerDisconnectedAction := connAction.NewPlayerDisconnectedAction(gameRepo, log)
 
-	// Admin actions (8)
+	// Admin actions (9)
 	adminSetPhaseAction := admin.NewSetPhaseAction(gameRepo, log)
 	adminSetCurrentTurnAction := admin.NewSetCurrentTurnAction(gameRepo, log)
 	adminSetResourcesAction := admin.NewSetResourcesAction(gameRepo, log)
@@ -130,6 +137,7 @@ func main() {
 	adminGiveCardAction := admin.NewGiveCardAction(gameRepo, cardRegistry, log)
 	adminSetCorporationAction := admin.NewSetCorporationAction(gameRepo, cardRegistry, log)
 	adminStartTileSelectionAction := admin.NewStartTileSelectionAction(gameRepo, log)
+	adminSetTRAction := admin.NewSetTRAction(gameRepo, log)
 
 	// Query actions for HTTP (4)
 	getGameAction := query.NewGetGameAction(gameRepo, log)
@@ -138,7 +146,7 @@ func main() {
 	getPlayerAction := query.NewGetPlayerAction(gameRepo, log)
 
 	log.Info("✅ All migration actions initialized")
-	log.Info("   📌 Game Lifecycle (4): CreateGame, CreateDemoLobby, JoinGame, ConfirmDemoSetup")
+	log.Info("   📌 Game Lifecycle (5): CreateGame, CreateDemoLobby, JoinGame, ConfirmDemoSetup, FinalScoring")
 	log.Info("   📌 Card Actions (2): PlayCard, UseCardAction")
 	log.Info("   📌 Standard Projects (6): LaunchAsteroid, BuildPowerPlant, BuildAquifer, BuildCity, PlantGreenery, SellPatents")
 	log.Info("   📌 Resource Conversions (2): ConvertHeat, ConvertPlants")
@@ -146,7 +154,8 @@ func main() {
 	log.Info("   📌 Turn Management (3): StartGame, SkipAction, SelectStartingCards")
 	log.Info("   📌 Confirmations (3): ConfirmSellPatents, ConfirmProductionCards, ConfirmCardDraw")
 	log.Info("   📌 Connection Management (2): PlayerReconnected, PlayerDisconnected")
-	log.Info("   📌 Admin Actions (8): SetPhase, SetCurrentTurn, SetResources, SetProduction, SetGlobalParameters, GiveCard, SetCorporation, StartTileSelection")
+	log.Info("   📌 Milestones & Awards (2): ClaimMilestone, FundAward")
+	log.Info("   📌 Admin Actions (9): SetPhase, SetCurrentTurn, SetResources, SetProduction, SetGlobalParameters, GiveCard, SetCorporation, StartTileSelection, SetTR")
 	log.Info("   📌 Query Actions (4): GetGame, ListGames, ListCards, GetPlayer")
 
 	// ========== Register Migration Handlers with WebSocket Hub ==========
@@ -183,6 +192,9 @@ func main() {
 		// Connection
 		playerReconnectedAction,
 		playerDisconnectedAction,
+		// Milestones & Awards
+		claimMilestoneAction,
+		fundAwardAction,
 		// Admin actions
 		adminSetPhaseAction,
 		adminSetCurrentTurnAction,
@@ -192,9 +204,10 @@ func main() {
 		adminGiveCardAction,
 		adminSetCorporationAction,
 		adminStartTileSelectionAction,
+		adminSetTRAction,
 	)
 
-	log.Info("🎯 Migration handlers registered with WebSocket hub (22 handlers)")
+	log.Info("🎯 Migration handlers registered with WebSocket hub (24 handlers)")
 
 	// ========== Start WebSocket Hub ==========
 	ctx, cancel := context.WithCancel(context.Background())

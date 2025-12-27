@@ -6,6 +6,8 @@ import VictoryPointsModal from "../../ui/modals/VictoryPointsModal.tsx";
 import EffectsModal from "../../ui/modals/EffectsModal.tsx";
 import ActionsModal from "../../ui/modals/ActionsModal.tsx";
 import StandardProjectPopover from "../../ui/popover/StandardProjectPopover.tsx";
+import MilestonePopover from "../../ui/popover/MilestonePopover.tsx";
+import AwardPopover from "../../ui/popover/AwardPopover.tsx";
 import ProductionPhaseModal from "../../ui/modals/ProductionPhaseModal.tsx";
 import PaymentSelectionPopover from "../../ui/popover/PaymentSelectionPopover.tsx";
 import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
@@ -19,6 +21,8 @@ import CardDrawSelectionOverlay from "../../ui/overlay/CardDrawSelectionOverlay.
 import CardFanOverlay from "../../ui/overlay/CardFanOverlay.tsx";
 import LoadingSpinner from "../../game/view/LoadingSpinner.tsx";
 import HexagonalShieldOverlay from "../../ui/overlay/HexagonalShieldOverlay.tsx";
+import EndGameOverlay, { TileVPIndicator } from "../../ui/overlay/EndGameOverlay.tsx";
+import { TileHighlightMode } from "../../game/board/ProjectedHexTile.tsx";
 import ChoiceSelectionPopover from "../../ui/popover/ChoiceSelectionPopover.tsx";
 import CardStorageSelectionPopover from "../../ui/popover/CardStorageSelectionPopover.tsx";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
@@ -31,9 +35,11 @@ import {
   CardPaymentDto,
   FullStatePayload,
   GameDto,
+  GamePhaseComplete,
   GamePhaseDemoSetup,
   GamePhaseStartingCardSelection,
   GameStatusActive,
+  GameStatusCompleted,
   GameStatusLobby,
   PlayerCardDto,
   PlayerDisconnectedPayload,
@@ -63,8 +69,12 @@ export default function GameInterface() {
   const [showCardEffectsModal, setShowCardEffectsModal] = useState(false);
   const [showActionsModal, setShowActionsModal] = useState(false);
   const [showStandardProjectsPopover, setShowStandardProjectsPopover] = useState(false);
+  const [showMilestonePopover, setShowMilestonePopover] = useState(false);
+  const [showAwardPopover, setShowAwardPopover] = useState(false);
   const [showDebugDropdown, setShowDebugDropdown] = useState(false);
   const standardProjectsButtonRef = useRef<HTMLButtonElement>(null);
+  const milestonesButtonRef = useRef<HTMLButtonElement>(null);
+  const awardsButtonRef = useRef<HTMLButtonElement>(null);
 
   // Set corporation data directly from player (backend now sends full CardDto)
   useEffect(() => {
@@ -94,6 +104,12 @@ export default function GameInterface() {
   // Unplayable card feedback state
   const [unplayableCard, setUnplayableCard] = useState<PlayerCardDto | null>(null);
   const [unplayableReason, setUnplayableReason] = useState<string | null>(null);
+
+  // End game tile highlighting state
+  const [tileHighlightMode, setTileHighlightMode] = useState<TileHighlightMode>(null);
+
+  // End game VP indicators state
+  const [vpIndicators, setVPIndicators] = useState<TileVPIndicator[]>([]);
 
   // Choice selection state (for card play)
   const [showChoiceSelection, setShowChoiceSelection] = useState(false);
@@ -1149,6 +1165,8 @@ export default function GameInterface() {
         isLobbyPhase={isLobbyPhase}
         showCardSelection={showCardSelection}
         changedPaths={changedPaths}
+        tileHighlightMode={tileHighlightMode}
+        vpIndicators={vpIndicators}
         onOpenCardEffectsModal={() => setShowCardEffectsModal(true)}
         onOpenCardsPlayedModal={() => setShowCardsPlayedModal(true)}
         onOpenVictoryPointsModal={() => setShowVictoryPointsModal(true)}
@@ -1161,6 +1179,12 @@ export default function GameInterface() {
           setShowStandardProjectsPopover(!showStandardProjectsPopover)
         }
         standardProjectsButtonRef={standardProjectsButtonRef}
+        showMilestonePopover={showMilestonePopover}
+        onToggleMilestonePopover={() => setShowMilestonePopover(!showMilestonePopover)}
+        milestonesButtonRef={milestonesButtonRef}
+        showAwardPopover={showAwardPopover}
+        onToggleAwardPopover={() => setShowAwardPopover(!showAwardPopover)}
+        awardsButtonRef={awardsButtonRef}
         onLeaveGame={handleLeaveGame}
       />
 
@@ -1197,6 +1221,20 @@ export default function GameInterface() {
         onProjectSelect={handleStandardProjectSelect}
         gameState={game}
         anchorRef={standardProjectsButtonRef}
+      />
+
+      <MilestonePopover
+        isVisible={showMilestonePopover}
+        onClose={() => setShowMilestonePopover(false)}
+        gameState={game}
+        anchorRef={milestonesButtonRef}
+      />
+
+      <AwardPopover
+        isVisible={showAwardPopover}
+        onClose={() => setShowAwardPopover(false)}
+        gameState={game}
+        anchorRef={awardsButtonRef}
       />
 
       <ProductionPhaseModal
@@ -1330,6 +1368,25 @@ export default function GameInterface() {
         reason={unplayableReason}
         isVisible={unplayableCard !== null}
       />
+
+      {/* End game overlay - shown when game is completed */}
+      {game &&
+        playerId &&
+        game.currentPhase === GamePhaseComplete &&
+        game.status === GameStatusCompleted &&
+        game.finalScores &&
+        game.finalScores.length > 0 && (
+          <EndGameOverlay
+            game={game}
+            playerId={playerId}
+            onTileHighlight={setTileHighlightMode}
+            onVPIndicators={setVPIndicators}
+            onReturnToMenu={() => {
+              clearGameSession();
+              navigate("/");
+            }}
+          />
+        )}
 
       {/* Choice selection popover for card play */}
       {cardPendingChoice && (

@@ -246,6 +246,7 @@ export const AdminCommandTypeSetGlobalParams: AdminCommandType = "set-global-par
 export const AdminCommandTypeStartTileSelection: AdminCommandType = "start-tile-selection";
 export const AdminCommandTypeSetCurrentTurn: AdminCommandType = "set-current-turn";
 export const AdminCommandTypeSetCorporation: AdminCommandType = "set-corporation";
+export const AdminCommandTypeSetTR: AdminCommandType = "set-tr";
 /**
  * AdminCommandRequest contains the admin command data
  */
@@ -299,6 +300,13 @@ export interface StartTileSelectionAdminCommand {
 export interface SetCorporationAdminCommand {
   playerId: string;
   corporationId: string;
+}
+/**
+ * SetTRAdminCommand represents setting a player's terraform rating
+ */
+export interface SetTRAdminCommand {
+  playerId: string;
+  terraformRating: number /* int */;
 }
 /**
  * CardPaymentDto represents how a player is paying for a card
@@ -917,6 +925,8 @@ export interface PlayerDto {
   effects: PlayerEffectDto[]; // Active ongoing effects (discounts, special abilities, etc.)
   actions: PlayerActionDto[]; // Available actions from played cards with manual triggers
   standardProjects: PlayerStandardProjectDto[]; // Standard projects with availability state (Player-Scoped Architecture)
+  milestones: PlayerMilestoneDto[]; // Milestones with player eligibility state
+  awards: PlayerAwardDto[]; // Awards with player eligibility state
   selectStartingCardsPhase?: SelectStartingCardsPhaseDto;
   productionPhase?: ProductionPhaseDto;
   startingCards: CardDto[]; // Cards dealt at game start (from selectStartingCardsPhase.availableCards)
@@ -993,6 +1003,10 @@ export interface GameDto {
   turnOrder: string[]; // Turn order of all players in game
   board: BoardDto; // Game board with tiles and occupancy state
   paymentConstants: PaymentConstantsDto; // Conversion rates for alternative payments
+  milestones: MilestoneDto[]; // All milestones with claim status
+  awards: AwardDto[]; // All awards with funding status
+  awardResults: AwardResultDto[]; // Current award placements (1st/2nd place per award)
+  finalScores?: FinalScoreDto[]; // Final scores (only when game completed)
 }
 /**
  * TileBonusDto represents a resource bonus provided by a tile when occupied
@@ -1065,6 +1079,125 @@ export interface BoardDto {
    * Tiles specifies all tiles on the game board
    */
   tiles: TileDto[];
+}
+/**
+ * MilestoneDto represents a milestone for client consumption
+ */
+export interface MilestoneDto {
+  type: string;
+  name: string;
+  description: string;
+  isClaimed: boolean;
+  claimedBy?: string;
+  claimCost: number /* int */;
+}
+/**
+ * AwardDto represents an award for client consumption
+ */
+export interface AwardDto {
+  type: string;
+  name: string;
+  description: string;
+  isFunded: boolean;
+  fundedBy?: string;
+  fundingCost: number /* int */;
+}
+/**
+ * AwardResultDto represents the placement results for a single funded award
+ */
+export interface AwardResultDto {
+  awardType: string;
+  firstPlaceIds: string[];
+  secondPlaceIds: string[];
+}
+/**
+ * PlayerMilestoneDto represents a milestone with player-specific eligibility state
+ */
+export interface PlayerMilestoneDto {
+  type: string;
+  name: string;
+  description: string;
+  claimCost: number /* int */;
+  isClaimed: boolean;
+  claimedBy?: string;
+  available: boolean; // Can this player claim this milestone?
+  progress: number /* int */; // Current progress towards requirement
+  required: number /* int */; // Requirement threshold
+  errors: StateErrorDto[]; // Reasons why not available
+}
+/**
+ * PlayerAwardDto represents an award with player-specific eligibility state
+ */
+export interface PlayerAwardDto {
+  type: string;
+  name: string;
+  description: string;
+  fundingCost: number /* int */; // Current cost to fund (increases as more are funded)
+  isFunded: boolean;
+  fundedBy?: string;
+  available: boolean; // Can this player fund this award?
+  errors: StateErrorDto[]; // Reasons why not available
+}
+/**
+ * CardVPConditionDetailDto represents the detailed calculation of a single VP condition
+ */
+export interface CardVPConditionDetailDto {
+  conditionType: string; // "fixed", "per", "once"
+  amount: number /* int */; // VP amount per trigger or fixed amount
+  count: number /* int */; // Items counted (for "per" conditions)
+  maxTrigger?: number /* int */;
+  actualTriggers: number /* int */; // Actual triggers after applying max
+  totalVP: number /* int */; // Final VP from this condition
+  explanation: string; // Human-readable breakdown
+}
+/**
+ * CardVPDetailDto represents VP calculation for a single card
+ */
+export interface CardVPDetailDto {
+  cardId: string;
+  cardName: string;
+  conditions: CardVPConditionDetailDto[];
+  totalVP: number /* int */;
+}
+/**
+ * GreeneryVPDetailDto represents VP from a single greenery tile
+ */
+export interface GreeneryVPDetailDto {
+  coordinate: string; // Format: "q,r,s"
+  vp: number /* int */; // Always 1 per greenery
+}
+/**
+ * CityVPDetailDto represents VP from a single city tile and its adjacent greeneries
+ */
+export interface CityVPDetailDto {
+  cityCoordinate: string; // Format: "q,r,s"
+  adjacentGreeneries: string[]; // Coordinates of adjacent greenery tiles
+  vp: number /* int */; // Number of adjacent greeneries
+}
+/**
+ * VPBreakdownDto represents a breakdown of victory points for client consumption
+ */
+export interface VPBreakdownDto {
+  terraformRating: number /* int */;
+  cardVP: number /* int */;
+  cardVPDetails: CardVPDetailDto[]; // Per-card VP breakdown
+  milestoneVP: number /* int */;
+  awardVP: number /* int */;
+  greeneryVP: number /* int */;
+  greeneryVPDetails: GreeneryVPDetailDto[]; // Per-greenery VP breakdown
+  cityVP: number /* int */;
+  cityVPDetails: CityVPDetailDto[]; // Per-city VP breakdown with adjacencies
+  totalVP: number /* int */;
+}
+/**
+ * FinalScoreDto represents a player's final score for client consumption
+ */
+export interface FinalScoreDto {
+  playerId: string;
+  playerName: string;
+  vpBreakdown: VPBreakdownDto;
+  isWinner: boolean;
+  placement: number /* int */;
 }
 
 //////////
@@ -1198,6 +1331,11 @@ export const MessageTypeActionStartGame: MessageType = "action.game-management.s
 export const MessageTypeActionSkipAction: MessageType = "action.game-management.skip-action";
 export const MessageTypeActionConfirmDemoSetup: MessageType =
   "action.game-management.confirm-demo-setup";
+/**
+ * Milestone and award message types
+ */
+export const MessageTypeActionClaimMilestone: MessageType = "action.milestone.claim-milestone";
+export const MessageTypeActionFundAward: MessageType = "action.award.fund-award";
 /**
  * Tile selection message types
  */

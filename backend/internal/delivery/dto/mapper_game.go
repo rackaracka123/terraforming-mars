@@ -4,6 +4,7 @@ import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/board"
+	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
 )
 
@@ -85,6 +86,24 @@ func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string) G
 		TitaniumValue: 3, // Default titanium value
 	}
 
+	// Convert final scores if game is completed
+	var finalScoreDtos []FinalScoreDto
+	if g.Status() == game.GameStatusCompleted {
+		finalScores := g.GetFinalScores()
+		if finalScores != nil {
+			finalScoreDtos = make([]FinalScoreDto, len(finalScores))
+			for i, fs := range finalScores {
+				finalScoreDtos[i] = FinalScoreDto{
+					PlayerID:    fs.PlayerID,
+					PlayerName:  fs.PlayerName,
+					VPBreakdown: ToVPBreakdownDto(fs.Breakdown),
+					IsWinner:    fs.IsWinner,
+					Placement:   fs.Placement,
+				}
+			}
+		}
+	}
+
 	return GameDto{
 		ID:               g.ID(),
 		Status:           GameStatus(g.Status()),
@@ -102,6 +121,10 @@ func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string) G
 			Tiles: tileDtos,
 		},
 		PaymentConstants: paymentConstants,
+		Milestones:       ToMilestonesDto(g.Milestones()),
+		Awards:           ToAwardsDto(g.Awards()),
+		AwardResults:     ToAwardResultsDto(g, cardRegistry),
+		FinalScores:      finalScoreDtos,
 	}
 }
 
@@ -125,4 +148,163 @@ func convertTileBonuses(bonuses []board.TileBonus) []TileBonusDto {
 		}
 	}
 	return dtos
+}
+
+// ToMilestonesDto converts all milestones to DTOs including claim status
+func ToMilestonesDto(milestones *game.Milestones) []MilestoneDto {
+	dtos := make([]MilestoneDto, len(game.AllMilestones))
+	for i, info := range game.AllMilestones {
+		var claimedBy *string
+		isClaimed := milestones.IsClaimed(info.Type)
+		if isClaimed {
+			// Find who claimed it
+			for _, claimed := range milestones.ClaimedMilestones() {
+				if claimed.Type == info.Type {
+					claimedBy = &claimed.PlayerID
+					break
+				}
+			}
+		}
+		dtos[i] = MilestoneDto{
+			Type:        string(info.Type),
+			Name:        info.Name,
+			Description: info.Description,
+			IsClaimed:   isClaimed,
+			ClaimedBy:   claimedBy,
+			ClaimCost:   game.MilestoneClaimCost,
+		}
+	}
+	return dtos
+}
+
+// ToAwardsDto converts all awards to DTOs including funding status
+func ToAwardsDto(awards *game.Awards) []AwardDto {
+	dtos := make([]AwardDto, len(game.AllAwards))
+	fundedCount := awards.FundedCount()
+
+	for i, info := range game.AllAwards {
+		var fundedBy *string
+		isFunded := awards.IsFunded(info.Type)
+		fundingCost := game.AwardFundingCosts[0] // Default cost for first award
+
+		if isFunded {
+			// Find who funded it and what the cost was
+			for _, funded := range awards.FundedAwards() {
+				if funded.Type == info.Type {
+					fundedBy = &funded.FundedByPlayer
+					fundingCost = funded.FundingCost
+					break
+				}
+			}
+		} else {
+			// Calculate cost for next award
+			if fundedCount < game.MaxFundedAwards {
+				fundingCost = game.AwardFundingCosts[fundedCount]
+			}
+		}
+
+		dtos[i] = AwardDto{
+			Type:        string(info.Type),
+			Name:        info.Name,
+			Description: info.Description,
+			IsFunded:    isFunded,
+			FundedBy:    fundedBy,
+			FundingCost: fundingCost,
+		}
+	}
+	return dtos
+}
+
+// ToAwardResultsDto converts funded awards to placement results
+func ToAwardResultsDto(g *game.Game, cardRegistry cards.CardRegistry) []AwardResultDto {
+	fundedAwards := g.Awards().FundedAwards()
+	results := make([]AwardResultDto, 0, len(fundedAwards))
+
+	for _, funded := range fundedAwards {
+		placements := gamecards.ScoreAward(funded.Type, g.GetAllPlayers(), g.Board(), cardRegistry)
+
+		firstPlace := make([]string, 0)
+		secondPlace := make([]string, 0)
+		for _, p := range placements {
+			if p.Placement == 1 {
+				firstPlace = append(firstPlace, p.PlayerID)
+			} else if p.Placement == 2 {
+				secondPlace = append(secondPlace, p.PlayerID)
+			}
+		}
+
+		results = append(results, AwardResultDto{
+			AwardType:      string(funded.Type),
+			FirstPlaceIds:  firstPlace,
+			SecondPlaceIds: secondPlace,
+		})
+	}
+	return results
+}
+
+// ToCardVPConditionDetailDto converts a card VP condition detail to DTO
+func ToCardVPConditionDetailDto(detail game.CardVPConditionDetail) CardVPConditionDetailDto {
+	return CardVPConditionDetailDto{
+		ConditionType:  detail.ConditionType,
+		Amount:         detail.Amount,
+		Count:          detail.Count,
+		MaxTrigger:     detail.MaxTrigger,
+		ActualTriggers: detail.ActualTriggers,
+		TotalVP:        detail.TotalVP,
+		Explanation:    detail.Explanation,
+	}
+}
+
+// ToCardVPDetailDto converts a card VP detail to DTO
+func ToCardVPDetailDto(detail game.CardVPDetail) CardVPDetailDto {
+	return CardVPDetailDto{
+		CardID:     detail.CardID,
+		CardName:   detail.CardName,
+		Conditions: mapSlice(detail.Conditions, ToCardVPConditionDetailDto),
+		TotalVP:    detail.TotalVP,
+	}
+}
+
+// ToGreeneryVPDetailDto converts a greenery VP detail to DTO
+func ToGreeneryVPDetailDto(detail game.GreeneryVPDetail) GreeneryVPDetailDto {
+	return GreeneryVPDetailDto{
+		Coordinate: detail.Coordinate,
+		VP:         detail.VP,
+	}
+}
+
+// ToCityVPDetailDto converts a city VP detail to DTO
+func ToCityVPDetailDto(detail game.CityVPDetail) CityVPDetailDto {
+	return CityVPDetailDto{
+		CityCoordinate:     detail.CityCoordinate,
+		AdjacentGreeneries: detail.AdjacentGreeneries,
+		VP:                 detail.VP,
+	}
+}
+
+// ToVPBreakdownDto converts a VP breakdown to DTO
+func ToVPBreakdownDto(breakdown game.VPBreakdown) VPBreakdownDto {
+	return VPBreakdownDto{
+		TerraformRating:   breakdown.TerraformRating,
+		CardVP:            breakdown.CardVP,
+		CardVPDetails:     mapSlice(breakdown.CardVPDetails, ToCardVPDetailDto),
+		MilestoneVP:       breakdown.MilestoneVP,
+		AwardVP:           breakdown.AwardVP,
+		GreeneryVP:        breakdown.GreeneryVP,
+		GreeneryVPDetails: mapSlice(breakdown.GreeneryVPDetails, ToGreeneryVPDetailDto),
+		CityVP:            breakdown.CityVP,
+		CityVPDetails:     mapSlice(breakdown.CityVPDetails, ToCityVPDetailDto),
+		TotalVP:           breakdown.TotalVP,
+	}
+}
+
+// ToFinalScoreDto creates a final score DTO for a player
+func ToFinalScoreDto(playerID, playerName string, breakdown game.VPBreakdown, isWinner bool, placement int) FinalScoreDto {
+	return FinalScoreDto{
+		PlayerID:    playerID,
+		PlayerName:  playerName,
+		VPBreakdown: ToVPBreakdownDto(breakdown),
+		IsWinner:    isWinner,
+		Placement:   placement,
+	}
 }

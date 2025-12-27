@@ -31,6 +31,8 @@ import {
   MessageTypeActionConvertPlantsToGreenery,
   MessageTypeActionConvertHeatToTemperature,
   MessageTypeActionConfirmDemoSetup,
+  MessageTypeActionClaimMilestone,
+  MessageTypeActionFundAward,
   // Payload types
   PlayerConnectedPayload,
   PlayerDisconnectedPayload,
@@ -310,6 +312,15 @@ export class WebSocketService {
   // Demo setup
   confirmDemoSetup(request: ConfirmDemoSetupRequest): string {
     return this.send(MessageTypeActionConfirmDemoSetup, request);
+  }
+
+  // Milestone and award actions
+  claimMilestone(milestoneType: string): string {
+    return this.send(MessageTypeActionClaimMilestone, { milestoneType });
+  }
+
+  fundAward(awardType: string): string {
+    return this.send(MessageTypeActionFundAward, { awardType });
   }
 
   on(event: string, callback: EventCallback) {

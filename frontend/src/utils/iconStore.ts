@@ -18,6 +18,7 @@ export const RESOURCE_ICONS: { [key: string]: string } = {
   asteroid: "/assets/resources/asteroid.png",
   disease: "/assets/resources/disease.png",
   tr: "/assets/resources/tr.png",
+  "terraform-rating": "/assets/resources/tr.png",
   fighter: "/assets/resources/fighter.png",
   camp: "/assets/resources/camp.png",
   preservation: "/assets/resources/preservation.png",

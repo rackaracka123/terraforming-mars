@@ -2,6 +2,8 @@ import { Suspense, useEffect, useState, useRef, useCallback } from "react";
 import { Canvas } from "@react-three/fiber";
 import { PanControls } from "../controls/PanControls.tsx";
 import MarsSphere from "../board/MarsSphere.tsx";
+import { TileHighlightMode } from "../board/ProjectedHexTile.tsx";
+import { TileVPIndicator } from "../../ui/overlay/EndGameOverlay.tsx";
 import SkyboxLoader from "./SkyboxLoader.tsx";
 import LoadingSpinner from "./LoadingSpinner.tsx";
 import GameIcon from "../../ui/display/GameIcon.tsx";
@@ -12,9 +14,15 @@ import { webSocketService } from "../../../services/webSocketService.ts";
 
 interface Game3DViewProps {
   gameState: GameDto;
+  tileHighlightMode?: TileHighlightMode;
+  vpIndicators?: TileVPIndicator[];
 }
 
-export default function Game3DView({ gameState }: Game3DViewProps) {
+export default function Game3DView({
+  gameState,
+  tileHighlightMode,
+  vpIndicators = [],
+}: Game3DViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [cameraConfig, setCameraConfig] = useState({
     position: [0, 0, 8] as [number, number, number],
@@ -175,7 +183,12 @@ export default function Game3DView({ gameState }: Game3DViewProps) {
             <fog attach="fog" args={["#0a0a1a", 8, 25]} />
 
             {/* Mars with hexagonal tiles */}
-            <MarsSphere gameState={gameState} onHexClick={handleHexClick} />
+            <MarsSphere
+              gameState={gameState}
+              onHexClick={handleHexClick}
+              tileHighlightMode={tileHighlightMode}
+              vpIndicators={vpIndicators}
+            />
 
             {/* Orbital camera controls */}
             <PanControls />

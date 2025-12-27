@@ -15,6 +15,8 @@ interface ProjectedHexTileData extends HexTile2D {
   normal: THREE.Vector3;
 }
 
+export type TileHighlightMode = "greenery" | "city" | "adjacent" | null;
+
 interface ProjectedHexTileProps {
   tileData: ProjectedHexTileData;
   tileType: "empty" | "ocean" | "greenery" | "city" | "special";
@@ -22,6 +24,12 @@ interface ProjectedHexTileProps {
   displayName?: string;
   onClick: () => void;
   isAvailableForPlacement?: boolean;
+  /** Highlight mode for end game VP counting animation */
+  highlightMode?: TileHighlightMode;
+  /** VP amount to display as floating text */
+  vpAmount?: number;
+  /** Whether the VP indicator should animate (float up) */
+  vpAnimating?: boolean;
 }
 
 export default function ProjectedHexTile({
@@ -31,9 +39,14 @@ export default function ProjectedHexTile({
   displayName,
   onClick,
   isAvailableForPlacement = false,
+  highlightMode = null,
+  vpAmount,
+  vpAnimating = false,
 }: ProjectedHexTileProps) {
   const meshRef = useRef<THREE.Mesh>(null);
+  const vpTextRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
+  const animationStartTimeRef = useRef<number | null>(null);
 
   // Create hexagon geometry that's oriented along the surface normal
   const hexGeometry = useMemo(() => {
@@ -184,6 +197,51 @@ export default function ProjectedHexTile({
     });
   }, []);
 
+  // Create end game highlight material for VP counting animation
+  const endGameHighlightMaterial = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        uniform vec3 highlightColor;
+        uniform float opacity;
+        varying vec2 vUv;
+
+        void main() {
+          // Convert UV to centered coordinates (-0.5 to 0.5)
+          vec2 center = vUv - 0.5;
+
+          // Calculate distance from center (0.0 at center, ~0.5 at edges)
+          float distFromCenter = length(center);
+
+          // Create gradient that's strong at edges and fades toward center
+          float gradient = smoothstep(0.1, 0.45, distFromCenter);
+
+          // Pulsing animation - slower and more pronounced
+          float pulse = 0.6 + 0.4 * sin(time * 3.0);
+
+          float alpha = gradient * pulse * 0.7 * opacity;
+
+          gl_FragColor = vec4(highlightColor, alpha);
+        }
+      `,
+      uniforms: {
+        time: { value: 0.0 },
+        highlightColor: { value: new THREE.Vector3(0.13, 0.77, 0.27) }, // Default green
+        opacity: { value: 0.0 },
+      },
+      transparent: true,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+    });
+  }, []);
+
   // Update shader time uniforms and handle hover animations
   useFrame((state) => {
     if (oceanBorderMaterial.uniforms) {
@@ -204,6 +262,71 @@ export default function ProjectedHexTile({
 
     if (availableGlowMaterial.uniforms) {
       availableGlowMaterial.uniforms.time.value = state.clock.elapsedTime;
+    }
+
+    if (endGameHighlightMaterial.uniforms) {
+      endGameHighlightMaterial.uniforms.time.value = state.clock.elapsedTime;
+
+      // Animate opacity based on highlight mode (fade in/out smoothly)
+      const targetOpacity = highlightMode ? 1.0 : 0.0;
+      endGameHighlightMaterial.uniforms.opacity.value = THREE.MathUtils.lerp(
+        endGameHighlightMaterial.uniforms.opacity.value,
+        targetOpacity,
+        0.1, // Smooth fade speed
+      );
+
+      // Update highlight color based on mode
+      if (highlightMode) {
+        let color: THREE.Vector3;
+        switch (highlightMode) {
+          case "greenery":
+            color = new THREE.Vector3(0.13, 0.77, 0.27); // Green
+            break;
+          case "city":
+            color = new THREE.Vector3(0.58, 0.64, 0.7); // Gray-blue
+            break;
+          case "adjacent":
+            color = new THREE.Vector3(1.0, 0.84, 0.0); // Gold
+            break;
+          default:
+            color = new THREE.Vector3(0.13, 0.77, 0.27);
+        }
+        endGameHighlightMaterial.uniforms.highlightColor.value = color;
+      }
+    }
+
+    // VP text floating animation
+    if (vpTextRef.current && vpAmount !== undefined && vpAnimating) {
+      // Start animation timer
+      if (animationStartTimeRef.current === null) {
+        animationStartTimeRef.current = state.clock.elapsedTime;
+      }
+
+      const elapsed = state.clock.elapsedTime - animationStartTimeRef.current;
+      const duration = 2.0; // 2 second animation
+
+      if (elapsed < 0.3) {
+        // Enter phase: scale up, rise
+        const progress = elapsed / 0.3;
+        vpTextRef.current.scale.setScalar(progress);
+        vpTextRef.current.position.z = 0.02 + progress * 0.05;
+      } else if (elapsed < 1.8) {
+        // Idle phase: gentle float
+        vpTextRef.current.scale.setScalar(1);
+        vpTextRef.current.position.z = 0.07 + Math.sin(elapsed * 2) * 0.01;
+      } else if (elapsed < duration) {
+        // Exit phase: fade out, shrink
+        const progress = 1 - (elapsed - 1.8) / 0.2;
+        vpTextRef.current.scale.setScalar(Math.max(0, progress));
+      } else {
+        // Animation complete - hide
+        vpTextRef.current.scale.setScalar(0);
+      }
+    } else if (vpTextRef.current && !vpAnimating) {
+      // Reset animation when not animating
+      animationStartTimeRef.current = null;
+      vpTextRef.current.scale.setScalar(vpAmount !== undefined ? 1 : 0);
+      vpTextRef.current.position.z = 0.07;
     }
   });
 
@@ -327,6 +450,13 @@ export default function ProjectedHexTile({
         />
       )}
 
+      {/* End game VP counting highlight effect - always rendered, opacity controlled via shader */}
+      <mesh
+        position={[0, 0, 0.003]}
+        geometry={oceanGradientGeometry}
+        material={endGameHighlightMaterial}
+      />
+
       {/* Tile type 3D model (city, greenery, ocean) */}
       {(tileType === "city" || tileType === "greenery" || tileType === "ocean") && (
         <TileModel tileType={tileType} position={[0, 0, tileType === "ocean" ? 0.00001 : 0.03]} />
@@ -403,6 +533,23 @@ export default function ProjectedHexTile({
           <circleGeometry args={[0.02, 16]} />
           <meshBasicMaterial color={`hsl(${(ownerId.charCodeAt(0) * 137.5) % 360}, 70%, 50%)`} />
         </mesh>
+      )}
+
+      {/* Floating VP indicator text */}
+      {vpAmount !== undefined && (
+        <group ref={vpTextRef} position={[0, 0, 0.07]}>
+          <Text
+            fontSize={0.08}
+            color="#FFD700"
+            anchorX="center"
+            anchorY="middle"
+            fontWeight="bold"
+            outlineWidth={0.005}
+            outlineColor="#000000"
+          >
+            +{vpAmount}
+          </Text>
+        </group>
       )}
     </group>
   );

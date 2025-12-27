@@ -6,6 +6,7 @@ import { GameSettingsDto } from "../../types/generated/api-types.ts";
 import { skyboxCache } from "../../services/SkyboxCache.ts";
 import LoadingOverlay from "../ui/overlay/LoadingOverlay";
 import GameIcon from "../ui/display/GameIcon.tsx";
+import InfoTooltip from "../ui/display/InfoTooltip.tsx";
 
 const CreateGamePage: React.FC = () => {
   const navigate = useNavigate();
@@ -69,26 +70,14 @@ const CreateGamePage: React.FC = () => {
 
       // Step 4: Set up one-time listener for game-updated event
       const handleGameUpdated = (gameData: any) => {
-        console.log("🎯 [CreateGamePage] game-updated event fired");
-        console.log("🎯 [CreateGamePage] Full gameData:", gameData);
-        console.log("🎯 [CreateGamePage] currentPlayer:", gameData.currentPlayer);
-        console.log("🎯 [CreateGamePage] otherPlayers:", gameData.otherPlayers);
-        console.log("🎯 [CreateGamePage] Looking for player name:", playerName.trim());
-
         // Extract player info from game data
         const allPlayers = [gameData.currentPlayer, ...(gameData.otherPlayers || [])].filter(
           Boolean,
         );
 
-        console.log("🎯 [CreateGamePage] allPlayers array:", allPlayers);
-
         const connectedPlayer = allPlayers.find((p: any) => p.name === playerName.trim());
 
-        console.log("🎯 [CreateGamePage] connectedPlayer found:", connectedPlayer);
-
         if (connectedPlayer) {
-          console.log("✅ [CreateGamePage] Navigating to game interface");
-
           // Store game data
           const storedData = {
             gameId: gameData.id,
@@ -109,25 +98,13 @@ const CreateGamePage: React.FC = () => {
 
           // Clean up listener
           globalWebSocketManager.off("game-updated", handleGameUpdated);
-        } else {
-          console.error("❌ [CreateGamePage] connectedPlayer NOT FOUND - navigation blocked");
-          console.error("❌ [CreateGamePage] Expected name:", playerName.trim());
-          console.error(
-            "❌ [CreateGamePage] Available player names:",
-            allPlayers.map((p) => p.name),
-          );
         }
       };
 
       // Register listener BEFORE sending connect message
-      console.log("🔧 [CreateGamePage] Registering game-updated listener");
       globalWebSocketManager.on("game-updated", handleGameUpdated);
 
       // Step 5: Connect player to the game via WebSocket (non-blocking)
-      console.log("🔧 [CreateGamePage] Sending player-connect message", {
-        playerName: playerName.trim(),
-        gameId: game.id,
-      });
       globalWebSocketManager.playerConnect(playerName.trim(), game.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create game");
@@ -226,16 +203,11 @@ const CreateGamePage: React.FC = () => {
                   />
                   <span className="text-white text-base font-medium leading-none m-0 flex items-center gap-2">
                     Development Mode
-                    <div className="relative inline-block group">
-                      <span className="text-space-blue-solid text-base cursor-help w-[18px] h-[18px] flex items-center justify-center rounded-full bg-space-blue-100 border border-space-blue-400 transition-all duration-200 shadow-[0_0_10px_rgba(30,60,150,0.2)] group-hover:bg-space-blue-200 group-hover:shadow-[0_0_15px_rgba(30,60,150,0.4)]">
-                        ⓘ
-                      </span>
-                      <div className="invisible opacity-0 w-[280px] bg-space-black/[0.98] text-white text-left rounded-lg p-3 absolute z-[1000] bottom-[125%] right-0 text-[13px] leading-normal border border-space-blue-400 shadow-glow transition-all duration-300 group-hover:visible group-hover:opacity-100 after:content-[''] after:absolute after:top-full after:right-3 after:border-8 after:border-solid after:border-t-space-black/[0.98] after:border-r-transparent after:border-b-transparent after:border-l-transparent">
-                        Enable admin commands for debugging and testing. Allows you to give cards to
-                        players, modify resources/production, change game phases, and adjust global
-                        parameters through the debug panel.
-                      </div>
-                    </div>
+                    <InfoTooltip size="medium">
+                      Enable admin commands for debugging and testing. Allows you to give cards to
+                      players, modify resources/production, change game phases, and adjust global
+                      parameters through the debug panel.
+                    </InfoTooltip>
                   </span>
                 </label>
               </div>
@@ -258,15 +230,10 @@ const CreateGamePage: React.FC = () => {
                     <span className="text-white text-sm font-medium leading-none m-0 flex items-center gap-2 flex-1">
                       Base Game
                       <span className="text-white/50 text-xs">(22 cards)</span>
-                      <div className="relative inline-block group">
-                        <span className="text-space-blue-solid text-sm cursor-help w-[16px] h-[16px] flex items-center justify-center rounded-full bg-space-blue-100 border border-space-blue-400 transition-all duration-200 shadow-[0_0_8px_rgba(30,60,150,0.2)] group-hover:bg-space-blue-200 group-hover:shadow-[0_0_12px_rgba(30,60,150,0.4)]">
-                          ⓘ
-                        </span>
-                        <div className="invisible opacity-0 w-[260px] bg-space-black/[0.98] text-white text-left rounded-lg p-3 absolute z-[1000] bottom-[125%] right-0 text-[12px] leading-normal border border-space-blue-400 shadow-glow transition-all duration-300 group-hover:visible group-hover:opacity-100 after:content-[''] after:absolute after:top-full after:right-3 after:border-8 after:border-solid after:border-t-space-black/[0.98] after:border-r-transparent after:border-b-transparent after:border-l-transparent">
-                          Includes tested cards with comprehensive test coverage. All cards have
-                          verified implementations.
-                        </div>
-                      </div>
+                      <InfoTooltip size="small">
+                        Includes tested cards with comprehensive test coverage. All cards have
+                        verified implementations.
+                      </InfoTooltip>
                     </span>
                   </label>
 
@@ -284,15 +251,10 @@ const CreateGamePage: React.FC = () => {
                     <span className="text-white text-sm font-medium leading-none m-0 flex items-center gap-2 flex-1">
                       Future Content
                       <span className="text-white/50 text-xs">(431 cards)</span>
-                      <div className="relative inline-block group">
-                        <span className="text-space-blue-solid text-sm cursor-help w-[16px] h-[16px] flex items-center justify-center rounded-full bg-space-blue-100 border border-space-blue-400 transition-all duration-200 shadow-[0_0_8px_rgba(30,60,150,0.2)] group-hover:bg-space-blue-200 group-hover:shadow-[0_0_12px_rgba(30,60,150,0.4)]">
-                          ⓘ
-                        </span>
-                        <div className="invisible opacity-0 w-[260px] bg-space-black/[0.98] text-white text-left rounded-lg p-3 absolute z-[1000] bottom-[125%] right-0 text-[12px] leading-normal border border-space-blue-400 shadow-glow transition-all duration-300 group-hover:visible group-hover:opacity-100 after:content-[''] after:absolute after:top-full after:right-3 after:border-8 after:border-solid after:border-t-space-black/[0.98] after:border-r-transparent after:border-b-transparent after:border-l-transparent">
-                          Includes complex and untested cards for future implementation. May have
-                          incomplete effects or bugs.
-                        </div>
-                      </div>
+                      <InfoTooltip size="small">
+                        Includes complex and untested cards for future implementation. May have
+                        incomplete effects or bugs.
+                      </InfoTooltip>
                     </span>
                   </label>
                 </div>

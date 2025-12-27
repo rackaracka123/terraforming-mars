@@ -38,6 +38,15 @@ type Game struct {
 	turnOrder        []string // Ordered list of player IDs for turn sequence
 	eventBus         *events.EventBusImpl
 
+	// Milestones and Awards
+	milestones *Milestones
+	awards     *Awards
+
+	// Final scores (set when game ends)
+	finalScores []FinalScore
+	winnerID    string
+	isTie       bool
+
 	// Player-specific non-card phase state (managed by Game)
 	pendingTileSelections      map[string]*player.PendingTileSelection
 	pendingTileSelectionQueues map[string]*player.PendingTileSelectionQueue
@@ -87,6 +96,9 @@ func NewGame(
 		players:          make(map[string]*player.Player),
 		turnOrder:        []string{}, // Empty until game starts
 		eventBus:         eventBus,
+		// Initialize milestones and awards
+		milestones: NewMilestones(id, eventBus),
+		awards:     NewAwards(id, eventBus),
 		// Initialize non-card phase state maps
 		pendingTileSelections:      make(map[string]*player.PendingTileSelection),
 		pendingTileSelectionQueues: make(map[string]*player.PendingTileSelectionQueue),
@@ -207,6 +219,48 @@ func (g *Game) SetDeck(d *deck.Deck) {
 	g.updatedAt = time.Now()
 }
 
+// Milestones returns the milestones component
+func (g *Game) Milestones() *Milestones {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return g.milestones
+}
+
+// Awards returns the awards component
+func (g *Game) Awards() *Awards {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return g.awards
+}
+
+// ================== Final Scores ==================
+
+// GetFinalScores returns a copy of the final scores (empty if game hasn't ended)
+func (g *Game) GetFinalScores() []FinalScore {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	if g.finalScores == nil {
+		return nil
+	}
+	result := make([]FinalScore, len(g.finalScores))
+	copy(result, g.finalScores)
+	return result
+}
+
+// GetWinnerID returns the winner ID (empty if game hasn't ended)
+func (g *Game) GetWinnerID() string {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return g.winnerID
+}
+
+// IsTie returns true if the game ended in a tie
+func (g *Game) IsTie() bool {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return g.isTie
+}
+
 // ================== Player Management ==================
 
 // GetPlayer returns a player by ID
@@ -303,6 +357,30 @@ func (g *Game) UpdateStatus(ctx context.Context, newStatus GameStatus) error {
 			GameID:    g.id,
 			OldStatus: string(oldStatus),
 			NewStatus: string(newStatus),
+		})
+	}
+
+	return nil
+}
+
+// SetFinalScores sets the final scores for the game
+func (g *Game) SetFinalScores(ctx context.Context, scores []FinalScore, winnerID string, isTie bool) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	g.mu.Lock()
+	g.finalScores = make([]FinalScore, len(scores))
+	copy(g.finalScores, scores)
+	g.winnerID = winnerID
+	g.isTie = isTie
+	g.updatedAt = time.Now()
+	g.mu.Unlock()
+
+	if g.eventBus != nil {
+		events.Publish(g.eventBus, events.GameStateChangedEvent{
+			GameID:    g.id,
+			Timestamp: time.Now(),
 		})
 	}
 

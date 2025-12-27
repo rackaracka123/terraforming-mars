@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	baseaction "terraforming-mars-backend/internal/action"
+	gameaction "terraforming-mars-backend/internal/action/game"
 
 	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/game"
@@ -15,15 +16,18 @@ import (
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type SkipActionAction struct {
 	baseaction.BaseAction
+	finalScoringAction *gameaction.FinalScoringAction
 }
 
 // NewSkipActionAction creates a new skip action action
 func NewSkipActionAction(
 	gameRepo game.GameRepository,
+	finalScoringAction *gameaction.FinalScoringAction,
 	logger *zap.Logger,
 ) *SkipActionAction {
 	return &SkipActionAction{
-		BaseAction: baseaction.NewBaseAction(gameRepo, nil),
+		BaseAction:         baseaction.NewBaseAction(gameRepo, nil),
+		finalScoringAction: finalScoringAction,
 	}
 }
 
@@ -134,8 +138,24 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 		zap.Int("total_players", len(players)),
 		zap.Bool("all_players_finished", allPlayersFinished))
 
-	// 10. If all players finished, trigger production phase
+	// 10. If all players finished, check for game end or trigger production phase
 	if allPlayersFinished {
+		// Check if game should end (all global parameters maxed)
+		if g.GlobalParameters().IsMaxed() {
+			log.Info("🏆 All global parameters maxed - triggering final scoring",
+				zap.String("game_id", gameID),
+				zap.Int("generation", g.Generation()))
+
+			err = a.finalScoringAction.Execute(ctx, gameID)
+			if err != nil {
+				log.Error("Failed to execute final scoring", zap.Error(err))
+				return fmt.Errorf("failed to execute final scoring: %w", err)
+			}
+
+			log.Info("✅ Game ended, final scores calculated")
+			return nil
+		}
+
 		log.Info("🏭 All players finished their turns - executing production phase",
 			zap.String("game_id", gameID),
 			zap.Int("generation", g.Generation()),

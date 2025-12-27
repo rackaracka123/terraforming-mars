@@ -10,12 +10,14 @@ import {
   AdminCommandTypeSetProduction,
   AdminCommandTypeSetGlobalParams,
   AdminCommandTypeStartTileSelection,
+  AdminCommandTypeSetTR,
   GiveCardAdminCommand,
   SetPhaseAdminCommand,
   SetResourcesAdminCommand,
   SetProductionAdminCommand,
   SetGlobalParamsAdminCommand,
   StartTileSelectionAdminCommand,
+  SetTRAdminCommand,
   GamePhaseWaitingForGameStart,
   GamePhaseStartingCardSelection,
   GamePhaseAction,
@@ -29,6 +31,13 @@ interface AdminCommandPanelProps {
   gameState: GameDto;
   onClose?: () => void;
 }
+
+// Global parameters min/max bounds
+const GLOBAL_PARAM_BOUNDS = {
+  temperature: { min: -30, max: 8 },
+  oxygen: { min: 0, max: 14 },
+  oceans: { min: 0, max: 9 },
+} as const;
 
 const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState, onClose }) => {
   const [selectedCommand, setSelectedCommand] = useState<string>("");
@@ -82,6 +91,18 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState, onClos
     transition: "all 0.2s ease",
     fontWeight: "500" as const,
   };
+
+  const smallButtonStyle = {
+    padding: "3px 8px",
+    background: "rgba(155, 89, 182, 0.3)",
+    border: "1px solid rgba(155, 89, 182, 0.4)",
+    borderRadius: "4px",
+    color: "white",
+    fontSize: "10px",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    fontWeight: "500" as const,
+  };
   const [giveCardForm, setGiveCardForm] = useState({
     playerId: "",
     cardId: "",
@@ -117,6 +138,10 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState, onClos
   const [setCorporationForm, setSetCorporationForm] = useState({
     playerId: "",
     corporationId: "",
+  });
+  const [setTRForm, setSetTRForm] = useState({
+    playerId: "",
+    terraformRating: "",
   });
 
   // Card data cache for autocomplete
@@ -189,6 +214,24 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState, onClos
     }
   }, [productionForm.playerId]);
 
+  // Update TR form when player selection changes
+  useEffect(() => {
+    if (setTRForm.playerId) {
+      const selectedPlayer = allPlayers.find((p) => p.id === setTRForm.playerId);
+      if (selectedPlayer) {
+        setSetTRForm((prev) => ({
+          ...prev,
+          terraformRating: (selectedPlayer.terraformRating || 20).toString(),
+        }));
+      }
+    } else {
+      setSetTRForm((prev) => ({
+        ...prev,
+        terraformRating: "",
+      }));
+    }
+  }, [setTRForm.playerId]);
+
   // Update global parameters form when game state changes
   useEffect(() => {
     setGlobalParamsForm({
@@ -235,6 +278,12 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState, onClos
       }
       if (!setCorporationForm.playerId) {
         setSetCorporationForm((prev) => ({
+          ...prev,
+          playerId: defaultPlayerId,
+        }));
+      }
+      if (!setTRForm.playerId) {
+        setSetTRForm((prev) => ({
           ...prev,
           playerId: defaultPlayerId,
         }));
@@ -503,6 +552,37 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState, onClos
     await sendAdminCommand(AdminCommandTypeSetGlobalParams, command);
   };
 
+  // Global params min/max helpers
+  const setGlobalParamMin = (param: keyof typeof GLOBAL_PARAM_BOUNDS) => {
+    setGlobalParamsForm((prev) => ({
+      ...prev,
+      [param]: GLOBAL_PARAM_BOUNDS[param].min.toString(),
+    }));
+  };
+
+  const setGlobalParamMax = (param: keyof typeof GLOBAL_PARAM_BOUNDS) => {
+    setGlobalParamsForm((prev) => ({
+      ...prev,
+      [param]: GLOBAL_PARAM_BOUNDS[param].max.toString(),
+    }));
+  };
+
+  const setAllGlobalParamsMin = () => {
+    setGlobalParamsForm({
+      temperature: GLOBAL_PARAM_BOUNDS.temperature.min.toString(),
+      oxygen: GLOBAL_PARAM_BOUNDS.oxygen.min.toString(),
+      oceans: GLOBAL_PARAM_BOUNDS.oceans.min.toString(),
+    });
+  };
+
+  const setAllGlobalParamsMax = () => {
+    setGlobalParamsForm({
+      temperature: GLOBAL_PARAM_BOUNDS.temperature.max.toString(),
+      oxygen: GLOBAL_PARAM_BOUNDS.oxygen.max.toString(),
+      oceans: GLOBAL_PARAM_BOUNDS.oceans.max.toString(),
+    });
+  };
+
   const handleStartTileSelection = async () => {
     const errors: Record<string, boolean> = {};
 
@@ -555,11 +635,45 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState, onClos
     setCorporationQuery("");
   };
 
+  const handleTRKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      void handleSetTR();
+    }
+  };
+
+  const handleSetTR = async () => {
+    const errors: Record<string, boolean> = {};
+
+    if (!setTRForm.playerId) errors.setTRPlayerId = true;
+    if (!setTRForm.terraformRating) errors.setTRValue = true;
+
+    // Validate TR is a valid number in range 1-70
+    const trValue = parseInt(setTRForm.terraformRating, 10);
+    if (isNaN(trValue) || trValue < 1 || trValue > 70) {
+      errors.setTRValue = true;
+    }
+
+    setValidationErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      setTimeout(() => setValidationErrors({}), 3000);
+      return;
+    }
+
+    const command: SetTRAdminCommand = {
+      playerId: setTRForm.playerId,
+      terraformRating: trValue,
+    };
+
+    await sendAdminCommand(AdminCommandTypeSetTR, command);
+  };
+
   const commandOptions = [
     { value: "give-card", label: "Give Card to Player" },
     { value: "set-phase", label: "Set Game Phase" },
     { value: "set-resources", label: "Set Player Resources" },
     { value: "set-production", label: "Set Player Production" },
+    { value: "set-tr", label: "Set Player Terraform Rating" },
     { value: "set-global-params", label: "Set Global Parameters" },
     { value: "start-tile-selection", label: "Start Tile Selection (Demo)" },
     { value: "set-corporation", label: "Set Player Corporation" },
@@ -925,23 +1039,93 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState, onClos
         </div>
       )}
 
+      {selectedCommand === "set-tr" && (
+        <div style={{ marginBottom: "16px" }}>
+          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>Set Player Terraform Rating</h4>
+          <div style={{ marginBottom: "8px" }}>
+            <select
+              value={setTRForm.playerId}
+              onChange={(e) => setSetTRForm({ ...setTRForm, playerId: e.target.value })}
+              style={getSelectStyle(validationErrors.setTRPlayerId)}
+            >
+              <option value="">Select player...</option>
+              {allPlayers.map((player) => (
+                <option key={player.id} value={player.id}>
+                  {player.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ marginBottom: "8px" }}>
+            <label
+              style={{
+                color: "#abb2bf",
+                fontSize: "11px",
+                display: "block",
+                marginBottom: "4px",
+              }}
+            >
+              Terraform Rating (1-70):
+            </label>
+            <input
+              type="text"
+              value={setTRForm.terraformRating}
+              onChange={(e) =>
+                setSetTRForm({
+                  ...setTRForm,
+                  terraformRating: filterNumericInput(e.target.value),
+                })
+              }
+              onBlur={(e) => {
+                const val = e.target.value;
+                if (val === "" || val === "-") return;
+                const num = parseInt(val, 10);
+                if (isNaN(num) || num < 1) {
+                  setSetTRForm({ ...setTRForm, terraformRating: "1" });
+                } else if (num > 70) {
+                  setSetTRForm({ ...setTRForm, terraformRating: "70" });
+                }
+              }}
+              onKeyDown={handleTRKeyDown}
+              disabled={!setTRForm.playerId}
+              style={{
+                ...getInputStyle(validationErrors.setTRValue, !setTRForm.playerId),
+                width: "100px",
+              }}
+            />
+          </div>
+          <button onClick={handleSetTR} style={buttonStyle}>
+            Set TR
+          </button>
+        </div>
+      )}
+
       {selectedCommand === "set-global-params" && (
         <div style={{ marginBottom: "16px" }}>
-          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>Set Global Parameters</h4>
+          <h4
+            style={{
+              color: "#9b59b6",
+              margin: "0 0 12px 0",
+              textAlign: "center",
+            }}
+          >
+            Set Global Parameters
+          </h4>
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "1fr",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
               gap: "8px",
               marginBottom: "8px",
             }}
           >
-            <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <label
                 style={{
                   color: "#abb2bf",
                   fontSize: "12px",
-                  marginRight: "8px",
+                  minWidth: "140px",
                 }}
               >
                 Temperature (-30 to +8°C):
@@ -964,17 +1148,22 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState, onClos
                 onKeyDown={handleGlobalParamsKeyDown}
                 style={{
                   ...getInputStyle(),
-                  width: "120px",
-                  maxWidth: "100%",
+                  width: "70px",
                 }}
               />
+              <button onClick={() => setGlobalParamMin("temperature")} style={smallButtonStyle}>
+                Min
+              </button>
+              <button onClick={() => setGlobalParamMax("temperature")} style={smallButtonStyle}>
+                Max
+              </button>
             </div>
-            <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <label
                 style={{
                   color: "#abb2bf",
                   fontSize: "12px",
-                  marginRight: "8px",
+                  minWidth: "140px",
                 }}
               >
                 Oxygen (0-14%):
@@ -997,17 +1186,22 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState, onClos
                 onKeyDown={handleGlobalParamsKeyDown}
                 style={{
                   ...getInputStyle(),
-                  width: "120px",
-                  maxWidth: "100%",
+                  width: "70px",
                 }}
               />
+              <button onClick={() => setGlobalParamMin("oxygen")} style={smallButtonStyle}>
+                Min
+              </button>
+              <button onClick={() => setGlobalParamMax("oxygen")} style={smallButtonStyle}>
+                Max
+              </button>
             </div>
-            <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <label
                 style={{
                   color: "#abb2bf",
                   fontSize: "12px",
-                  marginRight: "8px",
+                  minWidth: "140px",
                 }}
               >
                 Oceans (0-9):
@@ -1030,15 +1224,37 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState, onClos
                 onKeyDown={handleGlobalParamsKeyDown}
                 style={{
                   ...getInputStyle(),
-                  width: "120px",
-                  maxWidth: "100%",
+                  width: "70px",
                 }}
               />
+              <button onClick={() => setGlobalParamMin("oceans")} style={smallButtonStyle}>
+                Min
+              </button>
+              <button onClick={() => setGlobalParamMax("oceans")} style={smallButtonStyle}>
+                Max
+              </button>
             </div>
           </div>
-          <button onClick={handleSetGlobalParams} style={buttonStyle}>
-            Set Global Parameters
-          </button>
+          <div
+            style={{
+              display: "flex",
+              gap: "8px",
+              marginBottom: "12px",
+              justifyContent: "center",
+            }}
+          >
+            <button onClick={setAllGlobalParamsMin} style={smallButtonStyle}>
+              Min All
+            </button>
+            <button onClick={setAllGlobalParamsMax} style={smallButtonStyle}>
+              Max All
+            </button>
+          </div>
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <button onClick={handleSetGlobalParams} style={buttonStyle}>
+              Set Global Parameters
+            </button>
+          </div>
         </div>
       )}
 
@@ -1285,6 +1501,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState, onClos
             <li>Change game phase</li>
             <li>Set player resources</li>
             <li>Set player production</li>
+            <li>Set player terraform rating</li>
             <li>Modify global parameters</li>
             <li>Start tile selection (demo)</li>
             <li>Set player corporation</li>

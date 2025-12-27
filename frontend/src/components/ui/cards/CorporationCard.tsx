@@ -45,6 +45,8 @@ interface CorporationCardProps {
   isSelected: boolean;
   onSelect: (corporationId: string) => void;
   showCheckbox?: boolean; // Whether to show the selection checkbox (default: false)
+  borderColor?: string; // Custom border color (defaults to gold)
+  disableInteraction?: boolean; // When true, removes cursor-pointer and hover effects
 }
 
 const CorporationCard: React.FC<CorporationCardProps> = ({
@@ -52,6 +54,8 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
   isSelected,
   onSelect,
   showCheckbox = false,
+  borderColor,
+  disableInteraction = false,
 }) => {
   const renderResource = (type: string, amount: number) => {
     const resourceTypeMap: { [key: string]: string } = {
@@ -218,14 +222,50 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
     });
   };
 
+  // Determine border color
+  const effectiveBorderColor = borderColor || "#ffc107";
+
+  // Build className based on state
+  const getClassName = () => {
+    const base =
+      "w-[400px] h-[380px] relative bg-[rgba(5,4,2,0.98)] border-2 rounded-xl p-3 transition-all duration-300 ease-[ease]";
+
+    if (disableInteraction) {
+      // No cursor, no hover effects - just static display
+      return base;
+    }
+
+    if (isSelected) {
+      return `${base} cursor-pointer`;
+    }
+
+    // Default non-selected with hover effects
+    return `${base} cursor-pointer hover:-translate-y-0.5`;
+  };
+
+  // Build inline style for dynamic border color and shadow
+  const getStyle = (): React.CSSProperties => {
+    const color30 = `${effectiveBorderColor}4d`; // 30% opacity
+    const color20 = `${effectiveBorderColor}33`; // 20% opacity
+
+    if (disableInteraction || isSelected) {
+      return {
+        borderColor: effectiveBorderColor,
+        boxShadow: `0 4px 20px ${color30}, 0 0 40px ${color20}`,
+      };
+    }
+
+    // Default non-selected state
+    return {
+      borderColor: color30,
+    };
+  };
+
   return (
     <div
-      className={`w-[400px] h-[380px] relative bg-[rgba(5,4,2,0.98)] border-2 rounded-xl p-3 cursor-pointer transition-all duration-300 ease-[ease] ${
-        isSelected
-          ? "border-[#ffc107] shadow-[0_4px_20px_rgba(255,193,7,0.3),0_0_40px_rgba(255,193,7,0.2)]"
-          : "border-[rgba(255,193,7,0.3)] hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(0,0,0,0.4),0_0_15px_rgba(255,193,7,0.15)] hover:border-[rgba(255,193,7,0.5)]"
-      }`}
-      onClick={() => onSelect(corporation.id)}
+      className={getClassName()}
+      style={getStyle()}
+      onClick={disableInteraction ? undefined : () => onSelect(corporation.id)}
     >
       {/* Logo centered at top */}
       {corporation.logoPath && (

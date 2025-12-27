@@ -17,6 +17,7 @@ import { globalWebSocketManager } from "../../../services/globalWebSocketManager
 import GameIcon from "../display/GameIcon.tsx";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
 import CorporationCard from "../cards/CorporationCard.tsx";
+import { getCorporationBorderColor } from "@/utils/corporationColors.ts";
 import {
   OVERLAY_CONTAINER_CLASS,
   OVERLAY_HEADER_CLASS,
@@ -515,6 +516,7 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
                         setSelectedCorporationId(selectedCorporationId === corp.id ? "" : corp.id)
                       }
                       showCheckbox
+                      borderColor={getCorporationBorderColor(corp.name)}
                     />
                   </div>
                 ))}

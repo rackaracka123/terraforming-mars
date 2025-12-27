@@ -212,3 +212,32 @@ type PlayerEffectsChangedEvent struct {
 	PlayerID  string
 	Timestamp time.Time
 }
+
+// ============================================================================
+// MILESTONE AND AWARD EVENTS
+// ============================================================================
+
+// MilestoneClaimedEvent is published when a player claims a milestone
+type MilestoneClaimedEvent struct {
+	GameID        string
+	PlayerID      string
+	MilestoneType string
+	Timestamp     time.Time
+}
+
+// AwardFundedEvent is published when a player funds an award
+type AwardFundedEvent struct {
+	GameID      string
+	PlayerID    string
+	AwardType   string
+	FundingCost int
+	Timestamp   time.Time
+}
+
+// GameEndedEvent is published when the game ends (all global parameters maxed)
+type GameEndedEvent struct {
+	GameID    string
+	WinnerID  string
+	IsTie     bool
+	Timestamp time.Time
+}

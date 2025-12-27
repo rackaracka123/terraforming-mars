@@ -2,15 +2,24 @@ import { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import ProjectedHexGrid from "./ProjectedHexGrid.tsx";
+import { TileHighlightMode } from "./ProjectedHexTile.tsx";
+import { TileVPIndicator } from "../../ui/overlay/EndGameOverlay.tsx";
 import { GameDto } from "../../../types/generated/api-types.ts";
 import { useMarsRotation } from "../../../contexts/MarsRotationContext.tsx";
 
 interface MarsSphereProps {
   gameState?: GameDto;
   onHexClick?: (hex: string) => void;
+  tileHighlightMode?: TileHighlightMode;
+  vpIndicators?: TileVPIndicator[];
 }
 
-export default function MarsSphere({ gameState, onHexClick }: MarsSphereProps) {
+export default function MarsSphere({
+  gameState,
+  onHexClick,
+  tileHighlightMode,
+  vpIndicators = [],
+}: MarsSphereProps) {
   const { marsGroupRef } = useMarsRotation();
 
   // Load the Mars GLTF model
@@ -89,7 +98,12 @@ export default function MarsSphere({ gameState, onHexClick }: MarsSphereProps) {
       <primitive object={marsScene} />
 
       {/* Projected hexagonal grid "wrapped" around Mars sphere */}
-      <ProjectedHexGrid gameState={gameState} onHexClick={onHexClick} />
+      <ProjectedHexGrid
+        gameState={gameState}
+        onHexClick={onHexClick}
+        tileHighlightMode={tileHighlightMode}
+        vpIndicators={vpIndicators}
+      />
     </group>
   );
 }

@@ -29,6 +29,7 @@ type AdminCommandHandler struct {
 	giveCardAction            *admin.GiveCardAction
 	setCorporationAction      *admin.SetCorporationAction
 	startTileSelectionAction  *admin.StartTileSelectionAction
+	setTRAction               *admin.SetTRAction
 	broadcaster               Broadcaster
 	logger                    *zap.Logger
 }
@@ -43,6 +44,7 @@ func NewAdminCommandHandler(
 	giveCardAction *admin.GiveCardAction,
 	setCorporationAction *admin.SetCorporationAction,
 	startTileSelectionAction *admin.StartTileSelectionAction,
+	setTRAction *admin.SetTRAction,
 	broadcaster Broadcaster,
 ) *AdminCommandHandler {
 	return &AdminCommandHandler{
@@ -54,6 +56,7 @@ func NewAdminCommandHandler(
 		giveCardAction:            giveCardAction,
 		setCorporationAction:      setCorporationAction,
 		startTileSelectionAction:  startTileSelectionAction,
+		setTRAction:               setTRAction,
 		broadcaster:               broadcaster,
 		logger:                    logger.Get(),
 	}
@@ -123,6 +126,8 @@ func (h *AdminCommandHandler) HandleMessage(ctx context.Context, connection *cor
 		err = h.handleSetCorporation(ctx, gameID, commandPayload)
 	case dto.AdminCommandTypeStartTileSelection:
 		err = h.handleStartTileSelection(ctx, gameID, commandPayload)
+	case dto.AdminCommandTypeSetTR:
+		err = h.handleSetTR(ctx, gameID, commandPayload)
 	default:
 		log.Error("Unknown admin command type", zap.String("command_type", commandType))
 		h.sendError(connection, "Unknown admin command type: "+commandType)
@@ -292,6 +297,22 @@ func (h *AdminCommandHandler) handleStartTileSelection(ctx context.Context, game
 	}
 
 	return h.startTileSelectionAction.Execute(ctx, gameID, playerID, tileType)
+}
+
+func (h *AdminCommandHandler) handleSetTR(ctx context.Context, gameID string, payload interface{}) error {
+	payloadMap, ok := payload.(map[string]interface{})
+	if !ok {
+		return &adminError{message: "Invalid set-tr payload"}
+	}
+
+	playerID, _ := payloadMap["playerId"].(string)
+	if playerID == "" {
+		return &adminError{message: "Missing playerId"}
+	}
+
+	terraformRating := getIntFromMap(payloadMap, "terraformRating")
+
+	return h.setTRAction.Execute(ctx, gameID, playerID, terraformRating)
 }
 
 // sendError sends an error message to the client

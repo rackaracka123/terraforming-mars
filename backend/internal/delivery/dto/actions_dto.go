@@ -286,6 +286,7 @@ const (
 	AdminCommandTypeStartTileSelection AdminCommandType = "start-tile-selection"
 	AdminCommandTypeSetCurrentTurn     AdminCommandType = "set-current-turn"
 	AdminCommandTypeSetCorporation     AdminCommandType = "set-corporation"
+	AdminCommandTypeSetTR              AdminCommandType = "set-tr"
 )
 
 // AdminCommandRequest contains the admin command data
@@ -332,6 +333,12 @@ type StartTileSelectionAdminCommand struct {
 type SetCorporationAdminCommand struct {
 	PlayerID      string `json:"playerId" ts:"string"`
 	CorporationID string `json:"corporationId" ts:"string"`
+}
+
+// SetTRAdminCommand represents setting a player's terraform rating
+type SetTRAdminCommand struct {
+	PlayerID        string `json:"playerId" ts:"string"`
+	TerraformRating int    `json:"terraformRating" ts:"number"`
 }
 
 // CardPaymentDto represents how a player is paying for a card

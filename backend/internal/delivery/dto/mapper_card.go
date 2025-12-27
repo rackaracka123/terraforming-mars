@@ -12,72 +12,6 @@ import (
 
 // ToCardDto converts a Card to CardDto
 func ToCardDto(card gamecards.Card) CardDto {
-	// Convert tags
-	tags := make([]CardTag, len(card.Tags))
-	for i, tag := range card.Tags {
-		tags[i] = CardTag(tag)
-	}
-
-	// Convert requirements
-	var requirements []RequirementDto
-	if len(card.Requirements) > 0 {
-		requirements = make([]RequirementDto, len(card.Requirements))
-		for i, req := range card.Requirements {
-			requirements[i] = toRequirementDto(req)
-		}
-	}
-
-	// Convert behaviors
-	var behaviors []CardBehaviorDto
-	if len(card.Behaviors) > 0 {
-		behaviors = make([]CardBehaviorDto, len(card.Behaviors))
-		for i, behavior := range card.Behaviors {
-			behaviors[i] = toCardBehaviorDto(behavior)
-		}
-	}
-
-	// Convert resource storage
-	var resourceStorage *ResourceStorageDto
-	if card.ResourceStorage != nil {
-		storage := toResourceStorageDto(*card.ResourceStorage)
-		resourceStorage = &storage
-	}
-
-	// Convert VP conditions
-	var vpConditions []VPConditionDto
-	if len(card.VPConditions) > 0 {
-		vpConditions = make([]VPConditionDto, len(card.VPConditions))
-		for i, vp := range card.VPConditions {
-			vpConditions[i] = toVPConditionDto(vp)
-		}
-	}
-
-	// Convert starting resources (corporation-specific)
-	var startingResources *ResourceSet
-	if card.StartingResources != nil {
-		startingResources = &ResourceSet{
-			Credits:  card.StartingResources.Credits,
-			Steel:    card.StartingResources.Steel,
-			Titanium: card.StartingResources.Titanium,
-			Plants:   card.StartingResources.Plants,
-			Energy:   card.StartingResources.Energy,
-			Heat:     card.StartingResources.Heat,
-		}
-	}
-
-	// Convert starting production (corporation-specific)
-	var startingProduction *ResourceSet
-	if card.StartingProduction != nil {
-		startingProduction = &ResourceSet{
-			Credits:  card.StartingProduction.Credits,
-			Steel:    card.StartingProduction.Steel,
-			Titanium: card.StartingProduction.Titanium,
-			Plants:   card.StartingProduction.Plants,
-			Energy:   card.StartingProduction.Energy,
-			Heat:     card.StartingProduction.Heat,
-		}
-	}
-
 	return CardDto{
 		ID:                 card.ID,
 		Name:               card.Name,
@@ -85,13 +19,25 @@ func ToCardDto(card gamecards.Card) CardDto {
 		Cost:               card.Cost,
 		Description:        card.Description,
 		Pack:               card.Pack,
-		Tags:               tags,
-		Requirements:       requirements,
-		Behaviors:          behaviors,
-		ResourceStorage:    resourceStorage,
-		VPConditions:       vpConditions,
-		StartingResources:  startingResources,
-		StartingProduction: startingProduction,
+		Tags:               mapSlice(card.Tags, func(t shared.CardTag) CardTag { return CardTag(t) }),
+		Requirements:       mapSlice(card.Requirements, toRequirementDto),
+		Behaviors:          mapSlice(card.Behaviors, toCardBehaviorDto),
+		ResourceStorage:    ptrCast(card.ResourceStorage, toResourceStorageDto),
+		VPConditions:       mapSlice(card.VPConditions, toVPConditionDto),
+		StartingResources:  ptrCast(card.StartingResources, toResourceSetDto),
+		StartingProduction: ptrCast(card.StartingProduction, toResourceSetDto),
+	}
+}
+
+// toResourceSetDto converts shared.ResourceSet to ResourceSet DTO.
+func toResourceSetDto(rs shared.ResourceSet) ResourceSet {
+	return ResourceSet{
+		Credits:  rs.Credits,
+		Steel:    rs.Steel,
+		Titanium: rs.Titanium,
+		Plants:   rs.Plants,
+		Energy:   rs.Energy,
+		Heat:     rs.Heat,
 	}
 }
 
@@ -137,210 +83,70 @@ func getPlayedCards(cardIDs []string, cardRegistry cards.CardRegistry) []CardDto
 // Card-related helper functions for nested DTO conversions
 
 func toRequirementDto(req gamecards.Requirement) RequirementDto {
-	var location *CardApplyLocation
-	if req.Location != nil {
-		loc := CardApplyLocation(*req.Location)
-		location = &loc
-	}
-
-	var tag *CardTag
-	if req.Tag != nil {
-		t := CardTag(*req.Tag)
-		tag = &t
-	}
-
-	var resource *ResourceType
-	if req.Resource != nil {
-		r := ResourceType(*req.Resource)
-		resource = &r
-	}
-
 	return RequirementDto{
 		Type:     RequirementType(req.Type),
 		Min:      req.Min,
 		Max:      req.Max,
-		Location: location,
-		Tag:      tag,
-		Resource: resource,
+		Location: ptrCast(req.Location, func(l gamecards.CardApplyLocation) CardApplyLocation { return CardApplyLocation(l) }),
+		Tag:      ptrCast(req.Tag, func(t shared.CardTag) CardTag { return CardTag(t) }),
+		Resource: ptrCast(req.Resource, func(r shared.ResourceType) ResourceType { return ResourceType(r) }),
 	}
 }
 
 func toCardBehaviorDto(behavior shared.CardBehavior) CardBehaviorDto {
-	var triggers []TriggerDto
-	if len(behavior.Triggers) > 0 {
-		triggers = make([]TriggerDto, len(behavior.Triggers))
-		for i, trigger := range behavior.Triggers {
-			triggers[i] = toTriggerDto(trigger)
-		}
-	}
-
-	var inputs []ResourceConditionDto
-	if len(behavior.Inputs) > 0 {
-		inputs = make([]ResourceConditionDto, len(behavior.Inputs))
-		for i, input := range behavior.Inputs {
-			inputs[i] = toResourceConditionDto(input)
-		}
-	}
-
-	var outputs []ResourceConditionDto
-	if len(behavior.Outputs) > 0 {
-		outputs = make([]ResourceConditionDto, len(behavior.Outputs))
-		for i, output := range behavior.Outputs {
-			outputs[i] = toResourceConditionDto(output)
-		}
-	}
-
-	var choices []ChoiceDto
-	if len(behavior.Choices) > 0 {
-		choices = make([]ChoiceDto, len(behavior.Choices))
-		for i, choice := range behavior.Choices {
-			choices[i] = toChoiceDto(choice)
-		}
-	}
-
 	return CardBehaviorDto{
-		Triggers: triggers,
-		Inputs:   inputs,
-		Outputs:  outputs,
-		Choices:  choices,
+		Triggers: mapSlice(behavior.Triggers, toTriggerDto),
+		Inputs:   mapSlice(behavior.Inputs, toResourceConditionDto),
+		Outputs:  mapSlice(behavior.Outputs, toResourceConditionDto),
+		Choices:  mapSlice(behavior.Choices, toChoiceDto),
 	}
 }
 
 func toTriggerDto(trigger shared.Trigger) TriggerDto {
-	var condition *ResourceTriggerConditionDto
-	if trigger.Condition != nil {
-		cond := toResourceTriggerConditionDto(*trigger.Condition)
-		condition = &cond
-	}
-
 	return TriggerDto{
 		Type:      ResourceTriggerType(trigger.Type),
-		Condition: condition,
+		Condition: ptrCast(trigger.Condition, toResourceTriggerConditionDto),
 	}
 }
 
 func toResourceTriggerConditionDto(cond shared.ResourceTriggerCondition) ResourceTriggerConditionDto {
-	var location *CardApplyLocation
-	if cond.Location != nil {
-		loc := CardApplyLocation(*cond.Location)
-		location = &loc
-	}
-
-	var affectedTags []CardTag
-	if len(cond.AffectedTags) > 0 {
-		affectedTags = make([]CardTag, len(cond.AffectedTags))
-		for i, tag := range cond.AffectedTags {
-			affectedTags[i] = CardTag(tag)
-		}
-	}
-
-	var target *TargetType
-	if cond.Target != nil {
-		t := TargetType(*cond.Target)
-		target = &t
-	}
-
 	return ResourceTriggerConditionDto{
 		Type:              TriggerType(cond.Type),
-		Location:          location,
-		AffectedTags:      affectedTags,
+		Location:          ptrCast(cond.Location, func(l string) CardApplyLocation { return CardApplyLocation(l) }),
+		AffectedTags:      mapSlice(cond.AffectedTags, func(t shared.CardTag) CardTag { return CardTag(t) }),
 		AffectedResources: cond.AffectedResources,
-		Target:            target,
+		Target:            ptrCast(cond.Target, func(t string) TargetType { return TargetType(t) }),
 	}
 }
 
 func toResourceConditionDto(rc shared.ResourceCondition) ResourceConditionDto {
-	var affectedTags []CardTag
-	if len(rc.AffectedTags) > 0 {
-		affectedTags = make([]CardTag, len(rc.AffectedTags))
-		for i, tag := range rc.AffectedTags {
-			affectedTags[i] = CardTag(tag)
-		}
-	}
-
-	var affectedCardTypes []CardType
-	if len(rc.AffectedCardTypes) > 0 {
-		affectedCardTypes = make([]CardType, len(rc.AffectedCardTypes))
-		for i, ct := range rc.AffectedCardTypes {
-			affectedCardTypes[i] = CardType(ct)
-		}
-	}
-
-	var affectedStandardProjects []StandardProject
-	if len(rc.AffectedStandardProjects) > 0 {
-		affectedStandardProjects = make([]StandardProject, len(rc.AffectedStandardProjects))
-		for i, sp := range rc.AffectedStandardProjects {
-			affectedStandardProjects[i] = StandardProject(sp)
-		}
-	}
-
-	var per *PerConditionDto
-	if rc.Per != nil {
-		p := toPerConditionDto(*rc.Per)
-		per = &p
-	}
-
 	return ResourceConditionDto{
 		Type:                     ResourceType(rc.ResourceType),
 		Amount:                   rc.Amount,
 		Target:                   TargetType(rc.Target),
 		AffectedResources:        rc.AffectedResources,
-		AffectedTags:             affectedTags,
-		AffectedCardTypes:        affectedCardTypes,
-		AffectedStandardProjects: affectedStandardProjects,
+		AffectedTags:             mapSlice(rc.AffectedTags, func(t shared.CardTag) CardTag { return CardTag(t) }),
+		AffectedCardTypes:        mapSlice(rc.AffectedCardTypes, func(ct string) CardType { return CardType(ct) }),
+		AffectedStandardProjects: mapSlice(rc.AffectedStandardProjects, func(sp shared.StandardProject) StandardProject { return StandardProject(sp) }),
 		MaxTrigger:               rc.MaxTrigger,
-		Per:                      per,
+		Per:                      ptrCast(rc.Per, toPerConditionDto),
 	}
 }
 
 func toChoiceDto(choice shared.Choice) ChoiceDto {
-	var inputs []ResourceConditionDto
-	if len(choice.Inputs) > 0 {
-		inputs = make([]ResourceConditionDto, len(choice.Inputs))
-		for i, input := range choice.Inputs {
-			inputs[i] = toResourceConditionDto(input)
-		}
-	}
-
-	var outputs []ResourceConditionDto
-	if len(choice.Outputs) > 0 {
-		outputs = make([]ResourceConditionDto, len(choice.Outputs))
-		for i, output := range choice.Outputs {
-			outputs[i] = toResourceConditionDto(output)
-		}
-	}
-
 	return ChoiceDto{
-		Inputs:  inputs,
-		Outputs: outputs,
+		Inputs:  mapSlice(choice.Inputs, toResourceConditionDto),
+		Outputs: mapSlice(choice.Outputs, toResourceConditionDto),
 	}
 }
 
 func toPerConditionDto(pc shared.PerCondition) PerConditionDto {
-	var location *CardApplyLocation
-	if pc.Location != nil {
-		loc := CardApplyLocation(*pc.Location)
-		location = &loc
-	}
-
-	var target *TargetType
-	if pc.Target != nil {
-		t := TargetType(*pc.Target)
-		target = &t
-	}
-
-	var tag *CardTag
-	if pc.Tag != nil {
-		t := CardTag(*pc.Tag)
-		tag = &t
-	}
-
 	return PerConditionDto{
 		Type:     ResourceType(pc.ResourceType),
 		Amount:   pc.Amount,
-		Location: location,
-		Target:   target,
-		Tag:      tag,
+		Location: ptrCast(pc.Location, func(l string) CardApplyLocation { return CardApplyLocation(l) }),
+		Target:   ptrCast(pc.Target, func(t string) TargetType { return TargetType(t) }),
+		Tag:      ptrCast(pc.Tag, func(t shared.CardTag) CardTag { return CardTag(t) }),
 	}
 }
 
@@ -353,41 +159,22 @@ func toResourceStorageDto(storage gamecards.ResourceStorage) ResourceStorageDto 
 }
 
 func toVPConditionDto(vp gamecards.VictoryPointCondition) VPConditionDto {
-	var per *PerConditionDto
-	if vp.Per != nil {
-		// Convert gamecards.PerCondition to PerConditionDto
-		var location *CardApplyLocation
-		if vp.Per.Location != nil {
-			loc := CardApplyLocation(*vp.Per.Location)
-			location = &loc
-		}
-
-		var target *TargetType
-		if vp.Per.Target != nil {
-			t := TargetType(*vp.Per.Target)
-			target = &t
-		}
-
-		var tag *CardTag
-		if vp.Per.Tag != nil {
-			t := CardTag(*vp.Per.Tag)
-			tag = &t
-		}
-
-		perDto := PerConditionDto{
-			Type:     ResourceType(vp.Per.Type),
-			Amount:   vp.Per.Amount,
-			Location: location,
-			Target:   target,
-			Tag:      tag,
-		}
-		per = &perDto
-	}
-
 	return VPConditionDto{
 		Amount:     vp.Amount,
 		Condition:  VPConditionType(vp.Condition),
 		MaxTrigger: vp.MaxTrigger,
-		Per:        per,
+		Per:        ptrCast(vp.Per, toVPPerConditionDto),
+	}
+}
+
+// toVPPerConditionDto converts gamecards.PerCondition (used in VP conditions) to PerConditionDto.
+// This is separate from toPerConditionDto because gamecards.PerCondition uses Type instead of ResourceType field.
+func toVPPerConditionDto(pc gamecards.PerCondition) PerConditionDto {
+	return PerConditionDto{
+		Type:     ResourceType(pc.Type),
+		Amount:   pc.Amount,
+		Location: ptrCast(pc.Location, func(l gamecards.CardApplyLocation) CardApplyLocation { return CardApplyLocation(l) }),
+		Target:   ptrCast(pc.Target, func(t gamecards.TargetType) TargetType { return TargetType(t) }),
+		Tag:      ptrCast(pc.Tag, func(t shared.CardTag) CardTag { return CardTag(t) }),
 	}
 }

@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { apiService } from "../../services/apiService";
 import { globalWebSocketManager } from "../../services/globalWebSocketManager.ts";
 import { useSpaceBackground } from "../../contexts/SpaceBackgroundContext.tsx";
 import { GameDto } from "../../types/generated/api-types.ts";
 import { getCorporationLogo } from "../../utils/corporationLogos.tsx";
-import { clearGameSession } from "../../utils/sessionStorage.ts";
+import { clearGameSession, saveGameSession } from "../../utils/sessionStorage.ts";
+
+const FADE_DURATION_MS = 300;
 
 const GameLandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -45,8 +47,7 @@ const GameLandingPage: React.FC = () => {
             });
           }
         }
-      } catch (err: any) {
-        void err;
+      } catch {
         // Clear invalid saved game data
         clearGameSession();
         setSavedGameData(null);
@@ -56,33 +57,25 @@ const GameLandingPage: React.FC = () => {
     void checkExistingGame();
   }, [preloadSkybox]);
 
-  const handleCreateGame = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    // Allow CTRL+Click, CMD+Click, and middle mouse button to open in new tab
-    if (e.ctrlKey || e.metaKey || e.button === 1) {
-      return;
-    }
+  // Factory for creating fade-out navigation handlers
+  const createFadeNavigate = useCallback(
+    (path: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+      // Allow CTRL+Click, CMD+Click, and middle mouse button to open in new tab
+      if (e.ctrlKey || e.metaKey || e.button === 1) {
+        return;
+      }
+      // For normal clicks, prevent default and use fade-out animation
+      e.preventDefault();
+      setIsFadingOut(true);
+      setTimeout(() => {
+        navigate(path);
+      }, FADE_DURATION_MS);
+    },
+    [navigate],
+  );
 
-    // For normal clicks, prevent default and use fade-out animation
-    e.preventDefault();
-    setIsFadingOut(true);
-    setTimeout(() => {
-      navigate("/create");
-    }, 300); // Match CSS transition duration
-  };
-
-  const handleJoinGame = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    // Allow CTRL+Click, CMD+Click, and middle mouse button to open in new tab
-    if (e.ctrlKey || e.metaKey || e.button === 1) {
-      return;
-    }
-
-    // For normal clicks, prevent default and use fade-out animation
-    e.preventDefault();
-    setIsFadingOut(true);
-    setTimeout(() => {
-      navigate("/join");
-    }, 300); // Match CSS transition duration
-  };
+  const handleCreateGame = createFadeNavigate("/create");
+  const handleJoinGame = createFadeNavigate("/join");
 
   const handleReconnect = async () => {
     if (!savedGameData) return;
@@ -94,7 +87,6 @@ const GameLandingPage: React.FC = () => {
         const game = await apiService.getGame(savedGameData.game.id);
         if (!game) {
           // Game no longer exists, clear storage and show error
-          console.log("Game no longer exists, clearing session and showing error");
           clearGameSession();
           setError("Game no longer exists");
           setIsFadingOut(false);
@@ -117,12 +109,11 @@ const GameLandingPage: React.FC = () => {
             playerName: savedGameData.playerName,
           },
         });
-      } catch (err) {
-        console.error("Failed to reconnect:", err);
+      } catch {
         setError("Failed to reconnect to game");
         setIsFadingOut(false);
       }
-    }, 300); // Match CSS transition duration
+    }, FADE_DURATION_MS);
   };
 
   const handleDemoGame = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -139,15 +130,11 @@ const GameLandingPage: React.FC = () => {
       });
 
       // Store session in localStorage
-      localStorage.setItem(
-        "terraforming-mars-game",
-        JSON.stringify({
-          gameId: result.game.id,
-          playerId: result.playerId,
-          playerName: "You",
-          createdAt: new Date().toISOString(),
-        }),
-      );
+      saveGameSession({
+        gameId: result.game.id,
+        playerId: result.playerId,
+        playerName: "You",
+      });
 
       // Initialize WebSocket
       await globalWebSocketManager.initialize();
@@ -165,7 +152,7 @@ const GameLandingPage: React.FC = () => {
             playerName: "You",
           },
         });
-      }, 300);
+      }, FADE_DURATION_MS);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create demo lobby");
       setIsCreatingDemo(false);

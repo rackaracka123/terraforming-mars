@@ -9,6 +9,50 @@ import (
 	"terraforming-mars-backend/internal/game/shared"
 )
 
+// ========================================
+// Resource Conversion Helpers
+// ========================================
+
+// toResourcesDto converts shared.Resources to ResourcesDto.
+func toResourcesDto(res shared.Resources) ResourcesDto {
+	return ResourcesDto{
+		Credits:  res.Credits,
+		Steel:    res.Steel,
+		Titanium: res.Titanium,
+		Plants:   res.Plants,
+		Energy:   res.Energy,
+		Heat:     res.Heat,
+	}
+}
+
+// toProductionDto converts shared.Production to ProductionDto.
+func toProductionDto(prod shared.Production) ProductionDto {
+	return ProductionDto{
+		Credits:  prod.Credits,
+		Steel:    prod.Steel,
+		Titanium: prod.Titanium,
+		Plants:   prod.Plants,
+		Energy:   prod.Energy,
+		Heat:     prod.Heat,
+	}
+}
+
+// calculateResourceDelta calculates the difference between two Resources and returns a ResourcesDto.
+func calculateResourceDelta(before, after shared.Resources) ResourcesDto {
+	return ResourcesDto{
+		Credits:  after.Credits - before.Credits,
+		Steel:    after.Steel - before.Steel,
+		Titanium: after.Titanium - before.Titanium,
+		Plants:   after.Plants - before.Plants,
+		Energy:   after.Energy - before.Energy,
+		Heat:     after.Heat - before.Heat,
+	}
+}
+
+// ========================================
+// Player DTO Mappers
+// ========================================
+
 // ToPlayerDto converts migration Player to PlayerDto
 func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry) PlayerDto {
 	resourcesComponent := p.Resources()
@@ -28,6 +72,12 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 	// Get standard projects with availability state (Player-Scoped Card Architecture)
 	standardProjects := mapPlayerStandardProjects(p, g, cardRegistry)
 
+	// Get milestones with player eligibility state
+	milestones := mapPlayerMilestones(p, g, cardRegistry)
+
+	// Get awards with player eligibility state
+	awards := mapPlayerAwards(p, g)
+
 	// Only include turn-specific data if it's this player's turn
 	var pendingTileSelection *PendingTileSelectionDto
 	var forcedFirstAction *ForcedFirstActionDto
@@ -38,24 +88,10 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 	}
 
 	return PlayerDto{
-		ID:   p.ID(),
-		Name: p.Name(),
-		Resources: ResourcesDto{
-			Credits:  resources.Credits,
-			Steel:    resources.Steel,
-			Titanium: resources.Titanium,
-			Plants:   resources.Plants,
-			Energy:   resources.Energy,
-			Heat:     resources.Heat,
-		},
-		Production: ProductionDto{
-			Credits:  production.Credits,
-			Steel:    production.Steel,
-			Titanium: production.Titanium,
-			Plants:   production.Plants,
-			Energy:   production.Energy,
-			Heat:     production.Heat,
-		},
+		ID:               p.ID(),
+		Name:             p.Name(),
+		Resources:        toResourcesDto(resources),
+		Production:       toProductionDto(production),
 		TerraformRating:  resourcesComponent.TerraformRating(),
 		VictoryPoints:    resourcesComponent.VictoryPoints(),
 		Status:           PlayerStatusWaiting, // Default status
@@ -68,6 +104,8 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 		Effects:          convertPlayerEffects(p.Effects().List()),
 		Actions:          convertPlayerActions(p.Actions().List()),
 		StandardProjects: standardProjects, // PlayerStandardProjectDto[] with state
+		Milestones:       milestones,       // PlayerMilestoneDto[] with eligibility
+		Awards:           awards,           // PlayerAwardDto[] with eligibility
 
 		SelectStartingCardsPhase: convertSelectStartingCardsPhase(g.GetSelectStartingCardsPhase(p.ID()), cardRegistry),
 		ProductionPhase:          convertProductionPhase(g.GetProductionPhase(p.ID()), cardRegistry),
@@ -99,24 +137,10 @@ func ToOtherPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardReg
 	handCardCount := len(p.Hand().Cards())
 
 	return OtherPlayerDto{
-		ID:   p.ID(),
-		Name: p.Name(),
-		Resources: ResourcesDto{
-			Credits:  resources.Credits,
-			Steel:    resources.Steel,
-			Titanium: resources.Titanium,
-			Plants:   resources.Plants,
-			Energy:   resources.Energy,
-			Heat:     resources.Heat,
-		},
-		Production: ProductionDto{
-			Credits:  production.Credits,
-			Steel:    production.Steel,
-			Titanium: production.Titanium,
-			Plants:   production.Plants,
-			Energy:   production.Energy,
-			Heat:     production.Heat,
-		},
+		ID:               p.ID(),
+		Name:             p.Name(),
+		Resources:        toResourcesDto(resources),
+		Production:       toProductionDto(production),
 		TerraformRating:  resourcesComponent.TerraformRating(),
 		VictoryPoints:    resourcesComponent.VictoryPoints(),
 		Status:           PlayerStatusWaiting,
@@ -172,44 +196,12 @@ func convertProductionPhase(phase *player.ProductionPhase, cardRegistry cards.Ca
 		return nil
 	}
 
-	// Get full card details for available cards
-	availableCards := getPlayedCards(phase.AvailableCards, cardRegistry)
-
-	// Convert resources
-	beforeResources := ResourcesDto{
-		Credits:  phase.BeforeResources.Credits,
-		Steel:    phase.BeforeResources.Steel,
-		Titanium: phase.BeforeResources.Titanium,
-		Plants:   phase.BeforeResources.Plants,
-		Energy:   phase.BeforeResources.Energy,
-		Heat:     phase.BeforeResources.Heat,
-	}
-
-	afterResources := ResourcesDto{
-		Credits:  phase.AfterResources.Credits,
-		Steel:    phase.AfterResources.Steel,
-		Titanium: phase.AfterResources.Titanium,
-		Plants:   phase.AfterResources.Plants,
-		Energy:   phase.AfterResources.Energy,
-		Heat:     phase.AfterResources.Heat,
-	}
-
-	// Calculate resource delta
-	resourceDelta := ResourcesDto{
-		Credits:  phase.AfterResources.Credits - phase.BeforeResources.Credits,
-		Steel:    phase.AfterResources.Steel - phase.BeforeResources.Steel,
-		Titanium: phase.AfterResources.Titanium - phase.BeforeResources.Titanium,
-		Plants:   phase.AfterResources.Plants - phase.BeforeResources.Plants,
-		Energy:   phase.AfterResources.Energy - phase.BeforeResources.Energy,
-		Heat:     phase.AfterResources.Heat - phase.BeforeResources.Heat,
-	}
-
 	return &ProductionPhaseDto{
-		AvailableCards:    availableCards,
+		AvailableCards:    getPlayedCards(phase.AvailableCards, cardRegistry),
 		SelectionComplete: phase.SelectionComplete,
-		BeforeResources:   beforeResources,
-		AfterResources:    afterResources,
-		ResourceDelta:     resourceDelta,
+		BeforeResources:   toResourcesDto(phase.BeforeResources),
+		AfterResources:    toResourcesDto(phase.AfterResources),
+		ResourceDelta:     calculateResourceDelta(phase.BeforeResources, phase.AfterResources),
 		EnergyConverted:   phase.EnergyConverted,
 		CreditsIncome:     phase.CreditsIncome,
 	}
@@ -221,41 +213,11 @@ func convertProductionPhaseForOtherPlayer(phase *player.ProductionPhase) *Produc
 		return nil
 	}
 
-	// Convert resources
-	beforeResources := ResourcesDto{
-		Credits:  phase.BeforeResources.Credits,
-		Steel:    phase.BeforeResources.Steel,
-		Titanium: phase.BeforeResources.Titanium,
-		Plants:   phase.BeforeResources.Plants,
-		Energy:   phase.BeforeResources.Energy,
-		Heat:     phase.BeforeResources.Heat,
-	}
-
-	afterResources := ResourcesDto{
-		Credits:  phase.AfterResources.Credits,
-		Steel:    phase.AfterResources.Steel,
-		Titanium: phase.AfterResources.Titanium,
-		Plants:   phase.AfterResources.Plants,
-		Energy:   phase.AfterResources.Energy,
-		Heat:     phase.AfterResources.Heat,
-	}
-
-	// Calculate resource delta
-	resourceDelta := ResourcesDto{
-		Credits:  phase.AfterResources.Credits - phase.BeforeResources.Credits,
-		Steel:    phase.AfterResources.Steel - phase.BeforeResources.Steel,
-		Titanium: phase.AfterResources.Titanium - phase.BeforeResources.Titanium,
-		Plants:   phase.AfterResources.Plants - phase.BeforeResources.Plants,
-		Energy:   phase.AfterResources.Energy - phase.BeforeResources.Energy,
-		Heat:     phase.AfterResources.Heat - phase.BeforeResources.Heat,
-	}
-
-	// Other players don't see available cards
 	return &ProductionPhaseOtherPlayerDto{
 		SelectionComplete: phase.SelectionComplete,
-		BeforeResources:   beforeResources,
-		AfterResources:    afterResources,
-		ResourceDelta:     resourceDelta,
+		BeforeResources:   toResourcesDto(phase.BeforeResources),
+		AfterResources:    toResourcesDto(phase.AfterResources),
+		ResourceDelta:     calculateResourceDelta(phase.BeforeResources, phase.AfterResources),
 		EnergyConverted:   phase.EnergyConverted,
 		CreditsIncome:     phase.CreditsIncome,
 	}
@@ -564,6 +526,87 @@ func mapPlayerStandardProjects(p *player.Player, g *game.Game, cardRegistry card
 			Metadata:      state.Metadata,
 		}
 
+		result = append(result, dto)
+	}
+
+	return result
+}
+
+// mapPlayerMilestones calculates state for all milestones and converts to DTOs.
+// Uses the state calculator to compute availability on-the-fly (same pattern as standard projects).
+func mapPlayerMilestones(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry) []PlayerMilestoneDto {
+	result := make([]PlayerMilestoneDto, 0, len(game.AllMilestones))
+	gameMilestones := g.Milestones()
+
+	for _, info := range game.AllMilestones {
+		// Calculate state on-the-fly using the state calculator
+		state := action.CalculateMilestoneState(info.Type, p, g, cardRegistry)
+
+		// Get claim status from game-level milestones
+		isClaimed := gameMilestones.IsClaimed(info.Type)
+		var claimedBy *string
+		for _, claimed := range gameMilestones.ClaimedMilestones() {
+			if claimed.Type == info.Type {
+				claimedBy = &claimed.PlayerID
+				break
+			}
+		}
+
+		// Extract progress from metadata
+		progress := 0
+		if prog, ok := state.Metadata["progress"].(int); ok {
+			progress = prog
+		}
+
+		dto := PlayerMilestoneDto{
+			Type:        string(info.Type),
+			Name:        info.Name,
+			Description: info.Description,
+			ClaimCost:   game.MilestoneClaimCost,
+			IsClaimed:   isClaimed,
+			ClaimedBy:   claimedBy,
+			Available:   state.Available(),
+			Progress:    progress,
+			Required:    info.Requirement,
+			Errors:      convertStateErrors(state.Errors),
+		}
+		result = append(result, dto)
+	}
+
+	return result
+}
+
+// mapPlayerAwards calculates state for all awards and converts to DTOs.
+// Uses the state calculator to compute availability on-the-fly (same pattern as standard projects).
+func mapPlayerAwards(p *player.Player, g *game.Game) []PlayerAwardDto {
+	result := make([]PlayerAwardDto, 0, len(game.AllAwards))
+	gameAwards := g.Awards()
+	currentCost := gameAwards.GetCurrentFundingCost()
+
+	for _, info := range game.AllAwards {
+		// Calculate state on-the-fly using the state calculator
+		state := action.CalculateAwardState(info.Type, p, g)
+
+		// Get funding status from game-level awards
+		isFunded := gameAwards.IsFunded(info.Type)
+		var fundedBy *string
+		for _, funded := range gameAwards.FundedAwards() {
+			if funded.Type == info.Type {
+				fundedBy = &funded.FundedByPlayer
+				break
+			}
+		}
+
+		dto := PlayerAwardDto{
+			Type:        string(info.Type),
+			Name:        info.Name,
+			Description: info.Description,
+			FundingCost: currentCost,
+			IsFunded:    isFunded,
+			FundedBy:    fundedBy,
+			Available:   state.Available(),
+			Errors:      convertStateErrors(state.Errors),
+		}
 		result = append(result, dto)
 	}
 

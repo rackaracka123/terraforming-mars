@@ -2,10 +2,12 @@ package websocket
 
 import (
 	adminAction "terraforming-mars-backend/internal/action/admin"
+	awardAction "terraforming-mars-backend/internal/action/award"
 	cardAction "terraforming-mars-backend/internal/action/card"
 	confirmAction "terraforming-mars-backend/internal/action/confirmation"
 	connAction "terraforming-mars-backend/internal/action/connection"
 	gameAction "terraforming-mars-backend/internal/action/game"
+	milestoneAction "terraforming-mars-backend/internal/action/milestone"
 	resconvAction "terraforming-mars-backend/internal/action/resource_conversion"
 	stdprojAction "terraforming-mars-backend/internal/action/standard_project"
 	tileAction "terraforming-mars-backend/internal/action/tile"
@@ -13,10 +15,12 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/admin"
+	"terraforming-mars-backend/internal/delivery/websocket/handler/award"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/card"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/confirmation"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/connection"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/game"
+	"terraforming-mars-backend/internal/delivery/websocket/handler/milestone"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/resource_conversion"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/standard_project"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/tile"
@@ -61,6 +65,9 @@ func RegisterHandlers(
 	// Connection
 	playerReconnectedAction *connAction.PlayerReconnectedAction,
 	playerDisconnectedAction *connAction.PlayerDisconnectedAction,
+	// Milestones & Awards
+	claimMilestoneAction *milestoneAction.ClaimMilestoneAction,
+	fundAwardAction *awardAction.FundAwardAction,
 	// Admin actions
 	adminSetPhaseAction *adminAction.SetPhaseAction,
 	adminSetCurrentTurnAction *adminAction.SetCurrentTurnAction,
@@ -70,6 +77,7 @@ func RegisterHandlers(
 	adminGiveCardAction *adminAction.GiveCardAction,
 	adminSetCorporationAction *adminAction.SetCorporationAction,
 	adminStartTileSelectionAction *adminAction.StartTileSelectionAction,
+	adminSetTRAction *adminAction.SetTRAction,
 ) {
 	log := logger.Get()
 	log.Info("🔄 Registering migration handlers with explicit broadcasting")
@@ -153,6 +161,13 @@ func RegisterHandlers(
 	playerDisconnectedHandler := connection.NewPlayerDisconnectedHandler(playerDisconnectedAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypePlayerDisconnected, playerDisconnectedHandler)
 
+	// ========== Milestones & Awards ==========
+	claimMilestoneHandler := milestone.NewClaimMilestoneHandler(claimMilestoneAction, broadcaster)
+	hub.RegisterHandler(dto.MessageTypeActionClaimMilestone, claimMilestoneHandler)
+
+	fundAwardHandler := award.NewFundAwardHandler(fundAwardAction, broadcaster)
+	hub.RegisterHandler(dto.MessageTypeActionFundAward, fundAwardHandler)
+
 	// ========== Admin Commands (Development Mode) ==========
 	adminCommandHandler := admin.NewAdminCommandHandler(
 		adminSetPhaseAction,
@@ -163,6 +178,7 @@ func RegisterHandlers(
 		adminGiveCardAction,
 		adminSetCorporationAction,
 		adminStartTileSelectionAction,
+		adminSetTRAction,
 		broadcaster,
 	)
 	hub.RegisterHandler(dto.MessageTypeAdminCommand, adminCommandHandler)
@@ -176,8 +192,9 @@ func RegisterHandlers(
 	log.Info("   ✅ Turn Management (3): StartGame, SkipAction, SelectStartingCards")
 	log.Info("   ✅ Confirmations (3): ConfirmSellPatents, ConfirmProductionCards, ConfirmCardDraw")
 	log.Info("   ✅ Connection (1): PlayerDisconnected")
-	log.Info("   ✅ Admin (1): AdminCommand (routes to 8 sub-commands)")
-	log.Info("   📌 Total: 22 handlers registered (OLD handlers overwritten)")
+	log.Info("   ✅ Milestones & Awards (2): ClaimMilestone, FundAward")
+	log.Info("   ✅ Admin (1): AdminCommand (routes to 9 sub-commands)")
+	log.Info("   📌 Total: 24 handlers registered")
 }
 
 // MigrateSingleHandler migrates a specific message type from old to new handler
