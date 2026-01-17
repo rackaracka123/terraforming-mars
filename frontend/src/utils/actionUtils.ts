@@ -17,7 +17,8 @@ export const hasActionsAvailable = (availableActions?: number): boolean => {
 };
 
 /**
- * Checks if a player can perform actions based on game state and conditions
+ * Checks if a player can perform actions based on game state and conditions.
+ * Returns false if the player has a pending tile selection (must complete tile placement first).
  */
 export const canPerformActions = (gameState?: GameDto): boolean => {
   if (!gameState?.currentPlayer) {
@@ -28,8 +29,11 @@ export const canPerformActions = (gameState?: GameDto): boolean => {
   const isActionPhase = gameState.currentPhase === GamePhaseAction;
   const isCurrentPlayerTurn = gameState.currentTurn === gameState.viewingPlayerId;
   const hasActions = hasActionsAvailable(gameState.currentPlayer.availableActions);
+  const hasPendingTilePlacement = !!gameState.currentPlayer.pendingTileSelection;
 
-  return isGameActive && isActionPhase && isCurrentPlayerTurn && hasActions;
+  return (
+    isGameActive && isActionPhase && isCurrentPlayerTurn && hasActions && !hasPendingTilePlacement
+  );
 };
 
 /**

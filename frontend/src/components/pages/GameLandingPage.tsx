@@ -248,12 +248,10 @@ const GameLandingPage: React.FC = () => {
                 <div className="flex justify-center gap-6 mb-4 text-white/90 text-base">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">
-                      {1 + (savedGameData.game.otherPlayers?.length || 0)}
+                      {savedGameData.game.turnOrder?.length || 1}
                     </span>
                     <span className="text-white/70">
-                      {1 + (savedGameData.game.otherPlayers?.length || 0) === 1
-                        ? "Player"
-                        : "Players"}
+                      {(savedGameData.game.turnOrder?.length || 1) === 1 ? "Player" : "Players"}
                     </span>
                   </div>
                   <div className="text-white/40">•</div>

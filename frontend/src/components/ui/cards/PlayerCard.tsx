@@ -6,36 +6,30 @@ interface PlayerCardProps {
   player: PlayerDto | OtherPlayerDto;
   playerColor: string;
   isCurrentPlayer: boolean;
-  isActivePlayer: boolean;
   isCurrentTurn: boolean;
   isActionPhase: boolean;
   onSkipAction?: () => void;
-  actionsUsed?: number;
-  totalActions?: number;
-  totalPlayers?: number; // Added to determine solo vs last player
+  totalPlayers?: number;
+  hasPendingTilePlacement?: boolean;
 }
 
 const PlayerCard: React.FC<PlayerCardProps> = ({
   player,
   playerColor,
   isCurrentPlayer,
-  isActivePlayer,
   isCurrentTurn,
   isActionPhase,
   onSkipAction,
-  actionsUsed = 0,
-  totalActions = 2,
   totalPlayers = 1,
+  hasPendingTilePlacement = false,
 }) => {
   const isPassed = player.passed;
   const isDisconnected = !player.isConnected;
   const hasUnlimitedActions = player.availableActions === -1;
+  const actionsRemaining = player.availableActions;
 
-  // For unlimited actions, calculate actionsRemaining and button text differently
-  const actionsRemaining = hasUnlimitedActions ? -1 : totalActions - actionsUsed;
-
-  // Determine button text - always PASS for unlimited actions, otherwise SKIP if actions used
-  const buttonText = hasUnlimitedActions ? "PASS" : actionsUsed > 0 ? "SKIP" : "PASS";
+  // Determine button text - PASS for unlimited actions or 2 actions remaining, otherwise SKIP
+  const buttonText = hasUnlimitedActions || actionsRemaining === 2 ? "PASS" : "SKIP";
 
   return (
     <div
@@ -84,7 +78,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
             {player.terraformRating}
           </span>
         </div>
-        {isActivePlayer && isCurrentTurn && isActionPhase && (
+        {isCurrentPlayer && isCurrentTurn && isActionPhase && !hasPendingTilePlacement && (
           <button
             className="absolute right-3 top-1/2 -translate-y-1/2 bg-[linear-gradient(135deg,#00d4ff,#0099cc)] text-white border border-[rgba(0,212,255,0.8)] py-1.5 px-2.5 rounded cursor-pointer text-[10px] font-semibold uppercase tracking-[0.4px] transition-all duration-200 shadow-[0_6px_20px_rgba(0,212,255,0.4),0_0_16px_rgba(0,212,255,0.3),inset_0_1px_0_rgba(255,255,255,0.3)] [text-shadow:0_0_8px_rgba(0,212,255,0.8),0_2px_4px_rgba(0,0,0,0.6)] hover:bg-[linear-gradient(135deg,#00b8e6,#0088bb)] hover:-translate-y-[calc(50%+3px)] hover:shadow-[0_8px_28px_rgba(0,212,255,0.6),0_0_24px_rgba(0,212,255,0.5),inset_0_1px_0_rgba(255,255,255,0.4)] hover:[text-shadow:0_0_12px_rgba(0,212,255,1),0_2px_6px_rgba(0,0,0,0.7)]"
             onClick={onSkipAction}
