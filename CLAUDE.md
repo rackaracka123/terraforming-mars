@@ -412,3 +412,4 @@ When working with energy, it's referenced as `power.png` in assets
 - No need to be backwards compatible
 - Write tests for new backend features
 - **NEVER use deprecated code or comments** - Remove deprecated fields, functions, and comments entirely. Do not keep them for backwards compatibility. If something is deprecated, delete it completely and update all usages.
+- **NEVER push directly to main** - Always create a separate feature branch and open a pull request. No exceptions.
