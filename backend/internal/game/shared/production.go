@@ -1,5 +1,12 @@
 package shared
 
+const (
+	// MinCreditProduction is the minimum MC production allowed (-5 in TM rules)
+	MinCreditProduction = -5
+	// MinOtherProduction is the minimum production for non-MC resources
+	MinOtherProduction = 0
+)
+
 // Production represents a player's production values
 type Production struct {
 	Credits  int

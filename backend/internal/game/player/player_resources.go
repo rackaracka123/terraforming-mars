@@ -274,16 +274,34 @@ func (r *PlayerResources) AddProduction(changes map[shared.ResourceType]int) {
 		switch resourceType {
 		case shared.ResourceCreditProduction:
 			r.production.Credits += amount
+			if r.production.Credits < shared.MinCreditProduction {
+				r.production.Credits = shared.MinCreditProduction
+			}
 		case shared.ResourceSteelProduction:
 			r.production.Steel += amount
+			if r.production.Steel < shared.MinOtherProduction {
+				r.production.Steel = shared.MinOtherProduction
+			}
 		case shared.ResourceTitaniumProduction:
 			r.production.Titanium += amount
+			if r.production.Titanium < shared.MinOtherProduction {
+				r.production.Titanium = shared.MinOtherProduction
+			}
 		case shared.ResourcePlantProduction:
 			r.production.Plants += amount
+			if r.production.Plants < shared.MinOtherProduction {
+				r.production.Plants = shared.MinOtherProduction
+			}
 		case shared.ResourceEnergyProduction:
 			r.production.Energy += amount
+			if r.production.Energy < shared.MinOtherProduction {
+				r.production.Energy = shared.MinOtherProduction
+			}
 		case shared.ResourceHeatProduction:
 			r.production.Heat += amount
+			if r.production.Heat < shared.MinOtherProduction {
+				r.production.Heat = shared.MinOtherProduction
+			}
 		}
 	}
 	newProduction := r.production

@@ -344,9 +344,17 @@ func validateProductionOutputs(
 
 			// Check if player has enough production
 			currentProduction := getProductionAmount(production, baseResourceType)
-			requiredProduction := -output.Amount // Convert negative to positive
+			resultingProduction := currentProduction + output.Amount // output.Amount is negative
 
-			if currentProduction < requiredProduction {
+			// MC production can go to -5, others cannot go below 0
+			var minProduction int
+			if baseResourceType == shared.ResourceCredit {
+				minProduction = shared.MinCreditProduction
+			} else {
+				minProduction = shared.MinOtherProduction
+			}
+
+			if resultingProduction < minProduction {
 				errors = append(errors, player.StateError{
 					Code:     player.ErrorCodeInsufficientProduction,
 					Category: player.ErrorCategoryRequirement,
