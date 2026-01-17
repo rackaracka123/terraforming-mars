@@ -14,6 +14,7 @@ import {
   OtherPlayerDto,
   PlayerActionDto,
   CardDto,
+  TriggeredEffectDto,
 } from "../../../types/generated/api-types.ts";
 
 interface GameLayoutProps {
@@ -27,6 +28,7 @@ interface GameLayoutProps {
   changedPaths?: Set<string>;
   tileHighlightMode?: TileHighlightMode;
   vpIndicators?: TileVPIndicator[];
+  triggeredEffects?: TriggeredEffectDto[];
   onOpenCardEffectsModal?: () => void;
   onOpenCardsPlayedModal?: () => void;
   onOpenVictoryPointsModal?: () => void;
@@ -57,6 +59,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   changedPaths = new Set(),
   tileHighlightMode,
   vpIndicators = [],
+  triggeredEffects = [],
   onOpenCardEffectsModal,
   onOpenCardsPlayedModal,
   onOpenVictoryPointsModal,
@@ -130,6 +133,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
         turnPlayerId={gameState?.currentTurn || ""}
         currentPhase={gameState?.currentPhase}
         hasPendingTilePlacement={!!currentPlayer?.pendingTileSelection}
+        triggeredEffects={triggeredEffects}
       />
 
       <RightSidebar

@@ -104,6 +104,17 @@ func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string) G
 		}
 	}
 
+	// Convert triggered effects and clear them
+	triggeredEffects := g.GetTriggeredEffects()
+	var triggeredEffectDtos []TriggeredEffectDto
+	if len(triggeredEffects) > 0 {
+		triggeredEffectDtos = make([]TriggeredEffectDto, len(triggeredEffects))
+		for i, effect := range triggeredEffects {
+			triggeredEffectDtos[i] = ToTriggeredEffectDto(effect)
+		}
+		g.ClearTriggeredEffects()
+	}
+
 	return GameDto{
 		ID:               g.ID(),
 		Status:           GameStatus(g.Status()),
@@ -125,6 +136,7 @@ func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string) G
 		Awards:           ToAwardsDto(g.Awards()),
 		AwardResults:     ToAwardResultsDto(g, cardRegistry),
 		FinalScores:      finalScoreDtos,
+		TriggeredEffects: triggeredEffectDtos,
 	}
 }
 
@@ -306,5 +318,18 @@ func ToFinalScoreDto(playerID, playerName string, breakdown game.VPBreakdown, is
 		VPBreakdown: ToVPBreakdownDto(breakdown),
 		IsWinner:    isWinner,
 		Placement:   placement,
+	}
+}
+
+// ToTriggeredEffectDto converts a triggered effect to DTO
+func ToTriggeredEffectDto(effect game.TriggeredEffect) TriggeredEffectDto {
+	outputDtos := make([]ResourceConditionDto, len(effect.Outputs))
+	for i, output := range effect.Outputs {
+		outputDtos[i] = toResourceConditionDto(output)
+	}
+	return TriggeredEffectDto{
+		CardName: effect.CardName,
+		PlayerID: effect.PlayerID,
+		Outputs:  outputDtos,
 	}
 }

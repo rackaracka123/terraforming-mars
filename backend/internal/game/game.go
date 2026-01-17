@@ -47,6 +47,9 @@ type Game struct {
 	winnerID    string
 	isTie       bool
 
+	// Triggered effects for notification (cleared after each broadcast)
+	triggeredEffects []TriggeredEffect
+
 	// Player-specific non-card phase state (managed by Game)
 	pendingTileSelections      map[string]*player.PendingTileSelection
 	pendingTileSelectionQueues map[string]*player.PendingTileSelectionQueue
@@ -963,4 +966,37 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string) 
 // This is used by state calculators to determine if tile-placing actions are available
 func (g *Game) CountAvailableHexesForTile(tileType string, playerID string) int {
 	return len(g.calculateAvailableHexesForTile(tileType, playerID))
+}
+
+// ================== Triggered Effects (for UI notifications) ==================
+
+// TriggeredEffect represents a card effect that was triggered (for frontend notifications)
+type TriggeredEffect struct {
+	CardName string
+	PlayerID string
+	Outputs  []shared.ResourceCondition
+}
+
+// AddTriggeredEffect records a triggered effect for notification
+func (g *Game) AddTriggeredEffect(effect TriggeredEffect) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.triggeredEffects = append(g.triggeredEffects, effect)
+}
+
+// GetTriggeredEffects returns all triggered effects since last clear
+func (g *Game) GetTriggeredEffects() []TriggeredEffect {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	// Return a copy
+	result := make([]TriggeredEffect, len(g.triggeredEffects))
+	copy(result, g.triggeredEffects)
+	return result
+}
+
+// ClearTriggeredEffects clears the triggered effects list
+func (g *Game) ClearTriggeredEffects() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.triggeredEffects = nil
 }

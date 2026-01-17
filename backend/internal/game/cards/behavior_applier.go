@@ -172,6 +172,15 @@ func (a *BehaviorApplier) ApplyOutputs(
 		}
 	}
 
+	// Record triggered effect for UI notification
+	if a.game != nil && a.player != nil && len(outputs) > 0 {
+		a.game.AddTriggeredEffect(game.TriggeredEffect{
+			CardName: a.source,
+			PlayerID: a.player.ID(),
+			Outputs:  outputs,
+		})
+	}
+
 	return nil
 }
 

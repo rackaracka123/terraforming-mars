@@ -1,5 +1,5 @@
 import React from "react";
-import { PlayerDto, OtherPlayerDto, GamePhase } from "@/types/generated/api-types.ts";
+import { PlayerDto, OtherPlayerDto, GamePhase, TriggeredEffectDto } from "@/types/generated/api-types.ts";
 import PlayerList from "@/components/ui/list/PlayerList.tsx";
 
 interface LeftSidebarProps {
@@ -8,6 +8,7 @@ interface LeftSidebarProps {
   turnPlayerId: string;
   currentPhase?: GamePhase;
   hasPendingTilePlacement?: boolean;
+  triggeredEffects?: TriggeredEffectDto[];
 }
 
 const LeftSidebar: React.FC<LeftSidebarProps> = ({
@@ -16,6 +17,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   turnPlayerId,
   currentPhase,
   hasPendingTilePlacement = false,
+  triggeredEffects = [],
 }) => {
   return (
     <div className="absolute top-[15%] left-0 z-10 w-[240px] h-[calc(85vh-120px)] bg-transparent py-[15px] flex flex-col overflow-visible pointer-events-none">
@@ -25,6 +27,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
         turnPlayerId={turnPlayerId}
         currentPhase={currentPhase}
         hasPendingTilePlacement={hasPendingTilePlacement}
+        triggeredEffects={triggeredEffects}
       />
     </div>
   );

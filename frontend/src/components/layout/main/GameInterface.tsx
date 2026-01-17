@@ -46,6 +46,7 @@ import {
   PlayerDto,
   PlayerActionDto,
   ResourceType,
+  TriggeredEffectDto,
 } from "@/types/generated/api-types.ts";
 import { shouldShowPaymentModal, createDefaultPayment } from "@/utils/paymentUtils.ts";
 import { deepClone, findChangedPaths } from "@/utils/deepCompare.ts";
@@ -161,6 +162,9 @@ export default function GameInterface() {
   const previousGameRef = useRef<GameDto | null>(null);
   const [changedPaths, setChangedPaths] = useState<Set<string>>(new Set());
 
+  // Triggered effects notifications
+  const [triggeredEffects, setTriggeredEffects] = useState<TriggeredEffectDto[]>([]);
+
   // WebSocket stability
   const isWebSocketInitialized = useRef(false);
   const currentPlayerIdRef = useRef<string | null>(null);
@@ -186,6 +190,13 @@ export default function GameInterface() {
 
       // Store the previous state for next comparison
       previousGameRef.current = deepClone(updatedGame);
+
+      // Extract triggered effects for notifications (clear after short delay to allow component to process)
+      if (updatedGame.triggeredEffects && updatedGame.triggeredEffects.length > 0) {
+        setTriggeredEffects(updatedGame.triggeredEffects);
+        // Clear after component has processed them
+        setTimeout(() => setTriggeredEffects([]), 100);
+      }
 
       setGame(updatedGame);
       setIsConnected(true);
@@ -1167,6 +1178,7 @@ export default function GameInterface() {
         changedPaths={changedPaths}
         tileHighlightMode={tileHighlightMode}
         vpIndicators={vpIndicators}
+        triggeredEffects={triggeredEffects}
         onOpenCardEffectsModal={() => setShowCardEffectsModal(true)}
         onOpenCardsPlayedModal={() => setShowCardsPlayedModal(true)}
         onOpenVictoryPointsModal={() => setShowVictoryPointsModal(true)}
@@ -1513,6 +1525,7 @@ export default function GameInterface() {
           Return to Production
         </button>
       )}
+
     </>
   );
 }
