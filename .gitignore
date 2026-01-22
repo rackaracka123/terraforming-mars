@@ -54,7 +54,9 @@ Thumbs.db
 
 .playwright-mcp
 
-.claude
+.claude/*
+!.claude/commands/
+!.claude/commands/**
 
 # Go binaries
 backend/bin/
