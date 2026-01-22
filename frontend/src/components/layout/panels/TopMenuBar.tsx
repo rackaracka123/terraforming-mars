@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { GameDto } from "@/types/generated/api-types.ts";
+import SoundToggleButton from "../../ui/buttons/SoundToggleButton.tsx";
 
 interface TopMenuBarProps {
   gameState: GameDto;
@@ -178,6 +179,8 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
                   </svg>
                   Copy game link
                 </button>
+                <div className="border-t border-[#333]" />
+                <SoundToggleButton />
                 <div className="border-t border-[#333]" />
                 <button
                   onClick={handleLeaveGame}
