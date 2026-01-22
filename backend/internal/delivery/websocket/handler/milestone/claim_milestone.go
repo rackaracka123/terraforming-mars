@@ -47,14 +47,12 @@ func (h *ClaimMilestoneHandler) HandleMessage(ctx context.Context, connection *c
 
 	log.Info("🏆 Processing claim milestone request")
 
-	// Use connection's gameID and playerID
 	if connection.GameID == "" || connection.PlayerID == "" {
 		log.Error("Missing connection context")
 		h.sendError(connection, "Not connected to a game")
 		return
 	}
 
-	// Parse payload
 	payloadBytes, err := json.Marshal(message.Payload)
 	if err != nil {
 		log.Error("Failed to marshal payload", zap.Error(err))
@@ -75,7 +73,6 @@ func (h *ClaimMilestoneHandler) HandleMessage(ctx context.Context, connection *c
 		return
 	}
 
-	// Execute the action
 	err = h.action.Execute(ctx, connection.GameID, connection.PlayerID, payload.MilestoneType)
 	if err != nil {
 		log.Error("Failed to execute claim milestone action", zap.Error(err))
@@ -86,11 +83,9 @@ func (h *ClaimMilestoneHandler) HandleMessage(ctx context.Context, connection *c
 	log.Info("✅ Claim milestone action completed successfully",
 		zap.String("milestone_type", payload.MilestoneType))
 
-	// Explicitly broadcast game state after action completes
 	h.broadcaster.BroadcastGameState(connection.GameID, nil)
 	log.Debug("📡 Broadcasted game state to all players")
 
-	// Send success response
 	response := dto.WebSocketMessage{
 		Type:   "action-success",
 		GameID: connection.GameID,

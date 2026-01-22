@@ -35,21 +35,18 @@ func (a *SetCurrentTurnAction) Execute(ctx context.Context, gameID string, playe
 	)
 	log.Info("🎲 Admin: Setting current turn")
 
-	// 1. Fetch game from repository
 	game, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game", zap.Error(err))
 		return fmt.Errorf("game not found: %s", gameID)
 	}
 
-	// 2. Validate player exists in game
 	_, err = game.GetPlayer(playerID)
 	if err != nil {
 		log.Error("Player not found in game", zap.Error(err))
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// 3. Update current turn (-1 = unlimited actions for admin testing)
 	err = game.SetCurrentTurn(ctx, playerID, -1)
 	if err != nil {
 		log.Error("Failed to update current turn", zap.Error(err))

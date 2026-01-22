@@ -9,10 +9,6 @@ import (
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-// ========================================
-// Resource Conversion Helpers
-// ========================================
-
 // toResourcesDto converts shared.Resources to ResourcesDto.
 func toResourcesDto(res shared.Resources) ResourcesDto {
 	return ResourcesDto{
@@ -48,10 +44,6 @@ func calculateResourceDelta(before, after shared.Resources) ResourcesDto {
 		Heat:     after.Heat - before.Heat,
 	}
 }
-
-// ========================================
-// Player DTO Mappers
-// ========================================
 
 // ToPlayerDto converts migration Player to PlayerDto
 func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry) PlayerDto {
@@ -357,10 +349,6 @@ func getAvailableActionsForPlayer(g *game.Game, playerID string) int {
 	// Other players don't have actions (actions are per-turn, not per-player)
 	return 0
 }
-
-// ========================================
-// Player-Scoped Card Architecture Mappers
-// ========================================
 
 // convertStateErrors converts EntityState errors to DTOs.
 // Since domain and DTO enums have identical string values, we cast between them.

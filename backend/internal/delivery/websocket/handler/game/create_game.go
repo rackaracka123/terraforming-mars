@@ -42,14 +42,11 @@ func (h *CreateGameHandler) HandleMessage(ctx context.Context, connection *core.
 
 	log.Info("🎮 Processing create game request (migrated)")
 
-	// Parse payload - for now using default settings
-	// TODO: Extract settings from payload when frontend sends them
 	settings := game.GameSettings{
 		MaxPlayers: game.DefaultMaxPlayers,
 		CardPacks:  game.DefaultCardPacks(),
 	}
 
-	// Extract custom settings if provided
 	if payloadMap, ok := message.Payload.(map[string]interface{}); ok {
 		if maxPlayers, ok := payloadMap["maxPlayers"].(float64); ok {
 			settings.MaxPlayers = int(maxPlayers)
@@ -71,7 +68,6 @@ func (h *CreateGameHandler) HandleMessage(ctx context.Context, connection *core.
 		zap.Int("max_players", settings.MaxPlayers),
 		zap.Strings("card_packs", settings.CardPacks))
 
-	// Execute the migrated create game action
 	game, err := h.createGameAction.Execute(ctx, settings)
 	if err != nil {
 		log.Error("Failed to execute create game action", zap.Error(err))
@@ -82,15 +78,11 @@ func (h *CreateGameHandler) HandleMessage(ctx context.Context, connection *core.
 	log.Info("✅ Create game action completed successfully",
 		zap.String("game_id", game.ID()))
 
-	// Explicitly broadcast game state after action completes
 	h.broadcaster.BroadcastGameState(game.ID(), nil)
 	log.Debug("📡 Broadcasted game state to all players")
 
-	// Send simple success response with game ID
-	// Frontend will then call playerConnect to join the game
-	// and receive full game state via the broadcaster
 	response := dto.WebSocketMessage{
-		Type: dto.MessageTypeGameUpdated, // Use standard message type
+		Type: dto.MessageTypeGameUpdated,
 		Payload: map[string]interface{}{
 			"gameId":  game.ID(),
 			"success": true,

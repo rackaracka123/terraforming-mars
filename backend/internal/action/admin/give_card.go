@@ -42,22 +42,18 @@ func (a *GiveCardAction) Execute(ctx context.Context, gameID string, playerID st
 	)
 	log.Info("🎴 Admin: Giving card to player")
 
-	// 1. Fetch game from repository
 	game, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game", zap.Error(err))
 		return fmt.Errorf("game not found: %s", gameID)
 	}
 
-	// 2. Get player from game
 	player, err := game.GetPlayer(playerID)
 	if err != nil {
 		log.Error("Player not found in game", zap.Error(err))
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// 3. Add card to player's hand
-	// NOTE: Card validation is skipped - admin actions are trusted to provide valid card IDs
 	action.AddCardsToPlayerHand([]string{cardID}, player, game, a.cardRegistry, log)
 
 	log.Info("✅ Admin give card completed")

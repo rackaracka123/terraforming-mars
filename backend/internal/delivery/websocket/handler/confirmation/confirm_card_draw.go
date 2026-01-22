@@ -47,7 +47,6 @@ func (h *ConfirmCardDrawHandler) HandleMessage(ctx context.Context, connection *
 		return
 	}
 
-	// Parse payload
 	payloadMap, ok := message.Payload.(map[string]interface{})
 	if !ok {
 		log.Error("Invalid payload format")
@@ -55,7 +54,6 @@ func (h *ConfirmCardDrawHandler) HandleMessage(ctx context.Context, connection *
 		return
 	}
 
-	// Extract cardsToTake
 	var cardsToTake []string
 	if cardsInterface, ok := payloadMap["cardsToTake"].([]interface{}); ok {
 		cardsToTake = make([]string, len(cardsInterface))
@@ -66,7 +64,6 @@ func (h *ConfirmCardDrawHandler) HandleMessage(ctx context.Context, connection *
 		}
 	}
 
-	// Extract cardsToBuy
 	var cardsToBuy []string
 	if cardsInterface, ok := payloadMap["cardsToBuy"].([]interface{}); ok {
 		cardsToBuy = make([]string, len(cardsInterface))
@@ -90,7 +87,6 @@ func (h *ConfirmCardDrawHandler) HandleMessage(ctx context.Context, connection *
 
 	log.Info("✅ Confirm card draw action completed successfully")
 
-	// Explicitly broadcast game state after action completes
 	h.broadcaster.BroadcastGameState(connection.GameID, nil)
 	log.Debug("📡 Broadcasted game state to all players")
 

@@ -42,10 +42,10 @@ func NewPlayer(eventBus *events.EventBusImpl, gameID, playerID, name string) *Pl
 		id:            playerID,
 		name:          name,
 		gameID:        gameID,
-		connected:     true, // Players start as connected when created
+		connected:     true,
 		eventBus:      eventBus,
 		corporationID: "",
-		hasPassed:     false, // Players start not having passed
+		hasPassed:     false,
 		hand:          newHand(eventBus, gameID, playerID),
 		playedCards:   newPlayedCards(eventBus, gameID, playerID),
 		resources:     newResources(eventBus, gameID, playerID),
@@ -54,8 +54,6 @@ func NewPlayer(eventBus *events.EventBusImpl, gameID, playerID, name string) *Pl
 		effects:       NewEffects(),
 	}
 }
-
-// ==================== Identity ====================
 
 func (p *Player) ID() string {
 	return p.id
@@ -69,8 +67,6 @@ func (p *Player) GameID() string {
 	return p.gameID
 }
 
-// ==================== Connection Status ====================
-
 func (p *Player) IsConnected() bool {
 	return p.connected
 }
@@ -81,8 +77,6 @@ func (p *Player) SetConnected(connected bool) {
 	if p.eventBus != nil {
 	}
 }
-
-// ==================== Component Accessors ====================
 
 func (p *Player) CorporationID() string {
 	return p.corporationID
@@ -120,8 +114,6 @@ func (p *Player) Effects() *Effects {
 	return p.effects
 }
 
-// ==================== Turn State ====================
-
 func (p *Player) HasPassed() bool {
 	return p.hasPassed
 }
@@ -132,8 +124,6 @@ func (p *Player) SetPassed(passed bool) {
 	if p.eventBus != nil {
 	}
 }
-
-// ==================== Demo Setup State ====================
 
 func (p *Player) DemoSetupConfirmed() bool {
 	return p.demoSetupConfirmed

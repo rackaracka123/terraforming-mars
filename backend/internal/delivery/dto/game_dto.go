@@ -26,7 +26,7 @@ const (
 type CardType string
 
 const (
-	CardTypeAutomated   CardType = "automated" // Updated from "effect" to match JSON data
+	CardTypeAutomated   CardType = "automated"
 	CardTypeActive      CardType = "active"
 	CardTypeEvent       CardType = "event"
 	CardTypeCorporation CardType = "corporation"

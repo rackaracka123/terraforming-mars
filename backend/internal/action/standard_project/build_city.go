@@ -37,24 +37,20 @@ func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID s
 	log := a.InitLogger(gameID, playerID).With(zap.String("action", "build_city"))
 	log.Info("🏢 Building city")
 
-	// 1. Fetch game from repository and validate it's active
 	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
-	// 2. Validate it's the player's turn
 	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 
-	// 3. Get player from game
 	player, err := a.GetPlayerFromGame(g, playerID, log)
 	if err != nil {
 		return err
 	}
 
-	// 4. BUSINESS LOGIC: Validate cost (25 M€)
 	resources := player.Resources().Get()
 	if resources.Credits < BuildCityCost {
 		log.Warn("Insufficient credits for city",
@@ -63,27 +59,23 @@ func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID s
 		return fmt.Errorf("insufficient credits: need %d, have %d", BuildCityCost, resources.Credits)
 	}
 
-	// 5. BUSINESS LOGIC: Deduct cost using domain method
-	// Player.game.Resources() is already encapsulated - no changes needed
 	player.Resources().Add(map[shared.ResourceType]int{
 		shared.ResourceCredit: -BuildCityCost,
 	})
 
-	resources = player.Resources().Get() // Refresh after update
+	resources = player.Resources().Get()
 	log.Info("💰 Deducted city cost",
 		zap.Int("cost", BuildCityCost),
 		zap.Int("remaining_credits", resources.Credits))
 
-	// 6. BUSINESS LOGIC: Increase credit production by 1 using domain method
 	player.Resources().AddProduction(map[shared.ResourceType]int{
 		shared.ResourceCreditProduction: 1,
 	})
 
-	production := player.Resources().Production() // Refresh after update
+	production := player.Resources().Production()
 	log.Info("📈 Increased credit production",
 		zap.Int("new_credit_production", production.Credits))
 
-	// 7. Queue city tile for placement on Game (phase state managed by Game)
 	queue := &playerPkg.PendingTileSelectionQueue{
 		Items:  []string{"city"},
 		Source: "standard-project-city",
@@ -94,7 +86,6 @@ func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID s
 
 	log.Info("📋 Created tile queue for city placement (auto-processed by SetPendingTileSelectionQueue)")
 
-	// 9. Consume action (only if not unlimited actions)
 	a.ConsumePlayerAction(g, log)
 
 	log.Info("✅ City built successfully, tile selection ready",

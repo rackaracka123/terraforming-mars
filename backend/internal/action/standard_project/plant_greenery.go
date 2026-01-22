@@ -37,24 +37,20 @@ func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID string, player
 	log := a.InitLogger(gameID, playerID).With(zap.String("action", "plant_greenery"))
 	log.Info("🌱 Planting greenery (standard project)")
 
-	// 1. Fetch game from repository and validate it's active
 	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
-	// 2. Validate it's the player's turn
 	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 
-	// 3. Get player from game
 	player, err := a.GetPlayerFromGame(g, playerID, log)
 	if err != nil {
 		return err
 	}
 
-	// 5. BUSINESS LOGIC: Validate cost (23 M€)
 	resources := player.Resources().Get()
 	if resources.Credits < PlantGreeneryStandardProjectCost {
 		log.Warn("Insufficient credits for greenery",
@@ -63,17 +59,15 @@ func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID string, player
 		return fmt.Errorf("insufficient credits: need %d, have %d", PlantGreeneryStandardProjectCost, resources.Credits)
 	}
 
-	// 6. BUSINESS LOGIC: Deduct cost using domain method
 	player.Resources().Add(map[shared.ResourceType]int{
 		shared.ResourceCredit: -PlantGreeneryStandardProjectCost,
 	})
 
-	resources = player.Resources().Get() // Refresh after update
+	resources = player.Resources().Get()
 	log.Info("💰 Deducted greenery cost",
 		zap.Int("cost", PlantGreeneryStandardProjectCost),
 		zap.Int("remaining_credits", resources.Credits))
 
-	// 7. Create tile queue with "greenery" type on Game (phase state managed by Game)
 	queue := &playerPkg.PendingTileSelectionQueue{
 		Items:  []string{"greenery"},
 		Source: "standard-project-greenery",
@@ -84,10 +78,6 @@ func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID string, player
 
 	log.Info("📋 Created tile queue for greenery placement (auto-processed by SetPendingTileSelectionQueue)")
 
-	// Note: Terraform rating increase happens when the greenery is placed (via SelectTileAction)
-	// Note: Oxygen increase happens when greenery is placed (by SelectTileAction)
-
-	// 9. Consume action (only if not unlimited actions)
 	a.ConsumePlayerAction(g, log)
 
 	log.Info("✅ Greenery tile selection ready",

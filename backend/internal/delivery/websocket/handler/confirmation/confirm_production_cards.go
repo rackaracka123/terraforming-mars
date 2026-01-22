@@ -42,7 +42,6 @@ func (h *ConfirmProductionCardsHandler) HandleMessage(ctx context.Context, conne
 		return
 	}
 
-	// Parse payload
 	payloadMap, ok := message.Payload.(map[string]interface{})
 	if !ok {
 		log.Error("Invalid payload format")
@@ -50,7 +49,6 @@ func (h *ConfirmProductionCardsHandler) HandleMessage(ctx context.Context, conne
 		return
 	}
 
-	// Extract selectedCardIDs
 	var selectedCardIDs []string
 	if cardIDsInterface, ok := payloadMap["cardIds"].([]interface{}); ok {
 		selectedCardIDs = make([]string, len(cardIDsInterface))
@@ -73,7 +71,6 @@ func (h *ConfirmProductionCardsHandler) HandleMessage(ctx context.Context, conne
 
 	log.Info("✅ Confirm production cards action completed successfully")
 
-	// Explicitly broadcast game state after action completes
 	h.broadcaster.BroadcastGameState(connection.GameID, nil)
 	log.Debug("📡 Broadcasted game state to all players")
 

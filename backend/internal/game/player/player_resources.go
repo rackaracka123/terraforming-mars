@@ -85,13 +85,11 @@ func (r *PlayerResources) PaymentSubstitutes() []shared.PaymentSubstitute {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	// Always include steel and titanium as payment substitutes with dynamic values
 	substitutes := []shared.PaymentSubstitute{
 		{ResourceType: shared.ResourceSteel, ConversionRate: baseSteelValue + r.valueModifiers[shared.ResourceSteel]},
 		{ResourceType: shared.ResourceTitanium, ConversionRate: baseTitaniumValue + r.valueModifiers[shared.ResourceTitanium]},
 	}
 
-	// Add any additional substitutes (like heat for Helion)
 	substitutes = append(substitutes, r.paymentSubstitutes...)
 
 	return substitutes
@@ -139,10 +137,7 @@ func (r *PlayerResources) Set(resources shared.Resources) {
 	r.resources = resources
 	r.mu.Unlock()
 
-	// Publish event
 	if r.eventBus != nil {
-		// Publish ResourcesChangedEvent for state synchronization
-		// Note: Changes map is empty since this is a full replacement (not a delta)
 		events.Publish(r.eventBus, events.ResourcesChangedEvent{
 			GameID:    r.gameID,
 			PlayerID:  r.playerID,
@@ -153,14 +148,12 @@ func (r *PlayerResources) Set(resources shared.Resources) {
 }
 
 func (r *PlayerResources) SetProduction(production shared.Production) {
-	// Store old values before modification
 	r.mu.Lock()
 	oldProduction := r.production
 	r.production = production
 	newProduction := r.production
 	r.mu.Unlock()
 
-	// Publish domain events for each resource type
 	if r.eventBus != nil {
 		resourceTypes := []struct {
 			name     string
@@ -195,7 +188,6 @@ func (r *PlayerResources) SetTerraformRating(tr int) {
 	newRating := r.terraformRating
 	r.mu.Unlock()
 
-	// Publish domain event
 	if r.eventBus != nil {
 		events.Publish(r.eventBus, events.TerraformRatingChangedEvent{
 			GameID:    r.gameID,
@@ -214,7 +206,6 @@ func (r *PlayerResources) SetVictoryPoints(vp int) {
 	newPoints := r.victoryPoints
 	r.mu.Unlock()
 
-	// Publish domain event
 	if r.eventBus != nil {
 		events.Publish(r.eventBus, events.VictoryPointsChangedEvent{
 			GameID:    r.gameID,
@@ -247,27 +238,22 @@ func (r *PlayerResources) Add(changes map[shared.ResourceType]int) {
 	}
 	r.mu.Unlock()
 
-	// Publish domain events
 	if r.eventBus != nil {
-		// Convert changes map to string keys for event
 		changesMap := make(map[string]int, len(changes))
 		for resourceType, amount := range changes {
 			changesMap[string(resourceType)] = amount
 		}
 
-		// Publish ResourcesChangedEvent for passive card effects
 		events.Publish(r.eventBus, events.ResourcesChangedEvent{
 			GameID:    r.gameID,
 			PlayerID:  r.playerID,
 			Changes:   changesMap,
 			Timestamp: time.Now(),
 		})
-
 	}
 }
 
 func (r *PlayerResources) AddProduction(changes map[shared.ResourceType]int) {
-	// Store old values before modifications
 	r.mu.Lock()
 	oldProduction := r.production
 	for resourceType, amount := range changes {
@@ -307,9 +293,7 @@ func (r *PlayerResources) AddProduction(changes map[shared.ResourceType]int) {
 	newProduction := r.production
 	r.mu.Unlock()
 
-	// Publish domain events
 	if r.eventBus != nil {
-		// Publish ProductionChangedEvent for each resource type that changed
 		for resourceType := range changes {
 			var oldValue, newValue int
 			resourceName := string(resourceType)
@@ -361,9 +345,7 @@ func (r *PlayerResources) UpdateTerraformRating(delta int) {
 	newRating := r.terraformRating
 	r.mu.Unlock()
 
-	// Publish domain events
 	if r.eventBus != nil {
-		// Publish TerraformRatingChangedEvent for passive card effects
 		events.Publish(r.eventBus, events.TerraformRatingChangedEvent{
 			GameID:    r.gameID,
 			PlayerID:  r.playerID,
@@ -371,7 +353,6 @@ func (r *PlayerResources) UpdateTerraformRating(delta int) {
 			NewRating: newRating,
 			Timestamp: time.Now(),
 		})
-
 	}
 }
 

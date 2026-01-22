@@ -71,7 +71,6 @@ func (h *AdminCommandHandler) HandleMessage(ctx context.Context, connection *cor
 
 	log.Info("🔧 Processing admin command")
 
-	// Get game ID from connection
 	_, gameID := connection.GetPlayer()
 	if gameID == "" {
 		log.Error("No game ID found for connection")
@@ -79,7 +78,6 @@ func (h *AdminCommandHandler) HandleMessage(ctx context.Context, connection *cor
 		return
 	}
 
-	// Parse payload as AdminCommandRequest
 	payloadMap, ok := message.Payload.(map[string]interface{})
 	if !ok {
 		log.Error("Invalid payload format")
@@ -87,7 +85,6 @@ func (h *AdminCommandHandler) HandleMessage(ctx context.Context, connection *cor
 		return
 	}
 
-	// Extract command type
 	commandType, ok := payloadMap["commandType"].(string)
 	if !ok {
 		log.Error("Missing or invalid commandType")
@@ -95,7 +92,6 @@ func (h *AdminCommandHandler) HandleMessage(ctx context.Context, connection *cor
 		return
 	}
 
-	// Extract payload for the specific command
 	commandPayload, ok := payloadMap["payload"]
 	if !ok {
 		log.Error("Missing command payload")
@@ -107,7 +103,6 @@ func (h *AdminCommandHandler) HandleMessage(ctx context.Context, connection *cor
 		zap.String("command_type", commandType),
 		zap.String("game_id", gameID))
 
-	// Route to appropriate handler based on command type
 	var err error
 	switch dto.AdminCommandType(commandType) {
 	case dto.AdminCommandTypeGiveCard:
@@ -142,7 +137,6 @@ func (h *AdminCommandHandler) HandleMessage(ctx context.Context, connection *cor
 
 	log.Info("✅ Admin command executed successfully")
 
-	// Broadcast game state to all players
 	h.broadcaster.BroadcastGameState(gameID, nil)
 	log.Debug("📡 Broadcasted game state after admin command")
 }

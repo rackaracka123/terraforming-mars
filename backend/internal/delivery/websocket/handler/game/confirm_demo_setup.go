@@ -43,7 +43,6 @@ func (h *ConfirmDemoSetupHandler) HandleMessage(ctx context.Context, connection 
 		return
 	}
 
-	// Parse payload by marshaling back to JSON and unmarshaling into our struct
 	payloadBytes, err := json.Marshal(message.Payload)
 	if err != nil {
 		log.Error("Failed to marshal payload", zap.Error(err))
@@ -72,7 +71,6 @@ func (h *ConfirmDemoSetupHandler) HandleMessage(ctx context.Context, connection 
 
 	log.Info("✅ Confirm demo setup action completed successfully")
 
-	// Explicitly broadcast game state after action completes
 	h.broadcaster.BroadcastGameState(connection.GameID, nil)
 	log.Debug("📡 Broadcasted game state to all players")
 

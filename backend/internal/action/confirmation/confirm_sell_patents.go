@@ -35,24 +35,20 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID string, p
 	)
 	log.Info("🏛️ Confirming sell patents card selection")
 
-	// 1. Fetch game from repository and validate it's active
 	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
-	// 2. Validate it's the player's turn
 	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 
-	// 3. Get player from game
 	player, err := a.GetPlayerFromGame(g, playerID, log)
 	if err != nil {
 		return err
 	}
 
-	// 5. BUSINESS LOGIC: Validate pending card selection exists (card selection phase state on Player)
 	pendingCardSelection := player.Selection().GetPendingCardSelection()
 	if pendingCardSelection == nil {
 		log.Warn("No pending card selection found")
@@ -65,7 +61,6 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID string, p
 		return fmt.Errorf("pending card selection is not for sell patents")
 	}
 
-	// 6. BUSINESS LOGIC: Validate selection count
 	if len(selectedCardIDs) < pendingCardSelection.MinCards {
 		log.Warn("Too few cards selected",
 			zap.Int("selected", len(selectedCardIDs)),
@@ -80,7 +75,6 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID string, p
 		return fmt.Errorf("cannot select more than %d cards", pendingCardSelection.MaxCards)
 	}
 
-	// 7. BUSINESS LOGIC: Validate all selected cards are in available cards
 	availableCardsMap := make(map[string]bool)
 	for _, cardID := range pendingCardSelection.AvailableCards {
 		availableCardsMap[cardID] = true
@@ -93,13 +87,11 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID string, p
 		}
 	}
 
-	// 8. BUSINESS LOGIC: Calculate total reward (1 M€ per card)
 	totalReward := 0
 	for _, cardID := range selectedCardIDs {
 		totalReward += pendingCardSelection.CardRewards[cardID]
 	}
 
-	// 9. BUSINESS LOGIC: Award credits
 	if totalReward > 0 {
 		player.Resources().Add(map[shared.ResourceType]int{
 			shared.ResourceCredit: totalReward,
@@ -112,7 +104,6 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID string, p
 			zap.Int("new_credits", resources.Credits))
 	}
 
-	// 10. BUSINESS LOGIC: Remove sold cards from hand
 	for _, cardID := range selectedCardIDs {
 		removed := player.Hand().RemoveCard(cardID)
 		if !removed {
@@ -122,10 +113,8 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID string, p
 
 	log.Info("🗑️ Removed sold cards from hand", zap.Int("cards_removed", len(selectedCardIDs)))
 
-	// 11. Clear pending card selection (card selection phase state on Player)
 	player.Selection().SetPendingCardSelection(nil)
 
-	// 12. Consume action (only if player actually sold cards and not unlimited actions)
 	if len(selectedCardIDs) > 0 {
 		a.ConsumePlayerAction(g, log)
 	}

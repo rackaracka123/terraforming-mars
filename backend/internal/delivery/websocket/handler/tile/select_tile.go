@@ -47,7 +47,6 @@ func (h *SelectTileHandler) HandleMessage(ctx context.Context, connection *core.
 		return
 	}
 
-	// Extract payload
 	payload, ok := message.Payload.(map[string]interface{})
 	if !ok {
 		log.Error("Invalid payload format")
@@ -55,7 +54,6 @@ func (h *SelectTileHandler) HandleMessage(ctx context.Context, connection *core.
 		return
 	}
 
-	// Extract hex position
 	selectedHex, ok := payload["hex"].(string)
 	if !ok || selectedHex == "" {
 		log.Error("Missing or invalid hex")
@@ -74,7 +72,6 @@ func (h *SelectTileHandler) HandleMessage(ctx context.Context, connection *core.
 
 	log.Info("✅ Select tile action completed successfully")
 
-	// Explicitly broadcast game state after action completes
 	h.broadcaster.BroadcastGameState(connection.GameID, nil)
 	log.Debug("📡 Broadcasted game state to all players")
 

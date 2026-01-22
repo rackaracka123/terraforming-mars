@@ -35,14 +35,12 @@ func (a *SetPhaseAction) Execute(ctx context.Context, gameID string, phase game.
 	)
 	log.Info("🎬 Admin: Setting game phase")
 
-	// 1. Fetch game from repository
 	game, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game", zap.Error(err))
 		return fmt.Errorf("game not found: %s", gameID)
 	}
 
-	// 2. Update game phase
 	err = game.UpdatePhase(ctx, phase)
 	if err != nil {
 		log.Error("Failed to update phase", zap.Error(err))

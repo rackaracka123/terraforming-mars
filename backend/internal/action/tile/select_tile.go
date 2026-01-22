@@ -38,31 +38,26 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 	log := a.InitLogger(gameID, playerID).With(zap.String("action", "select_tile"))
 	log.Info("🎯 Selecting tile", zap.String("hex", selectedHex))
 
-	// 1. Fetch game from repository and validate it's active
 	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
-	// 2. Validate it's the player's turn
 	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 
-	// 3. Get player from game
 	player, err := a.GetPlayerFromGame(g, playerID, log)
 	if err != nil {
 		return err
 	}
 
-	// 4. Get pending tile selection from Game (phase state managed by Game)
 	pendingTileSelection := g.GetPendingTileSelection(playerID)
 	if pendingTileSelection == nil {
 		log.Warn("No pending tile selection found")
 		return fmt.Errorf("no pending tile selection found for player %s", playerID)
 	}
 
-	// 5. Validate selected hex is in available hexes
 	hexIsValid := false
 	for _, availableHex := range pendingTileSelection.AvailableHexes {
 		if availableHex == selectedHex {
@@ -77,14 +72,12 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		return fmt.Errorf("selected hex %s is not valid for placement", selectedHex)
 	}
 
-	// 6. Parse hex coordinates (format: "q,r,s")
 	coords, err := parseHexPosition(selectedHex)
 	if err != nil {
 		log.Warn("Failed to parse hex coordinates", zap.String("hex", selectedHex), zap.Error(err))
 		return fmt.Errorf("invalid hex format: %w", err)
 	}
 
-	// 7. BUSINESS LOGIC: Place tile on board
 	tileType := pendingTileSelection.TileType
 	occupant := board.TileOccupant{
 		Type: mapTileTypeToResourceType(tileType),
@@ -100,7 +93,6 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		zap.String("tile_type", tileType),
 		zap.String("position", selectedHex))
 
-	// 8. BUSINESS LOGIC: Award tile position bonuses (steel, titanium, plants, card draw)
 	placedTile, err := g.Board().GetTile(*coords)
 	if err != nil {
 		log.Warn("Failed to get placed tile for bonus check", zap.Error(err))
@@ -108,14 +100,11 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 	} else if len(placedTile.Bonuses) > 0 {
 		log.Info("🎁 Tile has bonuses", zap.Int("bonus_count", len(placedTile.Bonuses)))
 
-		// Track resource bonuses for event publication
 		resourceBonuses := make(map[string]int)
 
-		// Apply each bonus to the player
 		for _, bonus := range placedTile.Bonuses {
 			switch bonus.Type {
 			case shared.ResourceSteel, shared.ResourceTitanium, shared.ResourcePlant:
-				// Award resource bonuses directly
 				player.Resources().Add(map[shared.ResourceType]int{
 					bonus.Type: bonus.Amount,
 				})
@@ -123,11 +112,9 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 					zap.String("resource", string(bonus.Type)),
 					zap.Int("amount", bonus.Amount))
 
-				// Track for event publication
 				resourceBonuses[string(bonus.Type)] = bonus.Amount
 
 			case shared.ResourceCardDraw:
-				// Draw cards from deck and add to player's hand
 				deck := g.Deck()
 				cardIDs, err := deck.DrawProjectCards(ctx, bonus.Amount)
 				if err != nil {
@@ -151,7 +138,6 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 			}
 		}
 
-		// Publish PlacementBonusGainedEvent if any resource bonuses were awarded
 		if len(resourceBonuses) > 0 {
 			events.Publish(g.EventBus(), events.PlacementBonusGainedEvent{
 				GameID:    gameID,
@@ -167,20 +153,16 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		}
 	}
 
-	// 9. BUSINESS LOGIC: Apply placement bonuses based on tile type
 	switch tileType {
 	case "city":
-		// Cities do not affect global parameters and therefore do not grant TR
 		log.Info("🏙️ City placed (no TR bonus)")
 
 	case "greenery":
-		// Greenery: increase oxygen by 1 (if not maxed)
 		actualSteps, err := g.GlobalParameters().IncreaseOxygen(ctx, 1)
 		if err != nil {
 			return fmt.Errorf("failed to increase oxygen: %w", err)
 		}
 		if actualSteps > 0 {
-			// Oxygen was increased, grant terraform rating increase
 			currentTR := player.Resources().TerraformRating()
 			player.Resources().UpdateTerraformRating(1)
 			log.Info("🌿 Increased oxygen and TR for greenery placement",
@@ -191,13 +173,11 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		}
 
 	case "ocean":
-		// Ocean: increase ocean count by 1 (if not maxed)
 		success, err := g.GlobalParameters().PlaceOcean(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to place ocean: %w", err)
 		}
 		if success {
-			// Ocean was placed, grant terraform rating increase
 			currentTR := player.Resources().TerraformRating()
 			player.Resources().UpdateTerraformRating(1)
 			log.Info("🌊 Placed ocean and increased TR",
@@ -207,12 +187,10 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		}
 	}
 
-	// 10. Clear current pending tile selection
 	if err := g.SetPendingTileSelection(ctx, playerID, nil); err != nil {
 		return fmt.Errorf("failed to clear pending tile selection: %w", err)
 	}
 
-	// 11. Process next tile in queue if any
 	if err := g.ProcessNextTile(ctx, playerID); err != nil {
 		return fmt.Errorf("failed to process next tile: %w", err)
 	}

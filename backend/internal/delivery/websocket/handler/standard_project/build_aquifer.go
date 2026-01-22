@@ -56,7 +56,6 @@ func (h *BuildAquiferHandler) HandleMessage(ctx context.Context, connection *cor
 
 	log.Info("✅ Build aquifer action completed successfully")
 
-	// Explicitly broadcast game state after action completes
 	h.broadcaster.BroadcastGameState(connection.GameID, nil)
 	log.Debug("📡 Broadcasted game state to all players")
 

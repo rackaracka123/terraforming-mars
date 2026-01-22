@@ -42,7 +42,6 @@ func (h *UseCardActionHandler) HandleMessage(ctx context.Context, connection *co
 		return
 	}
 
-	// Parse payload
 	payload, ok := message.Payload.(map[string]interface{})
 	if !ok {
 		log.Error("Invalid payload format")
@@ -50,7 +49,6 @@ func (h *UseCardActionHandler) HandleMessage(ctx context.Context, connection *co
 		return
 	}
 
-	// Extract cardId
 	cardID, ok := payload["cardId"].(string)
 	if !ok || cardID == "" {
 		log.Error("Missing or invalid cardId")
@@ -58,7 +56,6 @@ func (h *UseCardActionHandler) HandleMessage(ctx context.Context, connection *co
 		return
 	}
 
-	// Extract behaviorIndex
 	behaviorIndexFloat, ok := payload["behaviorIndex"].(float64)
 	if !ok {
 		log.Error("Missing or invalid behaviorIndex")
@@ -67,14 +64,12 @@ func (h *UseCardActionHandler) HandleMessage(ctx context.Context, connection *co
 	}
 	behaviorIndex := int(behaviorIndexFloat)
 
-	// Extract optional choiceIndex for actions with choices
 	var choiceIndex *int
 	if choiceIndexFloat, ok := payload["choiceIndex"].(float64); ok {
 		idx := int(choiceIndexFloat)
 		choiceIndex = &idx
 	}
 
-	// Extract optional cardStorageTarget for resource placement on other cards
 	var cardStorageTarget *string
 	if target, ok := payload["cardStorageTarget"].(string); ok && target != "" {
 		cardStorageTarget = &target
@@ -91,7 +86,6 @@ func (h *UseCardActionHandler) HandleMessage(ctx context.Context, connection *co
 		log = log.With(zap.String("card_storage_target", *cardStorageTarget))
 	}
 
-	// Execute the action
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, cardID, behaviorIndex, choiceIndex, cardStorageTarget)
 	if err != nil {
 		log.Error("Failed to execute use card action", zap.Error(err))
@@ -101,11 +95,9 @@ func (h *UseCardActionHandler) HandleMessage(ctx context.Context, connection *co
 
 	log.Info("✅ Use card action completed successfully")
 
-	// Explicitly broadcast game state after action completes
 	h.broadcaster.BroadcastGameState(connection.GameID, nil)
 	log.Debug("📡 Broadcasted game state to all players")
 
-	// Send success response
 	response := dto.WebSocketMessage{
 		Type:   "action-success",
 		GameID: connection.GameID,

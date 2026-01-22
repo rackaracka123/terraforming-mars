@@ -60,7 +60,6 @@ func ScoreAward(
 	b *board.Board,
 	cardRegistry CardRegistryInterface,
 ) []AwardPlacement {
-	// Calculate scores for all players
 	placements := make([]AwardPlacement, len(players))
 	for i, p := range players {
 		placements[i] = AwardPlacement{
@@ -69,17 +68,14 @@ func ScoreAward(
 		}
 	}
 
-	// Sort by score descending
 	sort.Slice(placements, func(i, j int) bool {
 		return placements[i].Score > placements[j].Score
 	})
 
-	// Assign placements (handle ties)
 	if len(placements) == 0 {
 		return placements
 	}
 
-	// First place(s)
 	firstPlaceScore := placements[0].Score
 	for i := range placements {
 		if placements[i].Score == firstPlaceScore {
@@ -89,7 +85,6 @@ func ScoreAward(
 		}
 	}
 
-	// Count how many tied for first
 	firstPlaceCount := 0
 	for _, p := range placements {
 		if p.Placement == 1 {
@@ -97,9 +92,7 @@ func ScoreAward(
 		}
 	}
 
-	// Second place(s) - only if not everyone tied for first
 	if firstPlaceCount < len(placements) {
-		// Find the next highest score
 		var secondPlaceScore int
 		foundSecond := false
 		for _, p := range placements {

@@ -47,7 +47,6 @@ func (h *SelectStartingCardsHandler) HandleMessage(ctx context.Context, connecti
 		return
 	}
 
-	// Parse payload
 	payloadMap, ok := message.Payload.(map[string]interface{})
 	if !ok {
 		log.Error("Invalid payload format")
@@ -55,7 +54,6 @@ func (h *SelectStartingCardsHandler) HandleMessage(ctx context.Context, connecti
 		return
 	}
 
-	// Extract cardIDs
 	var cardIDs []string
 	if cardIDsInterface, ok := payloadMap["cardIds"].([]interface{}); ok {
 		cardIDs = make([]string, len(cardIDsInterface))
@@ -66,7 +64,6 @@ func (h *SelectStartingCardsHandler) HandleMessage(ctx context.Context, connecti
 		}
 	}
 
-	// Extract corporationID
 	corporationID, _ := payloadMap["corporationId"].(string)
 
 	log.Debug("Parsed select starting cards request",
@@ -82,7 +79,6 @@ func (h *SelectStartingCardsHandler) HandleMessage(ctx context.Context, connecti
 
 	log.Info("✅ Select starting cards action completed successfully")
 
-	// Explicitly broadcast game state after action completes
 	h.broadcaster.BroadcastGameState(connection.GameID, nil)
 	log.Debug("📡 Broadcasted game state to all players")
 
