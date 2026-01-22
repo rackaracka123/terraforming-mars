@@ -8,6 +8,7 @@ import GameLandingPage from "./components/pages/GameLandingPage.tsx";
 import ReconnectingPage from "./components/pages/ReconnectingPage.tsx";
 import { globalWebSocketManager } from "./services/globalWebSocketManager.ts";
 import { SpaceBackgroundProvider } from "./contexts/SpaceBackgroundContext.tsx";
+import { SoundProvider } from "./contexts/SoundContext.tsx";
 import SpaceBackground from "./components/3d/SpaceBackground.tsx";
 import "./App.css";
 
@@ -53,13 +54,15 @@ function App() {
   }
 
   return (
-    <SpaceBackgroundProvider>
-      <div className="App" style={{ margin: 0, padding: 0 }}>
-        <Router>
-          <AppWithBackground />
-        </Router>
-      </div>
-    </SpaceBackgroundProvider>
+    <SoundProvider>
+      <SpaceBackgroundProvider>
+        <div className="App" style={{ margin: 0, padding: 0 }}>
+          <Router>
+            <AppWithBackground />
+          </Router>
+        </div>
+      </SpaceBackgroundProvider>
+    </SoundProvider>
   );
 }
 

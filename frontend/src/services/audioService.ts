@@ -1,3 +1,5 @@
+import { getSoundSettings } from "../utils/soundStorage.ts";
+
 /**
  * Audio service for managing game sound effects
  * Handles loading, caching, and playing audio files for game events
@@ -8,6 +10,11 @@ class AudioService {
   private volume: number = 0.5;
 
   constructor() {
+    // Initialize from localStorage settings
+    const settings = getSoundSettings();
+    this.isEnabled = settings.enabled;
+    this.volume = settings.volume;
+
     this.preloadAudioFiles();
   }
 
