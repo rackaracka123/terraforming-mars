@@ -1,12 +1,10 @@
-# Assets - Game Data Files
+# Assets - Static Game Data
 
-This directory contains static game data files used by the backend.
+Contains card definitions and static game data loaded by the backend at startup.
 
 ## Card Database
 
-**File:** `terraforming_mars_cards.json`
-
-This is the authoritative source for all card definitions in the game. It contains corporations, project cards, and prelude cards with their behaviors, costs, requirements, and effects.
+Authoritative source for all card definitions: corporations, project cards, and prelude cards with behaviors, costs, requirements, and effects.
 
 ### Card Structure
 
@@ -29,7 +27,7 @@ This is the authoritative source for all card definitions in the game. It contai
 
 ### Behavior System
 
-Each card has a `behaviors` array defining its effects. Each behavior has:
+Each card has a `behaviors` array. Each behavior contains:
 - `triggers`: When the behavior activates
 - `inputs`: Resources consumed (costs)
 - `outputs`: Resources produced (effects)
@@ -60,9 +58,7 @@ Each card has a `behaviors` array defining its effects. Each behavior has:
 - `value-modifier` - Increases resource payment value (uses `affectedResources` for steel/titanium, `amount` for bonus)
 - `tr` - Terraform rating
 
-### Value Modifier Output
-
-Used by cards like Phobolog and Advanced Alloys to increase steel/titanium payment values:
+### Value Modifier Example
 
 ```json
 {
@@ -73,13 +69,13 @@ Used by cards like Phobolog and Advanced Alloys to increase steel/titanium payme
 }
 ```
 
-This makes each titanium worth 1 additional credit when paying for cards.
+Makes each titanium worth 1 additional credit when paying for cards.
 
-### Adding New Cards
+## Adding New Cards
 
-1. Add card JSON to `terraforming_mars_cards.json`
+1. Add card JSON to this directory's card database
 2. Use existing trigger and output types where possible
-3. For new effect types, implement handler in `internal/game/cards/behavior_applier.go`
+3. For new effect types, implement handler in `internal/game/cards/`
 4. Run `make test` to validate card loading
 
 Most cards (90%+) can be added via JSON only without Go code changes.

@@ -1,5 +1,3 @@
-Read backend/go.instructions.md
-
 # Backend - Terraforming Mars API Server
 
 This document provides guidance for working with the backend API server.
@@ -75,12 +73,10 @@ The backend follows clean architecture principles with strict separation of conc
 - Request/response mapping
 - Depends on action layer, not repositories directly
 
-**Card System** (`internal/cards/`)
+**Card System** (`internal/cards/` + `internal/game/cards/`)
 
-- Centralized card registry and lookup
-- Card validation for requirements and plays
-- Card effect implementations
-- Modular effect handlers
+- `internal/cards/`: Card registry and JSON loader
+- `internal/game/cards/`: Card behavior logic, validation, requirement checking (NO state mutation)
 
 **Event System** (`internal/events/`)
 
@@ -93,35 +89,28 @@ The backend follows clean architecture principles with strict separation of conc
 
 ```
 backend/
-├── cmd/                    # Application entry points
-│   ├── server/            # Main server with dependency injection
-│   └── watch/             # Development file watching
-├── internal/              # Private application code
-│   ├── action/            # Action layer - single-responsibility business logic
-│   │   ├── base.go        # BaseAction with common dependencies
-│   │   ├── query/         # Query actions for reads
-│   │   └── admin/         # Admin actions
-│   ├── game/              # Game state repository and domain types
-│   │   ├── game.go        # Core Game type with all game state
-│   │   ├── repository.go  # GameRepository interface and implementation
-│   │   ├── player/        # Player entity and components
-│   │   ├── board/         # Board and Tile types
-│   │   ├── deck/          # Deck management
-│   │   ├── shared/        # Shared types (Resources, HexPosition, etc.)
-│   │   └── global_parameters/  # GlobalParameters with terraforming state
-│   ├── cards/             # Card system and registry
-│   ├── delivery/          # Presentation layer (HTTP, WebSocket, DTOs)
-│   │   └── websocket/     # Includes Broadcaster for event-driven updates
+├── cmd/
+│   └── server/            # Main server with dependency injection
+├── internal/
+│   ├── action/            # Business logic actions (ONLY place for state mutation)
+│   ├── cards/             # Card registry and loader
+│   ├── delivery/          # Presentation layer
+│   │   ├── dto/           # Data Transfer Objects and mappers
+│   │   ├── http/          # HTTP handlers
+│   │   └── websocket/     # WebSocket hub, handlers, broadcaster
 │   ├── events/            # Event bus and domain events
-│   ├── initialization/    # Application bootstrap and card loading
-│   └── logger/            # Structured logging
-├── pkg/                   # Public packages
-│   └── typegen/           # TypeScript type generation
+│   ├── game/              # Game state and domain types
+│   │   ├── board/         # Board and Tile types
+│   │   ├── cards/         # Card behavior logic (NO state mutation)
+│   │   ├── deck/          # Deck management
+│   │   ├── global_parameters/  # Temperature, oxygen, oceans
+│   │   ├── player/        # Player entity and components
+│   │   └── shared/        # Shared types (Resources, HexPosition, etc.)
+│   ├── logger/            # Structured logging
+│   └── middleware/        # HTTP middleware
 ├── test/                  # Test suite (mirrors internal/ structure)
-├── tools/                 # DEPRECATED: Card parser tool (being removed)
 ├── assets/                # Static game data (JSON card definitions)
-└── docs/                  # Documentation
-    └── swagger/           # Auto-generated API docs
+└── docs/                  # Architecture documentation
 ```
 
 ## Development Workflow
@@ -440,7 +429,6 @@ func TestPlayerService_DoAction(t *testing.T) {
 - Check `EventBus` for event flow
 - Inspect WebSocket messages in browser DevTools
 - Use `go test -json` for parseable test output
-- Review `docs/swagger/` for API contract
 
 ## Dependencies
 
@@ -448,20 +436,16 @@ func TestPlayerService_DoAction(t *testing.T) {
 
 - **gorilla/websocket**: WebSocket communication
 - **go-chi/chi**: HTTP routing and middleware
-- **swaggo/swag**: API documentation generation
 - **tygo**: TypeScript type generation
 
 ### Development Tools
 
 - **Air**: Hot reload for development
-- **golangci-lint**: Code quality checks
 
 ## Related Documentation
 
-- **Project Root CLAUDE.md**: Full-stack architecture and workflows
-- **frontend/CLAUDE.md**: Frontend architecture and patterns
-- **docs/ARCHITECTURE_REFACTOR_GOAL.md**: Backend architecture and refactor history
+- **Project Root CLAUDE.md**: Project overview, commands, and cross-cutting workflows
+- **frontend/CLAUDE.md**: Frontend architecture, components, and patterns
+- **assets/CLAUDE.md**: Card database documentation (behavior types, output formats)
 - **docs/EVENT_SYSTEM.md**: Event-driven architecture and broadcasting
 - **TERRAFORMING_MARS_RULES.md**: Complete game rules reference
-- **assets/CLAUDE.md**: Card database documentation (behavior types, output formats)
-- **assets/terraforming_mars_cards.json**: Authoritative card definitions (manually edited)
