@@ -26,6 +26,7 @@ class AudioService {
       { key: "production", path: "/assets/audio/production.mp3" },
       { key: "temperature-increase", path: "/sounds/temperature-increase.mp3" },
       { key: "water-placement", path: "/sounds/water-placement.mp3" },
+      { key: "oxygen-increase", path: "/sounds/oxygen-increase.mp3" },
     ];
 
     audioFiles.forEach(({ key, path }) => {
@@ -94,6 +95,13 @@ class AudioService {
    */
   public async playWaterPlacementSound(): Promise<void> {
     return this.playSound("water-placement");
+  }
+
+  /**
+   * Play oxygen increase sound effect
+   */
+  public async playOxygenSound(): Promise<void> {
+    return this.playSound("oxygen-increase");
   }
 
   /**

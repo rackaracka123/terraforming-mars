@@ -55,7 +55,8 @@ import { StandardProject } from "@/types/cards.tsx";
 export default function GameInterface() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { playProductionSound, playTemperatureSound, playWaterPlacementSound } = useSoundEffects();
+  const { playProductionSound, playTemperatureSound, playWaterPlacementSound, playOxygenSound } =
+    useSoundEffects();
   const [game, setGame] = useState<GameDto | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
@@ -195,6 +196,13 @@ export default function GameInterface() {
           void playWaterPlacementSound();
         }
 
+        // Play oxygen increase sound when oxygen goes up
+        const prevOxygen = previousGameRef.current.globalParameters?.oxygen;
+        const newOxygen = updatedGame.globalParameters?.oxygen;
+        if (prevOxygen !== undefined && newOxygen !== undefined && newOxygen > prevOxygen) {
+          void playOxygenSound();
+        }
+
         // Clear changed paths after animation completes
         if (changes.size > 0) {
           setTimeout(() => {
@@ -233,7 +241,7 @@ export default function GameInterface() {
         setShowCorporationModal(false);
       }
     },
-    [isReconnecting, playTemperatureSound, playWaterPlacementSound],
+    [isReconnecting, playTemperatureSound, playWaterPlacementSound, playOxygenSound],
   );
 
   const handleFullState = useCallback(

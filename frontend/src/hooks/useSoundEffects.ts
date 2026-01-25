@@ -22,10 +22,15 @@ export function useSoundEffects() {
     return audioService.playWaterPlacementSound();
   }, []);
 
+  const playOxygenSound = useCallback(() => {
+    return audioService.playOxygenSound();
+  }, []);
+
   return {
     playSound,
     playProductionSound,
     playTemperatureSound,
     playWaterPlacementSound,
+    playOxygenSound,
   };
 }
