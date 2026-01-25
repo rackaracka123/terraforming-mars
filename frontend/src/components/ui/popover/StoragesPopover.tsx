@@ -86,7 +86,7 @@ const StoragesPopover: React.FC<StoragesPopoverProps> = ({
             <GamePopoverItem
               key={storage.cardId}
               state="available"
-              hoverEffect="translate-x"
+              hoverEffect="glow"
               animationDelay={index * 0.05}
             >
               <div className="flex justify-between items-center flex-1">

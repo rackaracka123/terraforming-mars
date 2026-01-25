@@ -83,7 +83,7 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
                     ? { message: action.errors[0].message, count: action.errors.length }
                     : undefined
                 }
-                hoverEffect="translate-x"
+                hoverEffect="glow"
                 animationDelay={index * 0.05}
                 className={!isActionPlayable && isAvailable ? "cursor-default" : ""}
               >

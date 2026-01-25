@@ -16,6 +16,7 @@ const GamePopover: React.FC<GamePopoverProps> = ({
   animation = "slideUp",
   children,
   className = "",
+  excludeRef,
 }) => {
   const popoverRef = useRef<HTMLDivElement>(null);
   const [computedPosition, setComputedPosition] = useState<{
@@ -25,7 +26,7 @@ const GamePopover: React.FC<GamePopoverProps> = ({
     bottom?: number;
   }>({});
 
-  const anchorRef = position.type === "anchor" ? position.anchorRef : undefined;
+  const anchorRef = position.type === "anchor" ? position.anchorRef : excludeRef;
 
   usePopover({
     isVisible,
