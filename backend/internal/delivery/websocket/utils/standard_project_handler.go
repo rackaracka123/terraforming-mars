@@ -46,7 +46,6 @@ func (h *StandardProjectHandler) HandleStandardProject(
 		zap.String("player_id", playerID),
 		zap.String("game_id", gameID))
 
-	// Execute the project
 	if err := projectFunc(ctx, gameID, playerID); err != nil {
 		h.logger.Error("Failed to "+projectName,
 			zap.Error(err),

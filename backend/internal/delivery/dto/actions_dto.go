@@ -11,14 +11,14 @@ const (
 	ActionTypeSkipAction ActionType = "skip-action"
 	ActionTypePlayCard   ActionType = "play-card"
 	ActionTypeCardAction ActionType = "card-action"
-	// Standard Projects (M€-based)
+
 	ActionTypeSellPatents     ActionType = "sell-patents"
 	ActionTypeBuildPowerPlant ActionType = "build-power-plant"
 	ActionTypeLaunchAsteroid  ActionType = "launch-asteroid"
 	ActionTypeBuildAquifer    ActionType = "build-aquifer"
 	ActionTypePlantGreenery   ActionType = "plant-greenery"
 	ActionTypeBuildCity       ActionType = "build-city"
-	// Resource Conversion Actions
+
 	ActionTypeConvertPlantsToGreenery  ActionType = "convert-plants-to-greenery"
 	ActionTypeConvertHeatToTemperature ActionType = "convert-heat-to-temperature"
 )
@@ -239,8 +239,6 @@ type ActionBuildCityRequest struct {
 func (ap *ActionBuildCityRequest) GetAction() *BuildCityAction {
 	return &BuildCityAction{Type: ap.Type, HexPosition: ap.HexPosition}
 }
-
-// Resource Conversion Action Requests
 
 // ActionConvertPlantsToGreeneryRequest contains the action data for initiating plant conversion
 type ActionConvertPlantsToGreeneryRequest struct {

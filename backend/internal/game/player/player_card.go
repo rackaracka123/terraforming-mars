@@ -9,16 +9,11 @@ import (
 // PlayerCard instances are cached for their entire lifecycle (in hand, selection phase, etc.).
 // Note: card field uses any to avoid circular dependency with game/cards package
 type PlayerCard struct {
-	// Reference to immutable card data (type: *cards.Card from game/cards package)
-	// Stored as any to avoid import cycle
 	card any
 
-	// Player-specific state (protected by mutex)
 	mu    sync.RWMutex
 	state EntityState
 
-	// Event listener cleanup functions
-	// When PlayerCard is removed (from hand, selection, etc.), call Cleanup() to unsubscribe all listeners
 	unsubscribers []func()
 }
 

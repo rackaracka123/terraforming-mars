@@ -100,7 +100,6 @@ func recalculatePlayerCard(
 	g *game.Game,
 	cardRegistry cards.CardRegistry,
 ) {
-	// Type assert card from any to *gamecards.Card
 	card, ok := pc.Card().(*gamecards.Card)
 	if !ok {
 		// Should never happen if architecture is followed correctly

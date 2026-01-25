@@ -13,7 +13,6 @@ import (
 func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string) GameDto {
 	players := g.GetAllPlayers()
 
-	// Create personalized view: viewing player is currentPlayer, others are otherPlayers
 	var currentPlayer PlayerDto
 	otherPlayers := make([]OtherPlayerDto, 0)
 
@@ -27,7 +26,6 @@ func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string) G
 		}
 	}
 
-	// If viewing player not found, use first player as fallback
 	if viewingPlayer == nil && len(players) > 0 {
 		currentPlayer = ToPlayerDto(players[0], g, cardRegistry)
 		for i := 1; i < len(players); i++ {
@@ -36,7 +34,6 @@ func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string) G
 		playerID = players[0].ID()
 	}
 
-	// Get settings
 	settings := g.Settings()
 	settingsDto := GameSettingsDto{
 		MaxPlayers:      settings.MaxPlayers,
@@ -45,7 +42,6 @@ func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string) G
 		CardPacks:       settings.CardPacks,
 	}
 
-	// Convert global parameters
 	globalParams := g.GlobalParameters()
 	globalParamsDto := GlobalParametersDto{
 		Temperature: globalParams.Temperature(),
@@ -53,7 +49,6 @@ func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string) G
 		Oceans:      globalParams.Oceans(),
 	}
 
-	// Get board tiles
 	board := g.Board()
 	tiles := board.Tiles()
 	tileDtos := make([]TileDto, len(tiles))
@@ -80,13 +75,11 @@ func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string) G
 		}
 	}
 
-	// Payment constants (default values)
 	paymentConstants := PaymentConstantsDto{
 		SteelValue:    2, // Default steel value
 		TitaniumValue: 3, // Default titanium value
 	}
 
-	// Convert final scores if game is completed
 	var finalScoreDtos []FinalScoreDto
 	if g.Status() == game.GameStatusCompleted {
 		finalScores := g.GetFinalScores()
@@ -104,7 +97,6 @@ func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string) G
 		}
 	}
 
-	// Convert triggered effects and clear them
 	triggeredEffects := g.GetTriggeredEffects()
 	var triggeredEffectDtos []TriggeredEffectDto
 	if len(triggeredEffects) > 0 {

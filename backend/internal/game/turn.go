@@ -46,9 +46,6 @@ func (t *Turn) ConsumeAction() bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	// Only consume if player has limited actions remaining (> 0)
-	// -1 = unlimited actions (don't consume)
-	// 0 = no actions remaining (don't consume)
 	if t.actionsRemaining > 0 {
 		t.actionsRemaining--
 		return true

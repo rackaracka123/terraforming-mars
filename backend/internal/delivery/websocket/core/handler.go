@@ -38,7 +38,6 @@ func NewHandler(hub *Hub) *Handler {
 func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info("🔗 WebSocket connection request received", zap.String("remote_addr", r.RemoteAddr))
 
-	// Upgrade connection to WebSocket
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		h.logger.Error("❌ Failed to upgrade connection to WebSocket", zap.Error(err))
@@ -56,20 +55,16 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		zap.String("connection_id", connectionID),
 		zap.String("remote_addr", r.RemoteAddr))
 
-	// Register connection with hub
 	h.hub.Register <- connection
 
-	// Configure connection timeouts
 	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 
-	// Handle pong messages to keep connection alive
 	conn.SetPongHandler(func(string) error {
 		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 		return nil
 	})
 
-	// Start connection pumps
 	go connection.WritePump()
 	go connection.ReadPump()
 

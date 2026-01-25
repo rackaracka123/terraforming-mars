@@ -45,22 +45,18 @@ func Subscribe[T any](eb *EventBusImpl, handler EventHandler[T]) SubscriptionID 
 	eb.mutex.Lock()
 	defer eb.mutex.Unlock()
 
-	// Generate unique subscription ID
 	id := SubscriptionID(fmt.Sprintf("sub-%d", eb.nextID))
 	eb.nextID++
 
-	// Get type name for matching
 	var zero T
 	eventType := fmt.Sprintf("%T", zero)
 
-	// Create type-erased wrapper that calls the typed handler
 	handlerFunc := func(event any) {
 		if typedEvent, ok := event.(T); ok {
 			handler(typedEvent)
 		}
 	}
 
-	// Store subscription
 	sub := &subscription{
 		id:          id,
 		handler:     handler,
@@ -82,10 +78,8 @@ func Publish[T any](eb *EventBusImpl, event T) {
 	eb.mutex.RLock()
 	defer eb.mutex.RUnlock()
 
-	// Get event type
 	eventType := fmt.Sprintf("%T", event)
 
-	// Find all matching subscriptions
 	var matchingHandlers []func(any)
 	for _, sub := range eb.subscriptions {
 		if sub.eventType == eventType {

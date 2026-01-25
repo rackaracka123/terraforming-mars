@@ -31,7 +31,6 @@ type Card struct {
 	ResourceStorage *ResourceStorage        `json:"resourceStorage"`
 	VPConditions    []VictoryPointCondition `json:"vpConditions"`
 
-	// Corporation-specific fields (nil for non-corporation cards)
 	StartingResources  *shared.ResourceSet `json:"startingResources"`
 	StartingProduction *shared.ResourceSet `json:"startingProduction"`
 }

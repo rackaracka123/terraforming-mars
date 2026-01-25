@@ -54,7 +54,6 @@ func (c *RequirementModifierCalculator) Calculate(p *player.Player) []shared.Req
 				continue
 			}
 
-			// Case 2: Tag-based discount (e.g., Space Station's space tag discount)
 			if len(output.AffectedTags) > 0 {
 				for _, cardID := range handCardIDs {
 					card, err := c.cardLookup.GetByID(cardID)
@@ -149,9 +148,7 @@ func (c *RequirementModifierCalculator) cardHasMatchingType(card *Card, types []
 
 // mergeModifiers combines modifiers targeting the same card/project by summing amounts
 func (c *RequirementModifierCalculator) mergeModifiers(modifiers []shared.RequirementModifier) []shared.RequirementModifier {
-	// Map for card-targeted modifiers (key = cardID)
 	cardModifiers := make(map[string]*shared.RequirementModifier)
-	// Map for standard project modifiers (key = project name)
 	projectModifiers := make(map[shared.StandardProject]*shared.RequirementModifier)
 
 	for _, mod := range modifiers {

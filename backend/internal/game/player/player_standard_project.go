@@ -11,11 +11,9 @@ import (
 type PlayerStandardProject struct {
 	projectType shared.StandardProject
 
-	// Calculated state (from action package)
 	mu    sync.RWMutex
 	state EntityState
 
-	// Event listener cleanup functions
 	unsubscribers []func()
 }
 

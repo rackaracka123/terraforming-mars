@@ -21,7 +21,6 @@ type Deck struct {
 
 // NewDeck creates a new game deck with all cards available
 func NewDeck(gameID string, projectCardIDs, corpIDs, preludeIDs []string) *Deck {
-	// Create copies to prevent external mutation
 	projectCopy := make([]string, len(projectCardIDs))
 	copy(projectCopy, projectCardIDs)
 
@@ -135,7 +134,6 @@ func (d *Deck) DrawProjectCards(ctx context.Context, count int) ([]string, error
 		return nil, fmt.Errorf("not enough cards available: requested %d, have %d", count, available)
 	}
 
-	// Draw cards from top of deck
 	drawnCards := make([]string, count)
 	copy(drawnCards, d.projectCards[:count])
 	d.projectCards = d.projectCards[count:]
@@ -159,7 +157,6 @@ func (d *Deck) DrawCorporations(ctx context.Context, count int) ([]string, error
 		return nil, fmt.Errorf("not enough corporations available: requested %d, have %d", count, available)
 	}
 
-	// Draw corporations from top
 	drawnCorps := make([]string, count)
 	copy(drawnCorps, d.corporations[:count])
 	d.corporations = d.corporations[count:]
@@ -202,7 +199,6 @@ func (d *Deck) Shuffle(ctx context.Context) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	// Add discard pile back to project cards
 	d.projectCards = append(d.projectCards, d.discardPile...)
 	d.discardPile = make([]string, 0)
 	d.shuffleCount++

@@ -133,13 +133,11 @@ func (m *Milestones) ClaimMilestone(ctx context.Context, milestoneType shared.Mi
 
 	m.mu.Lock()
 
-	// Check if max milestones already claimed
 	if len(m.claimed) >= MaxClaimedMilestones {
 		m.mu.Unlock()
 		return fmt.Errorf("maximum milestones (%d) already claimed", MaxClaimedMilestones)
 	}
 
-	// Check if this milestone is already claimed
 	for _, claimed := range m.claimed {
 		if claimed.Type == milestoneType {
 			m.mu.Unlock()
@@ -147,7 +145,6 @@ func (m *Milestones) ClaimMilestone(ctx context.Context, milestoneType shared.Mi
 		}
 	}
 
-	// Claim the milestone
 	claimed := ClaimedMilestone{
 		Type:       milestoneType,
 		PlayerID:   playerID,
@@ -158,7 +155,6 @@ func (m *Milestones) ClaimMilestone(ctx context.Context, milestoneType shared.Mi
 
 	m.mu.Unlock()
 
-	// Publish event after releasing lock
 	if m.eventBus != nil {
 		events.Publish(m.eventBus, events.MilestoneClaimedEvent{
 			GameID:        m.gameID,

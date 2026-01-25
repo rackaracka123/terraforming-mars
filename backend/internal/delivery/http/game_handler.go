@@ -50,13 +50,11 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 	log := logger.Get()
 	ctx := r.Context()
 
-	// Extract gameId from URL
 	vars := mux.Vars(r)
 	gameID := vars["gameId"]
 
 	log.Info("📡 HTTP GET /api/v1/games/:gameId", zap.String("game_id", gameID))
 
-	// Execute query action
 	game, err := h.getGameAction.Execute(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game", zap.Error(err))
@@ -64,15 +62,12 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert to DTO (HTTP GET has no authenticated player, use first player as fallback)
 	gameDto := dto.ToGameDto(game, h.cardRegistry, "")
 
-	// Wrap in response structure
 	response := dto.GetGameResponse{
 		Game: gameDto,
 	}
 
-	// Return response
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.Error("Failed to encode response", zap.Error(err))
@@ -98,13 +93,11 @@ func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert to DTOs (HTTP GET has no authenticated player, use first player as fallback)
 	gameDtos := make([]dto.GameDto, len(games))
 	for i, game := range games {
 		gameDtos[i] = dto.ToGameDto(game, h.cardRegistry, "")
 	}
 
-	// Return response
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(gameDtos); err != nil {
 		log.Error("Failed to encode response", zap.Error(err))
@@ -122,7 +115,6 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("📡 HTTP POST /api/v1/games")
 
-	// Parse request body
 	var req dto.CreateGameRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Error("Failed to decode request", zap.Error(err))
@@ -130,7 +122,6 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert to GameSettings
 	settings := game.GameSettings{
 		MaxPlayers:      req.MaxPlayers,
 		DevelopmentMode: req.DevelopmentMode,
@@ -145,15 +136,12 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert to DTO (HTTP POST has no authenticated player yet, use first player as fallback)
 	gameDto := dto.ToGameDto(game, h.cardRegistry, "")
 
-	// Wrap in response structure
 	response := dto.CreateGameResponse{
 		Game: gameDto,
 	}
 
-	// Return response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
@@ -172,7 +160,6 @@ func (h *GameHandler) ListCards(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("📡 HTTP GET /api/v1/cards")
 
-	// Parse query parameters
 	queryParams := r.URL.Query()
 	offset := 0
 	limit := 100 // Default limit
@@ -205,7 +192,6 @@ func (h *GameHandler) ListCards(w http.ResponseWriter, r *http.Request) {
 		cardDtos[i] = dto.ToCardDto(card)
 	}
 
-	// Wrap in response structure
 	response := dto.ListCardsResponse{
 		Cards:      cardDtos,
 		TotalCount: result.TotalCount,
@@ -213,7 +199,6 @@ func (h *GameHandler) ListCards(w http.ResponseWriter, r *http.Request) {
 		Limit:      result.Limit,
 	}
 
-	// Return response
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.Error("Failed to encode response", zap.Error(err))

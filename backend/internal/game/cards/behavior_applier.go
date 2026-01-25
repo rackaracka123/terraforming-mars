@@ -71,7 +71,6 @@ func (a *BehaviorApplier) ApplyInputs(
 
 	log.Debug("💰 Processing behavior inputs")
 
-	// First validate player has all required resources
 	resources := a.player.Resources().Get()
 
 	for _, input := range inputs {
@@ -105,7 +104,6 @@ func (a *BehaviorApplier) ApplyInputs(
 		}
 	}
 
-	// All validations passed, now deduct resources
 	for _, input := range inputs {
 		switch input.ResourceType {
 		case shared.ResourceCredit:
@@ -172,7 +170,6 @@ func (a *BehaviorApplier) ApplyOutputs(
 		}
 	}
 
-	// Record triggered effect for UI notification
 	if a.game != nil && a.player != nil && len(outputs) > 0 {
 		a.game.AddTriggeredEffect(game.TriggeredEffect{
 			CardName: a.source,

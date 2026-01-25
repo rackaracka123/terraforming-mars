@@ -69,7 +69,6 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 	for i, p := range players {
 		playerIDs[i] = p.ID()
 	}
-	// Shuffle player IDs to randomize turn order
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	rng.Shuffle(len(playerIDs), func(i, j int) {
 		playerIDs[i], playerIDs[j] = playerIDs[j], playerIDs[i]

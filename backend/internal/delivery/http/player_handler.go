@@ -65,7 +65,6 @@ func (h *PlayerHandler) GetPlayer(w http.ResponseWriter, r *http.Request) {
 	// Convert to DTO
 	playerDto := dto.ToPlayerDto(player, game, h.cardRegistry)
 
-	// Return response
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(playerDto); err != nil {
 		log.Error("Failed to encode response", zap.Error(err))
