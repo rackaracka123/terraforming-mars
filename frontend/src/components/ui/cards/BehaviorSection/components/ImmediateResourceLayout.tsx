@@ -51,7 +51,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
   tileScaleInfo,
   renderIcon,
 }) => {
-  // Helper function to check if an output is a global parameter or tile placement
   const isGlobalParamOrTile = (output: any): boolean => {
     const type = output.resourceType || output.type || "";
     return (
@@ -69,45 +68,35 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
     );
   };
 
-  // Helper function to coordinate display modes across resources for consistency
-  // If ANY resource uses "number + icon" format, ALL should use it (except amount=1)
   const coordinateDisplayModes = (resources: any[]): Map<any, IconDisplayInfo> => {
-    // First pass: analyze each resource independently
     const displayInfos = resources.map((r) => ({
       resource: r,
       info: analyzeResourceDisplayWithConstraints(r, 7, false),
     }));
 
-    // Check if ANY resource uses "number" mode
     const hasNumberMode = displayInfos.some((d) => d.info.displayMode === "number");
 
-    // Second pass: if any uses number mode, force all to use it (except amount=1)
     if (hasNumberMode) {
       return new Map(
         displayInfos.map(({ resource, info }) => {
           const amount = Math.abs(resource.amount ?? 1);
           if (amount === 1) {
-            // Keep individual mode for amount=1 (redundant to show "1")
             return [resource, info];
           } else {
-            // Force number mode for consistency
             return [resource, { ...info, displayMode: "number", iconCount: 1 }];
           }
         }),
       );
     }
 
-    // Otherwise, keep original display modes
     return new Map(displayInfos.map(({ resource, info }) => [resource, info]));
   };
 
-  // Helper function to render production group content
   const renderProductionGroup = (negative: any[], positive: any[]): React.ReactNode => {
     return (
       <div
         className={`flex flex-col gap-[3px] justify-center ${negative.length > 0 ? "items-start" : "items-center"}`}
       >
-        {/* Negative production on first row */}
         {negative.length > 0 && (
           <div className="flex gap-[3px] items-center justify-start">
             <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
@@ -132,7 +121,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
           </div>
         )}
 
-        {/* Positive production on second row */}
         {positive.length > 0 && (
           <>
             {negative.length === 0 && positive.length === 2 ? (
@@ -186,13 +174,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
     );
   };
 
-  // Helper function to render non-production group content
   const renderNonProductionGroup = (negative: any[], positive: any[]): React.ReactNode => {
     return (
       <div
         className={`flex flex-col gap-[3px] justify-center ${negative.length > 0 && positive.length > 0 ? "items-start" : "items-center"}`}
       >
-        {/* Negative resources on first row */}
         {negative.length > 0 && (
           <div className="flex gap-[3px] items-center justify-start">
             {negative.length > 1 && (
@@ -220,7 +206,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
           </div>
         )}
 
-        {/* Positive resources on second row */}
         {positive.length > 0 && (
           <>
             {negative.length === 0 && positive.length === 2 ? (
@@ -274,7 +259,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
     );
   };
 
-  // Check if this is a global-parameter-lenience effect (special case - no trigger display)
   const isGlobalParameterLenience =
     behavior.outputs?.some(
       (output: any) =>
@@ -282,8 +266,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
         output.resourceType === "global-parameter-lenience",
     ) ?? false;
 
-  // Special case: if there are trigger conditions (e.g., Herbivores card), render condition icon : output icons
-  // BUT skip this for global-parameter-lenience (it has its own display format)
   if (
     !isGlobalParameterLenience &&
     behavior.triggers &&
@@ -294,7 +276,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
   ) {
     return (
       <div className="flex gap-[3px] items-center justify-center">
-        {/* Render trigger condition icon(s) */}
         {behavior.triggers
           .filter((trigger: any) => trigger.condition)
           .map((trigger: any, triggerIndex: number) => {
@@ -342,11 +323,9 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
               );
             }
           })}
-        {/* Colon separator */}
         <span className="flex items-center justify-center text-white text-base font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] min-w-[20px] z-[1]">
           :
         </span>
-        {/* Render output icons */}
         {behavior.outputs.map((output: any, outputIndex: number) => {
           const displayInfo = analyzeResourceDisplayWithConstraints(output, 6, false);
           return (
@@ -367,7 +346,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
     );
   }
 
-  // Special case: if there are choices AND outputs, render them on separate rows
   if (
     behavior.choices &&
     behavior.choices.length > 0 &&
@@ -376,7 +354,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
   ) {
     return (
       <div className="flex flex-col gap-[6px] items-center justify-start w-full py-1">
-        {/* Render choices in compact format: amount <icon> / amount <icon> / ... */}
         <div className="flex flex-wrap gap-1 items-center justify-center">
           {behavior.choices.map((choice: any, choiceIndex: number) => (
             <React.Fragment key={`choice-compact-${choiceIndex}`}>
@@ -415,9 +392,7 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
           ))}
         </div>
 
-        {/* Render regular outputs on a new row */}
         {(() => {
-          // Check if outputs are production outputs
           const productionOutputs = behavior.outputs.filter(
             (output: any) =>
               output.resourceType?.includes("production") ||
@@ -447,7 +422,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                 <div
                   className={`flex flex-col gap-[3px] justify-center ${negativeProduction.length > 0 ? "items-start" : "items-center"}`}
                 >
-                  {/* Negative production on first row */}
                   {negativeProduction.length > 0 && (
                     <div className="flex gap-[3px] items-center">
                       <span className="text-white font-bold text-base [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
@@ -478,7 +452,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                       })}
                     </div>
                   )}
-                  {/* Positive production on second row */}
                   {positiveProduction.length > 0 && (
                     <div className="flex gap-[3px] items-center">
                       {negativeProduction.length > 0 && (
@@ -509,7 +482,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
             );
           }
 
-          // Otherwise render outputs normally
           return (
             <div className="flex flex-wrap gap-[3px] items-center justify-center">
               {behavior.outputs.map((output: any, index: number) => {
@@ -535,14 +507,11 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
     );
   }
 
-  // Special case: choices with only production outputs and no behavior-level outputs
-  // Display in a single brown production box with OR separators
   if (
     (!behavior.outputs || behavior.outputs.length === 0) &&
     behavior.choices &&
     behavior.choices.length > 0
   ) {
-    // Check if all choices contain only production outputs
     const allChoicesAreProduction = behavior.choices.every((choice: any) => {
       if (!choice.outputs || choice.outputs.length === 0) return false;
       return choice.outputs.every(
@@ -590,10 +559,8 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
 
   if (!behavior.outputs || behavior.outputs.length === 0) return null;
 
-  // Analyze and consolidate card outputs (card-draw, card-peek, card-take, card-buy)
   const consolidatedCards = analyzeCardOutputs(behavior.outputs);
 
-  // Helper to check if an output is a card resource
   const isCardResource = (output: any): boolean => {
     const type = output.resourceType || output.type || "";
     return (
@@ -601,14 +568,12 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
     );
   };
 
-  // Separate production and non-production outputs
   const productionOutputs = behavior.outputs.filter(
     (output: any) =>
       output.resourceType?.includes("production") ||
       output.type?.includes("production") ||
       output.isProduction === true,
   );
-  // Filter out card resources from non-production outputs (they'll be rendered separately)
   const nonProductionOutputs = behavior.outputs.filter(
     (output: any) =>
       !(
@@ -618,20 +583,15 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
       ) && !isCardResource(output),
   );
 
-  // Separate per-condition production (which already has its own wrapper) from regular production
   const perConditionProduction = productionOutputs.filter((output: any) => output.per);
   const regularProduction = productionOutputs.filter((output: any) => !output.per);
 
-  // Separate negative and positive production outputs (only for regular production, not per-condition)
   const negativeProduction = regularProduction.filter((output: any) => (output.amount ?? 1) < 0);
   const positiveProduction = regularProduction.filter((output: any) => (output.amount ?? 1) >= 0);
 
-  // Separate negative and positive non-production outputs
   const negativeOutputs = nonProductionOutputs.filter((output: any) => (output.amount ?? 1) < 0);
   const positiveOutputs = nonProductionOutputs.filter((output: any) => (output.amount ?? 1) >= 0);
 
-  // Special handling: if nonProductionOutputs has both regular resources AND global params/tiles,
-  // and there are at least 3 outputs total, use special layouts
   const globalParamOutputs = nonProductionOutputs.filter(isGlobalParamOrTile);
   const regularResourceOutputs = nonProductionOutputs.filter(
     (output: any) => !isGlobalParamOrTile(output),
@@ -646,15 +606,12 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
     regularProduction.length === 0 &&
     perConditionProduction.length === 0;
 
-  // Special case: if there are 1+ global params/tiles and 1+ regular resources,
-  // stack them vertically (resources on top, global params/tiles on bottom)
   const shouldUseTwoRowLayout =
     shouldUseTwoColumnLayout &&
     globalParamOutputs.length >= 1 &&
     regularResourceOutputs.length >= 1;
 
   if (shouldUseTwoRowLayout) {
-    // Split regular resources into attacks and non-attacks
     const attackResources = regularResourceOutputs.filter(
       (output: any) => output.target === "any-player",
     );
@@ -674,7 +631,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
 
     return (
       <div className="flex flex-col gap-[9px] items-center justify-center max-w-full">
-        {/* Top row: regular resources */}
         <div className="flex gap-[3px] items-center justify-center">
           {attackResources.map((output: any, index: number) => {
             const displayInfo = regularDisplayModes.get(output)!;
@@ -736,7 +692,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
           })}
         </div>
 
-        {/* Bottom row: global parameters and tiles */}
         <div className="flex gap-[3px] items-center justify-center">
           {[...globalParamOutputs]
             .sort((a, b) => {
@@ -769,8 +724,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
   }
 
   if (shouldUseTwoColumnLayout) {
-    // Further split regular resources into attacks and non-attacks
-    // Attacks (any-player target) are displayed first, then regular positive resources
     const attackResources = regularResourceOutputs.filter(
       (output: any) => output.target === "any-player",
     );
@@ -781,7 +734,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
       (output: any) => output.target !== "any-player" && (output.amount ?? 1) < 0,
     );
 
-    // Coordinate display modes for consistency across all regular resources
     const regularDisplayModes = coordinateDisplayModes([
       ...attackResources,
       ...negativeRegular,
@@ -790,9 +742,7 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
 
     return (
       <div className="flex gap-2 items-center justify-center max-w-full">
-        {/* Left side: regular resources in rows */}
         <div className="flex flex-col gap-[6px] items-center justify-center">
-          {/* Attack resources (any-player) on first row */}
           {attackResources.length > 0 && (
             <div className="flex gap-[3px] items-center justify-center">
               {attackResources.map((output: any, index: number) => {
@@ -863,7 +813,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
           )}
         </div>
 
-        {/* Right side: global parameters and tiles in a single row */}
         <div className="flex gap-[3px] items-center justify-center">
           {[...globalParamOutputs]
             .sort((a, b) => {
@@ -895,7 +844,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
     );
   }
 
-  // Count groups that have content
   const groups = [
     { content: regularProduction, hasGlobalParamOrTile: false },
     {
@@ -908,18 +856,15 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
     },
   ].filter((group) => group.content.length > 0);
 
-  // Special layout for 3 groups: 2 left (vertical), 1 right (prioritize global params/tiles on right)
   if (groups.length === 3) {
-    // Determine which group goes on the right (prioritize global parameters and tiles)
     let rightGroupIndex = groups.findIndex((g) => g.hasGlobalParamOrTile);
-    if (rightGroupIndex === -1) rightGroupIndex = 2; // Default to last group
+    if (rightGroupIndex === -1) rightGroupIndex = 2;
 
     const leftGroups = groups.filter((_, i) => i !== rightGroupIndex);
     const rightGroup = groups[rightGroupIndex];
 
     return (
       <div className="flex gap-2 items-center justify-center max-w-full">
-        {/* Left side: 2 groups vertically stacked */}
         <div className="flex flex-col gap-[3px] items-center justify-center">
           {leftGroups.map((group, index) => {
             if (group.content === regularProduction) {
@@ -968,7 +913,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
           })}
         </div>
 
-        {/* Right side: 1 group */}
         <div className="flex items-center justify-center">
           {rightGroup.content === regularProduction ? (
             <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
@@ -1003,18 +947,15 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
     );
   }
 
-  // Check if we have both regular and per-condition production - if so, combine them in ONE brown box
   const hasAllProductionTypes = regularProduction.length > 0 && perConditionProduction.length > 0;
 
   return (
     <div className="flex flex-wrap gap-2 items-center justify-center max-w-full">
-      {/* If we have both types, wrap them together in ONE brown box */}
       {hasAllProductionTypes ? (
         <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
           <div
             className={`flex flex-col gap-[3px] justify-center ${negativeProduction.length > 0 ? "items-start" : "items-center"}`}
           >
-            {/* Negative production on first row */}
             {negativeProduction.length > 0 && (
               <div className="flex gap-[3px] items-center justify-start">
                 <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
@@ -1040,7 +981,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
               </div>
             )}
 
-            {/* Positive regular production */}
             {positiveProduction.length > 0 &&
               positiveProduction.map((output: any, index: number) => {
                 const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
@@ -1067,7 +1007,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                 );
               })}
 
-            {/* Per-condition production (render without wrapper since we're already in the brown box) */}
             {perConditionProduction.map((output: any, index: number) => {
               const baseResourceType = output.type.replace("-production", "");
               const hasPer = output.per;
@@ -1137,7 +1076,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
         </div>
       ) : (
         <>
-          {/* Regular production only (original logic) */}
           {regularProduction.length > 0 && (
             <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
               <div
@@ -1225,7 +1163,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
             </div>
           )}
 
-          {/* Per-condition production only (with wrapper from renderResourceFromDisplayInfo) */}
           {perConditionProduction.length > 0 && (
             <div className="flex flex-col gap-[3px] items-center justify-center">
               {perConditionProduction.map((output: any, index: number) => {
@@ -1249,12 +1186,10 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
         </>
       )}
 
-      {/* Non-production outputs */}
       {(nonProductionOutputs.length > 0 || consolidatedCards.length > 0) && (
         <div
           className={`flex flex-col gap-[3px] justify-center ${negativeOutputs.length > 0 && positiveOutputs.length > 0 ? "items-start" : "items-center"}`}
         >
-          {/* Negative resources on first row */}
           {negativeOutputs.length > 0 && (
             <div className="flex gap-[3px] items-center justify-start">
               {negativeOutputs.length > 1 && (
@@ -1282,11 +1217,9 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
             </div>
           )}
 
-          {/* Positive resources on second row */}
           {positiveOutputs.length > 0 && (
             <>
               {negativeOutputs.length === 0 && positiveOutputs.length === 2 ? (
-                // When there are exactly 2 positive outputs and no negatives, show them on separate rows
                 positiveOutputs.map((output: any, index: number) => {
                   const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
                   return (
@@ -1307,7 +1240,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                   );
                 })
               ) : (
-                // Default: all positive outputs in one row
                 <div className="flex gap-[3px] items-center justify-start">
                   {negativeOutputs.length > 0 && (
                     <span className="text-xl font-bold text-[#c8e6c9] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
@@ -1335,7 +1267,6 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
             </>
           )}
 
-          {/* Consolidated card icons (card-draw, card-peek, card-take, card-buy) */}
           {consolidatedCards.length > 0 && (
             <div className="flex gap-[3px] items-center justify-start">
               {consolidatedCards.map((cardItem, index) => (

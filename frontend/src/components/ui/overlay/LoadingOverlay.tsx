@@ -14,12 +14,10 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ isLoading, message = "L
       setIsVisible(true);
       setIsFadingOut(false);
     } else if (isVisible) {
-      // Start fade out animation
       setIsFadingOut(true);
-      // Remove overlay after animation completes
       const timeout = setTimeout(() => {
         setIsVisible(false);
-      }, 300); // Match CSS transition duration (faster)
+      }, 300);
       return () => clearTimeout(timeout);
     }
     return undefined;

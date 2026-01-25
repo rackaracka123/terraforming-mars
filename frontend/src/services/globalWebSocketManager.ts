@@ -16,17 +16,13 @@ class GlobalWebSocketManager implements WebSocketConnection {
 
   async initialize() {
     if (this.isInitialized) {
-      // WebSocket already initialized, skipping
       return;
     }
 
-    // If already initializing, return the existing promise
     if (this.initializationPromise) {
-      // WebSocket initialization already in progress, waiting...
       return this.initializationPromise;
     }
 
-    // Create initialization promise
     this.initializationPromise = this._doInitialize();
 
     try {
@@ -41,7 +37,6 @@ class GlobalWebSocketManager implements WebSocketConnection {
       await webSocketService.connect();
       this.setupGlobalEventHandlers();
       this.isInitialized = true;
-      // Global WebSocket connection established
     } catch (error) {
       console.error("Failed to initialize global WebSocket connection:", error);
       throw error;
@@ -53,23 +48,18 @@ class GlobalWebSocketManager implements WebSocketConnection {
       await this.initialize();
     }
 
-    // Wait for connection to be ready if it's still connecting
     if (!webSocketService.connected) {
-      // WebSocket not connected, waiting for connection...
       return new Promise<void>((resolve, reject) => {
         const checkConnection = () => {
           if (webSocketService.connected) {
             resolve();
           } else {
-            // Keep checking every 100ms for up to 10 seconds
             setTimeout(checkConnection, 100);
           }
         };
 
-        // Start checking
         checkConnection();
 
-        // Timeout after 10 seconds
         setTimeout(() => {
           reject(new Error("WebSocket connection timeout"));
         }, 10000);
@@ -78,56 +68,44 @@ class GlobalWebSocketManager implements WebSocketConnection {
   }
 
   private setupGlobalEventHandlers() {
-    // These handlers will persist across all component lifecycles
     webSocketService.on("game-updated", (updatedGame: GameDto) => {
-      // WebSocket: Game updated
       this.emit("game-updated", updatedGame);
     });
 
     webSocketService.on("full-state", (statePayload: FullStatePayload) => {
-      // WebSocket: Full state received
       this.emit("full-state", statePayload);
     });
 
     webSocketService.on("player-disconnected", (payload: PlayerDisconnectedPayload) => {
-      // WebSocket: Player disconnected
       this.emit("player-disconnected", payload);
     });
 
     webSocketService.on("available-cards", (payload: any) => {
-      // WebSocket: Available cards received
       this.emit("available-cards", payload);
     });
 
-    // Note: production-phase-started is now handled via game state updates
-    // The production phase data is available in player.productionSelection
-
     webSocketService.on("error", (error: any) => {
-      console.error("WebSocket: Error received", error);
+      console.error("WebSocket error:", error);
       this.emit("error", error);
     });
 
     webSocketService.on("disconnect", () => {
-      // WebSocket: Connection lost
       this.emit("disconnect");
     });
 
     webSocketService.on("connect", () => {
-      // WebSocket: Connected
       this.emit("connect");
     });
   }
 
   setCurrentPlayerId(playerId: string) {
     this.currentPlayerId = playerId;
-    // WebSocket Manager: Current player set to playerId
   }
 
   getCurrentPlayerId(): string | null {
     return this.currentPlayerId;
   }
 
-  // Event system for components to listen to WebSocket events
   on(event: string, callback: (data: any) => void) {
     if (!this.eventCallbacks[event]) {
       this.eventCallbacks[event] = [];
@@ -153,13 +131,11 @@ class GlobalWebSocketManager implements WebSocketConnection {
     }
   }
 
-  // Proxy methods to underlying WebSocket service
   async playerConnect(playerName: string, gameId: string, playerId?: string) {
     await this.ensureConnected();
     return webSocketService.playerConnect(playerName, gameId, playerId);
   }
 
-  // Standard project actions
   async sellPatents(): Promise<string> {
     await this.ensureConnected();
     return webSocketService.sellPatents();
@@ -190,7 +166,6 @@ class GlobalWebSocketManager implements WebSocketConnection {
     return webSocketService.buildCity();
   }
 
-  // Resource conversion actions
   async convertPlantsToGreenery(): Promise<string> {
     await this.ensureConnected();
     return webSocketService.convertPlantsToGreenery();
@@ -201,7 +176,6 @@ class GlobalWebSocketManager implements WebSocketConnection {
     return webSocketService.convertHeatToTemperature();
   }
 
-  // Game management actions
   async startGame(): Promise<string> {
     await this.ensureConnected();
     return webSocketService.startGame();
@@ -212,7 +186,6 @@ class GlobalWebSocketManager implements WebSocketConnection {
     return webSocketService.skipAction();
   }
 
-  // Card actions
   async playCard(
     cardId: string,
     payment: CardPaymentDto,
@@ -253,22 +226,18 @@ class GlobalWebSocketManager implements WebSocketConnection {
     return webSocketService.confirmCardDraw(cardsToTake, cardsToBuy);
   }
 
-  // Tile selection actions
   async selectTile(coordinate: { q: number; r: number; s: number }): Promise<string> {
     await this.ensureConnected();
     return webSocketService.selectTile(coordinate);
   }
 
-  // Demo setup
   async confirmDemoSetup(request: ConfirmDemoSetupRequest): Promise<string> {
     await this.ensureConnected();
     return webSocketService.confirmDemoSetup(request);
   }
 
-  // Admin commands (development mode only)
   async sendAdminCommand(adminRequest: any): Promise<string> {
     await this.ensureConnected();
-    // Import the message type dynamically to avoid circular dependencies
     const { MessageTypeAdminCommand } = await import("../types/generated/api-types.ts");
     return webSocketService.send(MessageTypeAdminCommand, adminRequest);
   }

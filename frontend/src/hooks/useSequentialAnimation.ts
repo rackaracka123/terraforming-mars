@@ -18,7 +18,6 @@ export function useSequentialAnimation(
 ): number {
   const [animatedIndex, setAnimatedIndex] = useState(-1);
 
-  // Memoize onComplete to prevent unnecessary effect re-runs
   const onCompleteCallback = useCallback(() => {
     onComplete?.();
   }, [onComplete]);
@@ -28,7 +27,6 @@ export function useSequentialAnimation(
       return;
     }
 
-    // Reset to start
     setAnimatedIndex(-1);
     let currentIndex = 0;
 

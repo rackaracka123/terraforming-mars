@@ -39,9 +39,7 @@ export const useModalStack = () => {
       level: ModalLevel = "primary",
     ) => {
       setModals((prev) => {
-        // Remove existing modal with same id
         const filtered = prev.filter((modal) => modal.id !== id);
-        // Add new modal to end (top of stack)
         return [...filtered, { id, level, component, props }];
       });
     },
@@ -67,7 +65,6 @@ export const useModalStack = () => {
     [modals],
   );
 
-  // Handle escape key to close top modal
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && modals.length > 0) {

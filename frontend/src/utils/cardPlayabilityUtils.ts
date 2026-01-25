@@ -1,9 +1,6 @@
 import { CardDto } from "../types/generated/api-types.ts";
 
-// Cache for all cards fetched from the backend
 let cardCache: Map<string, CardDto> | null = null;
-
-// Cache for all corporations fetched from the backend
 let corporationCache: CardDto[] | null = null;
 
 /**
@@ -31,7 +28,6 @@ export async function fetchAllCards(): Promise<Map<string, CardDto>> {
     return cardCache;
   } catch (error) {
     console.error("Failed to fetch cards:", error);
-    // Return empty map on error to prevent crashes
     return new Map();
   }
 }
@@ -64,7 +60,6 @@ export async function fetchCorporations(): Promise<CardDto[]> {
     return corporationCache;
   } catch (error) {
     console.error("Failed to fetch corporations:", error);
-    // Return empty array on error to prevent crashes
     return [];
   }
 }

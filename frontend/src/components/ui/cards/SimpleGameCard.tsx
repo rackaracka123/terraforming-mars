@@ -116,12 +116,9 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
 
   return (
     <div
-      className={`relative w-[200px] min-h-[280px] ${cardBg} border-none rounded-lg p-4 transition-all duration-200 opacity-0 translate-y-5 shadow-[0_4px_12px_rgba(0,0,0,0.3)] z-[1] animate-[fadeInUp_0.5s_ease_forwards] max-md:w-[160px] max-md:min-h-[240px] max-md:p-3 group ${!isAvailable ? "cursor-not-allowed opacity-50 grayscale-[0.4]" : "cursor-pointer"} ${isSelected ? `brightness-110 ${cardGlow} hover:${cardGlow}` : isAvailable ? "hover:shadow-[0_6px_20px_rgba(30,100,200,0.15)]" : ""}`}
+      className={`relative w-[200px] min-h-[280px] ${cardBg} border-none rounded-lg p-4 transition-all duration-200 opacity-0 translate-y-5 shadow-[0_4px_12px_rgba(0,0,0,0.3)] z-[1] animate-[fadeInUp_0.5s_ease_forwards] max-md:w-[160px] max-md:min-h-[240px] max-md:p-3 group ${!isAvailable ? "opacity-50 grayscale-[0.4]" : ""} ${isSelected ? `brightness-110 ${cardGlow} hover:${cardGlow}` : isAvailable ? "hover:shadow-[0_6px_20px_rgba(30,100,200,0.15)]" : ""}`}
       style={{ animationDelay: `${animationDelay}ms` }}
       onClick={handleClick}
-      title={
-        !isAvailable && errors.length > 0 ? errors.map((e) => e.message).join(", ") : undefined
-      }
     >
       {/* Requirements box */}
       <RequirementsBox requirements={card.requirements} />

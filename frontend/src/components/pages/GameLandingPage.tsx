@@ -209,7 +209,7 @@ const GameLandingPage: React.FC = () => {
           {/* Reconnect card - shown when saved game exists */}
           {savedGameData && (
             <div className="flex justify-center mb-10">
-              <div className="relative w-[500px] bg-space-black-darker/90 border-2 border-space-blue-500 rounded-xl p-8 backdrop-blur-space transition-all duration-300 hover:border-space-blue-900 hover:shadow-glow hover:shadow-glow-lg hover:-translate-y-1">
+              <div className="relative w-[500px] bg-space-black-darker/90 border-2 border-space-blue-500 rounded-xl p-8 backdrop-blur-space">
                 {/* Dismiss button */}
                 <button
                   onClick={() => {

@@ -742,6 +742,7 @@ const CardsPage: React.FC = () => {
             sans-serif;
           position: relative;
           z-index: 10;
+          overflow-x: hidden;
         }
 
         .sticky-header {

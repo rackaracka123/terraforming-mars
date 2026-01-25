@@ -104,11 +104,9 @@ export class WebSocketService {
         };
 
         this.ws.onclose = (event) => {
-          // WebSocket connection closed
           this.isConnected = false;
           this.emit("disconnect");
 
-          // Only attempt reconnect if it was an unexpected closure and we should reconnect
           if (this.shouldReconnect && event.code !== 1000) {
             this.attemptReconnect();
           }
@@ -163,8 +161,6 @@ export class WebSocketService {
         this.emit("full-state", statePayload);
         break;
       }
-      // Note: production-phase-started is now handled via game state updates
-      // The production phase data is available in player.productionSelection
       default:
         console.warn("Unknown message type:", message.type);
     }
@@ -189,8 +185,6 @@ export class WebSocketService {
   }
 
   playerConnect(playerName: string, gameId: string, playerId?: string): void {
-    // Simple send-and-forget pattern - WebSocket guarantees delivery
-    // UI will update reactively when backend sends game-updated event
     const payload: any = { playerName, gameId };
     if (playerId) {
       payload.playerId = playerId;
@@ -200,7 +194,6 @@ export class WebSocketService {
     this.currentGameId = gameId;
   }
 
-  // Standard project actions
   sellPatents(): string {
     return this.send(MessageTypeActionSellPatents, {});
   }
@@ -225,7 +218,6 @@ export class WebSocketService {
     return this.send(MessageTypeActionBuildCity, {});
   }
 
-  // Resource conversion actions
   convertPlantsToGreenery(): string {
     return this.send(MessageTypeActionConvertPlantsToGreenery, {
       type: "convert-plants-to-greenery",
@@ -238,7 +230,6 @@ export class WebSocketService {
     });
   }
 
-  // Game management actions
   startGame(): string {
     return this.send(MessageTypeActionStartGame, {});
   }
@@ -247,7 +238,6 @@ export class WebSocketService {
     return this.send(MessageTypeActionSkipAction, {});
   }
 
-  // Card actions
   playCard(
     cardId: string,
     payment: CardPaymentDto,
@@ -302,19 +292,15 @@ export class WebSocketService {
     });
   }
 
-  // Tile selection actions
   selectTile(coordinate: { q: number; r: number; s: number }): string {
-    // Convert coordinate object to "q,r,s" string format expected by backend
     const hex = `${coordinate.q},${coordinate.r},${coordinate.s}`;
     return this.send(MessageTypeActionTileSelected, { hex });
   }
 
-  // Demo setup
   confirmDemoSetup(request: ConfirmDemoSetupRequest): string {
     return this.send(MessageTypeActionConfirmDemoSetup, request);
   }
 
-  // Milestone and award actions
   claimMilestone(milestoneType: string): string {
     return this.send(MessageTypeActionClaimMilestone, { milestoneType });
   }

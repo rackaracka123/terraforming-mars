@@ -64,7 +64,6 @@ export function useCardSelection(config: CardSelectionConfig): CardSelectionStat
   const [totalReward, setTotalReward] = useState(0);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  // Reset when overlay opens
   useEffect(() => {
     if (isOpen && cardsArray.length > 0) {
       setSelectedCardIds([]);
@@ -74,7 +73,6 @@ export function useCardSelection(config: CardSelectionConfig): CardSelectionStat
     }
   }, [isOpen, cardsArray.length]);
 
-  // Calculate total cost and reward
   useEffect(() => {
     let cost = 0;
     let reward = 0;
@@ -94,13 +92,11 @@ export function useCardSelection(config: CardSelectionConfig): CardSelectionStat
     setTotalCost(cost);
     setTotalReward(reward);
 
-    // Reset confirmation when selection changes
     if (selectedCardIds.length > 0 && showConfirmation) {
       setShowConfirmation(false);
     }
   }, [selectedCardIds, costPerCard, getCardCost, getCardReward, showConfirmation]);
 
-  // Check if a specific card can be afforded
   const canAffordCard = useCallback(
     (cardId: string): boolean => {
       const currentCost = selectedCardIds.reduce((sum, id) => {
@@ -115,15 +111,12 @@ export function useCardSelection(config: CardSelectionConfig): CardSelectionStat
     [selectedCardIds, playerCredits, costPerCard, getCardCost],
   );
 
-  // Handle card selection/deselection
   const handleCardSelect = useCallback(
     (cardId: string) => {
       setSelectedCardIds((prev) => {
         if (prev.includes(cardId)) {
-          // Deselect card
           return prev.filter((id) => id !== cardId);
         } else {
-          // Check if we can afford it and haven't exceeded max
           if (prev.length >= maxCards) {
             return prev;
           }
@@ -132,7 +125,6 @@ export function useCardSelection(config: CardSelectionConfig): CardSelectionStat
             return prev;
           }
 
-          // Select card
           return [...prev, cardId];
         }
       });
@@ -140,36 +132,29 @@ export function useCardSelection(config: CardSelectionConfig): CardSelectionStat
     [maxCards, canAffordCard],
   );
 
-  // Handle confirmation
   const handleConfirm = useCallback(
     (onConfirm: (selectedIds: string[]) => void) => {
       const selectedCount = selectedCardIds.length;
 
-      // Check if selection is within bounds
       if (selectedCount < minCards || selectedCount > maxCards) {
-        return; // Invalid selection
+        return;
       }
 
       if (selectedCount > 0) {
-        // Has selection - confirm immediately
         onConfirm(selectedCardIds);
       } else if (minCards === 0 && !showConfirmation) {
-        // No selection but 0 is allowed - show confirmation first
         setShowConfirmation(true);
       } else if (minCards === 0 && showConfirmation) {
-        // Second click - confirm with empty selection
         onConfirm([]);
       }
     },
     [selectedCardIds, minCards, maxCards, showConfirmation],
   );
 
-  // Reset confirmation state
   const resetConfirmation = useCallback(() => {
     setShowConfirmation(false);
   }, []);
 
-  // Check if current selection is valid
   const isValidSelection =
     selectedCardIds.length >= minCards &&
     selectedCardIds.length <= maxCards &&

@@ -30,7 +30,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
 
   return (
     <div className="absolute bottom-[20%] right-0 z-10 w-[250px] min-w-[150px] max-w-[250px] h-auto bg-transparent p-[clamp(4px,1vw,8px)_clamp(10px,2vw,20px)] overflow-visible flex flex-col items-center justify-end pointer-events-auto max-xl:min-w-[120px] max-xl:max-w-[180px] max-lg:min-w-[100px] max-lg:max-w-[150px] max-md:w-full max-md:max-w-full max-md:h-auto max-md:border-l-none max-md:border-t max-md:border-t-[rgba(40,50,70,0.6)] max-md:p-[10px]">
-      {/* Generation Counter - matching reference design */}
       <div className="mb-[15px] shrink-0">
         <div className="w-9 h-9 bg-gradient-to-br from-[#4a4a4a] via-[#2a2a2a] to-[#1a1a1a] [clip-path:polygon(30%_0%,70%_0%,100%_50%,70%_100%,30%_100%,0%_50%)] flex flex-col items-center justify-center text-white font-bold border border-[#666] shadow-[inset_0_1px_2px_rgba(255,255,255,0.1),0_2px_4px_rgba(0,0,0,0.5)] relative before:content-[''] before:absolute before:top-[2px] before:left-[2px] before:right-[2px] before:bottom-[2px] before:bg-gradient-to-br before:from-[rgba(255,255,255,0.1)] before:to-transparent before:[clip-path:polygon(30%_0%,70%_0%,100%_50%,70%_100%,30%_100%,0%_50%)] before:pointer-events-none max-xl:w-8 max-xl:h-8 max-lg:w-7 max-lg:h-7">
           <div className="text-[8px] leading-none max-xl:text-[7px] max-lg:text-[6px]">GEN</div>
@@ -40,10 +39,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         </div>
       </div>
 
-      {/* Separate Meters */}
       <div className="flex flex-col items-center gap-[15px] w-full h-auto max-md:h-auto">
         <div className="flex flex-row items-end gap-10 w-full justify-center pr-0 mb-2.5 max-xl:gap-[30px] max-xl:pr-0 max-lg:gap-[25px] max-lg:pr-0 max-md:flex-row max-md:justify-center max-md:pr-0 max-md:gap-5">
-          {/* Oxygen Meter (Left) */}
           <div className="relative h-[50vh] flex flex-col items-center mt-0 max-md:h-[clamp(200px,25vh,300px)] max-md:mt-0">
             <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#1a1a1a] to-[#2d2d2d] border-2 border-[#444] flex items-center justify-center relative z-[110] mb-[5px]">
               <div className="w-[14px] h-[14px] rounded-full bg-gradient-to-br from-[#006400] to-[#00ff00] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]"></div>
@@ -57,7 +54,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                 }}
               ></div>
 
-              {/* Internal step markings for oxygen - every single step */}
               <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((oxygen) => (
                   <div
@@ -70,7 +66,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                 ))}
               </div>
 
-              {/* Internal oxygen numbers */}
               <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none">
                 {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((oxygen) => (
                   <div
@@ -92,7 +87,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
             </div>
           </div>
 
-          {/* Temperature Meter (Right) */}
           <div className="relative h-[50vh] flex flex-col items-center mt-0 max-md:h-[clamp(200px,25vh,300px)] max-md:mt-0">
             <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#1a1a1a] to-[#2d2d2d] border-2 border-[#444] flex items-center justify-center relative z-[110] mb-[5px]">
               <div className="w-[14px] h-[14px] rounded-full bg-gradient-to-br from-[#87ceeb] to-[#ff8c00] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]"></div>
@@ -106,7 +100,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                 }}
               ></div>
 
-              {/* Internal step markings for temperature */}
               <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none">
                 {getTemperatureMarkings()
                   .filter((temp) => temp !== -30)
@@ -121,7 +114,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                   ))}
               </div>
 
-              {/* Internal temperature numbers */}
               <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none">
                 {getTemperatureMarkings().map((temp) => (
                   <div
@@ -144,7 +136,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           </div>
         </div>
 
-        {/* Ocean Counter */}
         <div className="flex flex-col items-center gap-1 bg-[linear-gradient(135deg,rgba(0,100,200,0.15)_0%,rgba(0,50,150,0.2)_100%)] border border-[rgba(0,150,255,0.3)] rounded-md p-2 w-4/5 mt-0">
           <div className="flex items-center justify-center w-4 h-4 brightness-[1.2]">
             <GameIcon iconType="ocean" size="small" />

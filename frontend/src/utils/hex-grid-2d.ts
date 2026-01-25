@@ -24,24 +24,20 @@ export class HexGrid2D {
   static generateGrid(): HexTile2D[] {
     const tiles: HexTile2D[] = [];
 
-    // Row pattern: 5, 6, 7, 8, 9, 8, 7, 6, 5
     const rowPattern = [5, 6, 7, 8, 9, 8, 7, 6, 5];
 
     for (let rowIdx = 0; rowIdx < rowPattern.length; rowIdx++) {
       const hexCount = rowPattern[rowIdx];
-      const r = rowIdx - Math.floor(rowPattern.length / 2); // Center the rows: -4 to +4
+      const r = rowIdx - Math.floor(rowPattern.length / 2);
 
       for (let colIdx = 0; colIdx < hexCount; colIdx++) {
-        // Calculate axial coordinates for honeycomb pattern
         const q = colIdx - Math.floor(hexCount / 2) - Math.floor(r / 2);
         const s = -q - r;
 
         const coordinate: HexCoordinate = { q, r, s };
 
-        // Convert to 2D position (pointy-top orientation)
         const position = this.hexToPixel(coordinate);
 
-        // Determine ocean spaces and bonuses
         const isOceanSpace = this.isOceanPosition(rowIdx, colIdx);
         const bonuses = this.calculateBonuses(rowIdx, colIdx);
 
@@ -64,7 +60,6 @@ export class HexGrid2D {
   private static hexToPixel(coord: HexCoordinate): { x: number; y: number } {
     const size = this.HEX_SIZE;
 
-    // Pointy-top hex positioning
     const x = size * Math.sqrt(3) * (coord.q + coord.r / 2);
     const y = ((size * 3) / 2) * coord.r;
 
@@ -75,7 +70,6 @@ export class HexGrid2D {
    * Determine if a tile should be an ocean space
    */
   private static isOceanPosition(row: number, col: number): boolean {
-    // Simple pattern for ocean spaces
     const oceanPositions = [
       { row: 1, col: 2 },
       { row: 2, col: 1 },

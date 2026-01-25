@@ -28,10 +28,8 @@ class SkyboxCacheService {
 
   subscribe(listener: (state: SkyboxLoadingState) => void): () => void {
     this.listeners.add(listener);
-    // Immediately notify with current state
     listener({ ...this.loadingState });
 
-    // Return unsubscribe function
     return () => {
       this.listeners.delete(listener);
     };
@@ -44,17 +42,14 @@ class SkyboxCacheService {
   }
 
   async loadSkybox(): Promise<THREE.Texture> {
-    // If already loaded, return cached texture
     if (this.loadingState.isLoaded && this.loadingState.texture) {
       return this.loadingState.texture;
     }
 
-    // If currently loading, return existing promise
     if (this.loadPromise) {
       return this.loadPromise;
     }
 
-    // Start loading
     this.loadingState = {
       isLoading: true,
       isLoaded: false,
@@ -70,11 +65,9 @@ class SkyboxCacheService {
         "/assets/backgrounds/space-skybox-8k.exr",
         (texture) => {
           try {
-            // Configure texture for skybox use
             texture.mapping = THREE.EquirectangularReflectionMapping;
             texture.colorSpace = THREE.SRGBColorSpace;
 
-            // Cache the loaded texture
             this.loadingState = {
               isLoading: false,
               isLoaded: true,
@@ -100,10 +93,7 @@ class SkyboxCacheService {
             reject(err);
           }
         },
-        (_progress) => {
-          // Progress logging can be disabled for production
-          // console.log("EXR Loading progress:", (progress.loaded / progress.total) * 100 + "%");
-        },
+        (_progress) => {},
         (error) => {
           const err = error instanceof Error ? error : new Error("Failed to load EXR skybox");
 
@@ -128,12 +118,10 @@ class SkyboxCacheService {
     return { ...this.loadingState };
   }
 
-  // Method to preload skybox (can be called from game creation/join)
   preload(): Promise<THREE.Texture> {
     return this.loadSkybox();
   }
 
-  // Check if skybox is ready without triggering load
   isReady(): boolean {
     return this.loadingState.isLoaded && this.loadingState.texture !== null;
   }

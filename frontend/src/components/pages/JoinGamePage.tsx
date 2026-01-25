@@ -7,7 +7,6 @@ import { saveGameSession } from "../../utils/sessionStorage.ts";
 import LoadingOverlay from "../ui/overlay/LoadingOverlay";
 import GameIcon from "../ui/display/GameIcon.tsx";
 
-// UUIDv4 validation regex
 const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const JoinGamePage: React.FC = () => {
@@ -24,18 +23,15 @@ const JoinGamePage: React.FC = () => {
   const [skyboxReady, setSkyboxReady] = useState(false);
   const [isFadedIn, setIsFadedIn] = useState(false);
 
-  // Check if skybox is already loaded on component mount
   useEffect(() => {
     if (skyboxCache.isReady()) {
       setSkyboxReady(true);
     }
-    // Trigger fade in animation
     setTimeout(() => {
       setIsFadedIn(true);
     }, 10);
   }, []);
 
-  // Handle URL parameter on mount
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const codeParam = urlParams.get("code");
@@ -98,7 +94,6 @@ const JoinGamePage: React.FC = () => {
   const handleGameIdSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate UUID format
     if (!gameId.trim()) {
       setError("Please enter a game ID");
       return;
@@ -157,7 +152,6 @@ const JoinGamePage: React.FC = () => {
   const handlePlayerNameSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation
     if (!playerName.trim()) {
       setError("Please enter your name");
       return;
@@ -173,26 +167,21 @@ const JoinGamePage: React.FC = () => {
     setLoadingStep("game");
 
     try {
-      // Step 1: Load 3D environment if not already loaded
       if (!skyboxReady) {
         setLoadingStep("environment");
         await skyboxCache.preload();
       }
 
-      // Step 2: Ensure WebSocket is connected BEFORE setting up listener
       setLoadingStep("game");
       await globalWebSocketManager.initialize();
 
-      // Step 3: Set up one-time listener for game-updated event
       const handleGameUpdated = (gameData: any) => {
-        // Extract player info from game data
         const allPlayers = [gameData.currentPlayer, ...(gameData.otherPlayers || [])].filter(
           Boolean,
         );
         const connectedPlayer = allPlayers.find((p: any) => p.name === playerName.trim());
 
         if (connectedPlayer) {
-          // Store game data
           saveGameSession({
             gameId: validatedGame.id,
             playerId: connectedPlayer.id,
@@ -200,7 +189,6 @@ const JoinGamePage: React.FC = () => {
             joinedAt: new Date().toISOString(),
           });
 
-          // Navigate to game
           navigate("/game", {
             state: {
               game: gameData,
@@ -209,15 +197,11 @@ const JoinGamePage: React.FC = () => {
             },
           });
 
-          // Clean up listener
           globalWebSocketManager.off("game-updated", handleGameUpdated);
         }
       };
 
-      // Register listener BEFORE sending connect message
       globalWebSocketManager.on("game-updated", handleGameUpdated);
-
-      // Step 4: Send connect message (non-blocking)
       globalWebSocketManager.playerConnect(playerName.trim(), validatedGame.id);
     } catch (err) {
       if (err instanceof Error) {
