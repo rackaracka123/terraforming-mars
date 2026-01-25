@@ -110,6 +110,10 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
                 );
               })}
           </div>
+
+          {behavior.generationalEventRequirements?.length > 0 && (
+            <span className="text-white font-bold text-sm ml-1">*</span>
+          )}
         </div>
       );
     }
@@ -171,6 +175,10 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
                   );
                 })}
             </div>
+
+            {behavior.generationalEventRequirements?.length > 0 && (
+              <span className="text-white font-bold text-sm ml-1">*</span>
+            )}
 
             {/* Add "OR" separator between choices (except for the last one) */}
             {choiceIndex < behavior.choices.length - 1 && (
@@ -256,6 +264,10 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
           </React.Fragment>
         ))}
       </div>
+
+      {behavior.generationalEventRequirements?.length > 0 && (
+        <span className="text-white font-bold text-sm ml-1">*</span>
+      )}
     </div>
   );
 };

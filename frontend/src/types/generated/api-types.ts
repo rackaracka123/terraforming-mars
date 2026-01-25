@@ -587,6 +587,7 @@ export interface CardBehaviorDto {
   inputs?: ResourceConditionDto[];
   outputs?: ResourceConditionDto[];
   choices?: ChoiceDto[];
+  generationalEventRequirements?: GenerationalEventRequirementDto[];
 }
 /**
  * PaymentConstantsDto represents payment conversion rates
@@ -954,6 +955,10 @@ export interface PlayerDto {
    * Payment substitutes - alternative resources usable as payment for credits
    */
   paymentSubstitutes: PaymentSubstituteDto[]; // Alternative resources usable as payment
+  /**
+   * Generational events - tracked events within the current generation
+   */
+  generationalEvents: PlayerGenerationalEventEntryDto[];
 }
 /**
  * OtherPlayerDto represents another player from the viewing player's perspective (limited data)
@@ -1207,6 +1212,29 @@ export interface TriggeredEffectDto {
   cardName: string;
   playerId: string;
   outputs: ResourceConditionDto[];
+}
+/**
+ * GenerationalEvent represents events tracked within a generation for conditional card behaviors
+ */
+export type GenerationalEvent = string;
+export const GenerationalEventTRRaise: GenerationalEvent = "tr-raise";
+export const GenerationalEventOceanPlacement: GenerationalEvent = "ocean-placement";
+export const GenerationalEventCityPlacement: GenerationalEvent = "city-placement";
+export const GenerationalEventGreeneryPlacement: GenerationalEvent = "greenery-placement";
+/**
+ * PlayerGenerationalEventEntryDto represents a player's tracked generational event for client consumption
+ */
+export interface PlayerGenerationalEventEntryDto {
+  event: GenerationalEvent;
+  count: number /* int */;
+}
+/**
+ * GenerationalEventRequirementDto represents a requirement based on generational events for card behaviors
+ */
+export interface GenerationalEventRequirementDto {
+  event: GenerationalEvent;
+  count?: MinMaxValueDto;
+  target?: TargetType;
 }
 
 //////////
