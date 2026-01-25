@@ -14,8 +14,23 @@ export function useSoundEffects() {
     return audioService.playProductionSound();
   }, []);
 
+  const playTemperatureSound = useCallback(() => {
+    return audioService.playTemperatureSound();
+  }, []);
+
+  const playWaterPlacementSound = useCallback(() => {
+    return audioService.playWaterPlacementSound();
+  }, []);
+
+  const playOxygenSound = useCallback(() => {
+    return audioService.playOxygenSound();
+  }, []);
+
   return {
     playSound,
     playProductionSound,
+    playTemperatureSound,
+    playWaterPlacementSound,
+    playOxygenSound,
   };
 }
