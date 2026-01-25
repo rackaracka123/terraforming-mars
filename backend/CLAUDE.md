@@ -363,6 +363,169 @@ func (a *ConvertHeatToTemperatureAction) Execute(...) {
 - Design deterministic state transitions
 - Use proper synchronization when needed
 
+### Event-Driven Patterns for Game Logic
+
+Use the EventBus for "do this when that happens" scenarios. Instead of checking conditions in actions or polling for state changes, subscribe to domain events and react automatically. This pattern is used for generational event tracking, passive card effects, and state synchronization.
+
+**Pattern: Subscribe to Domain Events in Game Initialization**
+
+For tracking or reacting to game state changes, subscribe in the Game constructor:
+
+```go
+func NewGame(...) *Game {
+    g := &Game{...}
+    g.subscribeToGameEvents()
+    return g
+}
+
+func (g *Game) subscribeToGameEvents() {
+    // Track TR raises for generational events
+    events.Subscribe(g.eventBus, func(e events.TerraformRatingChangedEvent) {
+        if e.NewRating > e.OldRating {
+            p, err := g.GetPlayer(e.PlayerID)
+            if err != nil {
+                return
+            }
+            p.GenerationalEvents().Increment(shared.GenerationalEventTRRaise)
+        }
+    })
+
+    // Track tile placements
+    events.Subscribe(g.eventBus, func(e events.TilePlacedEvent) {
+        p, err := g.GetPlayer(e.PlayerID)
+        if err != nil {
+            return
+        }
+        switch e.TileType {
+        case "ocean":
+            p.GenerationalEvents().Increment(shared.GenerationalEventOceanPlacement)
+        case "city":
+            p.GenerationalEvents().Increment(shared.GenerationalEventCityPlacement)
+        case "greenery":
+            p.GenerationalEvents().Increment(shared.GenerationalEventGreeneryPlacement)
+        }
+    })
+
+    // Clear per-generation state on generation advance
+    events.Subscribe(g.eventBus, func(e events.GenerationAdvancedEvent) {
+        for _, p := range g.GetAllPlayers() {
+            p.GenerationalEvents().Clear()
+        }
+    })
+}
+```
+
+**When to Use Event Subscriptions**
+
+✅ Tracking player activities within a generation (TR raises, tile placements)
+✅ Resetting per-generation state when generation advances
+✅ Triggering passive card effects when game state changes
+✅ Broadcasting state updates to clients
+
+**When NOT to Use Event Subscriptions**
+
+❌ Validating requirements before an action (use state calculator instead)
+❌ Computing costs or discounts (use RequirementModifierCalculator)
+❌ Direct action-to-action communication (use the action layer pattern)
+
+### State Calculator Pattern
+
+The state calculator (`internal/action/state_calculator.go`) determines whether cards, card actions, and standard projects are available to the player. It computes errors, costs, and metadata for each entity, which the frontend uses to enable/disable UI elements.
+
+**When to Extend the State Calculator**
+
+Extend the state calculator when adding new requirements that must be validated before an action can be taken:
+- New global parameter checks (like Venus track)
+- New player state requirements (like generational events)
+- New resource or production requirements
+- New tile placement availability checks
+
+**Adding a New Requirement Type**
+
+1. Define error codes in `internal/game/player/state_error_codes.go`:
+
+```go
+const (
+    ErrorCodeMyNewRequirement StateErrorCode = "my-new-requirement-not-met"
+)
+```
+
+2. Create a validation function in `state_calculator.go`:
+
+```go
+func validateMyNewRequirement(
+    behavior shared.CardBehavior,
+    p *player.Player,
+) []player.StateError {
+    // Return empty slice if no requirements to check
+    if len(behavior.MyNewRequirements) == 0 {
+        return nil
+    }
+
+    var errors []player.StateError
+    for _, req := range behavior.MyNewRequirements {
+        // Validate against player state
+        if !req.IsSatisfied(p) {
+            errors = append(errors, player.StateError{
+                Code:     player.ErrorCodeMyNewRequirement,
+                Category: player.ErrorCategoryRequirement,
+                Message:  formatMyNewRequirementError(req),
+            })
+        }
+    }
+    return errors
+}
+```
+
+3. Call the validation function from the appropriate calculator:
+
+```go
+// For card actions (manual triggers on played cards)
+func CalculatePlayerCardActionState(...) player.EntityState {
+    // ... existing validations ...
+    errors = append(errors, validateMyNewRequirement(behavior, p)...)
+    // ...
+}
+
+// For playing cards from hand
+func CalculatePlayerCardState(...) player.EntityState {
+    // ... existing validations ...
+    errors = append(errors, validateMyNewRequirement(card, p, g)...)
+    // ...
+}
+
+// For standard projects
+func CalculatePlayerStandardProjectState(...) player.EntityState {
+    // ... existing validations ...
+}
+```
+
+**Existing Validation Functions**
+
+| Function | Purpose | Used By |
+|----------|---------|---------|
+| `validatePhase` | Check game phase is action phase | Card play |
+| `validateNoActiveTileSelection` | Block actions during tile selection | Cards, actions, projects |
+| `validateAffordabilityWithSubstitutes` | Check resource costs with Helion-style substitutes | Card play |
+| `validateRequirements` | Check global parameters, tags, resources, production | Card play |
+| `validateProductionOutputs` | Check player has production for negative outputs | Card play |
+| `validateTileOutputs` | Check board has available tile placements | Card play |
+| `validateBehaviorTileOutputs` | Check tile availability for action outputs | Card actions |
+| `validateGenerationalEventRequirements` | Check generational events (TR raise, tile placement) | Card actions |
+
+**Error Categories**
+
+Use appropriate error categories for proper frontend display:
+
+- `ErrorCategoryPhase` - Wrong game phase
+- `ErrorCategoryTurn` - Not the player's turn
+- `ErrorCategoryCost` - Insufficient resources to pay costs
+- `ErrorCategoryRequirement` - Game requirement not met (temperature, tags, etc.)
+- `ErrorCategoryAvailability` - Required resource/placement not available
+- `ErrorCategoryAchievement` - Milestone/award already claimed/funded
+- `ErrorCategoryInput` - Insufficient input resources for action
+- `ErrorCategoryConfiguration` - Invalid configuration (unknown project type, etc.)
+
 ### Logging Guidelines
 
 - Use emojis for visual distinction

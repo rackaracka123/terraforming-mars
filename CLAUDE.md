@@ -101,3 +101,10 @@ When working with energy, it's referenced as `power.png` in assets.
 - Write tests for new backend features
 - **NEVER use deprecated code or comments** - Remove deprecated fields, functions, and comments entirely
 - **NEVER push directly to main** - Always create a separate feature branch and open a pull request
+
+## Active Technologies
+- Go 1.21+ (backend), TypeScript 5.x (frontend) + gorilla/websocket, chi router, React 18, Tailwind CSS v4 (001-generational-events)
+- In-memory game state (no persistence required for generational events) (001-generational-events)
+
+## Recent Changes
+- 001-generational-events: Added Go 1.21+ (backend), TypeScript 5.x (frontend) + gorilla/websocket, chi router, React 18, Tailwind CSS v4

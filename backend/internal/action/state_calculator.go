@@ -78,10 +78,9 @@ func CalculatePlayerCardActionState(
 		}
 	}
 
-	// TODO: Check max usage limits when CardBehavior supports MaxUsesPerTurn/MaxUsesPerGeneration fields
-	_ = pca
-
+	errors = append(errors, validateActionUsageLimit(behavior, pca)...)
 	errors = append(errors, validateBehaviorTileOutputs(behavior, p, g)...)
+	errors = append(errors, validateGenerationalEventRequirements(behavior, p)...)
 
 	return player.EntityState{
 		Errors:         errors,
@@ -220,6 +219,39 @@ func validateNoActiveTileSelection(p *player.Player, g *game.Game) []player.Stat
 			Message:  "Active tile selection",
 		}}
 	}
+	return nil
+}
+
+// validateActionUsageLimit checks if the action has already been used this generation.
+// Manual trigger actions can only be used once per generation by default.
+func validateActionUsageLimit(
+	behavior shared.CardBehavior,
+	pca *player.PlayerCardAction,
+) []player.StateError {
+	if pca == nil {
+		return nil
+	}
+
+	hasManualTrigger := false
+	for _, trigger := range behavior.Triggers {
+		if trigger.Type == shared.TriggerTypeManual {
+			hasManualTrigger = true
+			break
+		}
+	}
+
+	if !hasManualTrigger {
+		return nil
+	}
+
+	if pca.TimesUsedThisGeneration() >= 1 {
+		return []player.StateError{{
+			Code:     player.ErrorCodeActionAlreadyPlayed,
+			Category: player.ErrorCategoryAvailability,
+			Message:  "Already played",
+		}}
+	}
+
 	return nil
 }
 
@@ -393,6 +425,56 @@ func validateTileOutputs(
 	}
 
 	return errors
+}
+
+func validateGenerationalEventRequirements(
+	behavior shared.CardBehavior,
+	p *player.Player,
+) []player.StateError {
+	if len(behavior.GenerationalEventRequirements) == 0 {
+		return nil
+	}
+
+	var errors []player.StateError
+	playerEvents := p.GenerationalEvents()
+
+	for _, req := range behavior.GenerationalEventRequirements {
+		count := playerEvents.GetCount(req.Event)
+
+		if req.Count != nil {
+			if req.Count.Min != nil && count < *req.Count.Min {
+				errors = append(errors, player.StateError{
+					Code:     player.ErrorCodeGenerationalEventNotMet,
+					Category: player.ErrorCategoryRequirement,
+					Message:  formatGenerationalEventError(req.Event),
+				})
+			}
+			if req.Count.Max != nil && count > *req.Count.Max {
+				errors = append(errors, player.StateError{
+					Code:     player.ErrorCodeGenerationalEventNotMet,
+					Category: player.ErrorCategoryRequirement,
+					Message:  formatGenerationalEventError(req.Event),
+				})
+			}
+		}
+	}
+
+	return errors
+}
+
+func formatGenerationalEventError(event shared.GenerationalEvent) string {
+	switch event {
+	case shared.GenerationalEventTRRaise:
+		return "TR not raised this generation"
+	case shared.GenerationalEventOceanPlacement:
+		return "Ocean not placed this generation"
+	case shared.GenerationalEventCityPlacement:
+		return "City not placed this generation"
+	case shared.GenerationalEventGreeneryPlacement:
+		return "Greenery not placed this generation"
+	default:
+		return "Generational event requirement not met"
+	}
 }
 
 // validateBehaviorTileOutputs checks tile availability for a single behavior's outputs.

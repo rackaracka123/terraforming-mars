@@ -95,10 +95,27 @@ func toRequirementDto(req gamecards.Requirement) RequirementDto {
 
 func toCardBehaviorDto(behavior shared.CardBehavior) CardBehaviorDto {
 	return CardBehaviorDto{
-		Triggers: mapSlice(behavior.Triggers, toTriggerDto),
-		Inputs:   mapSlice(behavior.Inputs, toResourceConditionDto),
-		Outputs:  mapSlice(behavior.Outputs, toResourceConditionDto),
-		Choices:  mapSlice(behavior.Choices, toChoiceDto),
+		Triggers:                      mapSlice(behavior.Triggers, toTriggerDto),
+		Inputs:                        mapSlice(behavior.Inputs, toResourceConditionDto),
+		Outputs:                       mapSlice(behavior.Outputs, toResourceConditionDto),
+		Choices:                       mapSlice(behavior.Choices, toChoiceDto),
+		GenerationalEventRequirements: mapSlice(behavior.GenerationalEventRequirements, toGenerationalEventRequirementDto),
+	}
+}
+
+func toGenerationalEventRequirementDto(req shared.GenerationalEventRequirement) GenerationalEventRequirementDto {
+	var countDto *MinMaxValueDto
+	if req.Count != nil {
+		countDto = &MinMaxValueDto{
+			Min: req.Count.Min,
+			Max: req.Count.Max,
+		}
+	}
+
+	return GenerationalEventRequirementDto{
+		Event:  GenerationalEvent(req.Event),
+		Count:  countDto,
+		Target: ptrCast(req.Target, func(t string) TargetType { return TargetType(t) }),
 	}
 }
 

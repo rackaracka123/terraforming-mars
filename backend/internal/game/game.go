@@ -20,7 +20,6 @@ import (
 // Game represents a unified game entity containing all game state
 // All fields are private with public methods for access and mutation
 type Game struct {
-	// Private fields - accessed only via public methods
 	mu               sync.RWMutex
 	id               string
 	createdAt        time.Time
@@ -38,19 +37,15 @@ type Game struct {
 	turnOrder        []string // Ordered list of player IDs for turn sequence
 	eventBus         *events.EventBusImpl
 
-	// Milestones and Awards
 	milestones *Milestones
 	awards     *Awards
 
-	// Final scores (set when game ends)
 	finalScores []FinalScore
 	winnerID    string
 	isTie       bool
 
-	// Triggered effects for notification (cleared after each broadcast)
 	triggeredEffects []TriggeredEffect
 
-	// Player-specific non-card phase state (managed by Game)
 	pendingTileSelections      map[string]*player.PendingTileSelection
 	pendingTileSelectionQueues map[string]*player.PendingTileSelectionQueue
 	forcedFirstActions         map[string]*player.ForcedFirstAction
@@ -82,7 +77,7 @@ func NewGame(
 		initOcean = *settings.Oceans
 	}
 
-	return &Game{
+	g := &Game{
 		id:                         id,
 		createdAt:                  now,
 		updatedAt:                  now,
@@ -105,6 +100,10 @@ func NewGame(
 		productionPhases:           make(map[string]*player.ProductionPhase),
 		selectStartingCardsPhases:  make(map[string]*player.SelectStartingCardsPhase),
 	}
+
+	g.subscribeToGenerationalEvents()
+
+	return g
 }
 
 // ID returns the game ID
@@ -607,7 +606,6 @@ func (g *Game) SetPendingTileSelectionQueue(ctx context.Context, playerID string
 		})
 	}
 
-	// Automatically process first tile if queue is not empty
 	if queue != nil && len(queue.Items) > 0 {
 		if err := g.ProcessNextTile(ctx, playerID); err != nil {
 			return fmt.Errorf("failed to auto-process first queued tile: %w", err)
@@ -945,4 +943,38 @@ func (g *Game) ClearTriggeredEffects() {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.triggeredEffects = nil
+}
+
+func (g *Game) subscribeToGenerationalEvents() {
+	events.Subscribe(g.eventBus, func(e events.TerraformRatingChangedEvent) {
+		if e.NewRating > e.OldRating {
+			p, err := g.GetPlayer(e.PlayerID)
+			if err != nil {
+				return
+			}
+			p.GenerationalEvents().Increment(shared.GenerationalEventTRRaise)
+		}
+	})
+
+	events.Subscribe(g.eventBus, func(e events.TilePlacedEvent) {
+		p, err := g.GetPlayer(e.PlayerID)
+		if err != nil {
+			return
+		}
+
+		switch e.TileType {
+		case "ocean":
+			p.GenerationalEvents().Increment(shared.GenerationalEventOceanPlacement)
+		case "city":
+			p.GenerationalEvents().Increment(shared.GenerationalEventCityPlacement)
+		case "greenery":
+			p.GenerationalEvents().Increment(shared.GenerationalEventGreeneryPlacement)
+		}
+	})
+
+	events.Subscribe(g.eventBus, func(e events.GenerationAdvancedEvent) {
+		for _, p := range g.GetAllPlayers() {
+			p.GenerationalEvents().Clear()
+		}
+	})
 }
