@@ -22,7 +22,11 @@ class AudioService {
    * Preload audio files for better performance
    */
   private preloadAudioFiles() {
-    const audioFiles = [{ key: "production", path: "/assets/audio/production.mp3" }];
+    const audioFiles = [
+      { key: "production", path: "/assets/audio/production.mp3" },
+      { key: "temperature-increase", path: "/sounds/temperature-increase.mp3" },
+      { key: "water-placement", path: "/sounds/water-placement.mp3" },
+    ];
 
     audioFiles.forEach(({ key, path }) => {
       try {
@@ -76,6 +80,20 @@ class AudioService {
    */
   public async playProductionSound(): Promise<void> {
     return this.playSound("production");
+  }
+
+  /**
+   * Play temperature increase sound effect
+   */
+  public async playTemperatureSound(): Promise<void> {
+    return this.playSound("temperature-increase");
+  }
+
+  /**
+   * Play water/ocean placement sound effect
+   */
+  public async playWaterPlacementSound(): Promise<void> {
+    return this.playSound("water-placement");
   }
 
   /**

@@ -55,7 +55,7 @@ import { StandardProject } from "@/types/cards.tsx";
 export default function GameInterface() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { playProductionSound } = useSoundEffects();
+  const { playProductionSound, playTemperatureSound, playWaterPlacementSound } = useSoundEffects();
   const [game, setGame] = useState<GameDto | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
@@ -181,6 +181,20 @@ export default function GameInterface() {
         const changes = findChangedPaths(previousGameRef.current, updatedGame);
         setChangedPaths(changes);
 
+        // Play temperature increase sound when temperature goes up
+        const prevTemp = previousGameRef.current.globalParameters?.temperature;
+        const newTemp = updatedGame.globalParameters?.temperature;
+        if (prevTemp !== undefined && newTemp !== undefined && newTemp > prevTemp) {
+          void playTemperatureSound();
+        }
+
+        // Play water placement sound when ocean count increases
+        const prevOceans = previousGameRef.current.globalParameters?.oceans;
+        const newOceans = updatedGame.globalParameters?.oceans;
+        if (prevOceans !== undefined && newOceans !== undefined && newOceans > prevOceans) {
+          void playWaterPlacementSound();
+        }
+
         // Clear changed paths after animation completes
         if (changes.size > 0) {
           setTimeout(() => {
@@ -219,7 +233,7 @@ export default function GameInterface() {
         setShowCorporationModal(false);
       }
     },
-    [isReconnecting],
+    [isReconnecting, playTemperatureSound, playWaterPlacementSound],
   );
 
   const handleFullState = useCallback(
