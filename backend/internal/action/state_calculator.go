@@ -49,7 +49,7 @@ func CalculatePlayerCardState(
 func CalculatePlayerCardActionState(
 	cardID string,
 	behavior shared.CardBehavior,
-	pca *player.PlayerCardAction,
+	timesUsedThisGeneration int,
 	p *player.Player,
 	g *game.Game,
 ) player.EntityState {
@@ -78,7 +78,7 @@ func CalculatePlayerCardActionState(
 		}
 	}
 
-	errors = append(errors, validateActionUsageLimit(behavior, pca)...)
+	errors = append(errors, validateActionUsageLimit(behavior, timesUsedThisGeneration)...)
 	errors = append(errors, validateBehaviorTileOutputs(behavior, p, g)...)
 	errors = append(errors, validateGenerationalEventRequirements(behavior, p)...)
 
@@ -226,12 +226,8 @@ func validateNoActiveTileSelection(p *player.Player, g *game.Game) []player.Stat
 // Manual trigger actions can only be used once per generation by default.
 func validateActionUsageLimit(
 	behavior shared.CardBehavior,
-	pca *player.PlayerCardAction,
+	timesUsedThisGeneration int,
 ) []player.StateError {
-	if pca == nil {
-		return nil
-	}
-
 	hasManualTrigger := false
 	for _, trigger := range behavior.Triggers {
 		if trigger.Type == shared.TriggerTypeManual {
@@ -244,7 +240,7 @@ func validateActionUsageLimit(
 		return nil
 	}
 
-	if pca.TimesUsedThisGeneration() >= 1 {
+	if timesUsedThisGeneration >= 1 {
 		return []player.StateError{{
 			Code:     player.ErrorCodeActionAlreadyPlayed,
 			Category: player.ErrorCategoryAvailability,

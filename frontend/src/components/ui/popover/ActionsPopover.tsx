@@ -79,7 +79,10 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
                 state={isAvailable ? "available" : "disabled"}
                 onClick={isActionPlayable ? () => handleActionClick(action) : undefined}
                 error={
-                  !isAvailable && action.errors && action.errors.length > 0
+                  !isAvailable &&
+                  action.errors &&
+                  action.errors.length > 0 &&
+                  !action.errors.some((e) => e.code === "action-already-played")
                     ? { message: action.errors[0].message, count: action.errors.length }
                     : undefined
                 }

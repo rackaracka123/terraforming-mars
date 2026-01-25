@@ -219,7 +219,7 @@ func TestGenerationalEventRequirement_TRRaiseUnavailableWhenNotRaised(t *testing
 		},
 	}
 
-	state := action.CalculatePlayerCardActionState("test-card", behavior, nil, p, g)
+	state := action.CalculatePlayerCardActionState("test-card", behavior, 0, p, g)
 
 	hasGenerationalEventError := false
 	for _, stateErr := range state.Errors {
@@ -258,7 +258,7 @@ func TestGenerationalEventRequirement_TRRaiseAvailableWhenRaised(t *testing.T) {
 		},
 	}
 
-	state := action.CalculatePlayerCardActionState("test-card", behavior, nil, p, g)
+	state := action.CalculatePlayerCardActionState("test-card", behavior, 0, p, g)
 
 	for _, stateErr := range state.Errors {
 		if stateErr.Code == player.ErrorCodeGenerationalEventNotMet {
@@ -293,7 +293,7 @@ func TestGenerationalEventRequirement_OceanPlacementMinTwoUnavailableWithOne(t *
 		},
 	}
 
-	state := action.CalculatePlayerCardActionState("test-card", behavior, nil, p, g)
+	state := action.CalculatePlayerCardActionState("test-card", behavior, 0, p, g)
 
 	hasGenerationalEventError := false
 	for _, stateErr := range state.Errors {

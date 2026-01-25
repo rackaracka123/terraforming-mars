@@ -123,15 +123,18 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                   }`}
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
-                  {!action.available && action.errors && action.errors.length > 0 && (
-                    <div className="absolute top-2 right-2 z-[15] bg-[linear-gradient(135deg,#e74c3c,#c0392b)] text-white text-[9px] font-bold px-2 py-1 rounded border border-[rgba(231,76,60,0.8)] shadow-[0_2px_8px_rgba(231,76,60,0.4)] flex items-center gap-1">
-                      <span>⚠</span>
-                      <span className="max-w-[140px] truncate">
-                        {action.errors[0].message}
-                        {action.errors.length > 1 && ` (+${action.errors.length - 1})`}
-                      </span>
-                    </div>
-                  )}
+                  {!action.available &&
+                    action.errors &&
+                    action.errors.length > 0 &&
+                    !action.errors.some((e) => e.code === "action-already-played") && (
+                      <div className="absolute top-2 right-2 z-[15] bg-[linear-gradient(135deg,#e74c3c,#c0392b)] text-white text-[9px] font-bold px-2 py-1 rounded border border-[rgba(231,76,60,0.8)] shadow-[0_2px_8px_rgba(231,76,60,0.4)] flex items-center gap-1">
+                        <span>⚠</span>
+                        <span className="max-w-[140px] truncate">
+                          {action.errors[0].message}
+                          {action.errors.length > 1 && ` (+${action.errors.length - 1})`}
+                        </span>
+                      </div>
+                    )}
                   <div className="flex flex-col gap-2.5 flex-1 overflow-hidden">
                     <div className="text-white/90 text-sm font-semibold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-[1.3] text-center m-0 flex-shrink-0 flex items-center justify-center gap-2 flex-wrap max-md:text-xs">
                       {action.cardName}
