@@ -14,7 +14,6 @@ const BehaviorContainer: React.FC<BehaviorContainerProps> = ({
 }) => {
   const { type } = classifiedBehavior;
 
-  // Wrap in appropriate container based on type
   if (type === "auto-no-background") {
     return (
       <div
@@ -37,7 +36,6 @@ const BehaviorContainer: React.FC<BehaviorContainerProps> = ({
       "immediate-effect": "bg-white/[0.08] border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.15)]",
     };
 
-    // Manual actions, triggered effects, discount, payment-substitute, and value-modifier should shrink to fit content
     const widthClass =
       type === "manual-action" ||
       type === "triggered-effect" ||

@@ -42,33 +42,27 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
   const handRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef(cards);
 
-  // Update refs when props change
   useEffect(() => {
     cardsRef.current = cards;
   }, [cards]);
 
-  // Throw detection constants
-  const THROW_DISTANCE_THRESHOLD = 120; // pixels - minimum distance to trigger throw
-  const THROW_Y_THRESHOLD = -80; // pixels - minimum upward movement to trigger throw
+  const THROW_DISTANCE_THRESHOLD = 120;
+  const THROW_Y_THRESHOLD = -80;
 
-  // Mars hover detection - define the Mars play area (center portion of screen)
   const isCursorOverMars = (x: number, y: number): boolean => {
     const centerX = window.innerWidth / 2;
 
-    // Define Mars area as the center portion of the screen
-    // Exclude bottom area where cards are (bottom 300px) and top area (top 100px)
-    const marsAreaWidth = window.innerWidth * 0.8; // 80% of screen width
-    const marsAreaHeight = window.innerHeight - 400; // Exclude top 100px and bottom 300px
+    const marsAreaWidth = window.innerWidth * 0.8;
+    const marsAreaHeight = window.innerHeight - 400;
 
     const leftBound = centerX - marsAreaWidth / 2;
     const rightBound = centerX + marsAreaWidth / 2;
-    const topBound = 100; // Top margin
+    const topBound = 100;
     const bottomBound = topBound + marsAreaHeight;
 
     return x >= leftBound && x <= rightBound && y >= topBound && y <= bottomBound;
   };
 
-  // Calculate card positions with neighbor spreading for hovered or highlighted cards
   const calculateCardPosition = (
     index: number,
     totalCards: number,
@@ -80,11 +74,9 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
     const cardWidth = 160; // Wider for SimpleGameCard
     const baseY = -20;
 
-    // Base spacing - much wider when expanded
     const baseSpacing = expanded ? cardWidth * 0.8 : cardWidth * 0.3;
     const spacing = Math.min(baseSpacing, handWidth / Math.max(totalCards - 1, 1));
 
-    // Calculate neighbor spreading offset
     let spreadOffset = 0;
     if (spreadIndex !== null) {
       const distanceFromSpread = Math.abs(index - spreadIndex);
@@ -100,23 +92,19 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
       }
     }
 
-    // Center the hand
     const totalWidth = spacing * (totalCards - 1);
     const startX = -totalWidth / 2;
     const x = startX + index * spacing + spreadOffset;
 
-    // Create arc curve
     const normalizedX = x / (handWidth / 2);
     const curveY = Math.pow(Math.abs(normalizedX), 2) * handCurve * 60;
     const y = baseY + curveY;
 
-    // Compact rotation
     const rotation = normalizedX * 8;
 
     return { x, y, rotation };
   };
 
-  // Helper functions to manage card scales
   const getCardScale = (cardId: string) => {
     return cardScales[cardId] || 1;
   };
@@ -133,7 +121,6 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
     });
   }, []);
 
-  // Helper functions to manage card rotations
   const getCardRotation = (cardId: string, defaultRotation: number) => {
     return cardRotations[cardId] !== undefined ? cardRotations[cardId] : defaultRotation;
   };
@@ -150,7 +137,6 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
     });
   }, []);
 
-  // Handle card hover scale and rotation changes
   const handleCardHover = (cardId: string) => {
     setHoveredCard(cardId);
     if (!highlightedCard || highlightedCard !== cardId) {
@@ -167,7 +153,6 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
     }
   };
 
-  // Handle card click (highlight card)
   const handleCardClick = (cardId: string, event: React.MouseEvent) => {
     event.stopPropagation();
     if (isDragging || justDragged) return;
@@ -181,17 +166,12 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
       setHighlightedCard(cardId);
       setCardScale(cardId, 1.4);
       setCardRotation(cardId, 0);
-      // Call parent callback if provided
       onCardSelect?.(cardId);
     }
   };
 
-  // Handle drag start
   const handleDragStart = (cardId: string, event: React.MouseEvent) => {
     event.preventDefault();
-
-    // Always allow drag to start - we'll check playability when hovering over Mars
-    // Clear hover state when drag starts
     setHoveredCard(null);
 
     const cardIndex = cards.findIndex((c) => c.id === cardId);
@@ -222,7 +202,6 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
     setIsInThrowZone(false);
   };
 
-  // Stable event handlers using useCallback
   const handleDragEnd = useCallback(async () => {
     const draggedCardId = draggedCard;
 
@@ -234,16 +213,12 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
     const isThrowDetected = dragDistance > THROW_DISTANCE_THRESHOLD && isUpwardThrow;
 
     if (draggedCardId) {
-      // Handle throw action first - but only if card is playable
       if (isThrowDetected && onPlayCard) {
-        // Check if card is playable before attempting to play it
         const draggedCardData = cardsRef.current.find((c) => c.id === draggedCardId);
 
         if (draggedCardData?.available) {
-          // Card is playable, proceed with playing it
           try {
             await onPlayCard(draggedCardId);
-            // If card is played successfully, clear drag states immediately
             setDraggedCard(null);
             setIsDragging(false);
             setDragPosition({ x: 0, y: 0 });
@@ -256,14 +231,12 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
             resetCardRotation(draggedCardId);
           } catch (error) {
             console.error("Failed to play card:", error);
-            // Card failed to play, animate return to hand
             setReturningCard(draggedCardId);
             setIsDragging(false);
             setIsInThrowZone(false);
             setIsHoveringMars(false);
             setHoveredCard(null);
 
-            // After animation completes, reset all states
             setTimeout(() => {
               setDraggedCard(null);
               setDragPosition({ x: 0, y: 0 });
@@ -273,18 +246,15 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
               setReturningCard(null);
               resetCardScale(draggedCardId);
               resetCardRotation(draggedCardId);
-            }, 400); // Match CSS transition duration
+            }, 400);
           }
         } else {
-          // Card is not playable, don't send to backend - animate return to hand
-          // Card is not playable, blocking play attempt
           setReturningCard(draggedCardId);
           setIsDragging(false);
           setIsInThrowZone(false);
           setIsHoveringMars(false);
           setHoveredCard(null);
 
-          // After animation completes, reset all states
           setTimeout(() => {
             setDraggedCard(null);
             setDragPosition({ x: 0, y: 0 });
@@ -294,17 +264,15 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
             setReturningCard(null);
             resetCardScale(draggedCardId);
             resetCardRotation(draggedCardId);
-          }, 400); // Match CSS transition duration
+          }, 400);
         }
       } else {
-        // No throw detected, animate return to hand
         setReturningCard(draggedCardId);
         setIsDragging(false);
         setIsInThrowZone(false);
         setIsHoveringMars(false);
         setHoveredCard(null);
 
-        // After animation completes, reset all states
         setTimeout(() => {
           setDraggedCard(null);
           setDragPosition({ x: 0, y: 0 });
@@ -314,10 +282,9 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
           setReturningCard(null);
           resetCardScale(draggedCardId);
           resetCardRotation(draggedCardId);
-        }, 400); // Match CSS transition duration
+        }, 400);
       }
     } else {
-      // No dragged card, clear states immediately
       setDraggedCard(null);
       setIsDragging(false);
       setDragPosition({ x: 0, y: 0 });
@@ -328,7 +295,6 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
       setIsHoveringMars(false);
     }
 
-    // Clear unplayable card feedback
     if (onUnplayableCard) {
       onUnplayableCard(null, null);
     }
@@ -350,31 +316,24 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
       if (isDragging && draggedCard) {
         setDragPosition({ x: event.clientX, y: event.clientY });
 
-        // Check if we're hovering over Mars
         const hoveringMars = isCursorOverMars(event.clientX, event.clientY);
         if (hoveringMars !== isHoveringMars) {
           setIsHoveringMars(hoveringMars);
         }
 
-        // Update feedback based on Mars hover state (do this every time, not just on state change)
         if (hoveringMars && onUnplayableCard && draggedCard) {
-          // Get current card data using refs to avoid dependency issues
           const currentCard = cardsRef.current.find((c) => c.id === draggedCard);
 
           if (currentCard && !currentCard.available && currentCard.errors.length > 0) {
-            // Card is not playable, show error message
             const errorMessage = formatErrorMessage(currentCard.errors);
             onUnplayableCard(currentCard, errorMessage);
           } else if (currentCard?.available) {
-            // Clear feedback if card is actually playable
             onUnplayableCard(null, null);
           }
         } else if (!hoveringMars && onUnplayableCard) {
-          // Clear feedback when not hovering Mars
           onUnplayableCard(null, null);
         }
 
-        // Check if we're in throw zone for visual feedback
         const deltaX = event.clientX - dragStartPosition.x;
         const deltaY = event.clientY - dragStartPosition.y;
         const dragDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
@@ -403,7 +362,6 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
     }
   }, [isDragging, draggedCard, handleDragEnd]);
 
-  // Add document event listeners for drag and click outside
   useEffect(() => {
     document.addEventListener("click", handleDocumentClick);
     document.addEventListener("mousemove", handleDocumentMouseMove);
@@ -416,7 +374,6 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
     };
   }, [handleDocumentClick, handleDocumentMouseMove, handleDocumentMouseUp]);
 
-  // Hide the overlay when modals are open or no cards
   if (hideWhenModalOpen || cards.length === 0) {
     return null;
   }

@@ -227,7 +227,7 @@ func convertPlayerActions(actions []player.CardAction, p *player.Player, g *game
 		state := action.CalculatePlayerCardActionState(
 			act.CardID,
 			act.Behavior,
-			nil, // pca is currently unused in the state calculator
+			act.TimesUsedThisGeneration,
 			p,
 			g,
 		)

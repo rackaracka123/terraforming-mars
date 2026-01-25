@@ -153,6 +153,20 @@ func CreateTestCardRegistry() cards.CardRegistry {
 			Name: "Teractor",
 			Type: gamecards.CardTypeCorporation,
 			Pack: "base",
+			Tags: []shared.CardTag{shared.TagEarth},
+			Behaviors: []shared.CardBehavior{
+				{
+					Triggers: []shared.Trigger{{Type: shared.TriggerTypeAuto}},
+					Outputs: []shared.ResourceCondition{
+						{
+							ResourceType: shared.ResourceDiscount,
+							Amount:       3,
+							Target:       "self-player",
+							AffectedTags: []shared.CardTag{shared.TagEarth},
+						},
+					},
+				},
+			},
 		},
 		// Project cards (need at least 40 for typical games with 4 players getting 10 cards each)
 		{
@@ -269,18 +283,44 @@ func CreateTestCardRegistry() cards.CardRegistry {
 			Cost: 2,
 		},
 		{
-			ID:   "card-earth-catapult",
-			Name: "Earth Catapult",
-			Type: gamecards.CardTypeActive,
-			Pack: "base",
-			Cost: 23,
+			ID:          "card-earth-catapult",
+			Name:        "Earth Catapult",
+			Type:        gamecards.CardTypeActive,
+			Pack:        "base",
+			Cost:        23,
+			Tags:        []shared.CardTag{shared.TagEarth},
+			Description: "Effect: When you play a card, you pay 2 M€ less for it.",
 		},
 		{
-			ID:   "card-earth-office",
-			Name: "Earth Office",
-			Type: gamecards.CardTypeAutomated,
-			Pack: "base",
-			Cost: 1,
+			ID:          "card-earth-office",
+			Name:        "Earth Office",
+			Type:        gamecards.CardTypeActive,
+			Pack:        "base",
+			Cost:        1,
+			Tags:        []shared.CardTag{shared.TagEarth},
+			Description: "Effect: When you play an Earth tag, you pay 3 M€ less for it.",
+			Behaviors: []shared.CardBehavior{
+				{
+					Triggers: []shared.Trigger{{Type: shared.TriggerTypeAuto}},
+					Outputs: []shared.ResourceCondition{
+						{
+							ResourceType: shared.ResourceDiscount,
+							Amount:       3,
+							Target:       "self-player",
+							AffectedTags: []shared.CardTag{shared.TagEarth},
+						},
+					},
+				},
+			},
+		},
+		{
+			ID:          "card-sponsors",
+			Name:        "Sponsors",
+			Type:        gamecards.CardTypeAutomated,
+			Pack:        "base",
+			Cost:        6,
+			Tags:        []shared.CardTag{shared.TagEarth},
+			Description: "Increase your M€ production 2 steps.",
 		},
 		{
 			ID:   "card-energy-tapping",

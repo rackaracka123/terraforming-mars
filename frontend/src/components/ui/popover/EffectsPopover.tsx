@@ -58,7 +58,7 @@ const EffectsPopover: React.FC<EffectsPopoverProps> = ({
             <GamePopoverItem
               key={`${effect.cardId}-${effect.behaviorIndex}`}
               state="available"
-              hoverEffect="translate-x"
+              hoverEffect="glow"
               animationDelay={index * 0.05}
             >
               <div className="flex flex-col gap-2 flex-1">

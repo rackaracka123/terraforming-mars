@@ -28,30 +28,24 @@ const BehaviorIcon: React.FC<BehaviorIconProps> = ({
 
   if (!icon) return null;
 
-  // Check if this is a tile placement that should be scaled up
   const isScaledTile = tileScaleInfo.scale > 1 && cleanType === tileScaleInfo.tileType;
 
   let iconClass: string;
   if (isScaledTile) {
     if (tileScaleInfo.scale === 2) {
-      // Completely alone: 2x size (52px = 26px * 2)
       iconClass =
         "w-[52px] h-[52px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[44px] max-md:h-[44px]";
     } else if (tileScaleInfo.scale === 1.5) {
-      // Single tile alone: 1.5x size (39px = 26px * 1.5)
       iconClass =
         "w-[39px] h-[39px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[33px] max-md:h-[33px]";
     } else if (tileScaleInfo.scale === 1.25) {
-      // Two tiles alone: 1.25x size (33px = 26px * 1.25)
       iconClass =
         "w-[33px] h-[33px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[28px] max-md:h-[28px]";
     } else {
-      // Fallback to normal size
       iconClass =
         "w-[26px] h-[26px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[22px] max-md:h-[22px]";
     }
   } else {
-    // Normal size
     iconClass =
       "w-[26px] h-[26px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[22px] max-md:h-[22px]";
   }
@@ -68,20 +62,17 @@ const BehaviorIcon: React.FC<BehaviorIconProps> = ({
     cleanType === "card-peek" ||
     cleanType === "card";
 
-  // Check if this should be a standalone larger icon
   const isStandaloneTile =
     cleanType === "city-tile" || cleanType === "greenery-tile" || cleanType === "ocean-tile";
   const isStandaloneCard = cleanType === "card-draw" || cleanType === "card";
   const shouldUseStandaloneSize =
     context === "standalone" && (isStandaloneTile || isStandaloneCard);
 
-  // Only apply special styling if NOT a scaled tile (scaled tile sizing takes priority)
   if (!isScaledTile) {
     if (isAttack) {
       iconClass =
         "w-[26px] h-[26px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))_drop-shadow(0_0_1px_rgba(244,67,54,0.9))_drop-shadow(0_0_2px_rgba(244,67,54,0.7))] animate-[attackPulse_2s_ease-in-out_infinite] max-md:w-[22px] max-md:h-[22px]";
     } else if (shouldUseStandaloneSize) {
-      // Add card glow for standalone cards
       const cardGlow = isStandaloneCard
         ? "_drop-shadow(0_0_1px_rgba(255,248,220,0.6))_drop-shadow(0_0_2px_rgba(255,248,220,0.4))"
         : "";

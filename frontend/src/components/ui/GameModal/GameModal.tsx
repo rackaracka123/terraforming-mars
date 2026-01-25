@@ -1,0 +1,76 @@
+import React from "react";
+import { GameModalProps, ModalSize } from "./types";
+import { getThemeStyles } from "./themes";
+import { useModal } from "./useModal";
+
+const sizeClasses: Record<ModalSize, string> = {
+  small: "max-w-[600px]",
+  medium: "max-w-[900px]",
+  large: "max-w-[1200px]",
+  full: "max-w-[1400px]",
+};
+
+const GameModal: React.FC<GameModalProps> = ({
+  isVisible,
+  onClose,
+  theme,
+  size = "large",
+  animation = "slideIn",
+  zIndex = 3000,
+  closeOnBackdrop = true,
+  closeOnEscape = true,
+  lockScroll = true,
+  preventClose = false,
+  onPreventedClose,
+  children,
+  className = "",
+}) => {
+  useModal({
+    isVisible,
+    onClose,
+    closeOnEscape,
+    lockScroll,
+    preventClose,
+    onPreventedClose,
+  });
+
+  if (!isVisible) return null;
+
+  const themeStyles = getThemeStyles(theme);
+
+  const handleBackdropClick = () => {
+    if (preventClose) {
+      onPreventedClose?.();
+    } else if (closeOnBackdrop) {
+      onClose();
+    }
+  };
+
+  const animationClass =
+    animation === "slideIn"
+      ? "animate-[modalSlideIn_0.25s_ease-out]"
+      : animation === "fadeIn"
+        ? "animate-[modalFadeIn_0.3s_ease-out]"
+        : "";
+
+  return (
+    <div
+      className="fixed top-0 left-0 right-0 bottom-0 flex items-center justify-center p-5 animate-[modalFadeIn_0.3s_ease-out]"
+      style={{ zIndex }}
+    >
+      <div
+        className="absolute top-0 left-0 right-0 bottom-0 bg-black/60 cursor-pointer"
+        onClick={handleBackdropClick}
+      />
+
+      <div
+        className={`relative w-full ${sizeClasses[size]} max-h-[90vh] bg-space-black-darker/95 border-2 border-[var(--modal-accent)] rounded-[20px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_30px_var(--modal-accent)] backdrop-blur-space ${animationClass} flex flex-col ${className}`}
+        style={themeStyles}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
+
+export default GameModal;

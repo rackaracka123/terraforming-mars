@@ -332,7 +332,7 @@ func TestCalculatePlayerCardActionState_Available(t *testing.T) {
 	pca := player.NewPlayerCardAction("card1", 0, behavior)
 
 	// Calculate state
-	state := action.CalculatePlayerCardActionState("card1", behavior, pca, p, g)
+	state := action.CalculatePlayerCardActionState("card1", behavior, pca.TimesUsedThisGeneration(), p, g)
 
 	// Verify action is available
 	if !state.Available() {
@@ -370,7 +370,7 @@ func TestCalculatePlayerCardActionState_InsufficientResources(t *testing.T) {
 	pca := player.NewPlayerCardAction("card1", 0, behavior)
 
 	// Calculate state
-	state := action.CalculatePlayerCardActionState("card1", behavior, pca, p, g)
+	state := action.CalculatePlayerCardActionState("card1", behavior, pca.TimesUsedThisGeneration(), p, g)
 
 	// Verify action is NOT available
 	if state.Available() {
@@ -409,7 +409,7 @@ func TestCalculatePlayerCardActionState_NotPlayerTurn(t *testing.T) {
 	pca := player.NewPlayerCardAction("card1", 0, behavior)
 
 	// Calculate state
-	state := action.CalculatePlayerCardActionState("card1", behavior, pca, p, g)
+	state := action.CalculatePlayerCardActionState("card1", behavior, pca.TimesUsedThisGeneration(), p, g)
 
 	// Verify action is NOT available
 	if state.Available() {

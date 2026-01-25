@@ -40,6 +40,7 @@ export interface GamePopoverProps {
   animation?: "slideUp" | "slideDown";
   children: React.ReactNode;
   className?: string;
+  excludeRef?: React.RefObject<HTMLElement | null>;
 }
 
 export type PopoverItemState = "available" | "disabled" | "claimed";
@@ -54,7 +55,7 @@ export interface GamePopoverItemProps {
   onClick?: () => void;
   error?: PopoverItemError;
   statusBadge?: string; // "played", "claimed", "funded"
-  hoverEffect?: "translate-x" | "background" | "none";
+  hoverEffect?: "translate-x" | "glow" | "background" | "none";
   animationDelay?: number;
   children: React.ReactNode;
   className?: string;

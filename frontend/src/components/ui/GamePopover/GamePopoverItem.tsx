@@ -19,8 +19,8 @@ const GamePopoverItem: React.FC<GamePopoverItemProps> = ({
         return `border-[rgba(var(--popover-accent-rgb),0.3)] bg-[rgba(var(--popover-accent-rgb),0.2)] cursor-pointer ${
           hoverEffect === "translate-x"
             ? "hover:translate-x-1 hover:shadow-[0_4px_15px_rgba(var(--popover-accent-rgb),0.4)]"
-            : hoverEffect === "background"
-              ? ""
+            : hoverEffect === "glow"
+              ? "hover:shadow-[0_4px_15px_rgba(var(--popover-accent-rgb),0.4)]"
               : ""
         } hover:border-[var(--popover-accent)] hover:bg-[rgba(var(--popover-accent-rgb),0.3)]`;
       case "disabled":

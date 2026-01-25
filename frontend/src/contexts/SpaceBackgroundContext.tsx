@@ -22,13 +22,11 @@ export function SpaceBackgroundProvider({ children }: { children: React.ReactNod
     texture: null,
   });
 
-  // Subscribe to skybox cache state
   useEffect(() => {
     const unsubscribe = skyboxCache.subscribe((state) => {
       setLoadingState(state);
     });
 
-    // Check if skybox is already loaded
     if (skyboxCache.isReady()) {
       setLoadingState(skyboxCache.getState());
     }

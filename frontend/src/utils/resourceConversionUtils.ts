@@ -51,30 +51,20 @@ function calculateDiscountedCost(
 
   let totalDiscount = 0;
 
-  // Loop through all player effects
   for (const effect of playerEffects) {
-    // Check each output in the effect's behavior
     for (const output of effect.behavior.outputs ?? []) {
-      // Check if this is a discount effect
       if (output.type !== "discount") {
         continue;
       }
 
-      // Check if this discount applies to our conversion type
-      if (
-        !output.affectedStandardProjects?.includes(
-          standardProject as never /* Cast needed for TS type system */,
-        )
-      ) {
+      if (!output.affectedStandardProjects?.includes(standardProject as never)) {
         continue;
       }
 
-      // Add the discount amount
       totalDiscount += output.amount;
     }
   }
 
-  // Calculate final cost (minimum 1)
   const finalCost = baseCost - totalDiscount;
   return Math.max(finalCost, 1);
 }

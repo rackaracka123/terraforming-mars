@@ -42,6 +42,10 @@ frontend/
 
 ## Key Development Patterns
 
+### Code Style
+
+- **CRITICAL**: NO unnecessary comments - code should be self-documenting. Avoid logic comments that just restate what the code does. Only add comments when truly necessary (complex algorithms, non-obvious business rules).
+
 ### Component Development
 
 1. **Inspect existing design language** before creating new components

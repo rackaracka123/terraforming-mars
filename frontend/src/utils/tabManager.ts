@@ -36,7 +36,6 @@ export class TabManager {
 
       const existingTab = this.getActiveTab();
 
-      // If no existing tab or the existing tab is expired, claim it
       if (!existingTab || this.isTabExpired(existingTab)) {
         this.setActiveTab();
         this.startHeartbeat();
@@ -45,7 +44,6 @@ export class TabManager {
         return;
       }
 
-      // If this is the same tab, reclaim it
       if (existingTab.tabId === this.tabId) {
         this.setActiveTab();
         this.startHeartbeat();
@@ -54,7 +52,6 @@ export class TabManager {
         return;
       }
 
-      // Another tab for the same player is active and not expired
       resolve(false);
     });
   }
@@ -142,7 +139,6 @@ export class TabManager {
     if (!this.playerName) return;
 
     const activeTab = this.getActiveTab();
-    // Only remove if this tab is the active one
     if (activeTab?.tabId === this.tabId) {
       const key = `${TAB_STORAGE_KEY_PREFIX}-${this.playerName}`;
       localStorage.removeItem(key);
@@ -154,11 +150,11 @@ export class TabManager {
   }
 
   private startHeartbeat(): void {
-    this.stopHeartbeat(); // Clear any existing heartbeat
+    this.stopHeartbeat();
 
     this.heartbeatInterval = setInterval(() => {
       if (this.isActive) {
-        this.setActiveTab(); // Update timestamp
+        this.setActiveTab();
       } else {
         this.stopHeartbeat();
       }
@@ -173,34 +169,27 @@ export class TabManager {
   }
 
   private setupEventListeners(): void {
-    // Handle page unload/refresh
     window.addEventListener("beforeunload", () => {
       this.releaseTab();
     });
 
-    // Handle page visibility changes (when tab becomes hidden/visible)
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
-        // Tab is hidden, reduce heartbeat frequency or pause
         this.stopHeartbeat();
       } else if (this.isActive) {
-        // Tab is visible again, resume heartbeat
         this.startHeartbeat();
       }
     });
 
-    // Handle storage events to detect when another tab takes over
     window.addEventListener("storage", (event) => {
       const expectedKey = this.playerName ? `${TAB_STORAGE_KEY_PREFIX}-${this.playerName}` : null;
 
       if (event.key === expectedKey && this.isActive) {
         const newTabState = event.newValue ? JSON.parse(event.newValue) : null;
 
-        // If another tab has taken over, release this tab
         if (newTabState && newTabState.tabId !== this.tabId) {
           this.stopHeartbeat();
           this.isActive = false;
-          // Don't remove from localStorage since another tab owns it
         }
       }
     });

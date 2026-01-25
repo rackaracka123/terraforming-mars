@@ -10,6 +10,7 @@ import { RESOURCE_COLORS, RESOURCE_NAMES } from "@/utils/resourceColors.ts";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import ProductionCardSelectionOverlay from "@/components/ui/overlay/ProductionCardSelectionOverlay.tsx";
 import GameIcon from "@/components/ui/display/GameIcon.tsx";
+import { GameModal, GameModalContent } from "../GameModal";
 
 interface ProductionPhaseModalProps {
   isOpen: boolean;
@@ -40,35 +41,26 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   >("initial");
   const [showCardSelection, setShowCardSelection] = useState(false);
 
-  // The modal should ONLY close when card selection is confirmed
-  // Removed handleClose - modal cannot be closed by user except through card selection
-
-  // Handle card selection submission
   const handleCardSelection = useCallback(
     async (selectedCardIds: string[]) => {
       try {
         await globalWebSocketManager.confirmProductionCards(selectedCardIds);
         setHasSubmittedCardSelection(true);
         setShowCardSelection(false);
-        // Don't call onClose here - let the game state update handle closing the modal
       } catch (error) {
         console.error("Failed to submit card selection:", error);
-        // On error, still close the modal manually
         onClose();
       }
     },
     [onClose],
   );
 
-  // Handle hiding from card selection (hide entire modal to inspect game)
   const handleReturnFromCardSelection = useCallback(() => {
-    // Instead of just hiding card selection, hide the entire modal
     if (onHide) {
       onHide();
     }
   }, [onHide]);
 
-  // Reset submission flag when modal opens with new production data
   useEffect(() => {
     if (isOpen && gameState?.currentPlayer?.productionPhase) {
       setHasSubmittedCardSelection(false);
@@ -76,29 +68,24 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     }
   }, [isOpen, gameState?.currentPlayer?.productionPhase, openDirectlyToCardSelection]);
 
-  // Extract production data from game state
   const modalProductionData = useMemo(() => {
     if (!gameState || !gameState.currentPlayer?.productionPhase) {
       return null;
     }
 
-    // Gather all players' production data
     const allPlayers: (PlayerDto | OtherPlayerDto)[] = [
       gameState.currentPlayer,
       ...gameState.otherPlayers,
     ];
 
-    // Filter players that have production selection data
     const playersWithProduction = allPlayers.filter((player) => player.productionPhase);
 
     if (playersWithProduction.length === 0) {
       return null;
     }
 
-    // Transform into the format the modal expects
     const playersData = playersWithProduction.map((player) => {
       const productionPhase = player.productionPhase as ProductionPhaseDto;
-      // For the current player, we have full data
       if ("cards" in player) {
         const currentPlayer = player as PlayerDto;
         return {
@@ -109,7 +96,6 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
           ...productionPhase,
         };
       } else {
-        // For other players, we have limited data
         const otherPlayer = player as OtherPlayerDto;
         return {
           playerId: otherPlayer.id,
@@ -127,10 +113,8 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     };
   }, [gameState]);
 
-  // Resource configuration from utility
   const resourceNames = RESOURCE_NAMES;
 
-  // Set initial animation step based on energy conversion
   useEffect(() => {
     if (modalProductionData && modalProductionData.playersData.length > 0) {
       const currentPlayerData = modalProductionData.playersData[currentPlayerIndex];
@@ -144,7 +128,6 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     }
   }, [modalProductionData, currentPlayerIndex]);
 
-  // Auto-advance through animation steps within each player (but not between players)
   useEffect(() => {
     if (!isAnimating) return;
 
@@ -153,22 +136,19 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
         if (animationStep === "energyConversion") {
           setAnimationStep("production");
         } else {
-          // Production phase is done for this player, stop animating
           setIsAnimating(false);
         }
       },
       animationStep === "energyConversion" ? 4500 : 4000,
-    ); // 4.5 seconds for energy (includes 1.5s hold time), 4 seconds for production (with pause)
+    );
 
     return () => clearTimeout(timer);
   }, [currentPlayerIndex, animationStep, isAnimating]);
 
-  // Handle player selection
   const handlePlayerSelect = (playerIndex: number) => {
     if (playerIndex !== currentPlayerIndex && modalProductionData) {
       setCurrentPlayerIndex(playerIndex);
 
-      // Check if player has energy to convert - skip energy animation if none
       const playerData = modalProductionData.playersData[playerIndex];
       const hasEnergyToConvert = playerData.energyConverted > 0;
 
@@ -184,29 +164,24 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     }
   };
 
-  // Energy conversion animation sequence
   useEffect(() => {
     if (!isAnimating || animationStep !== "energyConversion") return;
 
     let timeoutId: NodeJS.Timeout;
 
     if (energyAnimationState === "initial") {
-      // Wait 2 seconds to show change indicators longer, then start fade out
       timeoutId = setTimeout(() => {
         setEnergyAnimationState("fadeOut");
       }, 2000);
     } else if (energyAnimationState === "fadeOut") {
-      // After 400ms of fade out, fade in new values
       timeoutId = setTimeout(() => {
         setEnergyAnimationState("fadeIn");
       }, 400);
     }
-    // Note: fadeIn state persists until next phase (no further transitions needed)
 
     return () => clearTimeout(timeoutId);
   }, [energyAnimationState, animationStep, isAnimating]);
 
-  // Auto-start animation when component mounts
   useEffect(() => {
     setCurrentPlayerIndex(0);
     setAnimationStep("energyConversion");
@@ -215,29 +190,24 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     setEnergyAnimationState("initial");
   }, []);
 
-  // Enhanced resource animation sequence
   useEffect(() => {
     if (!isAnimating || animationStep !== "production") return;
 
     let timeoutId: NodeJS.Timeout;
 
     if (resourceAnimationState === "initial") {
-      // Wait 500ms, then fade in other resources
       timeoutId = setTimeout(() => {
         setResourceAnimationState("fadeInResources");
       }, 500);
     } else if (resourceAnimationState === "fadeInResources") {
-      // Wait 500ms for fade in to complete, then show production indicators
       timeoutId = setTimeout(() => {
         setResourceAnimationState("showProduction");
       }, 500);
     } else if (resourceAnimationState === "showProduction") {
-      // Wait 1500ms showing production indicators, then fade out old values
       timeoutId = setTimeout(() => {
         setResourceAnimationState("fadeOut");
       }, 1500);
     } else if (resourceAnimationState === "fadeOut") {
-      // After 400ms of fade out, fade in new values
       timeoutId = setTimeout(() => {
         setResourceAnimationState("fadeIn");
       }, 400);
@@ -246,14 +216,12 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     return () => clearTimeout(timeoutId);
   }, [resourceAnimationState, animationStep, isAnimating]);
 
-  // Reset resource animation state when changing players or phases
   useEffect(() => {
     if (animationStep === "production") {
       setResourceAnimationState("initial");
     }
   }, [currentPlayerIndex, animationStep]);
 
-  // Handle Enter key to open card selection
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Enter" && !hasSubmittedCardSelection && !showCardSelection) {
@@ -269,9 +237,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     return () => {};
   }, [isOpen, hasSubmittedCardSelection, showCardSelection]);
 
-  // Normal visibility check
   if (!isOpen) return null;
-
   if (!modalProductionData) return null;
 
   const currentPlayerData = modalProductionData.playersData[currentPlayerIndex];
@@ -287,11 +253,10 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     let change = afterAmount - beforeAmount;
     let shouldAnimate;
 
-    // Handle energy-to-heat conversion values
     if (animationStep === "energyConversion") {
       if (resourceType === "energy") {
         displayBeforeAmount = currentPlayerData.beforeResources.energy;
-        displayAfterAmount = 0; // Energy goes to 0
+        displayAfterAmount = 0;
         change = -currentPlayerData.beforeResources.energy;
         shouldAnimate = true;
       } else if (resourceType === "heat") {
@@ -301,16 +266,13 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
         change = currentPlayerData.energyConverted;
         shouldAnimate = true;
       } else {
-        // Other resources don't change during energy conversion
         shouldAnimate = false;
       }
     } else {
-      // During production phase, energy starts from 0 and heat starts from post-conversion value
       if (resourceType === "energy") {
         displayBeforeAmount = 0;
         displayAfterAmount = currentPlayerData.production.energy;
         change = currentPlayerData.production.energy;
-        // Energy should animate if it has production and after showing production indicators
         shouldAnimate =
           change !== 0 &&
           resourceAnimationState !== "initial" &&
@@ -321,14 +283,12 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
           currentPlayerData.beforeResources.heat + currentPlayerData.energyConverted;
         displayAfterAmount = currentPlayerData.afterResources.heat;
         change = displayAfterAmount - displayBeforeAmount;
-        // Heat should animate if it has additional production and after showing production indicators
         shouldAnimate =
           change !== 0 &&
           resourceAnimationState !== "initial" &&
           resourceAnimationState !== "fadeInResources" &&
           resourceAnimationState !== "showProduction";
       } else {
-        // Other resources animate normally during production phase after showing production indicators
         shouldAnimate =
           change !== 0 &&
           resourceAnimationState !== "initial" &&
@@ -340,18 +300,17 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     const getAnimationStateClass = () => {
       switch (resourceAnimationState) {
         case "initial":
-          return ""; // initialState
+          return "";
         case "fadeOut":
-          return "[&_.beforeAmount]:animate-[fadeOutAnimation_0.4s_ease-out_forwards] [&_.changeIndicator]:animate-[fadeOutAnimation_0.4s_ease-out_forwards]"; // fadeOutState
+          return "[&_.beforeAmount]:animate-[fadeOutAnimation_0.4s_ease-out_forwards] [&_.changeIndicator]:animate-[fadeOutAnimation_0.4s_ease-out_forwards]";
         case "fadeIn":
-          return "[&_.finalValue]:text-white [&_.finalValue]:[text-shadow:0_1px_3px_rgba(0,0,0,0.8)] [&_.finalValue]:animate-[fadeInAnimation_0.3s_ease-out_forwards]"; // fadeInState
+          return "[&_.finalValue]:text-white [&_.finalValue]:[text-shadow:0_1px_3px_rgba(0,0,0,0.8)] [&_.finalValue]:animate-[fadeInAnimation_0.3s_ease-out_forwards]";
         default:
           return "";
       }
     };
 
     const renderAmounts = () => {
-      // During production phase initial and fadeInResources state, show clean values
       if (
         animationStep === "production" &&
         (resourceAnimationState === "initial" || resourceAnimationState === "fadeInResources")
@@ -367,7 +326,6 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
         );
       }
 
-      // During showProduction state, show change indicators for all resources with changes
       if (
         animationStep === "production" &&
         resourceAnimationState === "showProduction" &&
@@ -389,7 +347,6 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
         );
       }
 
-      // Handle energy conversion animation for energy and heat
       if (animationStep === "energyConversion" && shouldAnimate) {
         if (energyAnimationState === "fadeIn") {
           return (
@@ -417,7 +374,6 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
             </div>
           );
         } else {
-          // Initial state for energy conversion
           return (
             <div className="flex items-center justify-center gap-2 mb-2 text-base font-bold relative min-h-[24px]">
               <div
@@ -435,7 +391,6 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
         }
       }
 
-      // For resources that don't animate, just show the current value
       if (!shouldAnimate) {
         return (
           <div className="flex items-center justify-center gap-2 mb-2 text-base font-bold relative min-h-[24px]">
@@ -552,29 +507,34 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   };
 
   return (
-    <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[3000] p-5 animate-[modalFadeIn_0.3s_ease-out]">
-      <div
-        className="bg-space-black-darker/95 border-2 border-space-blue-400 rounded-[20px] max-w-[800px] min-w-[600px] w-full max-h-[90vh] overflow-y-auto backdrop-blur-space shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_40px_rgba(30,60,150,0.3)] relative animate-[modalSlideIn_0.4s_ease-out]"
-        onClick={(e) => e.stopPropagation()}
+    <>
+      <GameModal
+        isVisible={isOpen && !showCardSelection}
+        onClose={() => {}}
+        theme="production"
+        size="medium"
+        preventClose
+        closeOnBackdrop={false}
+        closeOnEscape={false}
+        className="!max-w-[800px] !min-w-[600px]"
       >
-        <div className="text-center py-[30px] px-[30px] pb-5 bg-black/40 border-b border-space-blue-600 relative">
+        <div className="text-center py-[30px] px-[30px] pb-5 bg-black/40 border-b border-[var(--modal-accent)]/60 relative">
           <h2 className="text-[28px] font-orbitron text-white font-bold text-shadow-glow tracking-wider m-0 mb-2">
             Production
           </h2>
-          <div className="text-base text-space-blue-300 font-semibold text-shadow-dark">
+          <div className="text-base text-[var(--modal-accent)] font-semibold text-shadow-dark">
             Generation {modalProductionData.generation}
           </div>
         </div>
 
-        {/* Only show player tabs if more than 1 player */}
         {modalProductionData.playersData.length > 1 && (
-          <div className="flex justify-center gap-3 p-5 border-b border-space-blue-600/30">
+          <div className="flex justify-center gap-3 p-5 border-b border-[var(--modal-accent)]/30">
             {modalProductionData.playersData.map((player, index) => (
               <button
                 key={player.playerId}
-                className={`bg-space-black-darker/60 border-2 border-space-blue-400/40 rounded-lg text-white/80 text-sm font-semibold py-2 px-4 cursor-pointer transition-all duration-300 text-shadow-dark hover:border-space-blue-400/60 hover:text-white/90 hover:-translate-y-px ${
+                className={`bg-space-black-darker/60 border-2 border-[var(--modal-accent)]/40 rounded-lg text-white/80 text-sm font-semibold py-2 px-4 cursor-pointer transition-all duration-300 text-shadow-dark hover:border-[var(--modal-accent)]/60 hover:text-white/90 hover:-translate-y-px ${
                   index === currentPlayerIndex
-                    ? "!bg-space-blue-400/20 !border-space-blue-400 !text-white shadow-[0_0_15px_rgba(30,60,150,0.4)]"
+                    ? "!bg-[var(--modal-accent)]/20 !border-[var(--modal-accent)] !text-white shadow-[0_0_15px_rgba(var(--modal-accent-rgb),0.4)]"
                     : ""
                 }`}
                 onClick={() => handlePlayerSelect(index)}
@@ -585,23 +545,22 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
           </div>
         )}
 
-        <div className="p-[30px]">
+        <GameModalContent padding="large">
           <div className="min-h-[300px] flex items-center justify-center">
             {renderProductionPhase()}
           </div>
-        </div>
-      </div>
+        </GameModalContent>
+      </GameModal>
 
-      {!hasSubmittedCardSelection && !showCardSelection && (
+      {!hasSubmittedCardSelection && !showCardSelection && isOpen && (
         <button
-          className="absolute left-1/2 top-1/2 -translate-y-1/2 translate-x-[calc(400px+40px)] bg-[linear-gradient(135deg,rgba(30,60,150,0.8)_0%,rgba(20,40,120,0.9)_100%)] border-2 border-space-blue-400 rounded-full text-white text-[32px] font-bold w-[60px] h-[60px] cursor-pointer transition-all duration-300 text-shadow-dark shadow-[0_4px_15px_rgba(0,0,0,0.4)] flex items-center justify-center z-[3001] p-0 hover:bg-[linear-gradient(135deg,rgba(40,70,160,0.9)_0%,rgba(30,50,130,1)_100%)] hover:border-space-blue-500 hover:translate-x-[calc(400px+45px)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.5)] active:translate-x-[calc(400px+40px)] active:scale-95 active:shadow-[0_2px_10px_rgba(0,0,0,0.3)]"
+          className="fixed left-1/2 top-1/2 -translate-y-1/2 translate-x-[calc(400px+40px)] bg-[linear-gradient(135deg,rgba(30,60,150,0.8)_0%,rgba(20,40,120,0.9)_100%)] border-2 border-space-blue-400 rounded-full text-white text-[32px] font-bold w-[60px] h-[60px] cursor-pointer transition-all duration-300 text-shadow-dark shadow-[0_4px_15px_rgba(0,0,0,0.4)] flex items-center justify-center z-[3001] p-0 hover:bg-[linear-gradient(135deg,rgba(40,70,160,0.9)_0%,rgba(30,50,130,1)_100%)] hover:border-space-blue-500 hover:translate-x-[calc(400px+45px)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.5)] active:translate-x-[calc(400px+40px)] active:scale-95 active:shadow-[0_2px_10px_rgba(0,0,0,0.3)]"
           onClick={() => setShowCardSelection(true)}
         >
           →
         </button>
       )}
 
-      {/* Card Selection Overlay */}
       {showCardSelection && (
         <ProductionCardSelectionOverlay
           isOpen={showCardSelection}
@@ -611,7 +570,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
           onReturn={handleReturnFromCardSelection}
         />
       )}
-    </div>
+    </>
   );
 };
 

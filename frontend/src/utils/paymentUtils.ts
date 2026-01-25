@@ -22,7 +22,6 @@ export function calculatePaymentValue(
     payment.steel * constants.steelValue +
     payment.titanium * constants.titaniumValue;
 
-  // Add value from payment substitutes
   if (payment.substitutes && playerSubstitutes) {
     for (const [resourceType, amount] of Object.entries(payment.substitutes)) {
       const substitute = playerSubstitutes.find((sub) => sub.resourceType === resourceType);

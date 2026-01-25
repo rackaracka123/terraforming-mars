@@ -101,7 +101,12 @@ body {
   background-color: #000000;
 }
 
+html {
+  overflow-y: auto;
+}
+
 body {
+  overflow-y: auto;
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell",
     "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
@@ -321,7 +326,7 @@ code {
 @keyframes modalSlideIn {
   from {
     opacity: 0;
-    transform: translateY(-50px) scale(0.9);
+    transform: translateY(-20px) scale(0.95);
   }
   to {
     opacity: 1;

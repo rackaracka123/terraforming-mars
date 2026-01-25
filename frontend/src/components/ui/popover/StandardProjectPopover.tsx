@@ -24,7 +24,7 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
   onClose,
   onProjectSelect,
   gameState,
-  anchorRef: _anchorRef,
+  anchorRef,
 }) => {
   const isGameActive = gameState?.status === GameStatusActive;
   const isActionPhase = gameState?.currentPhase === GamePhaseAction;
@@ -75,6 +75,7 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
       onClose={onClose}
       position={{ type: "fixed", top: 60, left: 20 }}
       theme="standardProjects"
+      excludeRef={anchorRef}
       header={{
         title: "Standard Projects",
         badge: `${availableCount}/${playerProjects.length} Available`,

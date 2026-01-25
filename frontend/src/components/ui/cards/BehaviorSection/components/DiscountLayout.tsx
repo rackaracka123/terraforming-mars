@@ -5,7 +5,6 @@ interface DiscountLayoutProps {
   behavior: any;
 }
 
-// Map standard project names to their icon representations
 const getStandardProjectIcon = (project: string): string | null => {
   const mapping: { [key: string]: string } = {
     "power-plant": "power-tag", // Power tag icon for power plant SP
@@ -18,7 +17,6 @@ const getStandardProjectIcon = (project: string): string | null => {
   return mapping[project] || null;
 };
 
-// Render an icon with optional "SP" badge overlay
 const IconWithBadge: React.FC<{
   iconType: string;
   showSpBadge?: boolean;
@@ -35,17 +33,14 @@ const IconWithBadge: React.FC<{
   );
 };
 
-// Render the discount amount with resource icon
 const DiscountAmount: React.FC<{
   amount: number;
   resourceType: string;
 }> = ({ amount, resourceType }) => {
-  // Credits are special - show amount inside the icon
   if (resourceType === "credit") {
     return <GameIcon iconType="credit" amount={-amount} size="small" />;
   }
 
-  // Other resources: show "-N" text followed by icon
   return (
     <div className="flex items-center gap-[2px]">
       <span className="text-base font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
@@ -56,7 +51,6 @@ const DiscountAmount: React.FC<{
   );
 };
 
-// Single discount row component
 const DiscountRow: React.FC<{
   icons: React.ReactNode;
   amount: number;
@@ -64,15 +58,12 @@ const DiscountRow: React.FC<{
 }> = ({ icons, amount, resourceType }) => {
   return (
     <div className="flex gap-[3px] items-center justify-center">
-      {/* Left side: icons */}
       <div className="flex gap-[3px] items-center">{icons}</div>
 
-      {/* Separator */}
       <span className="text-base font-bold text-white mx-[3px] [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
         :
       </span>
 
-      {/* Right side: discount amount */}
       <DiscountAmount amount={amount} resourceType={resourceType} />
     </div>
   );
@@ -89,12 +80,10 @@ const DiscountLayout: React.FC<DiscountLayoutProps> = ({ behavior }) => {
   const affectedStandardProjects: string[] = discountOutput.affectedStandardProjects || [];
   const affectedResources: string[] = discountOutput.affectedResources || [];
 
-  // Use affectedResources if set (e.g., "plant" for Ecoline), otherwise default to "credit"
   const discountResourceType = affectedResources.length > 0 ? affectedResources[0] : "credit";
 
   const rows: React.ReactNode[] = [];
 
-  // Render tag discounts row (if any tags)
   if (affectedTags.length > 0) {
     const tagIcons = affectedTags.map((tag: string, tagIndex: number) => (
       <React.Fragment key={`tag-${tagIndex}`}>
@@ -117,7 +106,6 @@ const DiscountLayout: React.FC<DiscountLayoutProps> = ({ behavior }) => {
     );
   }
 
-  // Render standard project discounts row (if any)
   if (affectedStandardProjects.length > 0) {
     const spIcons = affectedStandardProjects.map((project: string, spIndex: number) => {
       const iconType = getStandardProjectIcon(project);
@@ -135,7 +123,6 @@ const DiscountLayout: React.FC<DiscountLayoutProps> = ({ behavior }) => {
       );
     });
 
-    // Only add if we have valid icons
     const validIcons = spIcons.filter((icon) => icon !== null);
     if (validIcons.length > 0) {
       rows.push(
@@ -149,15 +136,27 @@ const DiscountLayout: React.FC<DiscountLayoutProps> = ({ behavior }) => {
     }
   }
 
-  // If no rows, return null
+  if (affectedTags.length === 0 && affectedStandardProjects.length === 0) {
+    rows.push(
+      <DiscountRow
+        key="blanket"
+        icons={
+          <span className="text-[10px] font-semibold text-white bg-[rgba(60,60,60,0.8)] px-1.5 py-0.5 rounded [text-shadow:0_0_2px_rgba(0,0,0,0.6)]">
+            All cards
+          </span>
+        }
+        amount={amount}
+        resourceType={discountResourceType}
+      />,
+    );
+  }
+
   if (rows.length === 0) return null;
 
-  // Single row: return directly
   if (rows.length === 1) {
     return <>{rows[0]}</>;
   }
 
-  // Multiple rows: stack vertically
   return <div className="flex flex-col gap-1 items-center">{rows}</div>;
 };
 

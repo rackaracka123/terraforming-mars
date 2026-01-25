@@ -21,7 +21,7 @@ const AwardPopover: React.FC<AwardPopoverProps> = ({
   isVisible,
   onClose,
   gameState,
-  anchorRef: _anchorRef,
+  anchorRef,
 }) => {
   const isGameActive = gameState?.status === GameStatusActive;
   const isActionPhase = gameState?.currentPhase === GamePhaseAction;
@@ -51,6 +51,7 @@ const AwardPopover: React.FC<AwardPopoverProps> = ({
       onClose={onClose}
       position={{ type: "fixed", top: 60, left: 20 }}
       theme="awards"
+      excludeRef={anchorRef}
       header={{
         title: "Awards",
         badge: (

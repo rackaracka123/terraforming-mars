@@ -11,6 +11,7 @@ import (
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
+	"terraforming-mars-backend/internal/game/shared"
 )
 
 // UseCardActionAction handles the business logic for using a card's manual action
@@ -74,6 +75,12 @@ func (a *UseCardActionAction) Execute(
 	cardAction, err := a.findCardAction(p, cardID, behaviorIndex, log)
 	if err != nil {
 		return err
+	}
+
+	if a.hasManualTrigger(cardAction.Behavior) && cardAction.TimesUsedThisGeneration >= 1 {
+		log.Warn("Action already played this generation",
+			zap.Int("times_used", cardAction.TimesUsedThisGeneration))
+		return fmt.Errorf("action already played this generation")
 	}
 
 	log.Info("✅ Found card action",
@@ -157,4 +164,13 @@ func (a *UseCardActionAction) incrementUsageCounts(
 
 	// Update player actions
 	p.Actions().SetActions(actions)
+}
+
+func (a *UseCardActionAction) hasManualTrigger(behavior shared.CardBehavior) bool {
+	for _, trigger := range behavior.Triggers {
+		if trigger.Type == shared.TriggerTypeManual {
+			return true
+		}
+	}
+	return false
 }

@@ -4,7 +4,6 @@
 export function findChangedPaths(oldObj: any, newObj: any, currentPath: string = ""): Set<string> {
   const changedPaths = new Set<string>();
 
-  // Handle null/undefined cases
   if (oldObj === newObj) return changedPaths;
   if (oldObj == null || newObj == null) {
     if (oldObj !== newObj && currentPath) {
@@ -13,7 +12,6 @@ export function findChangedPaths(oldObj: any, newObj: any, currentPath: string =
     return changedPaths;
   }
 
-  // Handle primitive types
   const oldType = typeof oldObj;
   const newType = typeof newObj;
 
@@ -29,7 +27,6 @@ export function findChangedPaths(oldObj: any, newObj: any, currentPath: string =
     return changedPaths;
   }
 
-  // Handle arrays
   const oldIsArray = Array.isArray(oldObj);
   const newIsArray = Array.isArray(newObj);
 
@@ -39,12 +36,10 @@ export function findChangedPaths(oldObj: any, newObj: any, currentPath: string =
   }
 
   if (oldIsArray) {
-    // Check array length changes
     if (oldObj.length !== newObj.length && currentPath) {
       changedPaths.add(currentPath);
     }
 
-    // Check each array element
     const maxLength = Math.max(oldObj.length, newObj.length);
     for (let i = 0; i < maxLength; i++) {
       const elementPath = currentPath ? `${currentPath}.${i}` : String(i);
@@ -58,7 +53,6 @@ export function findChangedPaths(oldObj: any, newObj: any, currentPath: string =
     return changedPaths;
   }
 
-  // Handle objects
   const allKeys = new Set([...Object.keys(oldObj), ...Object.keys(newObj)]);
 
   for (const key of allKeys) {

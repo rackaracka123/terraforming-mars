@@ -1,7 +1,5 @@
-// Main component
 export { default } from "./BehaviorSection.tsx";
 
-// Types
 export type {
   BehaviorSectionProps,
   ClassifiedBehavior,
@@ -12,7 +10,6 @@ export type {
   IconContext,
 } from "./types.ts";
 
-// Constants
 export {
   MAX_HORIZONTAL_ICONS,
   MAX_CARD_ROWS,

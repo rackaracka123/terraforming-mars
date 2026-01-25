@@ -17,7 +17,6 @@ const SoundContext = createContext<SoundContextType | undefined>(undefined);
 export function SoundProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<SoundSettings>(() => getSoundSettings());
 
-  // Sync settings with audioService when they change
   useEffect(() => {
     audioService.setEnabled(settings.enabled);
     audioService.setVolume(settings.volume);

@@ -58,7 +58,6 @@ export default function SpaceBackground({
     texture: null,
   });
 
-  // Subscribe to skybox loading state
   useEffect(() => {
     const unsubscribe = skyboxCache.subscribe((state) => {
       setSkyboxLoadingState(state);
@@ -91,21 +90,13 @@ export default function SpaceBackground({
         dpr={typeof window !== "undefined" ? window.devicePixelRatio : 1}
       >
         <Suspense fallback={null}>
-          {/* EXR Skybox */}
           <SkyboxLoader />
-
-          {/* Animated camera for panning effect */}
           <AnimatedCamera speed={animationSpeed} />
-
-          {/* Minimal ambient lighting for depth */}
           <ambientLight intensity={0.02} color="#0a0a1a" />
-
-          {/* Directional light for subtle depth */}
           <directionalLight position={[10, 10, 10]} intensity={0.3} color="#1a1a3e" />
         </Suspense>
       </Canvas>
 
-      {/* Dark overlay to reduce detail */}
       {showOverlay && (
         <div
           style={{
@@ -120,7 +111,6 @@ export default function SpaceBackground({
         />
       )}
 
-      {/* Content layer - always on top */}
       <div
         style={{
           position: "absolute",
@@ -141,7 +131,6 @@ export default function SpaceBackground({
         >
           {children}
 
-          {/* Show loading spinner when skybox is loading - below content */}
           {skyboxLoadingState.isLoading && (
             <div
               style={{
