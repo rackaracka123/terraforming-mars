@@ -223,6 +223,10 @@ const renderBehaviorRow = (
             </React.Fragment>
           );
         })}
+
+      {behavior.generationalEventRequirements?.length > 0 && (
+        <span className="text-white font-bold text-sm ml-1">*</span>
+      )}
     </div>
   );
 };

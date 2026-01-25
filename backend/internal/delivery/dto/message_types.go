@@ -4,11 +4,9 @@ package dto
 type MessageType string
 
 const (
-	// Existing Client -> Server messages
 	MessageTypePlayerConnect MessageType = "player-connect"
-	MessageTypeJoinGame      MessageType = "join-game" // Alternative to player-connect for backwards compatibility
+	MessageTypeJoinGame      MessageType = "join-game"
 
-	// Existing Server -> Client messages
 	MessageTypeGameUpdated            MessageType = "game-updated"
 	MessageTypePlayerConnected        MessageType = "player-connected"
 	MessageTypePlayerReconnected      MessageType = "player-reconnected"
@@ -17,7 +15,6 @@ const (
 	MessageTypeFullState              MessageType = "full-state"
 	MessageTypeProductionPhaseStarted MessageType = "production-phase-started"
 
-	// Standard project message types
 	MessageTypeActionSellPatents        MessageType = "action.standard-project.sell-patents"
 	MessageTypeActionConfirmSellPatents MessageType = "action.standard-project.confirm-sell-patents"
 	MessageTypeActionLaunchAsteroid     MessageType = "action.standard-project.launch-asteroid"
@@ -26,24 +23,19 @@ const (
 	MessageTypeActionPlantGreenery      MessageType = "action.standard-project.plant-greenery"
 	MessageTypeActionBuildCity          MessageType = "action.standard-project.build-city"
 
-	// Resource conversion message types
 	MessageTypeActionConvertPlantsToGreenery  MessageType = "action.resource-conversion.convert-plants-to-greenery"
 	MessageTypeActionConvertHeatToTemperature MessageType = "action.resource-conversion.convert-heat-to-temperature"
 
-	// Game management message types
 	MessageTypeCreateGame             MessageType = "create-game"
 	MessageTypeActionStartGame        MessageType = "action.game-management.start-game"
 	MessageTypeActionSkipAction       MessageType = "action.game-management.skip-action"
 	MessageTypeActionConfirmDemoSetup MessageType = "action.game-management.confirm-demo-setup"
 
-	// Milestone and award message types
 	MessageTypeActionClaimMilestone MessageType = "action.milestone.claim-milestone"
 	MessageTypeActionFundAward      MessageType = "action.award.fund-award"
 
-	// Tile selection message types
 	MessageTypeActionTileSelected MessageType = "action.tile-selection.tile-selected"
 
-	// Card message types
 	MessageTypeActionPlayCard               MessageType = "action.card.play-card"
 	MessageTypeActionCardAction             MessageType = "action.card.card-action"
 	MessageTypeActionSelectStartingCard     MessageType = "action.card.select-starting-card"
@@ -51,6 +43,5 @@ const (
 	MessageTypeActionConfirmProductionCards MessageType = "action.card.confirm-production-cards"
 	MessageTypeActionCardDrawConfirmed      MessageType = "action.card.card-draw-confirmed"
 
-	// Admin message types (development mode only)
 	MessageTypeAdminCommand MessageType = "admin-command"
 )

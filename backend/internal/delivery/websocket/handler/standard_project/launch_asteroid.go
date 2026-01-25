@@ -36,14 +36,12 @@ func (h *LaunchAsteroidHandler) HandleMessage(ctx context.Context, connection *c
 
 	log.Info("☄️ Processing launch asteroid request (migrated)")
 
-	// Use connection's gameID and playerID
 	if connection.GameID == "" || connection.PlayerID == "" {
 		log.Error("Missing connection context")
 		h.sendError(connection, "Not connected to a game")
 		return
 	}
 
-	// Execute the action
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID)
 	if err != nil {
 		log.Error("Failed to execute launch asteroid action", zap.Error(err))
@@ -53,11 +51,9 @@ func (h *LaunchAsteroidHandler) HandleMessage(ctx context.Context, connection *c
 
 	log.Info("✅ Launch asteroid action completed successfully")
 
-	// Explicitly broadcast game state after action completes
 	h.broadcaster.BroadcastGameState(connection.GameID, nil)
 	log.Debug("📡 Broadcasted game state to all players")
 
-	// Send success response
 	response := dto.WebSocketMessage{
 		Type:   "action-success",
 		GameID: connection.GameID,

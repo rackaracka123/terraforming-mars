@@ -69,7 +69,6 @@ func (h *Hand) AddCard(cardID string) {
 	copy(cardsCopy, h.cards)
 	h.mu.Unlock()
 
-	// Publish domain events after adding card
 	if h.eventBus != nil {
 		// Publish CardAddedToHandEvent for passive card effects
 		events.Publish(h.eventBus, events.CardAddedToHandEvent{
@@ -94,13 +93,11 @@ func (h *Hand) RemoveCard(cardID string) bool {
 	var removed bool
 	h.mu.Lock()
 
-	// Clean up event listeners before removing from cache
 	if pc, exists := h.playerCards[cardID]; exists {
 		pc.Cleanup() // Unsubscribe all event listeners
 		delete(h.playerCards, cardID)
 	}
 
-	// Remove from card ID list
 	for i, id := range h.cards {
 		if id == cardID {
 			h.cards = append(h.cards[:i], h.cards[i+1:]...)

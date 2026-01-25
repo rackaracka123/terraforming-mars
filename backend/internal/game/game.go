@@ -20,7 +20,6 @@ import (
 // Game represents a unified game entity containing all game state
 // All fields are private with public methods for access and mutation
 type Game struct {
-	// Private fields - accessed only via public methods
 	mu               sync.RWMutex
 	id               string
 	createdAt        time.Time
@@ -38,19 +37,15 @@ type Game struct {
 	turnOrder        []string // Ordered list of player IDs for turn sequence
 	eventBus         *events.EventBusImpl
 
-	// Milestones and Awards
 	milestones *Milestones
 	awards     *Awards
 
-	// Final scores (set when game ends)
 	finalScores []FinalScore
 	winnerID    string
 	isTie       bool
 
-	// Triggered effects for notification (cleared after each broadcast)
 	triggeredEffects []TriggeredEffect
 
-	// Player-specific non-card phase state (managed by Game)
 	pendingTileSelections      map[string]*player.PendingTileSelection
 	pendingTileSelectionQueues map[string]*player.PendingTileSelectionQueue
 	forcedFirstActions         map[string]*player.ForcedFirstAction
@@ -67,10 +62,8 @@ func NewGame(
 ) *Game {
 	now := time.Now()
 
-	// Create per-game event bus for synchronous event handling
 	eventBus := events.NewEventBus()
 
-	// Get initial global parameter values from settings or use defaults
 	initTemp := DefaultTemperature
 	initOxy := DefaultOxygen
 	initOcean := DefaultOceans
@@ -84,38 +77,37 @@ func NewGame(
 		initOcean = *settings.Oceans
 	}
 
-	return &Game{
-		id:               id,
-		createdAt:        now,
-		updatedAt:        now,
-		status:           GameStatusLobby,
-		settings:         settings,
-		hostPlayerID:     hostPlayerID,
-		currentPhase:     GamePhaseWaitingForGameStart,
-		globalParameters: global_parameters.NewGlobalParametersWithValues(id, initTemp, initOxy, initOcean, eventBus),
-		generation:       1,
-		board:            board.NewBoardWithTiles(id, board.GenerateMarsBoard(), eventBus),
-		deck:             nil, // Set via SetDeck after deck is created
-		players:          make(map[string]*player.Player),
-		turnOrder:        []string{}, // Empty until game starts
-		eventBus:         eventBus,
-		// Initialize milestones and awards
-		milestones: NewMilestones(id, eventBus),
-		awards:     NewAwards(id, eventBus),
-		// Initialize non-card phase state maps
+	g := &Game{
+		id:                         id,
+		createdAt:                  now,
+		updatedAt:                  now,
+		status:                     GameStatusLobby,
+		settings:                   settings,
+		hostPlayerID:               hostPlayerID,
+		currentPhase:               GamePhaseWaitingForGameStart,
+		globalParameters:           global_parameters.NewGlobalParametersWithValues(id, initTemp, initOxy, initOcean, eventBus),
+		generation:                 1,
+		board:                      board.NewBoardWithTiles(id, board.GenerateMarsBoard(), eventBus),
+		deck:                       nil,
+		players:                    make(map[string]*player.Player),
+		turnOrder:                  []string{},
+		eventBus:                   eventBus,
+		milestones:                 NewMilestones(id, eventBus),
+		awards:                     NewAwards(id, eventBus),
 		pendingTileSelections:      make(map[string]*player.PendingTileSelection),
 		pendingTileSelectionQueues: make(map[string]*player.PendingTileSelectionQueue),
 		forcedFirstActions:         make(map[string]*player.ForcedFirstAction),
 		productionPhases:           make(map[string]*player.ProductionPhase),
 		selectStartingCardsPhases:  make(map[string]*player.SelectStartingCardsPhase),
 	}
-}
 
-// ================== Basic Getters ==================
+	g.subscribeToGenerationalEvents()
+
+	return g
+}
 
 // ID returns the game ID
 func (g *Game) ID() string {
-	// Immutable, no lock needed
 	return g.id
 }
 
@@ -156,7 +148,6 @@ func (g *Game) HostPlayerID() string {
 
 // EventBus returns the event bus for publishing domain events
 func (g *Game) EventBus() *events.EventBusImpl {
-	// EventBus is set once at creation and never modified, no lock needed
 	return g.eventBus
 }
 
@@ -178,7 +169,6 @@ func (g *Game) Generation() int {
 func (g *Game) TurnOrder() []string {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
-	// Return a copy to prevent external mutation
 	order := make([]string, len(g.turnOrder))
 	copy(order, g.turnOrder)
 	return order
@@ -190,8 +180,6 @@ func (g *Game) CurrentTurn() *Turn {
 	defer g.mu.RUnlock()
 	return g.currentTurn
 }
-
-// ================== Component Accessors ==================
 
 // GlobalParameters returns the global parameters component
 func (g *Game) GlobalParameters() *global_parameters.GlobalParameters {
@@ -236,8 +224,6 @@ func (g *Game) Awards() *Awards {
 	return g.awards
 }
 
-// ================== Final Scores ==================
-
 // GetFinalScores returns a copy of the final scores (empty if game hasn't ended)
 func (g *Game) GetFinalScores() []FinalScore {
 	g.mu.RLock()
@@ -263,8 +249,6 @@ func (g *Game) IsTie() bool {
 	defer g.mu.RUnlock()
 	return g.isTie
 }
-
-// ================== Player Management ==================
 
 // GetPlayer returns a player by ID
 func (g *Game) GetPlayer(playerID string) (*player.Player, error) {
@@ -306,9 +290,6 @@ func (g *Game) AddPlayer(ctx context.Context, p *player.Player) error {
 	g.updatedAt = time.Now()
 	g.mu.Unlock()
 
-	// Publish PlayerJoinedEvent AFTER releasing lock
-	// NOTE: BroadcastEvent is NOT published here - the handler is responsible
-	// for publishing it AFTER registering the connection with the Hub
 	if g.eventBus != nil {
 		events.Publish(g.eventBus, events.PlayerJoinedEvent{
 			GameID:   g.id,
@@ -338,8 +319,6 @@ func (g *Game) RemovePlayer(ctx context.Context, playerID string) error {
 	return nil
 }
 
-// ================== Game State Mutations with Event Publishing ==================
-
 // UpdateStatus updates the game status and publishes GameStatusChangedEvent
 func (g *Game) UpdateStatus(ctx context.Context, newStatus GameStatus) error {
 	if err := ctx.Err(); err != nil {
@@ -354,7 +333,6 @@ func (g *Game) UpdateStatus(ctx context.Context, newStatus GameStatus) error {
 	g.updatedAt = time.Now()
 	g.mu.Unlock()
 
-	// Publish event AFTER releasing lock
 	if g.eventBus != nil && oldStatus != newStatus {
 		events.Publish(g.eventBus, events.GameStatusChangedEvent{
 			GameID:    g.id,
@@ -404,7 +382,6 @@ func (g *Game) UpdatePhase(ctx context.Context, newPhase GamePhase) error {
 	g.updatedAt = time.Now()
 	g.mu.Unlock()
 
-	// Publish event AFTER releasing lock
 	if g.eventBus != nil && oldPhase != newPhase {
 		events.Publish(g.eventBus, events.GamePhaseChangedEvent{
 			GameID:   g.id,
@@ -431,7 +408,6 @@ func (g *Game) AdvanceGeneration(ctx context.Context) error {
 	g.updatedAt = time.Now()
 	g.mu.Unlock()
 
-	// Publish event AFTER releasing lock
 	if g.eventBus != nil {
 		events.Publish(g.eventBus, events.GenerationAdvancedEvent{
 			GameID:        g.id,
@@ -459,7 +435,6 @@ func (g *Game) SetGeneration(ctx context.Context, generation int) error {
 	g.updatedAt = time.Now()
 	g.mu.Unlock()
 
-	// Publish event AFTER releasing lock
 	if g.eventBus != nil && oldGeneration != newGeneration {
 		events.Publish(g.eventBus, events.GenerationAdvancedEvent{
 			GameID:        g.id,
@@ -499,7 +474,6 @@ func (g *Game) SetTurnOrder(ctx context.Context, turnOrder []string) error {
 	}
 
 	g.mu.Lock()
-	// Create a copy to prevent external mutation
 	g.turnOrder = make([]string, len(turnOrder))
 	copy(g.turnOrder, turnOrder)
 	g.updatedAt = time.Now()
@@ -529,8 +503,6 @@ func (g *Game) SetHostPlayerID(ctx context.Context, playerID string) error {
 	return nil
 }
 
-// ================== Turn Management ==================
-
 // NextPlayer returns the next player ID in turn order based on current turn
 // Returns nil if CurrentTurn is nil, turnOrder is empty, or no players exist
 func (g *Game) NextPlayer() *string {
@@ -543,7 +515,6 @@ func (g *Game) NextPlayer() *string {
 
 	currentPlayerID := g.currentTurn.PlayerID()
 
-	// Find current player index in turn order
 	currentIndex := -1
 	for i, playerID := range g.turnOrder {
 		if playerID == currentPlayerID {
@@ -553,16 +524,12 @@ func (g *Game) NextPlayer() *string {
 	}
 
 	if currentIndex == -1 {
-		// Current turn player not found in turn order, return first player
 		return &g.turnOrder[0]
 	}
 
-	// Calculate next player index (wrap around)
 	nextIndex := (currentIndex + 1) % len(g.turnOrder)
 	return &g.turnOrder[nextIndex]
 }
-
-// ================== Player Non-Card Phase State Management ==================
 
 // GetPendingTileSelection returns the pending tile selection for a player
 func (g *Game) GetPendingTileSelection(playerID string) *player.PendingTileSelection {
@@ -573,7 +540,6 @@ func (g *Game) GetPendingTileSelection(playerID string) *player.PendingTileSelec
 	if !exists || selection == nil {
 		return nil
 	}
-	// Simple struct, return copy
 	selectionCopy := *selection
 	return &selectionCopy
 }
@@ -613,7 +579,6 @@ func (g *Game) GetPendingTileSelectionQueue(playerID string) *player.PendingTile
 	if !exists || queue == nil {
 		return nil
 	}
-	// Simple struct, return copy
 	queueCopy := *queue
 	return &queueCopy
 }
@@ -641,7 +606,6 @@ func (g *Game) SetPendingTileSelectionQueue(ctx context.Context, playerID string
 		})
 	}
 
-	// Automatically process first tile if queue is not empty
 	if queue != nil && len(queue.Items) > 0 {
 		if err := g.ProcessNextTile(ctx, playerID); err != nil {
 			return fmt.Errorf("failed to auto-process first queued tile: %w", err)
@@ -663,7 +627,6 @@ func (g *Game) AppendToPendingTileSelectionQueue(ctx context.Context, playerID s
 	}
 
 	g.mu.Lock()
-	// Get existing queue or create new one
 	existingQueue, exists := g.pendingTileSelectionQueues[playerID]
 	var items []string
 	var queueSource string
@@ -676,10 +639,8 @@ func (g *Game) AppendToPendingTileSelectionQueue(ctx context.Context, playerID s
 		queueSource = source
 	}
 
-	// Append new tiles
 	items = append(items, tileTypes...)
 
-	// Update queue
 	g.pendingTileSelectionQueues[playerID] = &player.PendingTileSelectionQueue{
 		Items:  items,
 		Source: queueSource,
@@ -713,7 +674,6 @@ func (g *Game) GetForcedFirstAction(playerID string) *player.ForcedFirstAction {
 	if !exists || action == nil {
 		return nil
 	}
-	// Simple struct, return copy
 	actionCopy := *action
 	return &actionCopy
 }
@@ -753,7 +713,6 @@ func (g *Game) GetProductionPhase(playerID string) *player.ProductionPhase {
 	if !exists || phase == nil {
 		return nil
 	}
-	// Return copy to prevent external mutation
 	phaseCopy := *phase
 	return &phaseCopy
 }
@@ -793,7 +752,6 @@ func (g *Game) GetSelectStartingCardsPhase(playerID string) *player.SelectStarti
 	if !exists || phase == nil {
 		return nil
 	}
-	// Return copy to prevent external mutation
 	phaseCopy := *phase
 	return &phaseCopy
 }
@@ -832,19 +790,16 @@ func (g *Game) ProcessNextTile(ctx context.Context, playerID string) error {
 	}
 
 	g.mu.Lock()
-	// Get queue for this player
 	queue, exists := g.pendingTileSelectionQueues[playerID]
 	if !exists || queue == nil || len(queue.Items) == 0 {
 		g.mu.Unlock()
-		return nil // No queue or empty queue
+		return nil
 	}
 
-	// Pop first item
 	nextTileType := queue.Items[0]
 	remainingItems := queue.Items[1:]
 	source := queue.Source
 
-	// Update or clear queue
 	if len(remainingItems) > 0 {
 		g.pendingTileSelectionQueues[playerID] = &player.PendingTileSelectionQueue{
 			Items:  remainingItems,
@@ -855,10 +810,8 @@ func (g *Game) ProcessNextTile(ctx context.Context, playerID string) error {
 	}
 	g.mu.Unlock()
 
-	// Calculate available hexes for this tile type
 	availableHexes := g.calculateAvailableHexesForTile(nextTileType, playerID)
 
-	// Create pending tile selection
 	err := g.SetPendingTileSelection(ctx, playerID, &player.PendingTileSelection{
 		TileType:       nextTileType,
 		AvailableHexes: availableHexes,
@@ -888,13 +841,10 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string) 
 
 		switch tileType {
 		case "city":
-			// Cities can be placed on land tiles (not ocean-space)
-			// Cities CANNOT be adjacent to other cities
 			if tile.Type != shared.ResourceLandTile {
 				continue
 			}
 
-			// Check if any neighbor has a city
 			hasAdjacentCity := false
 			neighbors := tile.Coordinates.GetNeighbors()
 
@@ -940,19 +890,16 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string) 
 			}
 
 		case "greenery":
-			// Greeneries can be placed on land tiles (not ocean-space)
 			if tile.Type == shared.ResourceLandTile {
 				availableHexes = append(availableHexes, tile.Coordinates.String())
 			}
 
 		case "ocean":
-			// Oceans can only be placed on ocean-space tiles
 			if tile.Type == shared.ResourceOceanSpace {
 				availableHexes = append(availableHexes, tile.Coordinates.String())
 			}
 
 		default:
-			// For unknown tile types, allow placement on any land tile
 			if tile.Type == shared.ResourceLandTile {
 				availableHexes = append(availableHexes, tile.Coordinates.String())
 			}
@@ -967,8 +914,6 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string) 
 func (g *Game) CountAvailableHexesForTile(tileType string, playerID string) int {
 	return len(g.calculateAvailableHexesForTile(tileType, playerID))
 }
-
-// ================== Triggered Effects (for UI notifications) ==================
 
 // TriggeredEffect represents a card effect that was triggered (for frontend notifications)
 type TriggeredEffect struct {
@@ -988,7 +933,6 @@ func (g *Game) AddTriggeredEffect(effect TriggeredEffect) {
 func (g *Game) GetTriggeredEffects() []TriggeredEffect {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
-	// Return a copy
 	result := make([]TriggeredEffect, len(g.triggeredEffects))
 	copy(result, g.triggeredEffects)
 	return result
@@ -999,4 +943,38 @@ func (g *Game) ClearTriggeredEffects() {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.triggeredEffects = nil
+}
+
+func (g *Game) subscribeToGenerationalEvents() {
+	events.Subscribe(g.eventBus, func(e events.TerraformRatingChangedEvent) {
+		if e.NewRating > e.OldRating {
+			p, err := g.GetPlayer(e.PlayerID)
+			if err != nil {
+				return
+			}
+			p.GenerationalEvents().Increment(shared.GenerationalEventTRRaise)
+		}
+	})
+
+	events.Subscribe(g.eventBus, func(e events.TilePlacedEvent) {
+		p, err := g.GetPlayer(e.PlayerID)
+		if err != nil {
+			return
+		}
+
+		switch e.TileType {
+		case "ocean":
+			p.GenerationalEvents().Increment(shared.GenerationalEventOceanPlacement)
+		case "city":
+			p.GenerationalEvents().Increment(shared.GenerationalEventCityPlacement)
+		case "greenery":
+			p.GenerationalEvents().Increment(shared.GenerationalEventGreeneryPlacement)
+		}
+	})
+
+	events.Subscribe(g.eventBus, func(e events.GenerationAdvancedEvent) {
+		for _, p := range g.GetAllPlayers() {
+			p.GenerationalEvents().Clear()
+		}
+	})
 }

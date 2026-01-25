@@ -55,7 +55,6 @@ func (pc *PlayedCards) AddCard(cardID, cardName, cardType string) {
 	pc.cards = append(pc.cards, cardID)
 	pc.mu.Unlock()
 
-	// Publish domain events after adding card
 	if pc.eventBus != nil {
 		// Publish CardPlayedEvent for passive card effects and game logging
 		events.Publish(pc.eventBus, events.CardPlayedEvent{

@@ -81,7 +81,6 @@ func NewBoardWithTiles(gameID string, tiles []Tile, eventBus *events.EventBusImp
 func GenerateMarsBoard() []Tile {
 	tiles := []Tile{}
 
-	// Ocean space positions (9 total, distributed across the board)
 	oceanSpaces := map[shared.HexPosition]bool{
 		{Q: -4, R: 0, S: 4}:  true,
 		{Q: -3, R: -1, S: 4}: true,
@@ -94,7 +93,6 @@ func GenerateMarsBoard() []Tile {
 		{Q: 1, R: 3, S: -4}:  true,
 	}
 
-	// Bonus tiles with their positions and types
 	bonusTiles := map[shared.HexPosition]TileBonus{
 		{Q: -3, R: 1, S: 2}:  {Type: shared.ResourceSteel, Amount: 2},
 		{Q: -2, R: 0, S: 2}:  {Type: shared.ResourceSteel, Amount: 2},
@@ -106,7 +104,6 @@ func GenerateMarsBoard() []Tile {
 		{Q: 2, R: -3, S: 1}:  {Type: shared.ResourceCardDraw, Amount: 2},
 	}
 
-	// Generate hexagonal grid (radius 4 from center)
 	radius := 4
 	for q := -radius; q <= radius; q++ {
 		r1 := max(-radius, -q-radius)
@@ -227,8 +224,6 @@ func (b *Board) UpdateTileOccupancy(ctx context.Context, coords shared.HexPositi
 		return fmt.Errorf("tile not found at coordinates %v", coords)
 	}
 
-	// Publish event AFTER releasing lock
-	// Automatic broadcasting handled by EventBus
 	if b.eventBus != nil {
 		events.Publish(b.eventBus, events.TilePlacedEvent{
 			GameID:   b.gameID,
@@ -258,7 +253,6 @@ func (b *Board) deepCopyTiles() []Tile {
 func (b *Board) deepCopyTile(tile *Tile) *Tile {
 	tileCopy := *tile
 
-	// Deep copy slices and pointers
 	tileCopy.Tags = make([]string, len(tile.Tags))
 	copy(tileCopy.Tags, tile.Tags)
 

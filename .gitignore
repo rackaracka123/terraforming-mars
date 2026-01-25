@@ -54,7 +54,11 @@ Thumbs.db
 
 .playwright-mcp
 
-.claude
+.claude/*
+!.claude/commands/
+!.claude/commands/**
+!.claude/skills/
+!.claude/skills/**
 
 # Go binaries
 backend/bin/
@@ -73,3 +77,7 @@ backend/server
 /claude/*\.local\.*
 terraforming-mars.iml
 /backend/bin
+
+# Python bytecode
+__pycache__/
+*.py[cod]

@@ -42,21 +42,18 @@ func (a *SetResourcesAction) Execute(ctx context.Context, gameID string, playerI
 	)
 	log.Info("💰 Admin: Setting player resources")
 
-	// 1. Fetch game from repository
 	game, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game", zap.Error(err))
 		return fmt.Errorf("game not found: %s", gameID)
 	}
 
-	// 2. Get player from game
 	player, err := game.GetPlayer(playerID)
 	if err != nil {
 		log.Error("Player not found in game", zap.Error(err))
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// 3. Update player resources
 	player.Resources().Set(resources)
 
 	log.Info("✅ Admin set resources completed")

@@ -10236,6 +10236,14 @@
             "amount": 1,
             "target": "self-player"
           }
+        ],
+        "generationalEventRequirements": [
+          {
+            "event": "tr-raise",
+            "count": {
+              "min": 1
+            }
+          }
         ]
       }
     ]

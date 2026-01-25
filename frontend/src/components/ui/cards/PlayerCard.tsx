@@ -1,6 +1,12 @@
 import React, { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
-import { PlayerDto, OtherPlayerDto, TriggeredEffectDto, ResourceType, ResourceTypeCredit } from "@/types/generated/api-types.ts";
+import {
+  PlayerDto,
+  OtherPlayerDto,
+  TriggeredEffectDto,
+  ResourceType,
+  ResourceTypeCredit,
+} from "@/types/generated/api-types.ts";
 import GameIcon from "../display/GameIcon.tsx";
 
 interface EffectNotification {
@@ -52,7 +58,9 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
     if (playerEffects.length === 0) return;
 
     // Create a unique batch ID based on the effects
-    const batchId = playerEffects.map(e => `${e.cardName}-${e.outputs.map(o => `${o.type}:${o.amount}`).join(",")}`).join("|");
+    const batchId = playerEffects
+      .map((e) => `${e.cardName}-${e.outputs.map((o) => `${o.type}:${o.amount}`).join(",")}`)
+      .join("|");
 
     // Skip if we've already processed this exact batch
     if (processedBatchesRef.current.has(batchId)) return;
@@ -75,17 +83,11 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
     // Auto-dismiss after 3 seconds (not tied to effect cleanup)
     setTimeout(() => {
       setNotifications((prev) =>
-        prev.map((n) =>
-          newNotificationIds.includes(n.id)
-            ? { ...n, visible: false }
-            : n
-        )
+        prev.map((n) => (newNotificationIds.includes(n.id) ? { ...n, visible: false } : n)),
       );
       // Remove from DOM after fade out
       setTimeout(() => {
-        setNotifications((prev) =>
-          prev.filter((n) => !newNotificationIds.includes(n.id))
-        );
+        setNotifications((prev) => prev.filter((n) => !newNotificationIds.includes(n.id)));
         // Clean up processed batch after removal
         processedBatchesRef.current.delete(batchId);
       }, 300);
@@ -94,7 +96,12 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 
   // Helper to check if a resource type is credits or credit-production
   const isCreditsType = (type: string): boolean => {
-    return type === ResourceTypeCredit || type === "credits" || type === "credit-production" || type === "credits-production";
+    return (
+      type === ResourceTypeCredit ||
+      type === "credits" ||
+      type === "credit-production" ||
+      type === "credits-production"
+    );
   };
 
   // Ref for positioning notifications relative to the card
@@ -167,16 +174,18 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
       </div>
 
       {/* Triggered effect notifications - rendered via portal to avoid clipping */}
-      {notifications.length > 0 && cardRect && createPortal(
-        <div
-          className="fixed flex flex-row gap-1 z-[9999] pointer-events-none"
-          style={{
-            left: `${cardRect.right + 10}px`,
-            top: `${cardRect.top + cardRect.height / 2}px`,
-            transform: "translateY(-50%)",
-          }}
-        >
-          <style>{`
+      {notifications.length > 0 &&
+        cardRect &&
+        createPortal(
+          <div
+            className="fixed flex flex-row gap-1 z-[9999] pointer-events-none"
+            style={{
+              left: `${cardRect.right + 10}px`,
+              top: `${cardRect.top + cardRect.height / 2}px`,
+              transform: "translateY(-50%)",
+            }}
+          >
+            <style>{`
             @keyframes notificationEnter {
               0% {
                 opacity: 0;
@@ -198,74 +207,76 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               }
             }
           `}</style>
-          {/* Group notifications by card name */}
-          {(() => {
-            const grouped = new Map<string, { ids: string[]; outputs: typeof notifications[0]["effect"]["outputs"]; visible: boolean }>();
+            {/* Group notifications by card name */}
+            {(() => {
+              const grouped = new Map<
+                string,
+                {
+                  ids: string[];
+                  outputs: (typeof notifications)[0]["effect"]["outputs"];
+                  visible: boolean;
+                }
+              >();
 
-            for (const { id, effect, visible } of notifications) {
-              const existing = grouped.get(effect.cardName);
-              if (existing) {
-                existing.ids.push(id);
-                existing.outputs.push(...effect.outputs);
-                existing.visible = existing.visible && visible;
-              } else {
-                grouped.set(effect.cardName, {
-                  ids: [id],
-                  outputs: [...effect.outputs],
-                  visible,
-                });
+              for (const { id, effect, visible } of notifications) {
+                const existing = grouped.get(effect.cardName);
+                if (existing) {
+                  existing.ids.push(id);
+                  existing.outputs.push(...effect.outputs);
+                  existing.visible = existing.visible && visible;
+                } else {
+                  grouped.set(effect.cardName, {
+                    ids: [id],
+                    outputs: [...effect.outputs],
+                    visible,
+                  });
+                }
               }
-            }
 
-            return Array.from(grouped.entries()).map(([cardName, { ids, outputs, visible }]) => (
-              <div
-                key={ids.join("-")}
-                className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-[rgba(20,30,50,0.95)] border border-[rgba(100,150,255,0.3)] shadow-lg whitespace-nowrap"
-                style={{
-                  animation: visible
-                    ? "notificationEnter 0.3s ease-out forwards"
-                    : "notificationExit 0.3s ease-in forwards",
-                }}
-              >
-                {/* Card name */}
-                <span className="text-white text-xs font-medium">
-                  {cardName}
-                </span>
+              return Array.from(grouped.entries()).map(([cardName, { ids, outputs, visible }]) => (
+                <div
+                  key={ids.join("-")}
+                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-[rgba(20,30,50,0.95)] border border-[rgba(100,150,255,0.3)] shadow-lg whitespace-nowrap"
+                  style={{
+                    animation: visible
+                      ? "notificationEnter 0.3s ease-out forwards"
+                      : "notificationExit 0.3s ease-in forwards",
+                  }}
+                >
+                  {/* Card name */}
+                  <span className="text-white text-xs font-medium">{cardName}</span>
 
-                {/* Output icons */}
-                <div className="flex items-center gap-2">
-                  {outputs.map((output, i) => (
-                    <div key={i} className="flex items-center">
-                      {isCreditsType(output.type) ? (
-                        // Credits: embed amount inside icon
-                        <GameIcon
-                          iconType={output.type as ResourceType}
-                          amount={Math.abs(output.amount)}
-                          size="small"
-                        />
-                      ) : (
-                        // Other resources: show icon with amount on right
-                        <>
+                  {/* Output icons */}
+                  <div className="flex items-center gap-2">
+                    {outputs.map((output, i) => (
+                      <div key={i} className="flex items-center">
+                        {isCreditsType(output.type) ? (
+                          // Credits: embed amount inside icon
                           <GameIcon
                             iconType={output.type as ResourceType}
+                            amount={Math.abs(output.amount)}
                             size="small"
                           />
-                          {output.amount !== 0 && (
-                            <span className="text-white text-xs font-bold ml-0.5">
-                              {output.amount > 0 ? `+${output.amount}` : output.amount}
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  ))}
+                        ) : (
+                          // Other resources: show icon with amount on right
+                          <>
+                            <GameIcon iconType={output.type as ResourceType} size="small" />
+                            {output.amount !== 0 && (
+                              <span className="text-white text-xs font-bold ml-0.5">
+                                {output.amount > 0 ? `+${output.amount}` : output.amount}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ));
-          })()}
-        </div>,
-        document.body
-      )}
+              ));
+            })()}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 };

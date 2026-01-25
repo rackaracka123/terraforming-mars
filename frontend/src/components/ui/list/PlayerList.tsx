@@ -1,5 +1,10 @@
 import React from "react";
-import { PlayerDto, OtherPlayerDto, GamePhase, TriggeredEffectDto } from "@/types/generated/api-types.ts";
+import {
+  PlayerDto,
+  OtherPlayerDto,
+  GamePhase,
+  TriggeredEffectDto,
+} from "@/types/generated/api-types.ts";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import PlayerCard from "../cards/PlayerCard.tsx";
 

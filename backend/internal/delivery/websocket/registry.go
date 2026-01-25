@@ -35,40 +35,30 @@ import (
 func RegisterHandlers(
 	hub *core.Hub,
 	broadcaster *Broadcaster,
-	// Game lifecycle
 	createGameAction *gameAction.CreateGameAction,
 	joinGameAction *gameAction.JoinGameAction,
 	confirmDemoSetupAction *gameAction.ConfirmDemoSetupAction,
-	// Card actions
 	playCardAction *cardAction.PlayCardAction,
 	useCardActionAction *cardAction.UseCardActionAction,
-	// Standard projects
 	launchAsteroidAction *stdprojAction.LaunchAsteroidAction,
 	buildPowerPlantAction *stdprojAction.BuildPowerPlantAction,
 	buildAquiferAction *stdprojAction.BuildAquiferAction,
 	buildCityAction *stdprojAction.BuildCityAction,
 	plantGreeneryAction *stdprojAction.PlantGreeneryAction,
 	sellPatentsAction *stdprojAction.SellPatentsAction,
-	// Resource conversions
 	convertHeatAction *resconvAction.ConvertHeatToTemperatureAction,
 	convertPlantsAction *resconvAction.ConvertPlantsToGreeneryAction,
-	// Tile selection
 	selectTileAction *tileAction.SelectTileAction,
-	// Turn management
 	startGameAction *turnAction.StartGameAction,
 	skipActionAction *turnAction.SkipActionAction,
 	selectStartingCardsAction *turnAction.SelectStartingCardsAction,
-	// Confirmations
 	confirmSellPatentsAction *confirmAction.ConfirmSellPatentsAction,
 	confirmProductionCardsAction *confirmAction.ConfirmProductionCardsAction,
 	confirmCardDrawAction *confirmAction.ConfirmCardDrawAction,
-	// Connection
 	playerReconnectedAction *connAction.PlayerReconnectedAction,
 	playerDisconnectedAction *connAction.PlayerDisconnectedAction,
-	// Milestones & Awards
 	claimMilestoneAction *milestoneAction.ClaimMilestoneAction,
 	fundAwardAction *awardAction.FundAwardAction,
-	// Admin actions
 	adminSetPhaseAction *adminAction.SetPhaseAction,
 	adminSetCurrentTurnAction *adminAction.SetCurrentTurnAction,
 	adminSetResourcesAction *adminAction.SetResourcesAction,

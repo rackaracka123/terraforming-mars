@@ -122,7 +122,6 @@ func CalculatePlayerVP(
 		breakdown.CityVP += detail.VP
 	}
 
-	// Calculate total
 	breakdown.TotalVP = breakdown.TerraformRating +
 		breakdown.CardVP +
 		breakdown.MilestoneVP +

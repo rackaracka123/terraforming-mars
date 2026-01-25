@@ -9,10 +9,6 @@ import (
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-// ========================================
-// Resource Conversion Helpers
-// ========================================
-
 // toResourcesDto converts shared.Resources to ResourcesDto.
 func toResourcesDto(res shared.Resources) ResourcesDto {
 	return ResourcesDto{
@@ -49,36 +45,19 @@ func calculateResourceDelta(before, after shared.Resources) ResourcesDto {
 	}
 }
 
-// ========================================
-// Player DTO Mappers
-// ========================================
-
 // ToPlayerDto converts migration Player to PlayerDto
 func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry) PlayerDto {
 	resourcesComponent := p.Resources()
 	resources := resourcesComponent.Get()
 	production := resourcesComponent.Production()
 
-	// Get corporation card if player has one
 	corporation := getCorporationCard(p, cardRegistry)
-
-	// Get played cards with full card details
 	playedCardIDs := p.PlayedCards().Cards()
 	playedCards := getPlayedCards(playedCardIDs, cardRegistry)
-
-	// Get hand cards with playability state (Player-Scoped Card Architecture)
 	handCards := mapPlayerCards(p)
-
-	// Get standard projects with availability state (Player-Scoped Card Architecture)
 	standardProjects := mapPlayerStandardProjects(p, g, cardRegistry)
-
-	// Get milestones with player eligibility state
 	milestones := mapPlayerMilestones(p, g, cardRegistry)
-
-	// Get awards with player eligibility state
 	awards := mapPlayerAwards(p, g)
-
-	// Only include turn-specific data if it's this player's turn
 	var pendingTileSelection *PendingTileSelectionDto
 	var forcedFirstAction *ForcedFirstActionDto
 	currentTurn := g.CurrentTurn()
@@ -102,7 +81,7 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 		AvailableActions: getAvailableActionsForPlayer(g, p.ID()),
 		IsConnected:      p.IsConnected(),
 		Effects:          convertPlayerEffects(p.Effects().List()),
-		Actions:          convertPlayerActions(p.Actions().List()),
+		Actions:          convertPlayerActions(p.Actions().List(), p, g),
 		StandardProjects: standardProjects, // PlayerStandardProjectDto[] with state
 		Milestones:       milestones,       // PlayerMilestoneDto[] with eligibility
 		Awards:           awards,           // PlayerAwardDto[] with eligibility
@@ -116,7 +95,7 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 		ForcedFirstAction:        forcedFirstAction,
 		ResourceStorage:          p.Resources().Storage(),
 		PaymentSubstitutes:       convertPaymentSubstitutes(p.Resources().PaymentSubstitutes()),
-		// Note: RequirementModifiers removed - discounts are now in PlayerCardDto.Discounts and PlayerStandardProjectDto.Discounts
+		GenerationalEvents:       convertGenerationalEvents(p.GenerationalEvents().GetAll()),
 	}
 }
 
@@ -126,14 +105,9 @@ func ToOtherPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardReg
 	resources := resourcesComponent.Get()
 	production := resourcesComponent.Production()
 
-	// Get corporation card if player has one
 	corporation := getCorporationCard(p, cardRegistry)
-
-	// Get played cards with full card details
 	playedCardIDs := p.PlayedCards().Cards()
 	playedCards := getPlayedCards(playedCardIDs, cardRegistry)
-
-	// Get hand card count
 	handCardCount := len(p.Hand().Cards())
 
 	return OtherPlayerDto{
@@ -151,7 +125,7 @@ func ToOtherPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardReg
 		AvailableActions: getAvailableActionsForPlayer(g, p.ID()),
 		IsConnected:      p.IsConnected(),
 		Effects:          convertPlayerEffects(p.Effects().List()),
-		Actions:          convertPlayerActions(p.Actions().List()),
+		Actions:          convertPlayerActions(p.Actions().List(), p, g),
 
 		SelectStartingCardsPhase: convertSelectStartingCardsPhaseForOtherPlayer(g.GetSelectStartingCardsPhase(p.ID())),
 		ProductionPhase:          convertProductionPhaseForOtherPlayer(g.GetProductionPhase(p.ID())),
@@ -186,7 +160,6 @@ func convertSelectStartingCardsPhaseForOtherPlayer(phase *player.SelectStartingC
 		return nil
 	}
 
-	// Other players don't see selection details
 	return &SelectStartingCardsOtherPlayerDto{}
 }
 
@@ -242,20 +215,32 @@ func convertPlayerEffects(effects []player.CardEffect) []PlayerEffectDto {
 }
 
 // convertPlayerActions converts CardAction slice to PlayerActionDto slice
-func convertPlayerActions(actions []player.CardAction) []PlayerActionDto {
+// Calculates state for each action to determine availability and errors.
+func convertPlayerActions(actions []player.CardAction, p *player.Player, g *game.Game) []PlayerActionDto {
 	if len(actions) == 0 {
 		return []PlayerActionDto{}
 	}
 
 	dtos := make([]PlayerActionDto, len(actions))
-	for i, action := range actions {
+	for i, act := range actions {
+		// Calculate state for this action
+		state := action.CalculatePlayerCardActionState(
+			act.CardID,
+			act.Behavior,
+			nil, // pca is currently unused in the state calculator
+			p,
+			g,
+		)
+
 		dtos[i] = PlayerActionDto{
-			CardID:                  action.CardID,
-			CardName:                action.CardName,
-			BehaviorIndex:           action.BehaviorIndex,
-			Behavior:                toCardBehaviorDto(action.Behavior),
-			TimesUsedThisTurn:       action.TimesUsedThisTurn,
-			TimesUsedThisGeneration: action.TimesUsedThisGeneration,
+			CardID:                  act.CardID,
+			CardName:                act.CardName,
+			BehaviorIndex:           act.BehaviorIndex,
+			Behavior:                toCardBehaviorDto(act.Behavior),
+			TimesUsedThisTurn:       act.TimesUsedThisTurn,
+			TimesUsedThisGeneration: act.TimesUsedThisGeneration,
+			Available:               state.Available(),
+			Errors:                  convertStateErrors(state.Errors),
 		}
 	}
 	return dtos
@@ -283,7 +268,6 @@ func convertPendingCardSelection(selection *player.PendingCardSelection, cardReg
 		return nil
 	}
 
-	// Convert card IDs to full CardDtos
 	availableCards := getPlayedCards(selection.AvailableCards, cardRegistry)
 
 	return &PendingCardSelectionDto{
@@ -302,7 +286,6 @@ func convertPendingCardDrawSelection(selection *player.PendingCardDrawSelection,
 		return nil
 	}
 
-	// Convert card IDs to full CardDtos
 	availableCards := getPlayedCards(selection.AvailableCards, cardRegistry)
 
 	return &PendingCardDrawSelectionDto{
@@ -346,21 +329,15 @@ func convertPendingTileSelection(selection *player.PendingTileSelection) *Pendin
 func getAvailableActionsForPlayer(g *game.Game, playerID string) int {
 	currentTurn := g.CurrentTurn()
 	if currentTurn == nil {
-		return 0 // No current turn set
+		return 0
 	}
 
-	// Only return actions if this is the current player
 	if currentTurn.PlayerID() == playerID {
 		return currentTurn.ActionsRemaining()
 	}
 
-	// Other players don't have actions (actions are per-turn, not per-player)
 	return 0
 }
-
-// ========================================
-// Player-Scoped Card Architecture Mappers
-// ========================================
 
 // convertStateErrors converts EntityState errors to DTOs.
 // Since domain and DTO enums have identical string values, we cast between them.
@@ -380,7 +357,6 @@ func convertStateErrors(errors []player.StateError) []StateErrorDto {
 func ToPlayerCardDto(pc *player.PlayerCard) PlayerCardDto {
 	state := pc.State()
 
-	// Type assert card from any to *gamecards.Card
 	cardAny := pc.Card()
 	card, ok := cardAny.(*gamecards.Card)
 	if !ok {
@@ -392,19 +368,16 @@ func ToPlayerCardDto(pc *player.PlayerCard) PlayerCardDto {
 		}
 	}
 
-	// Extract discounts from metadata (stored as map[string]int by state_calculator)
 	discounts := make(map[string]int)
 	if discountData, ok := state.Metadata["discounts"].(map[string]int); ok {
 		discounts = discountData
 	}
 
-	// Convert tags
 	tags := make([]CardTag, len(card.Tags))
 	for i, tag := range card.Tags {
 		tags[i] = CardTag(tag)
 	}
 
-	// Convert requirements
 	var requirements []RequirementDto
 	if len(card.Requirements) > 0 {
 		requirements = make([]RequirementDto, len(card.Requirements))
@@ -413,7 +386,6 @@ func ToPlayerCardDto(pc *player.PlayerCard) PlayerCardDto {
 		}
 	}
 
-	// Convert behaviors
 	var behaviors []CardBehaviorDto
 	if len(card.Behaviors) > 0 {
 		behaviors = make([]CardBehaviorDto, len(card.Behaviors))
@@ -422,14 +394,12 @@ func ToPlayerCardDto(pc *player.PlayerCard) PlayerCardDto {
 		}
 	}
 
-	// Convert resource storage
 	var resourceStorage *ResourceStorageDto
 	if card.ResourceStorage != nil {
 		storage := toResourceStorageDto(*card.ResourceStorage)
 		resourceStorage = &storage
 	}
 
-	// Convert VP conditions
 	var vpConditions []VPConditionDto
 	if len(card.VPConditions) > 0 {
 		vpConditions = make([]VPConditionDto, len(card.VPConditions))
@@ -438,7 +408,6 @@ func ToPlayerCardDto(pc *player.PlayerCard) PlayerCardDto {
 		}
 	}
 
-	// Extract effective cost (credits) from EntityState.Cost map
 	effectiveCost := 0
 	if state.Cost != nil {
 		if credits, ok := state.Cost[string(shared.ResourceCredit)]; ok {
@@ -459,11 +428,10 @@ func ToPlayerCardDto(pc *player.PlayerCard) PlayerCardDto {
 		Behaviors:       behaviors,
 		ResourceStorage: resourceStorage,
 		VPConditions:    vpConditions,
-		// Player-specific state
-		Available:     state.Available(),
-		Errors:        convertStateErrors(state.Errors),
-		EffectiveCost: effectiveCost,
-		Discounts:     discounts,
+		Available:       state.Available(),
+		Errors:          convertStateErrors(state.Errors),
+		EffectiveCost:   effectiveCost,
+		Discounts:       discounts,
 	}
 }
 
@@ -492,7 +460,6 @@ func mapPlayerCards(p *player.Player) []PlayerCardDto {
 // NOTE: Conversion projects (plants→greenery, heat→temperature) are NOT included here - they
 // are handled separately via resource buttons in the bottom bar.
 func mapPlayerStandardProjects(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry) []PlayerStandardProjectDto {
-	// Standard project types (excluding resource conversion projects which appear on resource icons)
 	projectTypes := []shared.StandardProject{
 		shared.StandardProjectSellPatents,
 		shared.StandardProjectPowerPlant,
@@ -507,10 +474,8 @@ func mapPlayerStandardProjects(p *player.Player, g *game.Game, cardRegistry card
 		// Calculate state using the state calculator
 		state := action.CalculatePlayerStandardProjectState(projectType, p, g, cardRegistry)
 
-		// Get base costs for this project
 		baseCost := action.GetStandardProjectBaseCosts(projectType)
 
-		// Extract discounts from metadata
 		discounts := make(map[string]int)
 		if discountData, ok := state.Metadata["discounts"].(map[string]int); ok {
 			discounts = discountData
@@ -574,6 +539,22 @@ func mapPlayerMilestones(p *player.Player, g *game.Game, cardRegistry cards.Card
 	}
 
 	return result
+}
+
+// convertGenerationalEvents converts PlayerGenerationalEventEntry slice to DTO slice
+func convertGenerationalEvents(entries []shared.PlayerGenerationalEventEntry) []PlayerGenerationalEventEntryDto {
+	if len(entries) == 0 {
+		return []PlayerGenerationalEventEntryDto{}
+	}
+
+	dtos := make([]PlayerGenerationalEventEntryDto, len(entries))
+	for i, entry := range entries {
+		dtos[i] = PlayerGenerationalEventEntryDto{
+			Event: GenerationalEvent(entry.Event),
+			Count: entry.Count,
+		}
+	}
+	return dtos
 }
 
 // mapPlayerAwards calculates state for all awards and converts to DTOs.

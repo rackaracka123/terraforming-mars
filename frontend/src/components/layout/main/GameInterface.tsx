@@ -27,7 +27,7 @@ import ChoiceSelectionPopover from "../../ui/popover/ChoiceSelectionPopover.tsx"
 import CardStorageSelectionPopover from "../../ui/popover/CardStorageSelectionPopover.tsx";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import { getTabManager } from "@/utils/tabManager.ts";
-import audioService from "../../../services/audioService.ts";
+import { useSoundEffects } from "@/hooks/useSoundEffects.ts";
 import { skyboxCache } from "@/services/SkyboxCache.ts";
 import { clearGameSession, getGameSession, saveGameSession } from "@/utils/sessionStorage.ts";
 import {
@@ -55,6 +55,7 @@ import { StandardProject } from "@/types/cards.tsx";
 export default function GameInterface() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { playProductionSound } = useSoundEffects();
   const [game, setGame] = useState<GameDto | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
@@ -279,7 +280,7 @@ export default function GameInterface() {
     if (hasProductionData && !showProductionPhaseModal) {
       // Only play sound if this is not the initial mount (skip on page reload)
       if (!isInitialMount.current) {
-        void audioService.playProductionSound();
+        void playProductionSound();
       }
       setShowProductionPhaseModal(true);
       // Reset the flag for opening directly to card selection on new production phase
@@ -293,7 +294,7 @@ export default function GameInterface() {
     if (isInitialMount.current) {
       isInitialMount.current = false;
     }
-  }, [currentPlayer?.productionPhase, game, showProductionPhaseModal]);
+  }, [currentPlayer?.productionPhase, game, showProductionPhaseModal, playProductionSound]);
 
   const handleCardSelection = useCallback(
     async (selectedCardIds: string[], corporationId: string) => {
@@ -1525,7 +1526,6 @@ export default function GameInterface() {
           Return to Production
         </button>
       )}
-
     </>
   );
 }

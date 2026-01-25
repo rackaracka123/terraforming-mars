@@ -35,7 +35,6 @@ func (a *GetPlayerAction) Execute(ctx context.Context, gameID string, playerID s
 	)
 	log.Info("🔍 Querying player")
 
-	// Get game
 	game, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game", zap.Error(err))

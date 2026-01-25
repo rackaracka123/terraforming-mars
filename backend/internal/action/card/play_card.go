@@ -58,35 +58,29 @@ func (a *PlayCardAction) Execute(
 	}
 	log.Info("🃏 Player attempting to play card")
 
-	// 1. Validate game exists and is active
 	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
-	// 2. Validate game is in action phase
 	if err := baseaction.ValidateGamePhase(g, game.GamePhaseAction, log); err != nil {
 		return err
 	}
 
-	// 3. Validate it's the player's turn
 	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 
-	// 4. Get player from game
 	player, err := a.GetPlayerFromGame(g, playerID, log)
 	if err != nil {
 		return err
 	}
 
-	// 5. BUSINESS LOGIC: Validate card is in player's hand
 	if !player.Hand().HasCard(cardID) {
 		log.Error("Card not in player's hand")
 		return fmt.Errorf("card %s not in hand", cardID)
 	}
 
-	// 6. BUSINESS LOGIC: Get card data from registry
 	card, err := a.CardRegistry().GetByID(cardID)
 	if err != nil {
 		log.Error("Card not found in registry", zap.Error(err))
@@ -97,7 +91,6 @@ func (a *PlayCardAction) Execute(
 		zap.String("card_name", card.Name),
 		zap.Int("base_cost", card.Cost))
 
-	// 7. BUSINESS LOGIC: Validate card requirements (temperature, oxygen, tags, etc.)
 	if err := validateCardRequirements(card, g, player); err != nil {
 		log.Error("Card requirements not met", zap.Error(err))
 		return fmt.Errorf("cannot play card: %w", err)
@@ -105,7 +98,6 @@ func (a *PlayCardAction) Execute(
 
 	log.Debug("✅ Card requirements validated")
 
-	// 8. BUSINESS LOGIC: Convert payment request to CardPayment for validation
 	cardPayment := gamecards.CardPayment{
 		Credits:     payment.Credits,
 		Steel:       payment.Steel,
@@ -113,14 +105,11 @@ func (a *PlayCardAction) Execute(
 		Substitutes: payment.Substitutes,
 	}
 
-	// Get player's payment substitutes (e.g., Helion can use heat as credits)
 	playerSubstitutes := player.Resources().PaymentSubstitutes()
 
-	// Check if card allows steel/titanium
 	allowSteel := hasTag(card, shared.TagBuilding)
 	allowTitanium := hasTag(card, shared.TagSpace)
 
-	// 9. BUSINESS LOGIC: Validate payment covers card cost (including steel/titanium/substitutes)
 	if err := cardPayment.CoversCardCost(card.Cost, allowSteel, allowTitanium, playerSubstitutes); err != nil {
 		log.Error("Payment validation failed", zap.Error(err))
 		return err
@@ -135,14 +124,12 @@ func (a *PlayCardAction) Execute(
 		zap.Int("titanium", payment.Titanium),
 		zap.Any("substitutes", payment.Substitutes))
 
-	// 10. BUSINESS LOGIC: Validate player has the resources they're trying to spend
 	resources := player.Resources().Get()
 	if err := cardPayment.CanAfford(resources); err != nil {
 		log.Error("Player can't afford payment", zap.Error(err))
 		return err
 	}
 
-	// 11. STATE UPDATE: Remove card from hand
 	if !player.Hand().RemoveCard(cardID) {
 		log.Error("Failed to remove card from hand - card not found")
 		return fmt.Errorf("failed to remove card from hand: card not found")
@@ -150,12 +137,10 @@ func (a *PlayCardAction) Execute(
 
 	log.Info("✅ Card removed from hand")
 
-	// 12. STATE UPDATE: Add card to played cards (publishes CardPlayedEvent)
 	player.PlayedCards().AddCard(cardID, card.Name, string(card.Type))
 
 	log.Info("✅ Card added to played cards")
 
-	// 13. STATE UPDATE: Initialize resource storage if card can hold resources
 	if card.ResourceStorage != nil {
 		player.Resources().AddToStorage(cardID, card.ResourceStorage.Starting)
 		log.Info("📦 Initialized resource storage",
@@ -164,14 +149,12 @@ func (a *PlayCardAction) Execute(
 			zap.Int("starting_amount", card.ResourceStorage.Starting))
 	}
 
-	// 14. STATE UPDATE: Deduct payment from player resources (using negative values)
 	deductions := map[shared.ResourceType]int{
 		shared.ResourceCredit:   -payment.Credits,
 		shared.ResourceSteel:    -payment.Steel,
 		shared.ResourceTitanium: -payment.Titanium,
 	}
 
-	// Also deduct substitute resources (e.g., heat for Helion)
 	for resourceType, amount := range payment.Substitutes {
 		deductions[resourceType] = -amount
 	}
@@ -184,13 +167,10 @@ func (a *PlayCardAction) Execute(
 		zap.Int("titanium", payment.Titanium),
 		zap.Any("substitutes", payment.Substitutes))
 
-	// 15. BUSINESS LOGIC: Apply card immediate effects and register behaviors
 	if err := a.applyCardBehaviors(ctx, g, card, player, choiceIndex, log); err != nil {
 		log.Error("Failed to apply card behaviors", zap.Error(err))
 		return fmt.Errorf("failed to apply card behaviors: %w", err)
 	}
-
-	// Note: RequirementModifier recalculation removed - discounts are now calculated on-demand during EntityState calculation
 
 	log.Info("🎉 Card played successfully",
 		zap.String("card_name", card.Name),

@@ -35,21 +35,18 @@ func (a *PlayerReconnectedAction) Execute(ctx context.Context, gameID string, pl
 	)
 	log.Info("🔗 Player reconnecting")
 
-	// 1. Fetch game from repository
 	g, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game", zap.Error(err))
 		return fmt.Errorf("game not found: %s", gameID)
 	}
 
-	// 2. Get player from game
 	player, err := g.GetPlayer(playerID)
 	if err != nil {
 		log.Error("Player not found in game", zap.Error(err))
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// 3. Update player connection status to connected
 	player.SetConnected(true)
 
 	log.Info("✅ Player reconnected successfully")

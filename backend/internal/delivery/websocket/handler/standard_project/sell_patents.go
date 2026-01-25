@@ -51,7 +51,6 @@ func (h *SellPatentsHandler) HandleMessage(ctx context.Context, connection *core
 
 	log.Info("✅ Sell patents action completed successfully")
 
-	// Explicitly broadcast game state after action completes
 	h.broadcaster.BroadcastGameState(connection.GameID, nil)
 	log.Debug("📡 Broadcasted game state to all players")
 

@@ -25,16 +25,12 @@ type EventHandler interface {
 
 // Hub manages WebSocket connections and message routing
 type Hub struct {
-	// Core channels
 	Register   chan *Connection
 	Unregister chan *Connection
 	Messages   chan HubMessage
 
-	// Components
-	manager *Manager
-	logger  *zap.Logger
-
-	// Handler registry for specific message types
+	manager  *Manager
+	logger   *zap.Logger
 	handlers map[dto.MessageType]MessageHandler
 }
 
@@ -146,9 +142,6 @@ func (h *Hub) routeMessage(ctx context.Context, hubMessage HubMessage) {
 		zap.String("connection_id", connection.ID),
 		zap.String("message_type", string(message.Type)))
 
-	// Hub no longer manages sessions - that's SessionManager's job
-
-	// Check if we have a registered handler for this message type
 	if handler, exists := h.handlers[message.Type]; exists {
 		h.logger.Debug("🎯 Routing to registered message handler",
 			zap.String("message_type", string(message.Type)))

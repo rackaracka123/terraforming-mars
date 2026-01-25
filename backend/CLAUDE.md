@@ -1,5 +1,3 @@
-Read backend/go.instructions.md
-
 # Backend - Terraforming Mars API Server
 
 This document provides guidance for working with the backend API server.
@@ -75,12 +73,10 @@ The backend follows clean architecture principles with strict separation of conc
 - Request/response mapping
 - Depends on action layer, not repositories directly
 
-**Card System** (`internal/cards/`)
+**Card System** (`internal/cards/` + `internal/game/cards/`)
 
-- Centralized card registry and lookup
-- Card validation for requirements and plays
-- Card effect implementations
-- Modular effect handlers
+- `internal/cards/`: Card registry and JSON loader
+- `internal/game/cards/`: Card behavior logic, validation, requirement checking (NO state mutation)
 
 **Event System** (`internal/events/`)
 
@@ -93,35 +89,28 @@ The backend follows clean architecture principles with strict separation of conc
 
 ```
 backend/
-├── cmd/                    # Application entry points
-│   ├── server/            # Main server with dependency injection
-│   └── watch/             # Development file watching
-├── internal/              # Private application code
-│   ├── action/            # Action layer - single-responsibility business logic
-│   │   ├── base.go        # BaseAction with common dependencies
-│   │   ├── query/         # Query actions for reads
-│   │   └── admin/         # Admin actions
-│   ├── game/              # Game state repository and domain types
-│   │   ├── game.go        # Core Game type with all game state
-│   │   ├── repository.go  # GameRepository interface and implementation
-│   │   ├── player/        # Player entity and components
-│   │   ├── board/         # Board and Tile types
-│   │   ├── deck/          # Deck management
-│   │   ├── shared/        # Shared types (Resources, HexPosition, etc.)
-│   │   └── global_parameters/  # GlobalParameters with terraforming state
-│   ├── cards/             # Card system and registry
-│   ├── delivery/          # Presentation layer (HTTP, WebSocket, DTOs)
-│   │   └── websocket/     # Includes Broadcaster for event-driven updates
+├── cmd/
+│   └── server/            # Main server with dependency injection
+├── internal/
+│   ├── action/            # Business logic actions (ONLY place for state mutation)
+│   ├── cards/             # Card registry and loader
+│   ├── delivery/          # Presentation layer
+│   │   ├── dto/           # Data Transfer Objects and mappers
+│   │   ├── http/          # HTTP handlers
+│   │   └── websocket/     # WebSocket hub, handlers, broadcaster
 │   ├── events/            # Event bus and domain events
-│   ├── initialization/    # Application bootstrap and card loading
-│   └── logger/            # Structured logging
-├── pkg/                   # Public packages
-│   └── typegen/           # TypeScript type generation
+│   ├── game/              # Game state and domain types
+│   │   ├── board/         # Board and Tile types
+│   │   ├── cards/         # Card behavior logic (NO state mutation)
+│   │   ├── deck/          # Deck management
+│   │   ├── global_parameters/  # Temperature, oxygen, oceans
+│   │   ├── player/        # Player entity and components
+│   │   └── shared/        # Shared types (Resources, HexPosition, etc.)
+│   ├── logger/            # Structured logging
+│   └── middleware/        # HTTP middleware
 ├── test/                  # Test suite (mirrors internal/ structure)
-├── tools/                 # DEPRECATED: Card parser tool (being removed)
 ├── assets/                # Static game data (JSON card definitions)
-└── docs/                  # Documentation
-    └── swagger/           # Auto-generated API docs
+└── docs/                  # Architecture documentation
 ```
 
 ## Development Workflow
@@ -374,6 +363,169 @@ func (a *ConvertHeatToTemperatureAction) Execute(...) {
 - Design deterministic state transitions
 - Use proper synchronization when needed
 
+### Event-Driven Patterns for Game Logic
+
+Use the EventBus for "do this when that happens" scenarios. Instead of checking conditions in actions or polling for state changes, subscribe to domain events and react automatically. This pattern is used for generational event tracking, passive card effects, and state synchronization.
+
+**Pattern: Subscribe to Domain Events in Game Initialization**
+
+For tracking or reacting to game state changes, subscribe in the Game constructor:
+
+```go
+func NewGame(...) *Game {
+    g := &Game{...}
+    g.subscribeToGameEvents()
+    return g
+}
+
+func (g *Game) subscribeToGameEvents() {
+    // Track TR raises for generational events
+    events.Subscribe(g.eventBus, func(e events.TerraformRatingChangedEvent) {
+        if e.NewRating > e.OldRating {
+            p, err := g.GetPlayer(e.PlayerID)
+            if err != nil {
+                return
+            }
+            p.GenerationalEvents().Increment(shared.GenerationalEventTRRaise)
+        }
+    })
+
+    // Track tile placements
+    events.Subscribe(g.eventBus, func(e events.TilePlacedEvent) {
+        p, err := g.GetPlayer(e.PlayerID)
+        if err != nil {
+            return
+        }
+        switch e.TileType {
+        case "ocean":
+            p.GenerationalEvents().Increment(shared.GenerationalEventOceanPlacement)
+        case "city":
+            p.GenerationalEvents().Increment(shared.GenerationalEventCityPlacement)
+        case "greenery":
+            p.GenerationalEvents().Increment(shared.GenerationalEventGreeneryPlacement)
+        }
+    })
+
+    // Clear per-generation state on generation advance
+    events.Subscribe(g.eventBus, func(e events.GenerationAdvancedEvent) {
+        for _, p := range g.GetAllPlayers() {
+            p.GenerationalEvents().Clear()
+        }
+    })
+}
+```
+
+**When to Use Event Subscriptions**
+
+✅ Tracking player activities within a generation (TR raises, tile placements)
+✅ Resetting per-generation state when generation advances
+✅ Triggering passive card effects when game state changes
+✅ Broadcasting state updates to clients
+
+**When NOT to Use Event Subscriptions**
+
+❌ Validating requirements before an action (use state calculator instead)
+❌ Computing costs or discounts (use RequirementModifierCalculator)
+❌ Direct action-to-action communication (use the action layer pattern)
+
+### State Calculator Pattern
+
+The state calculator (`internal/action/state_calculator.go`) determines whether cards, card actions, and standard projects are available to the player. It computes errors, costs, and metadata for each entity, which the frontend uses to enable/disable UI elements.
+
+**When to Extend the State Calculator**
+
+Extend the state calculator when adding new requirements that must be validated before an action can be taken:
+- New global parameter checks (like Venus track)
+- New player state requirements (like generational events)
+- New resource or production requirements
+- New tile placement availability checks
+
+**Adding a New Requirement Type**
+
+1. Define error codes in `internal/game/player/state_error_codes.go`:
+
+```go
+const (
+    ErrorCodeMyNewRequirement StateErrorCode = "my-new-requirement-not-met"
+)
+```
+
+2. Create a validation function in `state_calculator.go`:
+
+```go
+func validateMyNewRequirement(
+    behavior shared.CardBehavior,
+    p *player.Player,
+) []player.StateError {
+    // Return empty slice if no requirements to check
+    if len(behavior.MyNewRequirements) == 0 {
+        return nil
+    }
+
+    var errors []player.StateError
+    for _, req := range behavior.MyNewRequirements {
+        // Validate against player state
+        if !req.IsSatisfied(p) {
+            errors = append(errors, player.StateError{
+                Code:     player.ErrorCodeMyNewRequirement,
+                Category: player.ErrorCategoryRequirement,
+                Message:  formatMyNewRequirementError(req),
+            })
+        }
+    }
+    return errors
+}
+```
+
+3. Call the validation function from the appropriate calculator:
+
+```go
+// For card actions (manual triggers on played cards)
+func CalculatePlayerCardActionState(...) player.EntityState {
+    // ... existing validations ...
+    errors = append(errors, validateMyNewRequirement(behavior, p)...)
+    // ...
+}
+
+// For playing cards from hand
+func CalculatePlayerCardState(...) player.EntityState {
+    // ... existing validations ...
+    errors = append(errors, validateMyNewRequirement(card, p, g)...)
+    // ...
+}
+
+// For standard projects
+func CalculatePlayerStandardProjectState(...) player.EntityState {
+    // ... existing validations ...
+}
+```
+
+**Existing Validation Functions**
+
+| Function | Purpose | Used By |
+|----------|---------|---------|
+| `validatePhase` | Check game phase is action phase | Card play |
+| `validateNoActiveTileSelection` | Block actions during tile selection | Cards, actions, projects |
+| `validateAffordabilityWithSubstitutes` | Check resource costs with Helion-style substitutes | Card play |
+| `validateRequirements` | Check global parameters, tags, resources, production | Card play |
+| `validateProductionOutputs` | Check player has production for negative outputs | Card play |
+| `validateTileOutputs` | Check board has available tile placements | Card play |
+| `validateBehaviorTileOutputs` | Check tile availability for action outputs | Card actions |
+| `validateGenerationalEventRequirements` | Check generational events (TR raise, tile placement) | Card actions |
+
+**Error Categories**
+
+Use appropriate error categories for proper frontend display:
+
+- `ErrorCategoryPhase` - Wrong game phase
+- `ErrorCategoryTurn` - Not the player's turn
+- `ErrorCategoryCost` - Insufficient resources to pay costs
+- `ErrorCategoryRequirement` - Game requirement not met (temperature, tags, etc.)
+- `ErrorCategoryAvailability` - Required resource/placement not available
+- `ErrorCategoryAchievement` - Milestone/award already claimed/funded
+- `ErrorCategoryInput` - Insufficient input resources for action
+- `ErrorCategoryConfiguration` - Invalid configuration (unknown project type, etc.)
+
 ### Logging Guidelines
 
 - Use emojis for visual distinction
@@ -440,7 +592,6 @@ func TestPlayerService_DoAction(t *testing.T) {
 - Check `EventBus` for event flow
 - Inspect WebSocket messages in browser DevTools
 - Use `go test -json` for parseable test output
-- Review `docs/swagger/` for API contract
 
 ## Dependencies
 
@@ -448,20 +599,16 @@ func TestPlayerService_DoAction(t *testing.T) {
 
 - **gorilla/websocket**: WebSocket communication
 - **go-chi/chi**: HTTP routing and middleware
-- **swaggo/swag**: API documentation generation
 - **tygo**: TypeScript type generation
 
 ### Development Tools
 
 - **Air**: Hot reload for development
-- **golangci-lint**: Code quality checks
 
 ## Related Documentation
 
-- **Project Root CLAUDE.md**: Full-stack architecture and workflows
-- **frontend/CLAUDE.md**: Frontend architecture and patterns
-- **docs/ARCHITECTURE_REFACTOR_GOAL.md**: Backend architecture and refactor history
+- **Project Root CLAUDE.md**: Project overview, commands, and cross-cutting workflows
+- **frontend/CLAUDE.md**: Frontend architecture, components, and patterns
+- **assets/CLAUDE.md**: Card database documentation (behavior types, output formats)
 - **docs/EVENT_SYSTEM.md**: Event-driven architecture and broadcasting
 - **TERRAFORMING_MARS_RULES.md**: Complete game rules reference
-- **assets/CLAUDE.md**: Card database documentation (behavior types, output formats)
-- **assets/terraforming_mars_cards.json**: Authoritative card definitions (manually edited)

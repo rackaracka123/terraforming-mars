@@ -8,19 +8,10 @@ import (
 
 // GameRepository manages the collection of active games
 type GameRepository interface {
-	// Get retrieves a game by ID
 	Get(ctx context.Context, gameID string) (*Game, error)
-
-	// Create adds a new game to the repository
 	Create(ctx context.Context, game *Game) error
-
-	// Delete removes a game from the repository
 	Delete(ctx context.Context, gameID string) error
-
-	// List returns all games, optionally filtered by status
 	List(ctx context.Context, status *GameStatus) ([]*Game, error)
-
-	// Exists checks if a game exists
 	Exists(ctx context.Context, gameID string) bool
 }
 

@@ -16,7 +16,6 @@ func ValidateCardCanBePlayed(
 	globalParams *global_parameters.GlobalParameters,
 	playedCards []*Card, // All cards played by the player (for tag counting)
 ) error {
-	// Check all requirements
 	for _, req := range card.Requirements {
 		if err := validateRequirementMet(req, pl, globalParams, playedCards); err != nil {
 			return fmt.Errorf("requirement not met: %w", err)
@@ -128,7 +127,6 @@ func validateTagsRequirement(req Requirement, playedCards []*Card) error {
 		return fmt.Errorf("tags requirement missing tag specification")
 	}
 
-	// Count tags in played cards
 	tagCount := countTags(*req.Tag, playedCards)
 
 	if req.Min != nil && tagCount < *req.Min {
@@ -150,7 +148,6 @@ func countTags(tag shared.CardTag, playedCards []*Card) int {
 			if cardTag == tag {
 				count++
 			} else if cardTag == shared.TagWild {
-				// Wild tags count as any tag
 				count++
 			}
 		}
@@ -233,7 +230,6 @@ func validateResourceRequirement(req Requirement, pl *player.Player) error {
 	case shared.ResourceHeat:
 		resourceAmount = resources.Heat
 	default:
-		// Check resource storage for non-standard resources (microbes, animals, etc.)
 		storage := pl.Resources().Storage()
 		if amount, ok := storage[string(*req.Resource)]; ok {
 			resourceAmount = amount

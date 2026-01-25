@@ -12,10 +12,6 @@ import (
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-// ========================================
-// PlayerCard State Calculation
-// ========================================
-
 // CalculatePlayerCardState computes playability state for a card.
 // This function can access both Game and Player without circular dependencies.
 // card parameter must be *gamecards.Card
@@ -28,29 +24,17 @@ func CalculatePlayerCardState(
 	var errors []player.StateError
 	metadata := make(map[string]interface{})
 
-	// 1. Phase check
 	errors = append(errors, validatePhase(g)...)
-
-	// 2. Active tile selection check
 	errors = append(errors, validateNoActiveTileSelection(p, g)...)
 
-	// 3. Cost calculation with discounts (uses RequirementModifierCalculator)
 	costMap, discounts := calculateEffectiveCost(card, p, cardRegistry)
 	if len(discounts) > 0 {
 		metadata["discounts"] = discounts
 	}
 
-	// 4. Affordability check WITH payment substitutes (prioritized before requirements)
-	// This considers Helion's heat-to-credit and similar conversion abilities
 	errors = append(errors, validateAffordabilityWithSubstitutes(p, costMap)...)
-
-	// 5. Requirements check (extracted from PlayCardAction lines 209-321)
 	errors = append(errors, validateRequirements(card, p, g, cardRegistry)...)
-
-	// 6. Production output validation (check player has enough production for negative outputs)
 	errors = append(errors, validateProductionOutputs(card, p)...)
-
-	// 7. Tile output validation (check board has available placements for tile outputs)
 	errors = append(errors, validateTileOutputs(card, p, g)...)
 
 	return player.EntityState{
@@ -60,10 +44,6 @@ func CalculatePlayerCardState(
 		LastCalculated: time.Now(),
 	}
 }
-
-// ========================================
-// PlayerCardAction State Calculation
-// ========================================
 
 // CalculatePlayerCardActionState computes usability state for a card action.
 func CalculatePlayerCardActionState(
@@ -75,7 +55,6 @@ func CalculatePlayerCardActionState(
 ) player.EntityState {
 	var errors []player.StateError
 
-	// 1. Check if it's the player's turn
 	currentTurn := g.CurrentTurn()
 	if currentTurn != nil && currentTurn.PlayerID() != p.ID() {
 		errors = append(errors, player.StateError{
@@ -85,10 +64,8 @@ func CalculatePlayerCardActionState(
 		})
 	}
 
-	// 2. Active tile selection check
 	errors = append(errors, validateNoActiveTileSelection(p, g)...)
 
-	// 3. Check input resource availability
 	resources := p.Resources().Get()
 	for _, input := range behavior.Inputs {
 		available := getResourceAmount(resources, input.ResourceType)
@@ -101,12 +78,9 @@ func CalculatePlayerCardActionState(
 		}
 	}
 
-	// 4. TODO: Check max usage limits when CardBehavior supports MaxUsesPerTurn/MaxUsesPerGeneration fields
-	// For now, usage limits are not enforced in state calculation
-	_ = pca // Silence unused warning until usage limit fields are added
-
-	// 5. Check tile output availability (if action places tiles)
+	errors = append(errors, validateActionUsageLimit(behavior, pca)...)
 	errors = append(errors, validateBehaviorTileOutputs(behavior, p, g)...)
+	errors = append(errors, validateGenerationalEventRequirements(behavior, p)...)
 
 	return player.EntityState{
 		Errors:         errors,
@@ -115,10 +89,6 @@ func CalculatePlayerCardActionState(
 		LastCalculated: time.Now(),
 	}
 }
-
-// ========================================
-// PlayerStandardProject State Calculation
-// ========================================
 
 // CalculatePlayerStandardProjectState computes availability state for a standard project.
 func CalculatePlayerStandardProjectState(
@@ -130,11 +100,8 @@ func CalculatePlayerStandardProjectState(
 	var errors []player.StateError
 	metadata := make(map[string]interface{})
 
-	// 1. Active tile selection check
 	errors = append(errors, validateNoActiveTileSelection(p, g)...)
 
-	// 2. Get base costs for this project (may be multi-resource)
-	// Note: baseCosts is nil for unknown projects, empty map {} for sell-patents (cost 0)
 	baseCosts := getStandardProjectBaseCosts(projectType)
 	if baseCosts == nil {
 		errors = append(errors, player.StateError{
@@ -150,11 +117,9 @@ func CalculatePlayerStandardProjectState(
 		}
 	}
 
-	// 3. Calculate discounts using RequirementModifierCalculator
 	calculator := gamecards.NewRequirementModifierCalculator(cardRegistry)
 	projectDiscounts := calculator.CalculateStandardProjectDiscounts(p, projectType)
 
-	// Apply discounts to get effective costs
 	effectiveCosts := make(map[string]int)
 	discounts := make(map[string]int)
 	for resourceType, amount := range baseCosts {
@@ -173,13 +138,10 @@ func CalculatePlayerStandardProjectState(
 		metadata["discounts"] = discounts
 	}
 
-	// 4. Check affordability (using multi-resource validator)
 	errors = append(errors, validateAffordabilityMap(p, effectiveCosts)...)
 
-	// 5. Check project-specific availability
 	switch projectType {
 	case shared.StandardProjectSellPatents:
-		// Sell patents requires at least 1 card in hand
 		cardCount := p.Hand().CardCount()
 		if cardCount == 0 {
 			errors = append(errors, player.StateError{
@@ -190,7 +152,6 @@ func CalculatePlayerStandardProjectState(
 		}
 
 	case shared.StandardProjectAquifer:
-		// Check if max oceans reached (max is 9 in base game)
 		currentOceans := g.GlobalParameters().Oceans()
 		oceansRemaining := 9 - currentOceans
 		metadata["oceansRemaining"] = oceansRemaining
@@ -203,10 +164,8 @@ func CalculatePlayerStandardProjectState(
 		}
 
 	case shared.StandardProjectAsteroid:
-		// No special prerequisites
 
 	case shared.StandardProjectCity:
-		// Check if board has available city placement locations
 		cityPlacements := g.CountAvailableHexesForTile("city", p.ID())
 		if cityPlacements == 0 {
 			errors = append(errors, player.StateError{
@@ -217,7 +176,6 @@ func CalculatePlayerStandardProjectState(
 		}
 
 	case shared.StandardProjectGreenery:
-		// Check if board has available greenery placement locations
 		greeneryPlacements := g.CountAvailableHexesForTile("greenery", p.ID())
 		if greeneryPlacements == 0 {
 			errors = append(errors, player.StateError{
@@ -228,10 +186,8 @@ func CalculatePlayerStandardProjectState(
 		}
 
 	case shared.StandardProjectPowerPlant:
-		// No special prerequisites
 
 	default:
-		// Other standard projects have no special prerequisites
 	}
 
 	return player.EntityState{
@@ -241,10 +197,6 @@ func CalculatePlayerStandardProjectState(
 		LastCalculated: time.Now(),
 	}
 }
-
-// ========================================
-// Shared Validation Helpers
-// ========================================
 
 // validatePhase checks if action is allowed in current phase.
 func validatePhase(g *game.Game) []player.StateError {
@@ -267,6 +219,39 @@ func validateNoActiveTileSelection(p *player.Player, g *game.Game) []player.Stat
 			Message:  "Active tile selection",
 		}}
 	}
+	return nil
+}
+
+// validateActionUsageLimit checks if the action has already been used this generation.
+// Manual trigger actions can only be used once per generation by default.
+func validateActionUsageLimit(
+	behavior shared.CardBehavior,
+	pca *player.PlayerCardAction,
+) []player.StateError {
+	if pca == nil {
+		return nil
+	}
+
+	hasManualTrigger := false
+	for _, trigger := range behavior.Triggers {
+		if trigger.Type == shared.TriggerTypeManual {
+			hasManualTrigger = true
+			break
+		}
+	}
+
+	if !hasManualTrigger {
+		return nil
+	}
+
+	if pca.TimesUsedThisGeneration() >= 1 {
+		return []player.StateError{{
+			Code:     player.ErrorCodeActionAlreadyPlayed,
+			Category: player.ErrorCategoryAvailability,
+			Message:  "Already played",
+		}}
+	}
+
 	return nil
 }
 
@@ -440,6 +425,56 @@ func validateTileOutputs(
 	}
 
 	return errors
+}
+
+func validateGenerationalEventRequirements(
+	behavior shared.CardBehavior,
+	p *player.Player,
+) []player.StateError {
+	if len(behavior.GenerationalEventRequirements) == 0 {
+		return nil
+	}
+
+	var errors []player.StateError
+	playerEvents := p.GenerationalEvents()
+
+	for _, req := range behavior.GenerationalEventRequirements {
+		count := playerEvents.GetCount(req.Event)
+
+		if req.Count != nil {
+			if req.Count.Min != nil && count < *req.Count.Min {
+				errors = append(errors, player.StateError{
+					Code:     player.ErrorCodeGenerationalEventNotMet,
+					Category: player.ErrorCategoryRequirement,
+					Message:  formatGenerationalEventError(req.Event),
+				})
+			}
+			if req.Count.Max != nil && count > *req.Count.Max {
+				errors = append(errors, player.StateError{
+					Code:     player.ErrorCodeGenerationalEventNotMet,
+					Category: player.ErrorCategoryRequirement,
+					Message:  formatGenerationalEventError(req.Event),
+				})
+			}
+		}
+	}
+
+	return errors
+}
+
+func formatGenerationalEventError(event shared.GenerationalEvent) string {
+	switch event {
+	case shared.GenerationalEventTRRaise:
+		return "TR not raised this generation"
+	case shared.GenerationalEventOceanPlacement:
+		return "Ocean not placed this generation"
+	case shared.GenerationalEventCityPlacement:
+		return "City not placed this generation"
+	case shared.GenerationalEventGreeneryPlacement:
+		return "Greenery not placed this generation"
+	default:
+		return "Generational event requirement not met"
+	}
 }
 
 // validateBehaviorTileOutputs checks tile availability for a single behavior's outputs.
@@ -920,10 +955,6 @@ func formatTooManyTagsMessage(tag string) string {
 	return fmt.Sprintf("Too many %s tags", strings.ToLower(tag))
 }
 
-// ========================================
-// Milestone State Calculation
-// ========================================
-
 // CalculateMilestoneState computes eligibility state for claiming a milestone.
 // Returns EntityState with errors indicating why the milestone cannot be claimed.
 func CalculateMilestoneState(
@@ -935,7 +966,6 @@ func CalculateMilestoneState(
 	var errors []player.StateError
 	metadata := make(map[string]interface{})
 
-	// Get milestone info
 	milestoneInfo, found := game.GetMilestoneInfo(milestoneType)
 	if !found {
 		errors = append(errors, player.StateError{
@@ -953,10 +983,8 @@ func CalculateMilestoneState(
 
 	milestones := g.Milestones()
 
-	// 1. Active tile selection check
 	errors = append(errors, validateNoActiveTileSelection(p, g)...)
 
-	// 2. Check if already claimed
 	if milestones.IsClaimed(milestoneType) {
 		errors = append(errors, player.StateError{
 			Code:     player.ErrorCodeMilestoneAlreadyClaimed,
@@ -965,7 +993,6 @@ func CalculateMilestoneState(
 		})
 	}
 
-	// 3. Check if max milestones reached
 	if milestones.ClaimedCount() >= game.MaxClaimedMilestones {
 		errors = append(errors, player.StateError{
 			Code:     player.ErrorCodeMaxMilestonesClaimed,
@@ -974,7 +1001,6 @@ func CalculateMilestoneState(
 		})
 	}
 
-	// 4. Calculate progress and check requirement
 	progress := gamecards.GetPlayerMilestoneProgress(milestoneType, p, g.Board(), cardRegistry)
 	required := milestoneInfo.Requirement
 	metadata["progress"] = progress
@@ -988,7 +1014,6 @@ func CalculateMilestoneState(
 		})
 	}
 
-	// 5. Check affordability
 	cost := game.MilestoneClaimCost
 	if p.Resources().Get().Credits < cost {
 		errors = append(errors, player.StateError{
@@ -998,7 +1023,6 @@ func CalculateMilestoneState(
 		})
 	}
 
-	// Build cost map
 	costMap := map[string]int{string(shared.ResourceCredit): cost}
 
 	return player.EntityState{
@@ -1008,10 +1032,6 @@ func CalculateMilestoneState(
 		LastCalculated: time.Now(),
 	}
 }
-
-// ========================================
-// Award State Calculation
-// ========================================
 
 // CalculateAwardState computes eligibility state for funding an award.
 // Returns EntityState with errors indicating why the award cannot be funded.
@@ -1023,7 +1043,6 @@ func CalculateAwardState(
 	var errors []player.StateError
 	metadata := make(map[string]interface{})
 
-	// Validate award type
 	if !shared.ValidAwardType(string(awardType)) {
 		errors = append(errors, player.StateError{
 			Code:     player.ErrorCodeInvalidRequirement,
@@ -1040,10 +1059,8 @@ func CalculateAwardState(
 
 	awards := g.Awards()
 
-	// 1. Active tile selection check
 	errors = append(errors, validateNoActiveTileSelection(p, g)...)
 
-	// 2. Check if already funded
 	if awards.IsFunded(awardType) {
 		errors = append(errors, player.StateError{
 			Code:     player.ErrorCodeAwardAlreadyFunded,
@@ -1052,7 +1069,6 @@ func CalculateAwardState(
 		})
 	}
 
-	// 3. Check if max awards reached
 	if awards.FundedCount() >= game.MaxFundedAwards {
 		errors = append(errors, player.StateError{
 			Code:     player.ErrorCodeMaxAwardsFunded,
@@ -1061,7 +1077,6 @@ func CalculateAwardState(
 		})
 	}
 
-	// 4. Get current funding cost and check affordability
 	cost := awards.GetCurrentFundingCost()
 	metadata["fundingCost"] = cost
 
@@ -1073,7 +1088,6 @@ func CalculateAwardState(
 		})
 	}
 
-	// Build cost map
 	costMap := map[string]int{string(shared.ResourceCredit): cost}
 
 	return player.EntityState{

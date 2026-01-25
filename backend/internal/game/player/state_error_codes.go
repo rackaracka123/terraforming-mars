@@ -33,17 +33,18 @@ const (
 	ErrorCodeInvalidProjectType   StateErrorCode = "invalid-project-type"
 	ErrorCodeInvalidRequirement   StateErrorCode = "invalid-requirement"
 
-	// Milestone error codes
 	ErrorCodeMilestoneAlreadyClaimed    StateErrorCode = "milestone-already-claimed"
 	ErrorCodeMaxMilestonesClaimed       StateErrorCode = "max-milestones-claimed"
 	ErrorCodeMilestoneRequirementNotMet StateErrorCode = "milestone-requirement-not-met"
 
-	// Award error codes
 	ErrorCodeAwardAlreadyFunded StateErrorCode = "award-already-funded"
 	ErrorCodeMaxAwardsFunded    StateErrorCode = "max-awards-funded"
 
-	// Tile selection error codes
 	ErrorCodeActiveTileSelection StateErrorCode = "active-tile-selection"
+
+	ErrorCodeGenerationalEventNotMet StateErrorCode = "generational-event-not-met"
+
+	ErrorCodeActionAlreadyPlayed StateErrorCode = "action-already-played"
 )
 
 // StateErrorCategory represents categories for error grouping.
@@ -58,5 +59,5 @@ const (
 	ErrorCategoryRequirement   StateErrorCategory = "requirement"
 	ErrorCategoryAvailability  StateErrorCategory = "availability"
 	ErrorCategoryConfiguration StateErrorCategory = "configuration"
-	ErrorCategoryAchievement   StateErrorCategory = "achievement" // Milestones and awards
+	ErrorCategoryAchievement   StateErrorCategory = "achievement"
 )

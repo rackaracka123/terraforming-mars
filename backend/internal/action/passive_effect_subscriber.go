@@ -21,7 +21,6 @@ func SubscribePassiveEffectToEvents(
 	effect player.CardEffect,
 	log *zap.Logger,
 ) {
-	// Check each trigger in the effect's behavior
 	for _, trigger := range effect.Behavior.Triggers {
 		// Only handle auto triggers with conditions (passive effects)
 		if trigger.Type != "auto" || trigger.Condition == nil {
@@ -51,7 +50,6 @@ func subscribePlacementBonusEffect(
 	trigger shared.Trigger,
 	log *zap.Logger,
 ) {
-	// Subscribe to PlacementBonusGainedEvent
 	events.Subscribe(g.EventBus(), func(event events.PlacementBonusGainedEvent) {
 		// Only process if event is for this game and player
 		if event.GameID != g.ID() {
@@ -110,7 +108,6 @@ func subscribeCityPlacedEffect(
 	trigger shared.Trigger,
 	log *zap.Logger,
 ) {
-	// Subscribe to TilePlacedEvent
 	events.Subscribe(g.EventBus(), func(event events.TilePlacedEvent) {
 		// Only process if event is for this game
 		if event.GameID != g.ID() {

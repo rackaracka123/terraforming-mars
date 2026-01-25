@@ -1,7 +1,5 @@
 package dto
 
-// MessageType and message constants are now defined in message_types.go
-
 // WebSocketMessage represents a WebSocket message
 type WebSocketMessage struct {
 	Type    MessageType `json:"type" ts:"MessageType"`

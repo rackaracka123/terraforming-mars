@@ -23,23 +23,19 @@ type CardPayment struct {
 func (p CardPayment) TotalValue(playerSubstitutes []shared.PaymentSubstitute) int {
 	total := p.Credits
 
-	// Build lookup map for efficient access
 	substituteValues := make(map[shared.ResourceType]int)
 	for _, sub := range playerSubstitutes {
 		substituteValues[sub.ResourceType] = sub.ConversionRate
 	}
 
-	// Add steel value (must be in substitutes)
 	if steelValue, ok := substituteValues[shared.ResourceSteel]; ok {
 		total += p.Steel * steelValue
 	}
 
-	// Add titanium value (must be in substitutes)
 	if titaniumValue, ok := substituteValues[shared.ResourceTitanium]; ok {
 		total += p.Titanium * titaniumValue
 	}
 
-	// Add values from other substitutes (heat for Helion, etc.)
 	if p.Substitutes != nil {
 		for resourceType, amount := range p.Substitutes {
 			if conversionRate, ok := substituteValues[resourceType]; ok {

@@ -37,7 +37,6 @@ func (a *StartTileSelectionAction) Execute(ctx context.Context, gameID string, p
 	)
 	log.Info("🗺️ Admin: Starting tile selection")
 
-	// 1. Validate tile type
 	validTileTypes := map[string]bool{
 		"city":     true,
 		"greenery": true,
@@ -48,27 +47,23 @@ func (a *StartTileSelectionAction) Execute(ctx context.Context, gameID string, p
 		return fmt.Errorf("invalid tile type: %s (valid types: city, greenery, ocean)", tileType)
 	}
 
-	// 2. Fetch game from repository
 	g, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game", zap.Error(err))
 		return fmt.Errorf("game not found: %s", gameID)
 	}
 
-	// 3. Validate player exists in game
 	_, err = g.GetPlayer(playerID)
 	if err != nil {
 		log.Error("Player not found in game", zap.Error(err))
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// 4. Create tile selection queue
 	queue := &player.PendingTileSelectionQueue{
 		Items:  []string{tileType},
 		Source: "admin-tile-selection",
 	}
 
-	// 5. Set the tile selection queue (this auto-processes and sets PendingTileSelection)
 	if err := g.SetPendingTileSelectionQueue(ctx, playerID, queue); err != nil {
 		log.Error("Failed to set tile selection queue", zap.Error(err))
 		return fmt.Errorf("failed to start tile selection: %w", err)

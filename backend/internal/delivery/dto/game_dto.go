@@ -26,7 +26,7 @@ const (
 type CardType string
 
 const (
-	CardTypeAutomated   CardType = "automated" // Updated from "effect" to match JSON data
+	CardTypeAutomated   CardType = "automated"
 	CardTypeActive      CardType = "active"
 	CardTypeEvent       CardType = "event"
 	CardTypeCorporation CardType = "corporation"
@@ -37,14 +37,13 @@ const (
 type StandardProject string
 
 const (
-	// Standard Projects (M€-based)
 	StandardProjectSellPatents StandardProject = "sell-patents"
 	StandardProjectPowerPlant  StandardProject = "power-plant"
 	StandardProjectAsteroid    StandardProject = "asteroid"
 	StandardProjectAquifer     StandardProject = "aquifer"
 	StandardProjectGreenery    StandardProject = "greenery"
 	StandardProjectCity        StandardProject = "city"
-	// Resource Conversion Actions (resource-based, not M€)
+
 	StandardProjectConvertPlantsToGreenery  StandardProject = "convert-plants-to-greenery"
 	StandardProjectConvertHeatToTemperature StandardProject = "convert-heat-to-temperature"
 )
@@ -74,7 +73,6 @@ const (
 type ResourceType string
 
 const (
-	// Basic resources (singular form to match backend shared.ResourceType)
 	ResourceTypeCredit   ResourceType = "credit"
 	ResourceTypeSteel    ResourceType = "steel"
 	ResourceTypeTitanium ResourceType = "titanium"
@@ -88,29 +86,24 @@ const (
 	ResourceTypeAsteroid ResourceType = "asteroid"
 	ResourceTypeDisease  ResourceType = "disease"
 
-	// Card actions
 	ResourceTypeCardDraw ResourceType = "card-draw"
 	ResourceTypeCardTake ResourceType = "card-take"
 	ResourceTypeCardPeek ResourceType = "card-peek"
 
-	// Terraforming actions
 	ResourceTypeCityPlacement     ResourceType = "city-placement"
 	ResourceTypeOceanPlacement    ResourceType = "ocean-placement"
 	ResourceTypeGreeneryPlacement ResourceType = "greenery-placement"
 
-	// Tile counting
 	ResourceTypeCityTile     ResourceType = "city-tile"
 	ResourceTypeOceanTile    ResourceType = "ocean-tile"
 	ResourceTypeGreeneryTile ResourceType = "greenery-tile"
 	ResourceTypeColonyTile   ResourceType = "colony-tile"
 
-	// Global parameters
 	ResourceTypeTemperature ResourceType = "temperature"
 	ResourceTypeOxygen      ResourceType = "oxygen"
 	ResourceTypeVenus       ResourceType = "venus"
 	ResourceTypeTR          ResourceType = "tr"
 
-	// Production resources (singular form to match backend shared.ResourceType)
 	ResourceTypeCreditProduction   ResourceType = "credit-production"
 	ResourceTypeSteelProduction    ResourceType = "steel-production"
 	ResourceTypeTitaniumProduction ResourceType = "titanium-production"
@@ -118,11 +111,9 @@ const (
 	ResourceTypeEnergyProduction   ResourceType = "energy-production"
 	ResourceTypeHeatProduction     ResourceType = "heat-production"
 
-	// Special effects
 	ResourceTypeEffect ResourceType = "effect"
 	ResourceTypeTag    ResourceType = "tag"
 
-	// Ongoing effects
 	ResourceTypeGlobalParameterLenience ResourceType = "global-parameter-lenience"
 	ResourceTypeVenusLenience           ResourceType = "venus-lenience"
 	ResourceTypeDefense                 ResourceType = "defense"
@@ -262,10 +253,11 @@ type ResourceTriggerConditionDto struct {
 
 // CardBehaviorDto represents a card behavior for client consumption
 type CardBehaviorDto struct {
-	Triggers []TriggerDto           `json:"triggers,omitempty" ts:"TriggerDto[] | undefined"`
-	Inputs   []ResourceConditionDto `json:"inputs,omitempty" ts:"ResourceConditionDto[] | undefined"`
-	Outputs  []ResourceConditionDto `json:"outputs,omitempty" ts:"ResourceConditionDto[] | undefined"`
-	Choices  []ChoiceDto            `json:"choices,omitempty" ts:"ChoiceDto[] | undefined"`
+	Triggers                      []TriggerDto                      `json:"triggers,omitempty" ts:"TriggerDto[] | undefined"`
+	Inputs                        []ResourceConditionDto            `json:"inputs,omitempty" ts:"ResourceConditionDto[] | undefined"`
+	Outputs                       []ResourceConditionDto            `json:"outputs,omitempty" ts:"ResourceConditionDto[] | undefined"`
+	Choices                       []ChoiceDto                       `json:"choices,omitempty" ts:"ChoiceDto[] | undefined"`
+	GenerationalEventRequirements []GenerationalEventRequirementDto `json:"generationalEventRequirements,omitempty" ts:"GenerationalEventRequirementDto[] | undefined"`
 }
 
 // PaymentConstantsDto represents payment conversion rates
@@ -313,7 +305,6 @@ type CardDto struct {
 	ResourceStorage *ResourceStorageDto `json:"resourceStorage,omitempty" ts:"ResourceStorageDto | undefined"`
 	VPConditions    []VPConditionDto    `json:"vpConditions,omitempty" ts:"VPConditionDto[] | undefined"`
 
-	// Corporation-specific fields (nil for non-corporation cards)
 	StartingResources  *ResourceSet `json:"startingResources,omitempty" ts:"ResourceSet | undefined"`
 	StartingProduction *ResourceSet `json:"startingProduction,omitempty" ts:"ResourceSet | undefined"`
 }
@@ -393,18 +384,14 @@ type PaymentSubstituteDto struct {
 type StateErrorCode string
 
 const (
-	// Turn/Phase errors
 	ErrorCodeNotYourTurn StateErrorCode = "not-your-turn"
 	ErrorCodeWrongPhase  StateErrorCode = "wrong-phase"
 
-	// Cost errors
 	ErrorCodeInsufficientCredits StateErrorCode = "insufficient-credits"
 
-	// Resource errors
 	ErrorCodeInsufficientResources StateErrorCode = "insufficient-resources"
 	ErrorCodeTooManyResources      StateErrorCode = "too-many-resources"
 
-	// Requirement errors - Global parameters
 	ErrorCodeTemperatureTooLow  StateErrorCode = "temperature-too-low"
 	ErrorCodeTemperatureTooHigh StateErrorCode = "temperature-too-high"
 	ErrorCodeOxygenTooLow       StateErrorCode = "oxygen-too-low"
@@ -414,12 +401,10 @@ const (
 	ErrorCodeTRTooLow           StateErrorCode = "tr-too-low"
 	ErrorCodeTRTooHigh          StateErrorCode = "tr-too-high"
 
-	// Requirement errors - Tags/Production
 	ErrorCodeInsufficientTags       StateErrorCode = "insufficient-tags"
 	ErrorCodeTooManyTags            StateErrorCode = "too-many-tags"
 	ErrorCodeInsufficientProduction StateErrorCode = "insufficient-production"
 
-	// Availability errors
 	ErrorCodeNoOceanTiles         StateErrorCode = "no-ocean-tiles"
 	ErrorCodeNoCityPlacements     StateErrorCode = "no-city-placements"
 	ErrorCodeNoGreeneryPlacements StateErrorCode = "no-greenery-placements"
@@ -427,7 +412,6 @@ const (
 	ErrorCodeInvalidProjectType   StateErrorCode = "invalid-project-type"
 	ErrorCodeInvalidRequirement   StateErrorCode = "invalid-requirement"
 
-	// Internal errors
 	ErrorCodeInvalidCardType StateErrorCode = "invalid-card-type"
 )
 
@@ -457,7 +441,6 @@ type StateErrorDto struct {
 // PlayerCardDto represents a card in a player's hand with calculated playability state
 // Part of the Player-Scoped Card Architecture
 type PlayerCardDto struct {
-	// Card data (from immutable Card) - same fields as CardDto for compatibility
 	ID              string              `json:"id" ts:"string"`
 	Name            string              `json:"name" ts:"string"`
 	Type            CardType            `json:"type" ts:"CardType"`
@@ -470,7 +453,6 @@ type PlayerCardDto struct {
 	ResourceStorage *ResourceStorageDto `json:"resourceStorage,omitempty" ts:"ResourceStorageDto | undefined"`
 	VPConditions    []VPConditionDto    `json:"vpConditions,omitempty" ts:"VPConditionDto[] | undefined"`
 
-	// Player-specific calculated state (from EntityState)
 	Available     bool            `json:"available" ts:"boolean"`                                      // Computed: len(Errors) == 0
 	Errors        []StateErrorDto `json:"errors" ts:"StateErrorDto[]"`                                 // Single source of truth for availability
 	EffectiveCost int             `json:"effectiveCost" ts:"number"`                                   // Effective cost after discounts (credits)
@@ -495,11 +477,9 @@ type PlayerActionDto struct {
 	BehaviorIndex int             `json:"behaviorIndex" ts:"number"`     // Which behavior on the card this action represents
 	Behavior      CardBehaviorDto `json:"behavior" ts:"CardBehaviorDto"` // The actual behavior definition with inputs/outputs
 
-	// Persistent state (tracked over time)
 	TimesUsedThisTurn       int `json:"timesUsedThisTurn" ts:"number"`       // Times used this turn
 	TimesUsedThisGeneration int `json:"timesUsedThisGeneration" ts:"number"` // Times used this generation
 
-	// Calculated usability state (from EntityState)
 	Available bool            `json:"available" ts:"boolean"`      // Computed: action is usable
 	Errors    []StateErrorDto `json:"errors" ts:"StateErrorDto[]"` // Reasons why action is not usable
 }
@@ -510,7 +490,6 @@ type PlayerStandardProjectDto struct {
 	ProjectType string         `json:"projectType" ts:"string"`              // Standard project type (e.g., "sell_patents", "aquifer")
 	BaseCost    map[string]int `json:"baseCost" ts:"Record<string, number>"` // Base cost per resource type (e.g., {"credits": 23} or {"plants": 8})
 
-	// Calculated availability state (from EntityState)
 	Available     bool                   `json:"available" ts:"boolean"`                                      // Computed: project is available
 	Errors        []StateErrorDto        `json:"errors" ts:"StateErrorDto[]"`                                 // Reasons why project is not available
 	EffectiveCost map[string]int         `json:"effectiveCost" ts:"Record<string, number>"`                   // Cost per resource type after discounts
@@ -583,22 +562,16 @@ type PlayerDto struct {
 	Milestones       []PlayerMilestoneDto       `json:"milestones" ts:"PlayerMilestoneDto[]"`             // Milestones with player eligibility state
 	Awards           []PlayerAwardDto           `json:"awards" ts:"PlayerAwardDto[]"`                     // Awards with player eligibility state
 
-	SelectStartingCardsPhase *SelectStartingCardsPhaseDto `json:"selectStartingCardsPhase" ts:"SelectStartingCardsPhaseDto | null"`
-	ProductionPhase          *ProductionPhaseDto          `json:"productionPhase" ts:"ProductionPhaseDto | null"`
-	StartingCards            []CardDto                    `json:"startingCards" ts:"CardDto[]"` // Cards dealt at game start (from selectStartingCardsPhase.availableCards)
-	// Tile selection - nullable, exists only when player needs to place tiles
-	PendingTileSelection *PendingTileSelectionDto `json:"pendingTileSelection" ts:"PendingTileSelectionDto | null"` // Pending tile placement, null when no tiles to place
-	// Card selection - nullable, exists only when player needs to select cards
-	PendingCardSelection *PendingCardSelectionDto `json:"pendingCardSelection" ts:"PendingCardSelectionDto | null"` // Pending card selection (sell patents, card effects, etc.)
-	// Card draw/peek/take/buy selection - nullable, exists only when player needs to confirm card draw selection
-	PendingCardDrawSelection *PendingCardDrawSelectionDto `json:"pendingCardDrawSelection" ts:"PendingCardDrawSelectionDto | null"` // Pending card draw/peek/take/buy selection from card effects
-	// Forced first action - nullable, exists only when corporation requires specific first turn action
-	ForcedFirstAction *ForcedFirstActionDto `json:"forcedFirstAction" ts:"ForcedFirstActionDto | null"` // Action that must be taken on first turn (Tharsis city placement, etc.)
-	// Resource storage - maps card IDs to resource counts stored on those cards
-	ResourceStorage map[string]int `json:"resourceStorage" ts:"Record<string, number>"` // Card ID -> resource count
-	// Payment substitutes - alternative resources usable as payment for credits
-	PaymentSubstitutes []PaymentSubstituteDto `json:"paymentSubstitutes" ts:"PaymentSubstituteDto[]"` // Alternative resources usable as payment
-	// Note: RequirementModifiers removed - discounts are now embedded in PlayerCardDto.Discounts and PlayerStandardProjectDto.Discounts
+	SelectStartingCardsPhase *SelectStartingCardsPhaseDto      `json:"selectStartingCardsPhase" ts:"SelectStartingCardsPhaseDto | null"`
+	ProductionPhase          *ProductionPhaseDto               `json:"productionPhase" ts:"ProductionPhaseDto | null"`
+	StartingCards            []CardDto                         `json:"startingCards" ts:"CardDto[]"`
+	PendingTileSelection     *PendingTileSelectionDto          `json:"pendingTileSelection" ts:"PendingTileSelectionDto | null"`
+	PendingCardSelection     *PendingCardSelectionDto          `json:"pendingCardSelection" ts:"PendingCardSelectionDto | null"`
+	PendingCardDrawSelection *PendingCardDrawSelectionDto      `json:"pendingCardDrawSelection" ts:"PendingCardDrawSelectionDto | null"`
+	ForcedFirstAction        *ForcedFirstActionDto             `json:"forcedFirstAction" ts:"ForcedFirstActionDto | null"`
+	ResourceStorage          map[string]int                    `json:"resourceStorage" ts:"Record<string, number>"`
+	PaymentSubstitutes       []PaymentSubstituteDto            `json:"paymentSubstitutes" ts:"PaymentSubstituteDto[]"`
+	GenerationalEvents       []PlayerGenerationalEventEntryDto `json:"generationalEvents" ts:"PlayerGenerationalEventEntryDto[]"`
 }
 
 // OtherPlayerDto represents another player from the viewing player's perspective (limited data)
@@ -621,10 +594,8 @@ type OtherPlayerDto struct {
 
 	SelectStartingCardsPhase *SelectStartingCardsOtherPlayerDto `json:"selectStartingCardsPhase" ts:"SelectStartingCardsOtherPlayerDto | null"`
 	ProductionPhase          *ProductionPhaseOtherPlayerDto     `json:"productionPhase" ts:"ProductionPhaseOtherPlayerDto | null"`
-	// Resource storage - maps card IDs to resource counts stored on those cards (public information)
-	ResourceStorage map[string]int `json:"resourceStorage" ts:"Record<string, number>"` // Card ID -> resource count
-	// Payment substitutes - alternative resources usable as payment for credits (public information)
-	PaymentSubstitutes []PaymentSubstituteDto `json:"paymentSubstitutes" ts:"PaymentSubstituteDto[]"` // Alternative resources usable as payment
+	ResourceStorage          map[string]int                     `json:"resourceStorage" ts:"Record<string, number>"`
+	PaymentSubstitutes       []PaymentSubstituteDto             `json:"paymentSubstitutes" ts:"PaymentSubstituteDto[]"`
 }
 
 // GameDto represents a game for client consumption (clean architecture)
@@ -654,43 +625,30 @@ type GameDto struct {
 
 // TileBonusDto represents a resource bonus provided by a tile when occupied
 type TileBonusDto struct {
-	// Type specifies the resource type granted by this bonus
-	Type string `json:"type" ts:"string"`
-	// Amount specifies the quantity of the bonus granted
-	Amount int `json:"amount" ts:"number"`
+	Type   string `json:"type" ts:"string"`
+	Amount int    `json:"amount" ts:"number"`
 }
 
 // TileOccupantDto represents what currently occupies a tile
 type TileOccupantDto struct {
-	// Type specifies the type of occupant (city-tile, ocean-tile, greenery-tile, etc.)
-	Type string `json:"type" ts:"string"`
-	// Tags specifies special properties of the occupant (e.g., "capital" for cities)
+	Type string   `json:"type" ts:"string"`
 	Tags []string `json:"tags" ts:"string[]"`
 }
 
 // TileDto represents a single hexagonal tile on the game board
 type TileDto struct {
-	// Coordinates specifies the hex position of this tile
-	Coordinates HexPositionDto `json:"coordinates" ts:"HexPositionDto"`
-	// Tags specifies special properties for placement restrictions (e.g., "noctis-city")
-	Tags []string `json:"tags" ts:"string[]"`
-	// Type specifies the base type of tile (ocean-tile for ocean spaces, etc.)
-	Type string `json:"type" ts:"string"`
-	// Location specifies which celestial body this tile is on
-	Location string `json:"location" ts:"string"`
-	// DisplayName specifies the optional display name shown on the tile
-	DisplayName *string `json:"displayName,omitempty" ts:"string|null"`
-	// Bonuses specifies the resource bonuses provided by this tile
-	Bonuses []TileBonusDto `json:"bonuses" ts:"TileBonusDto[]"`
-	// OccupiedBy specifies what currently occupies this tile, if anything
-	OccupiedBy *TileOccupantDto `json:"occupiedBy,omitempty" ts:"TileOccupantDto|null"`
-	// OwnerID specifies the player who owns this tile, if any
-	OwnerID *string `json:"ownerId,omitempty" ts:"string|null"`
+	Coordinates HexPositionDto   `json:"coordinates" ts:"HexPositionDto"`
+	Tags        []string         `json:"tags" ts:"string[]"`
+	Type        string           `json:"type" ts:"string"`
+	Location    string           `json:"location" ts:"string"`
+	DisplayName *string          `json:"displayName,omitempty" ts:"string|null"`
+	Bonuses     []TileBonusDto   `json:"bonuses" ts:"TileBonusDto[]"`
+	OccupiedBy  *TileOccupantDto `json:"occupiedBy,omitempty" ts:"TileOccupantDto|null"`
+	OwnerID     *string          `json:"ownerId,omitempty" ts:"string|null"`
 }
 
 // BoardDto represents the game board containing all tiles
 type BoardDto struct {
-	// Tiles specifies all tiles on the game board
 	Tiles []TileDto `json:"tiles" ts:"TileDto[]"`
 }
 
@@ -807,4 +765,27 @@ type TriggeredEffectDto struct {
 	CardName string                 `json:"cardName" ts:"string"`
 	PlayerID string                 `json:"playerId" ts:"string"`
 	Outputs  []ResourceConditionDto `json:"outputs" ts:"ResourceConditionDto[]"`
+}
+
+// GenerationalEvent represents events tracked within a generation for conditional card behaviors
+type GenerationalEvent string
+
+const (
+	GenerationalEventTRRaise           GenerationalEvent = "tr-raise"
+	GenerationalEventOceanPlacement    GenerationalEvent = "ocean-placement"
+	GenerationalEventCityPlacement     GenerationalEvent = "city-placement"
+	GenerationalEventGreeneryPlacement GenerationalEvent = "greenery-placement"
+)
+
+// PlayerGenerationalEventEntryDto represents a player's tracked generational event for client consumption
+type PlayerGenerationalEventEntryDto struct {
+	Event GenerationalEvent `json:"event" ts:"GenerationalEvent"`
+	Count int               `json:"count" ts:"number"`
+}
+
+// GenerationalEventRequirementDto represents a requirement based on generational events for card behaviors
+type GenerationalEventRequirementDto struct {
+	Event  GenerationalEvent `json:"event" ts:"GenerationalEvent"`
+	Count  *MinMaxValueDto   `json:"count,omitempty" ts:"MinMaxValueDto | undefined"`
+	Target *TargetType       `json:"target,omitempty" ts:"TargetType | undefined"`
 }

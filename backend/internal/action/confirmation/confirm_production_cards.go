@@ -36,14 +36,12 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 	)
 	log.Info("🃏 Player confirming production card selection")
 
-	// 1. Fetch game from repository
 	g, err := a.GameRepository().Get(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game", zap.Error(err))
 		return fmt.Errorf("game not found: %s", gameID)
 	}
 
-	// 2. BUSINESS LOGIC: Validate game phase
 	if g.CurrentPhase() != game.GamePhaseProductionAndCardDraw {
 		log.Warn("Game is not in production phase",
 			zap.String("current_phase", string(g.CurrentPhase())),
@@ -51,27 +49,23 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		return fmt.Errorf("game is not in production phase")
 	}
 
-	// 3. Get player from game
 	player, err := g.GetPlayer(playerID)
 	if err != nil {
 		log.Error("Player not found in game", zap.Error(err))
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// 4. BUSINESS LOGIC: Validate production phase exists (phase state managed by Game)
 	productionPhase := g.GetProductionPhase(playerID)
 	if productionPhase == nil {
 		log.Error("Player not in production phase")
 		return fmt.Errorf("player not in production phase")
 	}
 
-	// 5. BUSINESS LOGIC: Check if player already confirmed selection
 	if productionPhase.SelectionComplete {
 		log.Error("Production selection already complete")
 		return fmt.Errorf("production selection already complete")
 	}
 
-	// 6. BUSINESS LOGIC: Validate selected cards are in available cards
 	availableSet := make(map[string]bool)
 	for _, id := range productionPhase.AvailableCards {
 		availableSet[id] = true
@@ -84,10 +78,8 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		}
 	}
 
-	// 7. BUSINESS LOGIC: Calculate cost (3 MC per card)
 	cost := len(selectedCardIDs) * 3
 
-	// 8. BUSINESS LOGIC: Validate player has enough credits
 	resources := player.Resources().Get()
 	if resources.Credits < cost {
 		log.Error("Insufficient credits",
@@ -96,17 +88,15 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		return fmt.Errorf("insufficient credits: need %d, have %d", cost, resources.Credits)
 	}
 
-	// 9. BUSINESS LOGIC: Deduct card selection cost
 	player.Resources().Add(map[shared.ResourceType]int{
 		shared.ResourceCredit: -cost,
 	})
 
-	resources = player.Resources().Get() // Refresh after update
+	resources = player.Resources().Get()
 	log.Info("✅ Resources updated",
 		zap.Int("cost", cost),
 		zap.Int("remaining_credits", resources.Credits))
 
-	// 10. BUSINESS LOGIC: Add selected cards to player's hand
 	log.Debug("🃏 Adding cards to player hand",
 		zap.Strings("card_ids", selectedCardIDs),
 		zap.Int("count", len(selectedCardIDs)))
@@ -117,9 +107,6 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		zap.Strings("card_ids_added", selectedCardIDs),
 		zap.Int("card_count", len(selectedCardIDs)))
 
-	// Note: RequirementModifier recalculation removed - discounts are now calculated on-demand during EntityState calculation
-
-	// 11. BUSINESS LOGIC: Mark production selection as complete (phase state managed by Game)
 	productionPhase.SelectionComplete = true
 	if err := g.SetProductionPhase(ctx, playerID, productionPhase); err != nil {
 		log.Error("Failed to update production phase", zap.Error(err))
@@ -128,7 +115,6 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 
 	log.Info("✅ Production selection marked complete")
 
-	// 12. BUSINESS LOGIC: Check if all players completed selection
 	allPlayers := g.GetAllPlayers()
 	allComplete := true
 	for _, p := range allPlayers {
@@ -142,18 +128,16 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 	if allComplete {
 		log.Info("🎉 All players completed production selection, advancing to action phase")
 
-		// Advance game phase to Action
 		if err := g.UpdatePhase(ctx, game.GamePhaseAction); err != nil {
 			log.Error("Failed to transition game phase", zap.Error(err))
 			return fmt.Errorf("failed to transition game phase: %w", err)
 		}
 
-		// Set current turn to first player with appropriate action count
 		if len(allPlayers) > 0 {
 			firstPlayerID := allPlayers[0].ID()
 			availableActions := 2
 			if len(allPlayers) == 1 {
-				availableActions = -1 // Unlimited for solo mode
+				availableActions = -1
 			}
 			if err := g.SetCurrentTurn(ctx, firstPlayerID, availableActions); err != nil {
 				log.Error("Failed to set current turn", zap.Error(err))
@@ -164,14 +148,12 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 				zap.Int("available_actions", availableActions))
 		}
 
-		// Reset manual action generation counts for all players (new generation)
 		for _, p := range allPlayers {
 			p.Actions().ResetGenerationCounts()
 			log.Debug("🔄 Reset action generation counts for player",
 				zap.String("player_id", p.ID()))
 		}
 
-		// Clear production phase data for all players (triggers frontend modal to close)
 		for _, p := range allPlayers {
 			if err := g.SetProductionPhase(ctx, p.ID(), nil); err != nil {
 				log.Warn("Failed to clear production phase",

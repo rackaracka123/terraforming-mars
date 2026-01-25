@@ -135,13 +135,11 @@ func (a *Awards) FundAward(ctx context.Context, awardType shared.AwardType, play
 
 	a.mu.Lock()
 
-	// Check if max awards already funded
 	if len(a.funded) >= MaxFundedAwards {
 		a.mu.Unlock()
 		return fmt.Errorf("maximum awards (%d) already funded", MaxFundedAwards)
 	}
 
-	// Check if this award is already funded
 	for _, funded := range a.funded {
 		if funded.Type == awardType {
 			a.mu.Unlock()
@@ -149,10 +147,8 @@ func (a *Awards) FundAward(ctx context.Context, awardType shared.AwardType, play
 		}
 	}
 
-	// Get the funding cost
 	fundingCost := AwardFundingCosts[len(a.funded)]
 
-	// Fund the award
 	funded := FundedAward{
 		Type:           awardType,
 		FundedByPlayer: playerID,
@@ -164,7 +160,6 @@ func (a *Awards) FundAward(ctx context.Context, awardType shared.AwardType, play
 
 	a.mu.Unlock()
 
-	// Publish event after releasing lock
 	if a.eventBus != nil {
 		events.Publish(a.eventBus, events.AwardFundedEvent{
 			GameID:      a.gameID,

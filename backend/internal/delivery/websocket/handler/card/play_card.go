@@ -49,7 +49,6 @@ func (h *PlayCardHandler) HandleMessage(ctx context.Context, connection *core.Co
 		return
 	}
 
-	// Extract payload
 	payload, ok := message.Payload.(map[string]interface{})
 	if !ok {
 		log.Error("Invalid payload format")
@@ -57,7 +56,6 @@ func (h *PlayCardHandler) HandleMessage(ctx context.Context, connection *core.Co
 		return
 	}
 
-	// Extract card ID
 	cardID, ok := payload["cardId"].(string)
 	if !ok || cardID == "" {
 		log.Error("Missing or invalid cardId")
@@ -65,7 +63,6 @@ func (h *PlayCardHandler) HandleMessage(ctx context.Context, connection *core.Co
 		return
 	}
 
-	// Extract payment (optional, defaults to 0)
 	payment := cardaction.PaymentRequest{
 		Credits:     0,
 		Steel:       0,
@@ -83,7 +80,6 @@ func (h *PlayCardHandler) HandleMessage(ctx context.Context, connection *core.Co
 		if titanium, ok := paymentData["titanium"].(float64); ok {
 			payment.Titanium = int(titanium)
 		}
-		// Parse substitutes (e.g., heat for Helion)
 		if substitutesData, ok := paymentData["substitutes"].(map[string]interface{}); ok {
 			for resourceTypeStr, amountVal := range substitutesData {
 				if amount, ok := amountVal.(float64); ok && amount > 0 {
@@ -94,7 +90,6 @@ func (h *PlayCardHandler) HandleMessage(ctx context.Context, connection *core.Co
 		}
 	}
 
-	// Extract optional choiceIndex for cards with choices
 	var choiceIndex *int
 	if choiceIndexFloat, ok := payload["choiceIndex"].(float64); ok {
 		idx := int(choiceIndexFloat)
@@ -119,7 +114,6 @@ func (h *PlayCardHandler) HandleMessage(ctx context.Context, connection *core.Co
 
 	log.Info("✅ Play card action completed successfully")
 
-	// Explicitly broadcast game state after action completes
 	h.broadcaster.BroadcastGameState(connection.GameID, nil)
 	log.Debug("📡 Broadcasted game state to all players")
 

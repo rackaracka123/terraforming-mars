@@ -9,46 +9,10 @@ import BehaviorSection from "../cards/BehaviorSection";
 import { canPerformActions, hasActionsAvailable } from "@/utils/actionUtils.ts";
 import GameIcon from "../display/GameIcon.tsx";
 
-// Utility function to check if an action is affordable and available
-const isActionAvailable = (action: PlayerActionDto, gameState?: GameDto): boolean => {
-  // Check if action has been played this generation
-  if (action.timesUsedThisGeneration > 0) {
-    return false;
-  }
-
-  // Check if player can afford the action's input costs
-  if (!gameState?.currentPlayer) {
-    return false;
-  }
-
-  const playerResources = gameState.currentPlayer.resources;
-  const actionInputs = action.behavior.inputs || [];
-
-  for (const input of actionInputs) {
-    switch (input.type) {
-      case "credit":
-        if (playerResources.credits < input.amount) return false;
-        break;
-      case "steel":
-        if (playerResources.steel < input.amount) return false;
-        break;
-      case "titanium":
-        if (playerResources.titanium < input.amount) return false;
-        break;
-      case "plant":
-        if (playerResources.plants < input.amount) return false;
-        break;
-      case "energy":
-        if (playerResources.energy < input.amount) return false;
-        break;
-      case "heat":
-        if (playerResources.heat < input.amount) return false;
-        break;
-      // Add more resource types as needed
-    }
-  }
-
-  return true;
+// Check if an action is available using backend state
+const isActionAvailable = (action: PlayerActionDto): boolean => {
+  // Use backend-calculated availability (includes generational event requirements, resources, etc.)
+  return action.available;
 };
 
 interface ActionsModalProps {
@@ -193,18 +157,28 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
           ) : (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5 justify-items-center max-[1200px]:grid-cols-[repeat(auto-fill,260px)] max-[1200px]:gap-[15px] max-md:grid-cols-[repeat(auto-fill,240px)] max-md:gap-[15px]">
               {sortedActions.map((action, index) => {
-                const isAvailable = isActionAvailable(action, gameState);
+                const isAvailable = isActionAvailable(action);
                 const isActionPlayable = isPlayButtonEnabled && isAvailable;
 
                 return (
                   <div
                     key={`${action.cardId}-${action.behaviorIndex}`}
-                    className={`border-2 border-[rgba(255,100,100,0.4)] rounded-xl p-[15px] transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] backdrop-blur-[10px] animate-[actionSlideIn_0.6s_ease-out_both] w-full max-w-[320px] min-h-[200px] flex flex-col bg-[linear-gradient(135deg,rgba(30,60,90,0.4)_0%,rgba(20,40,70,0.3)_100%)] shadow-[0_4px_15px_rgba(0,0,0,0.3)] relative ${!isAvailable ? "opacity-60 !border-[rgba(255,100,100,0.2)] !bg-[linear-gradient(135deg,rgba(30,60,90,0.2)_0%,rgba(20,40,70,0.15)_100%)]" : ""} max-[1200px]:w-[260px] max-[1200px]:h-[180px] max-md:w-[240px] max-md:h-[160px] max-md:p-3`}
+                    className={`relative border-2 rounded-xl p-[15px] transition-all duration-200 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] backdrop-blur-[10px] animate-[actionSlideIn_0.6s_ease-out_both] w-full max-w-[320px] min-h-[200px] flex flex-col shadow-[0_4px_15px_rgba(0,0,0,0.3)] max-[1200px]:w-[260px] max-[1200px]:h-[180px] max-md:w-[240px] max-md:h-[160px] max-md:p-3 ${
+                      action.available
+                        ? "border-[rgba(255,100,100,0.4)] bg-[linear-gradient(135deg,rgba(30,60,90,0.4)_0%,rgba(20,40,70,0.3)_100%)]"
+                        : "border-[rgba(255,100,100,0.2)] bg-[linear-gradient(135deg,rgba(30,60,90,0.2)_0%,rgba(20,40,70,0.15)_100%)] opacity-60"
+                    }`}
                     style={{ animationDelay: `${index * 0.05}s` }}
                   >
-                    {/* Grey fade overlay for disabled actions */}
-                    {!isActionPlayable && (
-                      <div className="absolute inset-0 bg-gray-600/40 rounded-xl pointer-events-none z-10" />
+                    {/* Error badge when action is unavailable */}
+                    {!action.available && action.errors && action.errors.length > 0 && (
+                      <div className="absolute top-2 right-2 z-[15] bg-[linear-gradient(135deg,#e74c3c,#c0392b)] text-white text-[9px] font-bold px-2 py-1 rounded border border-[rgba(231,76,60,0.8)] shadow-[0_2px_8px_rgba(231,76,60,0.4)] flex items-center gap-1">
+                        <span>⚠</span>
+                        <span className="max-w-[140px] truncate">
+                          {action.errors[0].message}
+                          {action.errors.length > 1 && ` (+${action.errors.length - 1})`}
+                        </span>
+                      </div>
                     )}
                     <div className="flex flex-col gap-2.5 flex-1 overflow-hidden">
                       <div className="text-white/90 text-sm font-semibold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-[1.3] text-center m-0 flex-shrink-0 flex items-center justify-center gap-2 flex-wrap max-md:text-xs">
@@ -220,7 +194,6 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                         <BehaviorSection
                           behaviors={[action.behavior]}
                           playerResources={gameState?.currentPlayer?.resources}
-                          greyOutAll={action.timesUsedThisGeneration > 0}
                         />
                       </div>
                     </div>
@@ -238,9 +211,9 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                               : !hasActionsLeft
                                 ? "No actions remaining"
                                 : !isAvailable
-                                  ? action.timesUsedThisGeneration > 0
-                                    ? "Already played this generation"
-                                    : "Cannot afford this action"
+                                  ? action.errors && action.errors.length > 0
+                                    ? action.errors[0].message
+                                    : "Action not available"
                                   : "Play this action"
                         }
                       >

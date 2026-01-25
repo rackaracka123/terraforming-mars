@@ -1,79 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import { PlayerActionDto, GameDto } from "../../../types/generated/api-types.ts";
 import BehaviorSection from "../cards/BehaviorSection";
-import { canPerformActions, hasActionsAvailable } from "../../../utils/actionUtils.ts";
+import { canPerformActions } from "../../../utils/actionUtils.ts";
 import GameIcon from "../display/GameIcon.tsx";
-
-// Utility function to check if an action is affordable and available
-const isActionAvailable = (action: PlayerActionDto, gameState?: GameDto): boolean => {
-  // Check if action has been played this generation
-  if (action.timesUsedThisGeneration > 0) {
-    return false;
-  }
-
-  // Check if player can afford the action's input costs
-  if (!gameState?.currentPlayer) {
-    return false;
-  }
-
-  const playerResources = gameState.currentPlayer.resources;
-  const resourceStorage = gameState.currentPlayer.resourceStorage || {};
-
-  // Helper to check if a set of inputs is affordable
-  const areInputsAffordable = (inputs: any[]): boolean => {
-    for (const input of inputs) {
-      switch (input.type) {
-        case "credit":
-          if (playerResources.credits < input.amount) return false;
-          break;
-        case "steel":
-          if (playerResources.steel < input.amount) return false;
-          break;
-        case "titanium":
-          if (playerResources.titanium < input.amount) return false;
-          break;
-        case "plant":
-          if (playerResources.plants < input.amount) return false;
-          break;
-        case "energy":
-          if (playerResources.energy < input.amount) return false;
-          break;
-        case "heat":
-          if (playerResources.heat < input.amount) return false;
-          break;
-
-        // Card storage resources
-        case "animal":
-        case "microbe":
-        case "floater":
-        case "science":
-        case "asteroid":
-          if (input.target === "self-card") {
-            const cardStorage = resourceStorage[action.cardId] || 0;
-            if (cardStorage < input.amount) return false;
-          }
-          break;
-      }
-    }
-    return true;
-  };
-
-  // Check if action has choices
-  if (action.behavior.choices && action.behavior.choices.length > 0) {
-    // For choice-based actions, at least ONE choice must be affordable
-    for (const choice of action.behavior.choices) {
-      const choiceInputs = [...(action.behavior.inputs || []), ...(choice.inputs || [])];
-      if (areInputsAffordable(choiceInputs)) {
-        return true; // At least one choice is affordable
-      }
-    }
-    return false; // No choice is affordable
-  } else {
-    // For non-choice actions, check behavior inputs
-    const actionInputs = action.behavior.inputs || [];
-    return areInputsAffordable(actionInputs);
-  }
-};
+import { GamePopover, GamePopoverEmpty, GamePopoverItem } from "../GamePopover";
 
 interface ActionsPopoverProps {
   isVisible: boolean;
@@ -90,67 +20,12 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
   isVisible,
   onClose,
   actions,
-  playerName: _playerName = "Player",
   onActionSelect,
   onOpenDetails,
   anchorRef,
   gameState,
 }) => {
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ bottom: 85, right: 30 });
-
-  useEffect(() => {
-    if (isVisible && anchorRef.current) {
-      const rect = anchorRef.current.getBoundingClientRect();
-      const padding = 30;
-
-      // Position above the button
-      const bottom = window.innerHeight - rect.top + 15; // 15px gap above button
-
-      // Align to right edge of button, but ensure padding from screen edge
-      const right = Math.max(padding, window.innerWidth - rect.right);
-
-      setPosition({ bottom, right });
-    }
-  }, [isVisible, anchorRef]);
-
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(event.target as Node) &&
-        anchorRef.current &&
-        !anchorRef.current.contains(event.target as Node)
-      ) {
-        onClose();
-      }
-    };
-
-    if (isVisible) {
-      document.addEventListener("keydown", handleEscape);
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isVisible, onClose, anchorRef]);
-
-  if (!isVisible) return null;
-
-  // Determine if actions can be played using utility function
-  const isCurrentPlayerTurn = gameState?.currentTurn === gameState?.viewingPlayerId;
-  const hasActionsLeft = hasActionsAvailable(gameState?.currentPlayer?.availableActions);
   const hasPendingTileSelection = gameState?.currentPlayer?.pendingTileSelection;
-
-  // Actions should be clickable only if all conditions are met
   const canPlayActions = canPerformActions(gameState) && !hasPendingTileSelection;
 
   const handleActionClick = (action: PlayerActionDto) => {
@@ -161,111 +36,82 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
   };
 
   return (
-    <div
-      className="fixed w-[320px] max-h-[400px] bg-space-black-darker/95 border-2 border-[#ff6464] rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.8),0_0_15px_#ff6464] backdrop-blur-space z-[10001] animate-[popoverSlideUp_0.3s_ease-out] flex flex-col overflow-hidden isolate pointer-events-auto max-[768px]:w-[280px]"
-      ref={popoverRef}
-      style={{ bottom: `${position.bottom}px`, right: `${position.right}px` }}
+    <GamePopover
+      isVisible={isVisible}
+      onClose={onClose}
+      position={{ type: "anchor", anchorRef, placement: "above" }}
+      theme="actions"
+      header={{
+        title: "Card Actions",
+        badge: `${actions.length} available`,
+        rightContent: onOpenDetails ? (
+          <button
+            className="bg-space-black-darker/90 border-2 border-[var(--popover-accent)] rounded-lg text-white text-[11px] font-semibold py-1 px-2.5 cursor-pointer transition-all duration-200 text-shadow-dark pointer-events-auto relative z-[1] hover:bg-space-black-darker/95 hover:-translate-y-px hover:shadow-[0_2px_8px_rgba(var(--popover-accent-rgb),0.4)]"
+            onClick={() => {
+              onOpenDetails();
+              onClose();
+            }}
+            title="Open detailed actions view"
+          >
+            Details
+          </button>
+        ) : undefined,
+      }}
+      arrow={{ enabled: true, position: "right", offset: 30 }}
+      width={320}
+      maxHeight={400}
     >
-      <div className="absolute -bottom-2 right-[30px] w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-[#ff6464]" />
+      {actions.length === 0 ? (
+        <GamePopoverEmpty
+          icon={<GameIcon iconType="card" size="medium" />}
+          title="No card actions available"
+          description="Play cards with manual triggers to gain actions"
+        />
+      ) : (
+        <div className="p-2 flex flex-col gap-2">
+          {actions.map((action, index) => {
+            const isAvailable = action.available;
+            const isActionPlayable = canPlayActions && isAvailable;
 
-      <div className="flex items-center justify-between py-[15px] px-5 bg-black/40 border-b border-b-[#ff6464]/60">
-        <div className="flex items-center gap-2.5">
-          <h3 className="m-0 font-orbitron text-white text-base font-bold text-shadow-glow">
-            Card Actions
-          </h3>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="text-white/80 text-xs bg-[#ff6464]/20 py-1 px-2 rounded-md border border-[#ff6464]/30">
-            {actions.length} available
-          </div>
-          {onOpenDetails && (
-            <button
-              className="bg-space-black-darker/90 border-2 border-[#ff6464] rounded-lg text-white text-[11px] font-semibold py-1 px-2.5 cursor-pointer transition-all duration-200 text-shadow-dark pointer-events-auto relative z-[1] hover:bg-space-black-darker/95 hover:border-[#ff6464] hover:-translate-y-px hover:shadow-[0_2px_8px_#ff646460]"
-              onClick={() => {
-                onOpenDetails();
-                onClose();
-              }}
-              title="Open detailed actions view"
-            >
-              Details
-            </button>
-          )}
-        </div>
-      </div>
+            return (
+              <GamePopoverItem
+                key={`${action.cardId}-${action.behaviorIndex}`}
+                state={isAvailable ? "available" : "disabled"}
+                onClick={isActionPlayable ? () => handleActionClick(action) : undefined}
+                error={
+                  !isAvailable && action.errors && action.errors.length > 0
+                    ? { message: action.errors[0].message, count: action.errors.length }
+                    : undefined
+                }
+                hoverEffect="translate-x"
+                animationDelay={index * 0.05}
+                className={!isActionPlayable && isAvailable ? "cursor-default" : ""}
+              >
+                <div className="flex flex-col gap-2 flex-1">
+                  <div className="text-white/70 text-[11px] font-medium uppercase tracking-[0.5px] [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-[1.2] opacity-80 flex items-center gap-2 max-[768px]:text-[10px]">
+                    {action.cardName}
+                    {action.timesUsedThisGeneration > 0 && (
+                      <span className="bg-[linear-gradient(135deg,rgba(120,120,120,0.8)_0%,rgba(80,80,80,0.9)_100%)] text-white/90 text-[8px] font-semibold uppercase tracking-[0.3px] py-0.5 px-1.5 rounded-lg border border-[rgba(120,120,120,0.6)] [text-shadow:none] opacity-100">
+                        played
+                      </span>
+                    )}
+                  </div>
 
-      <div className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#ff6464_rgba(30,60,150,0.3)] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[rgba(30,60,150,0.3)] [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-[#ff6464]/70 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-[#ff6464]">
-        {actions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 px-5 text-center">
-            <div className="mb-[15px] opacity-60">
-              <GameIcon iconType="card" size="medium" />
-            </div>
-            <div className="text-white text-sm font-medium mb-2">No card actions available</div>
-            <div className="text-white/60 text-xs leading-[1.4]">
-              Play cards with manual triggers to gain actions
-            </div>
-          </div>
-        ) : (
-          <div className="p-2 flex flex-col gap-2">
-            {actions.map((action, index) => {
-              const isAvailable = isActionAvailable(action, gameState);
-              const isActionPlayable = canPlayActions && isAvailable;
-
-              return (
-                <div
-                  key={`${action.cardId}-${action.behaviorIndex}`}
-                  className={`flex items-center gap-3 py-2.5 px-[15px] bg-space-black-darker/60 border border-[#ff6464]/30 rounded-lg cursor-pointer transition-all duration-300 animate-[actionSlideIn_0.4s_ease-out_both] max-[768px]:py-2 max-[768px]:px-3 ${!isActionPlayable ? "opacity-50 !bg-space-black-darker/30 !border-[#ff6464]/15 !transform-none !shadow-none relative" : "hover:translate-x-1 hover:border-[#ff6464] hover:bg-space-black-darker/80 hover:shadow-[0_4px_15px_#ff646440]"}`}
-                  onClick={() => isActionPlayable && handleActionClick(action)}
-                  style={{
-                    animationDelay: `${index * 0.05}s`,
-                    cursor: isActionPlayable ? "pointer" : "default",
-                  }}
-                  title={
-                    hasPendingTileSelection
-                      ? "Complete tile placement first"
-                      : !canPlayActions
-                        ? !isCurrentPlayerTurn
-                          ? "Wait for your turn"
-                          : !hasActionsLeft
-                            ? "No actions remaining"
-                            : "Actions not available in this phase"
-                        : !isAvailable
-                          ? action.timesUsedThisGeneration > 0
-                            ? "Already played this generation"
-                            : "Cannot afford this action"
-                          : "Click to play this action"
-                  }
-                >
-                  {/* Grey fade overlay for disabled actions */}
-                  {!isActionPlayable && (
-                    <div className="absolute inset-0 bg-gray-600/40 rounded-lg pointer-events-none" />
-                  )}
-                  <div className="flex flex-col gap-2 flex-1">
-                    <div className="text-white/70 text-[11px] font-medium uppercase tracking-[0.5px] [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-[1.2] opacity-80 flex items-center gap-2 max-[768px]:text-[10px]">
-                      {action.cardName}
-                      {action.timesUsedThisGeneration > 0 && (
-                        <span className="bg-[linear-gradient(135deg,rgba(120,120,120,0.8)_0%,rgba(80,80,80,0.9)_100%)] text-white/90 text-[8px] font-semibold uppercase tracking-[0.3px] py-0.5 px-1.5 rounded-lg border border-[rgba(120,120,120,0.6)] [text-shadow:none] opacity-100">
-                          played
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="relative w-full min-h-[32px] [&>div]:!relative [&>div]:!bottom-auto [&>div]:!left-auto [&>div]:!right-auto [&>div]:w-full [&>div:hover]:!transform-none [&>div:hover]:!shadow-none [&>div:hover]:!filter-none">
-                      <BehaviorSection
-                        behaviors={[action.behavior]}
-                        playerResources={gameState?.currentPlayer?.resources}
-                        resourceStorage={gameState?.currentPlayer?.resourceStorage}
-                        cardId={action.cardId}
-                        greyOutAll={action.timesUsedThisGeneration > 0}
-                      />
-                    </div>
+                  <div className="relative w-full min-h-[32px] [&>div]:!relative [&>div]:!bottom-auto [&>div]:!left-auto [&>div]:!right-auto [&>div]:w-full [&>div:hover]:!transform-none [&>div:hover]:!shadow-none [&>div:hover]:!filter-none">
+                    <BehaviorSection
+                      behaviors={[action.behavior]}
+                      playerResources={gameState?.currentPlayer?.resources}
+                      resourceStorage={gameState?.currentPlayer?.resourceStorage}
+                      cardId={action.cardId}
+                    />
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
+              </GamePopoverItem>
+            );
+          })}
+        </div>
+      )}
+    </GamePopover>
   );
 };
 

@@ -13,15 +13,12 @@ type PlayerCardAction struct {
 	behaviorIndex int
 	behavior      shared.CardBehavior
 
-	// Persistent state (not calculated, tracked over time)
 	timesUsedThisTurn       int
 	timesUsedThisGeneration int
 
-	// Calculated state (from action package)
 	mu    sync.RWMutex
 	state EntityState
 
-	// Event listener cleanup functions
 	unsubscribers []func()
 }
 

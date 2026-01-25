@@ -42,7 +42,6 @@ func (h *ConfirmSellPatentsHandler) HandleMessage(ctx context.Context, connectio
 		return
 	}
 
-	// Parse payload
 	payloadMap, ok := message.Payload.(map[string]interface{})
 	if !ok {
 		log.Error("Invalid payload format")
@@ -50,7 +49,6 @@ func (h *ConfirmSellPatentsHandler) HandleMessage(ctx context.Context, connectio
 		return
 	}
 
-	// Extract selectedCardIDs
 	var selectedCardIDs []string
 	if cardIDsInterface, ok := payloadMap["selectedCardIds"].([]interface{}); ok {
 		selectedCardIDs = make([]string, len(cardIDsInterface))
@@ -73,7 +71,6 @@ func (h *ConfirmSellPatentsHandler) HandleMessage(ctx context.Context, connectio
 
 	log.Info("✅ Confirm sell patents action completed successfully")
 
-	// Explicitly broadcast game state after action completes
 	h.broadcaster.BroadcastGameState(connection.GameID, nil)
 	log.Debug("📡 Broadcasted game state to all players")
 

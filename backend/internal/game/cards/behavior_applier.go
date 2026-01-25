@@ -71,7 +71,6 @@ func (a *BehaviorApplier) ApplyInputs(
 
 	log.Debug("💰 Processing behavior inputs")
 
-	// First validate player has all required resources
 	resources := a.player.Resources().Get()
 
 	for _, input := range inputs {
@@ -105,7 +104,6 @@ func (a *BehaviorApplier) ApplyInputs(
 		}
 	}
 
-	// All validations passed, now deduct resources
 	for _, input := range inputs {
 		switch input.ResourceType {
 		case shared.ResourceCredit:
@@ -172,7 +170,6 @@ func (a *BehaviorApplier) ApplyOutputs(
 		}
 	}
 
-	// Record triggered effect for UI notification
 	if a.game != nil && a.player != nil && len(outputs) > 0 {
 		a.game.AddTriggeredEffect(game.TriggeredEffect{
 			CardName: a.source,
@@ -191,7 +188,6 @@ func (a *BehaviorApplier) applyOutput(
 	log *zap.Logger,
 ) error {
 	switch output.ResourceType {
-	// ========== Basic Resources ==========
 	case shared.ResourceCredit:
 		if a.player == nil {
 			return fmt.Errorf("cannot apply credits: no player context")
@@ -246,7 +242,6 @@ func (a *BehaviorApplier) applyOutput(
 		})
 		log.Info("🔥 Added heat", zap.Int("amount", output.Amount))
 
-	// ========== Production Resources ==========
 	case shared.ResourceCreditProduction:
 		if a.player == nil {
 			return fmt.Errorf("cannot apply credits production: no player context")
@@ -301,7 +296,6 @@ func (a *BehaviorApplier) applyOutput(
 		})
 		log.Info("🔥 Added heat production", zap.Int("amount", output.Amount))
 
-	// ========== Terraform Rating ==========
 	case shared.ResourceTR:
 		if a.player == nil {
 			return fmt.Errorf("cannot apply terraform rating: no player context")
@@ -309,7 +303,6 @@ func (a *BehaviorApplier) applyOutput(
 		a.player.Resources().UpdateTerraformRating(output.Amount)
 		log.Info("🌍 Added terraform rating", zap.Int("amount", output.Amount))
 
-	// ========== Global Parameters ==========
 	case shared.ResourceOxygen:
 		if a.game == nil {
 			return fmt.Errorf("cannot apply oxygen: no game context")
@@ -330,7 +323,6 @@ func (a *BehaviorApplier) applyOutput(
 		}
 		log.Info("🌡️ Increased temperature", zap.Int("steps", actualSteps))
 
-	// ========== Tile Placements ==========
 	case shared.ResourceCityPlacement, shared.ResourceGreeneryPlacement, shared.ResourceOceanPlacement:
 		if a.game == nil {
 			return fmt.Errorf("cannot apply tile placement: no game context")
@@ -365,7 +357,6 @@ func (a *BehaviorApplier) applyOutput(
 			zap.String("tile_type", tileType),
 			zap.Int("count", output.Amount))
 
-	// ========== Payment Substitutes ==========
 	case shared.ResourcePaymentSubstitute:
 		if a.player == nil {
 			return fmt.Errorf("cannot apply payment substitute: no player context")
@@ -381,7 +372,6 @@ func (a *BehaviorApplier) applyOutput(
 			log.Warn("⚠️ payment-substitute output missing affectedResources")
 		}
 
-	// ========== Discounts ==========
 	case shared.ResourceDiscount:
 		// Discounts are registered as effects and handled by RequirementModifierCalculator
 		// The effect registration happens when the card is played (auto effects are added to player.Effects)
@@ -391,7 +381,6 @@ func (a *BehaviorApplier) applyOutput(
 			zap.Any("affected_tags", output.AffectedTags),
 			zap.Any("affected_standard_projects", output.AffectedStandardProjects))
 
-	// ========== Value Modifiers (Phobolog, Advanced Alloys) ==========
 	case shared.ResourceValueModifier:
 		if a.player == nil {
 			return fmt.Errorf("cannot apply value modifier: no player context")
@@ -405,7 +394,6 @@ func (a *BehaviorApplier) applyOutput(
 				zap.Int("modifier_amount", output.Amount))
 		}
 
-	// ========== Card Resource Storage (Animals, Microbes, Floaters, etc.) ==========
 	case shared.ResourceAnimal, shared.ResourceMicrobe, shared.ResourceFloater:
 		if a.player == nil {
 			return fmt.Errorf("cannot apply card resource: no player context")

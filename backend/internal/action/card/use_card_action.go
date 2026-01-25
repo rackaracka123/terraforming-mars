@@ -53,29 +53,24 @@ func (a *UseCardActionAction) Execute(
 	}
 	log.Info("🎯 Player attempting to use card action")
 
-	// 1. Validate game exists and is active
 	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
-	// 2. Validate game is in action phase
 	if err := baseaction.ValidateGamePhase(g, game.GamePhaseAction, log); err != nil {
 		return err
 	}
 
-	// 3. Validate it's the player's turn
 	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 
-	// 4. Get player from game
 	p, err := a.GetPlayerFromGame(g, playerID, log)
 	if err != nil {
 		return err
 	}
 
-	// 5. BUSINESS LOGIC: Find the card action in player's available actions
 	cardAction, err := a.findCardAction(p, cardID, behaviorIndex, log)
 	if err != nil {
 		return err
@@ -85,14 +80,12 @@ func (a *UseCardActionAction) Execute(
 		zap.String("card_name", cardAction.CardName),
 		zap.Int("times_used_this_generation", cardAction.TimesUsedThisGeneration))
 
-	// 6. BUSINESS LOGIC: Use BehaviorApplier for inputs and outputs
 	applier := gamecards.NewBehaviorApplier(p, g, cardAction.CardName, log).
 		WithSourceCardID(cardID)
 	if cardStorageTarget != nil {
 		applier = applier.WithTargetCardID(*cardStorageTarget)
 	}
 
-	// 7. BUSINESS LOGIC: Extract combined inputs and outputs (base + choice if selected)
 	inputs, outputs := cardAction.Behavior.ExtractInputsOutputs(choiceIndex)
 
 	if choiceIndex != nil {
@@ -102,22 +95,18 @@ func (a *UseCardActionAction) Execute(
 			zap.Int("output_count", len(outputs)))
 	}
 
-	// 8. BUSINESS LOGIC: Validate and apply inputs (resource costs)
 	if err := applier.ApplyInputs(ctx, inputs); err != nil {
 		log.Error("Failed to apply inputs", zap.Error(err))
 		return err
 	}
 
-	// 9. BUSINESS LOGIC: Apply outputs (resource gains, etc.)
 	if err := applier.ApplyOutputs(ctx, outputs); err != nil {
 		log.Error("Failed to apply outputs", zap.Error(err))
 		return err
 	}
 
-	// 10. BUSINESS LOGIC: Increment usage counts for the action
 	a.incrementUsageCounts(p, cardID, behaviorIndex, log)
 
-	// 11. BUSINESS LOGIC: Consume a player action (skipped for unlimited actions in solo mode)
 	a.ConsumePlayerAction(g, log)
 
 	log.Info("🎉 Card action executed successfully")

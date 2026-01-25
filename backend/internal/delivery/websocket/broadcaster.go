@@ -45,14 +45,12 @@ func (b *Broadcaster) BroadcastGameState(gameID string, playerIDs []string) {
 	ctx := context.Background()
 	log := b.logger.With(zap.String("game_id", gameID))
 
-	// Fetch game from repository
 	game, err := b.gameRepo.Get(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game for broadcast", zap.Error(err))
 		return
 	}
 
-	// Determine which players to notify
 	if playerIDs == nil {
 		// Broadcast to all players in the game
 		players := game.GetAllPlayers()
@@ -66,7 +64,6 @@ func (b *Broadcaster) BroadcastGameState(gameID string, playerIDs []string) {
 		log.Debug("📢 Broadcasting to specific players", zap.Strings("player_ids", playerIDs))
 	}
 
-	// Send personalized game state to each player
 	for _, playerID := range playerIDs {
 		if err := b.sendToPlayer(ctx, game, playerID); err != nil {
 			log.Error("Failed to send game state to player",
@@ -86,11 +83,8 @@ func (b *Broadcaster) sendToPlayer(ctx context.Context, game *game.Game, playerI
 		zap.String("player_id", playerID),
 	)
 
-	// Create personalized DTO from game state using migration mapper
-	// playerID determines which player is "currentPlayer" vs "otherPlayers"
 	gameDto := dto.ToGameDto(game, b.cardRegistry, playerID)
 
-	// Create game updated message
 	message := dto.WebSocketMessage{
 		Type:   dto.MessageTypeGameUpdated,
 		GameID: game.ID(),
@@ -99,7 +93,6 @@ func (b *Broadcaster) sendToPlayer(ctx context.Context, game *game.Game, playerI
 		},
 	}
 
-	// Send via Hub
 	if err := b.hub.SendToPlayer(game.ID(), playerID, message); err != nil {
 		return err
 	}

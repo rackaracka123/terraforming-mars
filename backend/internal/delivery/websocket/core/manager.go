@@ -10,13 +10,10 @@ import (
 
 // Manager handles WebSocket connection lifecycle and organization
 type Manager struct {
-	// Connection storage
 	connections     map[*Connection]bool
 	gameConnections map[string]map[*Connection]bool
-
-	// Synchronization
-	mu     sync.RWMutex
-	logger *zap.Logger
+	mu              sync.RWMutex
+	logger          *zap.Logger
 }
 
 // NewManager creates a new connection manager
@@ -46,11 +43,9 @@ func (m *Manager) UnregisterConnection(connection *Connection) (playerID, gameID
 		return "", "", false
 	}
 
-	// Remove from main connections
 	delete(m.connections, connection)
 	connection.CloseSend()
 
-	// Get player info for broadcasting
 	playerID, gameID = connection.GetPlayer()
 	shouldBroadcast = gameID != "" && playerID != ""
 
@@ -64,7 +59,6 @@ func (m *Manager) UnregisterConnection(connection *Connection) (playerID, gameID
 		}
 	}
 
-	// Close connection
 	connection.Close()
 
 	m.logger.Debug("⛓️‍💥 Client disconnected from server",
@@ -96,7 +90,6 @@ func (m *Manager) GetGameConnections(gameID string) map[*Connection]bool {
 		return nil
 	}
 
-	// Return a copy to avoid external mutation
 	connections := make(map[*Connection]bool, len(gameConns))
 	for conn := range gameConns {
 		connections[conn] = true
@@ -127,7 +120,6 @@ func (m *Manager) RemoveExistingPlayerConnection(playerID, gameID string, exclud
 		zap.String("exclude_connection_id", excludeConnection.ID),
 		zap.Uintptr("exclude_connection_ptr", uintptr(unsafe.Pointer(excludeConnection))))
 
-	// Find existing connection for this player, but exclude the current one
 	for connection := range m.connections {
 		existingPlayerID, existingGameID := connection.GetPlayer()
 		if existingPlayerID == playerID && existingGameID == gameID {
@@ -167,7 +159,6 @@ func (m *Manager) RemoveExistingPlayerConnection(playerID, gameID string, exclud
 		zap.Uintptr("existing_connection_ptr", uintptr(unsafe.Pointer(existingConnection))),
 		zap.Uintptr("current_connection_ptr", uintptr(unsafe.Pointer(excludeConnection))))
 
-	// Remove from main connections
 	delete(m.connections, existingConnection)
 	existingConnection.CloseSend()
 
@@ -181,7 +172,6 @@ func (m *Manager) RemoveExistingPlayerConnection(playerID, gameID string, exclud
 		}
 	}
 
-	// Close connection
 	existingConnection.Close()
 
 	m.logger.Debug("✅ Existing connection cleaned up for reconnecting player",
@@ -203,7 +193,6 @@ func (m *Manager) CloseAllConnections() {
 		connection.Close()
 	}
 
-	// Clear the connection maps
 	m.connections = make(map[*Connection]bool)
 	m.gameConnections = make(map[string]map[*Connection]bool)
 
@@ -220,7 +209,6 @@ func (m *Manager) GetConnectionByPlayerID(gameID, playerID string) *Connection {
 		return nil
 	}
 
-	// Search through connections in the game for the matching player
 	for connection := range gameConnections {
 		if connection.PlayerID == playerID {
 			return connection

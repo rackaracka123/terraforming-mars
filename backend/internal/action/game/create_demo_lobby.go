@@ -60,7 +60,6 @@ func (a *CreateDemoLobbyAction) Execute(
 		return nil, fmt.Errorf("player count must be between 1 and 5, got %d", settings.PlayerCount)
 	}
 
-	// Apply defaults
 	if len(settings.CardPacks) == 0 {
 		settings.CardPacks = []string{"base-game"}
 	}
@@ -79,7 +78,6 @@ func (a *CreateDemoLobbyAction) Execute(
 
 	newGame := game.NewGame(gameID, "", baseSettings)
 
-	// Initialize deck
 	projectCardIDs, corpIDs, preludeIDs := cards.GetCardIDsByPacks(a.cardRegistry, settings.CardPacks)
 	gameDeck := deck.NewDeck(gameID, projectCardIDs, corpIDs, preludeIDs)
 	newGame.SetDeck(gameDeck)
