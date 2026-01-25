@@ -19,6 +19,7 @@ Key standards include:
 - Document all exported symbols
 - Use `gofmt` and `goimports` for formatting
 - **CRITICAL**: Each `.go` file must have exactly ONE `package` declaration
+- **CRITICAL**: NO unnecessary comments - code should be self-documenting. Avoid logic comments that just restate what the code does. Only add comments when truly necessary (complex algorithms, non-obvious business rules, or required doc comments for exported symbols).
 
 For detailed guidance on naming, error handling, concurrency, API design, testing, and more, consult `go.instructions.md`.
 
