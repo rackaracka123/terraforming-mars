@@ -50,13 +50,13 @@ func (pc *PlayedCards) Contains(cardID string) bool {
 //   - cardID: The unique identifier of the card
 //   - cardName: The display name of the card
 //   - cardType: The type of card (event, automated, active, corporation, prelude)
-func (pc *PlayedCards) AddCard(cardID, cardName, cardType string) {
+//   - tags: The tags on the card (for triggering tag-based passive effects)
+func (pc *PlayedCards) AddCard(cardID, cardName, cardType string, tags []string) {
 	pc.mu.Lock()
 	pc.cards = append(pc.cards, cardID)
 	pc.mu.Unlock()
 
 	if pc.eventBus != nil {
-		// Publish CardPlayedEvent for passive card effects and game logging
 		events.Publish(pc.eventBus, events.CardPlayedEvent{
 			GameID:    pc.gameID,
 			PlayerID:  pc.playerID,
@@ -66,6 +66,16 @@ func (pc *PlayedCards) AddCard(cardID, cardName, cardType string) {
 			Timestamp: time.Now(),
 		})
 
+		for _, tag := range tags {
+			events.Publish(pc.eventBus, events.TagPlayedEvent{
+				GameID:    pc.gameID,
+				PlayerID:  pc.playerID,
+				CardID:    cardID,
+				CardName:  cardName,
+				Tag:       tag,
+				Timestamp: time.Now(),
+			})
+		}
 	}
 }
 

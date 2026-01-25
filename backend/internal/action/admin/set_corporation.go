@@ -3,10 +3,12 @@ package admin
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.uber.org/zap"
 	baseaction "terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 )
@@ -109,6 +111,18 @@ func (a *SetCorporationAction) Execute(ctx context.Context, gameID string, playe
 			zap.Int("behavior_index", effect.BehaviorIndex))
 
 		baseaction.SubscribePassiveEffectToEvents(ctx, g, player, effect, log)
+	}
+
+	// Publish TagPlayedEvent for each corporation tag (triggers Saturn Systems, etc.)
+	for _, tag := range corpCard.Tags {
+		events.Publish(g.EventBus(), events.TagPlayedEvent{
+			GameID:    gameID,
+			PlayerID:  playerID,
+			CardID:    corporationID,
+			CardName:  corpCard.Name,
+			Tag:       string(tag),
+			Timestamp: time.Now(),
+		})
 	}
 
 	manualActions := a.corpProc.GetManualActions(corpCard)

@@ -894,11 +894,14 @@ func getResourceAmount(resources shared.Resources, resourceType shared.ResourceT
 	}
 }
 
-// isProducibleResource checks if the resource type is one of the 6 basic producible resources.
+// isProducibleResource checks if the resource type is one of the 6 basic producible resources
+// or their production variants (e.g., "titanium" or "titanium-production").
 func isProducibleResource(resourceType shared.ResourceType) bool {
 	switch resourceType {
 	case shared.ResourceCredit, shared.ResourceSteel, shared.ResourceTitanium,
-		shared.ResourcePlant, shared.ResourceEnergy, shared.ResourceHeat:
+		shared.ResourcePlant, shared.ResourceEnergy, shared.ResourceHeat,
+		shared.ResourceCreditProduction, shared.ResourceSteelProduction, shared.ResourceTitaniumProduction,
+		shared.ResourcePlantProduction, shared.ResourceEnergyProduction, shared.ResourceHeatProduction:
 		return true
 	default:
 		return false
@@ -906,20 +909,21 @@ func isProducibleResource(resourceType shared.ResourceType) bool {
 }
 
 // getProductionAmount extracts the production value for a specific resource type.
+// Accepts both base resources (e.g., "titanium") and production types (e.g., "titanium-production").
 // Returns 0 for non-producible resource types.
 func getProductionAmount(production shared.Production, resourceType shared.ResourceType) int {
 	switch resourceType {
-	case shared.ResourceCredit:
+	case shared.ResourceCredit, shared.ResourceCreditProduction:
 		return production.Credits
-	case shared.ResourceSteel:
+	case shared.ResourceSteel, shared.ResourceSteelProduction:
 		return production.Steel
-	case shared.ResourceTitanium:
+	case shared.ResourceTitanium, shared.ResourceTitaniumProduction:
 		return production.Titanium
-	case shared.ResourcePlant:
+	case shared.ResourcePlant, shared.ResourcePlantProduction:
 		return production.Plants
-	case shared.ResourceEnergy:
+	case shared.ResourceEnergy, shared.ResourceEnergyProduction:
 		return production.Energy
-	case shared.ResourceHeat:
+	case shared.ResourceHeat, shared.ResourceHeatProduction:
 		return production.Heat
 	default:
 		return 0

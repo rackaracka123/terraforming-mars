@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"time"
 
 	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/events"
 	internalgame "terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
@@ -176,6 +178,24 @@ func (a *ConfirmDemoSetupAction) Execute(
 	}
 	p.Resources().SetProduction(production)
 	log.Info("✅ Set production", zap.Any("production", production))
+
+	// 7a. Publish TagPlayedEvent for corporation tags AFTER production is set
+	// This ensures trigger effects (like Saturn Systems) modify production correctly
+	if corporationID != "" {
+		corpCard, err := a.cardRegistry.GetByID(corporationID)
+		if err == nil {
+			for _, tag := range corpCard.Tags {
+				events.Publish(g.EventBus(), events.TagPlayedEvent{
+					GameID:    gameID,
+					PlayerID:  playerID,
+					CardID:    corporationID,
+					CardName:  corpCard.Name,
+					Tag:       string(tag),
+					Timestamp: time.Now(),
+				})
+			}
+		}
+	}
 
 	// 8. Set terraform rating
 	p.Resources().SetTerraformRating(request.TerraformRating)
