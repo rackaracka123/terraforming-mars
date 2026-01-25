@@ -10,10 +10,17 @@ import {
   ListCardsResponse,
 } from "../types/generated/api-types.ts";
 
+function getDefaultApiUrl(): string {
+  if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
+    return "/api/v1";
+  }
+  return "http://localhost:3001/api/v1";
+}
+
 export class ApiService {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "http://localhost:3001/api/v1") {
+  constructor(baseUrl: string = getDefaultApiUrl()) {
     this.baseUrl = baseUrl;
   }
 

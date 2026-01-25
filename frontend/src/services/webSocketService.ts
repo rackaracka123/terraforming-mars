@@ -54,8 +54,15 @@ export class WebSocketService {
   private pendingConnection: Promise<void> | null = null;
   private shouldReconnect = true;
 
-  constructor(url: string = "ws://localhost:3001/ws") {
-    this.url = url;
+  constructor(url?: string) {
+    if (url) {
+      this.url = url;
+    } else if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      this.url = `${protocol}//${window.location.host}/ws`;
+    } else {
+      this.url = "ws://localhost:3001/ws";
+    }
   }
 
   connect(): Promise<void> {
