@@ -73,7 +73,7 @@ func CalculatePlayerCardActionState(
 			errors = append(errors, player.StateError{
 				Code:     player.ErrorCodeInsufficientResources,
 				Category: player.ErrorCategoryInput,
-				Message:  fmt.Sprintf("Need %d %s, have %d", input.Amount, input.ResourceType, available),
+				Message:  fmt.Sprintf("Not enough %s", input.ResourceType),
 			})
 		}
 	}
@@ -741,7 +741,7 @@ func validateAffordability(p *player.Player, cost int) []player.StateError {
 		return []player.StateError{{
 			Code:     player.ErrorCodeInsufficientCredits,
 			Category: player.ErrorCategoryCost,
-			Message:  fmt.Sprintf("Need %d credits, have %d", cost, credits),
+			Message:  "Cannot afford",
 		}}
 	}
 	return nil
@@ -762,31 +762,31 @@ func validateAffordabilityMap(p *player.Player, costMap map[string]int) []player
 		case shared.ResourceCredit:
 			available = resources.Credits
 			errorCode = player.ErrorCodeInsufficientCredits
-			errorMessage = "Insufficient credits"
+			errorMessage = "Cannot afford"
 		case shared.ResourceSteel:
 			available = resources.Steel
 			errorCode = player.ErrorCodeInsufficientResources
-			errorMessage = "Insufficient steel"
+			errorMessage = "Not enough steel"
 		case shared.ResourceTitanium:
 			available = resources.Titanium
 			errorCode = player.ErrorCodeInsufficientResources
-			errorMessage = "Insufficient titanium"
+			errorMessage = "Not enough titanium"
 		case shared.ResourcePlant:
 			available = resources.Plants
 			errorCode = player.ErrorCodeInsufficientResources
-			errorMessage = "Insufficient plants"
+			errorMessage = "Not enough plants"
 		case shared.ResourceEnergy:
 			available = resources.Energy
 			errorCode = player.ErrorCodeInsufficientResources
-			errorMessage = "Insufficient energy"
+			errorMessage = "Not enough energy"
 		case shared.ResourceHeat:
 			available = resources.Heat
 			errorCode = player.ErrorCodeInsufficientResources
-			errorMessage = "Insufficient heat"
+			errorMessage = "Not enough heat"
 		default:
 			available = 0
 			errorCode = player.ErrorCodeInsufficientResources
-			errorMessage = fmt.Sprintf("Insufficient %s", resourceType)
+			errorMessage = fmt.Sprintf("Not enough %s", resourceType)
 		}
 
 		if available < cost {
@@ -832,7 +832,7 @@ func validateAffordabilityWithSubstitutes(p *player.Player, costMap map[string]i
 				errors = append(errors, player.StateError{
 					Code:     player.ErrorCodeInsufficientCredits,
 					Category: player.ErrorCategoryCost,
-					Message:  "Insufficient credits",
+					Message:  "Cannot afford",
 				})
 			}
 		} else {
@@ -842,7 +842,7 @@ func validateAffordabilityWithSubstitutes(p *player.Player, costMap map[string]i
 				errors = append(errors, player.StateError{
 					Code:     player.ErrorCodeInsufficientCredits,
 					Category: player.ErrorCategoryCost,
-					Message:  "Insufficient credits",
+					Message:  "Cannot afford",
 				})
 			}
 		}
@@ -1019,7 +1019,7 @@ func CalculateMilestoneState(
 		errors = append(errors, player.StateError{
 			Code:     player.ErrorCodeInsufficientCredits,
 			Category: player.ErrorCategoryCost,
-			Message:  "Insufficient credits",
+			Message:  "Cannot afford",
 		})
 	}
 
@@ -1084,7 +1084,7 @@ func CalculateAwardState(
 		errors = append(errors, player.StateError{
 			Code:     player.ErrorCodeInsufficientCredits,
 			Category: player.ErrorCategoryCost,
-			Message:  "Insufficient credits",
+			Message:  "Cannot afford",
 		})
 	}
 
