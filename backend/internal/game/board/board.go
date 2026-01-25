@@ -160,8 +160,6 @@ func max(a, b int) int {
 	return b
 }
 
-// ================== Getters ==================
-
 // Tiles returns a deep copy of all tiles to prevent external mutation
 func (b *Board) Tiles() []Tile {
 	b.mu.RLock()
@@ -184,8 +182,6 @@ func (b *Board) GetTile(coords shared.HexPosition) (*Tile, error) {
 
 	return nil, fmt.Errorf("tile not found at coordinates %v", coords)
 }
-
-// ================== Setters with Event Publishing ==================
 
 // SetTiles replaces all tiles (used for board generation)
 func (b *Board) SetTiles(ctx context.Context, tiles []Tile) error {
@@ -237,8 +233,6 @@ func (b *Board) UpdateTileOccupancy(ctx context.Context, coords shared.HexPositi
 
 	return nil
 }
-
-// ================== Helper Methods ==================
 
 // deepCopyTiles creates a deep copy of all tiles
 func (b *Board) deepCopyTiles() []Tile {

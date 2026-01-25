@@ -1,7 +1,5 @@
 package shared
 
-// ==================== Card Behavior Related Types ====================
-
 // Trigger represents when and how an action or effect is activated
 type Trigger struct {
 	Type      string                    `json:"type"`

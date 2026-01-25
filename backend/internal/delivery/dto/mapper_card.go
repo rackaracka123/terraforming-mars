@@ -95,6 +95,7 @@ func toRequirementDto(req gamecards.Requirement) RequirementDto {
 
 func toCardBehaviorDto(behavior shared.CardBehavior) CardBehaviorDto {
 	return CardBehaviorDto{
+		Description:                   behavior.Description,
 		Triggers:                      mapSlice(behavior.Triggers, toTriggerDto),
 		Inputs:                        mapSlice(behavior.Inputs, toResourceConditionDto),
 		Outputs:                       mapSlice(behavior.Outputs, toResourceConditionDto),

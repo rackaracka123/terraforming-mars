@@ -63,8 +63,6 @@ func NewAwards(gameID string, eventBus *events.EventBusImpl) *Awards {
 	}
 }
 
-// ================== Getters ==================
-
 // FundedAwards returns a copy of all funded awards
 func (a *Awards) FundedAwards() []FundedAward {
 	a.mu.RLock()
@@ -122,8 +120,6 @@ func (a *Awards) GetCurrentFundingCost() int {
 	}
 	return AwardFundingCosts[count]
 }
-
-// ================== Mutators ==================
 
 // FundAward funds an award for a player
 // Returns an error if the award is already funded or max awards reached

@@ -59,8 +59,6 @@ func NewMilestones(gameID string, eventBus *events.EventBusImpl) *Milestones {
 	}
 }
 
-// ================== Getters ==================
-
 // ClaimedMilestones returns a copy of all claimed milestones
 func (m *Milestones) ClaimedMilestones() []ClaimedMilestone {
 	m.mu.RLock()
@@ -120,8 +118,6 @@ func (m *Milestones) GetClaimedByPlayer(playerID string) []ClaimedMilestone {
 	}
 	return result
 }
-
-// ================== Mutators ==================
 
 // ClaimMilestone claims a milestone for a player
 // Returns an error if the milestone is already claimed or max milestones reached

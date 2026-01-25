@@ -4,8 +4,6 @@ import (
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-// ==================== Card Requirements ====================
-
 // RequirementType represents different types of card requirements
 type RequirementType string
 

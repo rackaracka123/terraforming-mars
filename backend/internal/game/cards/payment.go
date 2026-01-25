@@ -6,8 +6,6 @@ import (
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-// ==================== Card Payment ====================
-
 // CardPayment represents how a player is paying for a card
 type CardPayment struct {
 	Credits     int

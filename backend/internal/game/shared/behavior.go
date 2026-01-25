@@ -1,9 +1,8 @@
 package shared
 
-// ==================== Card Behaviors ====================
-
 // CardBehavior represents card behaviors (immediate and repeatable)
 type CardBehavior struct {
+	Description                   string                         `json:"description,omitempty" ts:"string | undefined"`
 	Triggers                      []Trigger                      `json:"triggers,omitempty"`
 	Inputs                        []ResourceCondition            `json:"inputs,omitempty"`
 	Outputs                       []ResourceCondition            `json:"outputs,omitempty"`
@@ -14,6 +13,8 @@ type CardBehavior struct {
 // DeepCopy creates a deep copy of the CardBehavior
 func (cb CardBehavior) DeepCopy() CardBehavior {
 	var result CardBehavior
+
+	result.Description = cb.Description
 
 	if cb.Triggers != nil {
 		result.Triggers = make([]Trigger, len(cb.Triggers))

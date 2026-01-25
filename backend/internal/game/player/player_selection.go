@@ -71,8 +71,6 @@ func (s *Selection) SetPendingCardDrawSelection(selection *PendingCardDrawSelect
 	}
 }
 
-// ==================== Phase State Types ====================
-
 // PendingCardSelection represents a pending card selection
 type PendingCardSelection struct {
 	AvailableCards []string

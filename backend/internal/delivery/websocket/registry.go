@@ -72,7 +72,6 @@ func RegisterHandlers(
 	log := logger.Get()
 	log.Info("🔄 Registering migration handlers with explicit broadcasting")
 
-	// ========== Game Lifecycle ==========
 	createGameHandler := game.NewCreateGameHandler(createGameAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeCreateGame, createGameHandler)
 
@@ -83,14 +82,12 @@ func RegisterHandlers(
 	confirmDemoSetupHandler := game.NewConfirmDemoSetupHandler(confirmDemoSetupAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionConfirmDemoSetup, confirmDemoSetupHandler)
 
-	// ========== Card Actions ==========
 	playCardHandler := card.NewPlayCardHandler(playCardAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionPlayCard, playCardHandler)
 
 	useCardActionHandler := card.NewUseCardActionHandler(useCardActionAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionCardAction, useCardActionHandler)
 
-	// ========== Standard Projects ==========
 	launchAsteroidHandler := standard_project.NewLaunchAsteroidHandler(launchAsteroidAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionLaunchAsteroid, launchAsteroidHandler)
 
@@ -109,18 +106,15 @@ func RegisterHandlers(
 	sellPatentsHandler := standard_project.NewSellPatentsHandler(sellPatentsAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionSellPatents, sellPatentsHandler)
 
-	// ========== Resource Conversions ==========
 	convertHeatHandler := resource_conversion.NewConvertHeatHandler(convertHeatAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionConvertHeatToTemperature, convertHeatHandler)
 
 	convertPlantsHandler := resource_conversion.NewConvertPlantsHandler(convertPlantsAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionConvertPlantsToGreenery, convertPlantsHandler)
 
-	// ========== Tile Selection ==========
 	selectTileHandler := tile.NewSelectTileHandler(selectTileAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionTileSelected, selectTileHandler)
 
-	// ========== Turn Management ==========
 	startGameHandler := turn_management.NewStartGameHandler(startGameAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionStartGame, startGameHandler)
 
@@ -130,7 +124,6 @@ func RegisterHandlers(
 	selectStartingCardsHandler := turn_management.NewSelectStartingCardsHandler(selectStartingCardsAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionSelectStartingCard, selectStartingCardsHandler)
 
-	// ========== Confirmations ==========
 	confirmSellPatentsHandler := confirmation.NewConfirmSellPatentsHandler(confirmSellPatentsAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionConfirmSellPatents, confirmSellPatentsHandler)
 
@@ -140,7 +133,6 @@ func RegisterHandlers(
 	confirmCardDrawHandler := confirmation.NewConfirmCardDrawHandler(confirmCardDrawAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionCardDrawConfirmed, confirmCardDrawHandler)
 
-	// ========== Connection Management ==========
 	// NOTE: PlayerReconnectedHandler is NOT registered separately because:
 	// - JoinGameHandler (on 'player-connect') handles BOTH new joins AND reconnections
 	// - It checks for playerID in payload to determine if it's a reconnect
@@ -151,14 +143,12 @@ func RegisterHandlers(
 	playerDisconnectedHandler := connection.NewPlayerDisconnectedHandler(playerDisconnectedAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypePlayerDisconnected, playerDisconnectedHandler)
 
-	// ========== Milestones & Awards ==========
 	claimMilestoneHandler := milestone.NewClaimMilestoneHandler(claimMilestoneAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionClaimMilestone, claimMilestoneHandler)
 
 	fundAwardHandler := award.NewFundAwardHandler(fundAwardAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionFundAward, fundAwardHandler)
 
-	// ========== Admin Commands (Development Mode) ==========
 	adminCommandHandler := admin.NewAdminCommandHandler(
 		adminSetPhaseAction,
 		adminSetCurrentTurnAction,

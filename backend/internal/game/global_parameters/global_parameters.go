@@ -48,8 +48,6 @@ func NewGlobalParametersWithValues(gameID string, temperature, oxygen, oceans in
 	}
 }
 
-// ================== Getters ==================
-
 // Temperature returns the current temperature
 func (gp *GlobalParameters) Temperature() int {
 	gp.mu.RLock()
@@ -79,8 +77,6 @@ func (gp *GlobalParameters) IsMaxed() bool {
 		gp.oxygen >= MaxOxygen &&
 		gp.oceans >= MaxOceans
 }
-
-// ================== Setters with Event Publishing ==================
 
 // IncreaseTemperature raises the temperature by the specified number of steps
 // Each step is 2 degrees. Returns the actual number of steps raised (may be less if limit reached)

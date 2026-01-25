@@ -4,8 +4,6 @@ import (
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-// ==================== Resource Conditions ====================
-
 // TargetType represents different targeting scopes
 type TargetType string
 
