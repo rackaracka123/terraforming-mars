@@ -4,8 +4,6 @@ import (
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-// ==================== Triggers ====================
-
 // TriggerType represents different trigger conditions
 type TriggerType string
 

@@ -42,8 +42,6 @@ func NewDeck(gameID string, projectCardIDs, corpIDs, preludeIDs []string) *Deck 
 	}
 }
 
-// ================== Getters ==================
-
 // GameID returns the game ID this deck belongs to
 func (d *Deck) GameID() string {
 	d.mu.RLock()
@@ -116,8 +114,6 @@ func (d *Deck) GetAvailableCardCount() int {
 	defer d.mu.RUnlock()
 	return len(d.projectCards)
 }
-
-// ================== Operations ==================
 
 // DrawProjectCards draws N project cards from the deck
 // Returns the drawn card IDs or error if not enough cards available

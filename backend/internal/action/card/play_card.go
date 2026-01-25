@@ -156,7 +156,12 @@ func (a *PlayCardAction) Execute(
 
 	log.Info("✅ Card removed from hand")
 
-	player.PlayedCards().AddCard(cardID, card.Name, string(card.Type))
+	cardTags := make([]string, len(card.Tags))
+	for i, tag := range card.Tags {
+		cardTags[i] = string(tag)
+	}
+
+	player.PlayedCards().AddCard(cardID, card.Name, string(card.Type), cardTags)
 
 	log.Info("✅ Card added to played cards")
 

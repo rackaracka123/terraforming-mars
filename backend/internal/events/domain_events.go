@@ -5,10 +5,6 @@ import "time"
 // Domain events represent significant state changes in the game
 // Published by repositories, subscribed to by effect handlers and broadcasters
 
-// ============================================================================
-// GAME EVENTS
-// ============================================================================
-
 // TemperatureChangedEvent is published when the global temperature parameter changes
 type TemperatureChangedEvent struct {
 	GameID    string
@@ -105,10 +101,6 @@ type ConnectionRegisteredEvent struct {
 	Timestamp time.Time
 }
 
-// ============================================================================
-// PLAYER EVENTS
-// ============================================================================
-
 // ResourcesChangedEvent is published when a player's resources change
 // Supports both single resource changes (legacy) and batched changes
 type ResourcesChangedEvent struct {
@@ -156,6 +148,16 @@ type CardPlayedEvent struct {
 	CardID    string
 	CardName  string
 	CardType  string // Type of card played (event, automated, active, corporation, prelude)
+	Timestamp time.Time
+}
+
+// TagPlayedEvent is published when a tag is played (once per tag on a card)
+type TagPlayedEvent struct {
+	GameID    string
+	PlayerID  string
+	CardID    string
+	CardName  string
+	Tag       string
 	Timestamp time.Time
 }
 
@@ -212,10 +214,6 @@ type PlayerEffectsChangedEvent struct {
 	PlayerID  string
 	Timestamp time.Time
 }
-
-// ============================================================================
-// MILESTONE AND AWARD EVENTS
-// ============================================================================
 
 // MilestoneClaimedEvent is published when a player claims a milestone
 type MilestoneClaimedEvent struct {

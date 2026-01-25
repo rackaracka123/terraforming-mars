@@ -40,7 +40,7 @@ func NewPlayer(eventBus *events.EventBusImpl, gameID, playerID, name string) *Pl
 		resources:          newResources(eventBus, gameID, playerID),
 		selection:          newSelection(eventBus, gameID, playerID),
 		actions:            NewActions(),
-		effects:            NewEffects(),
+		effects:            NewEffects(eventBus),
 		generationalEvents: newGenerationalEvents(),
 	}
 }

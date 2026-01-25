@@ -2,25 +2,27 @@ package player
 
 import (
 	"sync"
+
+	"terraforming-mars-backend/internal/events"
 )
 
 // Effects manages passive effects from played cards
 // Note: RequirementModifiers have been removed - discounts are now calculated on-demand
 // via RequirementModifierCalculator during EntityState calculation
 type Effects struct {
-	mu      sync.RWMutex
-	effects []CardEffect
+	mu            sync.RWMutex
+	effects       []CardEffect
+	subscriptions map[string][]events.SubscriptionID
+	eventBus      *events.EventBusImpl
 }
 
 // NewEffects creates a new Effects instance
-func NewEffects() *Effects {
+func NewEffects(eventBus *events.EventBusImpl) *Effects {
 	return &Effects{
-		effects: []CardEffect{},
+		effects:       []CardEffect{},
+		subscriptions: make(map[string][]events.SubscriptionID),
+		eventBus:      eventBus,
 	}
-}
-
-func newEffects() *Effects {
-	return NewEffects()
 }
 
 func (e *Effects) List() []CardEffect {
@@ -48,10 +50,18 @@ func (e *Effects) AddEffect(effect CardEffect) {
 	e.effects = append(e.effects, effect)
 }
 
-// RemoveEffectsByCardID removes all effects from a specific card
+// RegisterSubscription tracks an event subscription for a card so it can be unsubscribed later
+func (e *Effects) RegisterSubscription(cardID string, subID events.SubscriptionID) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.subscriptions[cardID] = append(e.subscriptions[cardID], subID)
+}
+
+// RemoveEffectsByCardID removes all effects from a specific card and unsubscribes from events
 func (e *Effects) RemoveEffectsByCardID(cardID string) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
+
 	filtered := make([]CardEffect, 0, len(e.effects))
 	for _, effect := range e.effects {
 		if effect.CardID != cardID {
@@ -59,4 +69,11 @@ func (e *Effects) RemoveEffectsByCardID(cardID string) {
 		}
 	}
 	e.effects = filtered
+
+	if subs, exists := e.subscriptions[cardID]; exists {
+		for _, subID := range subs {
+			e.eventBus.Unsubscribe(subID)
+		}
+		delete(e.subscriptions, cardID)
+	}
 }

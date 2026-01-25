@@ -4,8 +4,6 @@ import (
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-// ==================== Card Type ====================
-
 // CardType represents different types of cards in Terraforming Mars
 type CardType string
 

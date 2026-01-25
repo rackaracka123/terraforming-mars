@@ -4,8 +4,6 @@ import (
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-// ==================== Other Card Types ====================
-
 // DiscountEffect represents cost reductions for playing cards
 type DiscountEffect struct {
 	Amount      int

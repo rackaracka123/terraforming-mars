@@ -52,13 +52,10 @@ const renderTriggerIcon = (trigger: any, triggerIndex: number): React.ReactNode 
   const isCityPlaced = trigger.condition?.type === "city-placed";
 
   if (isCityPlaced) {
-    // Render city tile icon for city-placed trigger
-    // Red glow for self-player (like attack indicators), asterisk (*) for any-player
     const target = trigger.condition?.target || "self-player";
-    const isSelfPlayer = target === "self-player";
+    const isAnyPlayer = target === "any-player";
 
-    // Red glow filter matching the attack indicator style (without pulse animation)
-    const redGlowClass = isSelfPlayer
+    const redGlowClass = isAnyPlayer
       ? "[filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))_drop-shadow(0_0_2px_rgba(244,67,54,0.9))_drop-shadow(0_0_4px_rgba(244,67,54,0.7))]"
       : "";
 
@@ -72,10 +69,15 @@ const renderTriggerIcon = (trigger: any, triggerIndex: number): React.ReactNode 
   }
 
   if (hasAffectedTags) {
-    // Render icons for affected tags (e.g., plant / animal)
-    // Use -tag suffix to force tag icon lookup (otherwise resource icons are shown)
+    const target = trigger.condition?.target || "self-player";
+    const isAnyPlayer = target === "any-player";
+
+    const redGlowClass = isAnyPlayer
+      ? "[filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))_drop-shadow(0_0_2px_rgba(244,67,54,0.9))_drop-shadow(0_0_4px_rgba(244,67,54,0.7))]"
+      : "";
+
     return (
-      <div key={triggerIndex} className="flex gap-[2px] items-center">
+      <div key={triggerIndex} className={`flex gap-[2px] items-center ${redGlowClass}`}>
         {trigger.condition.affectedTags.map((tag: string, tagIndex: number) => (
           <React.Fragment key={`${triggerIndex}-${tagIndex}`}>
             {tagIndex > 0 && <span className="text-[#e0e0e0] text-xs font-bold mx-[2px]">/</span>}

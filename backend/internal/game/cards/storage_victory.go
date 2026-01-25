@@ -4,8 +4,6 @@ import (
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-// ==================== Card Storage and VP ====================
-
 // ResourceStorage represents a card's ability to hold resources
 type ResourceStorage struct {
 	Type     shared.ResourceType `json:"type"`

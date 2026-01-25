@@ -3,11 +3,14 @@ package turn_management
 import (
 	"context"
 	"fmt"
+	"time"
+
 	baseaction "terraforming-mars-backend/internal/action"
 
 	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
@@ -167,6 +170,17 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 			// Subscribe trigger effects to relevant events
 			baseaction.SubscribePassiveEffectToEvents(ctx, g, player, effect, log)
 		}
+	}
+
+	for _, tag := range corpCard.Tags {
+		events.Publish(g.EventBus(), events.TagPlayedEvent{
+			GameID:    gameID,
+			PlayerID:  playerID,
+			CardID:    corporationID,
+			CardName:  corpCard.Name,
+			Tag:       string(tag),
+			Timestamp: time.Now(),
+		})
 	}
 
 	// 10e. BUSINESS LOGIC: Register corporation manual actions

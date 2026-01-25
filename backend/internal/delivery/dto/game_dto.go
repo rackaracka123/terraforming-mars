@@ -253,6 +253,7 @@ type ResourceTriggerConditionDto struct {
 
 // CardBehaviorDto represents a card behavior for client consumption
 type CardBehaviorDto struct {
+	Description                   string                            `json:"description,omitempty" ts:"string | undefined"`
 	Triggers                      []TriggerDto                      `json:"triggers,omitempty" ts:"TriggerDto[] | undefined"`
 	Inputs                        []ResourceConditionDto            `json:"inputs,omitempty" ts:"ResourceConditionDto[] | undefined"`
 	Outputs                       []ResourceConditionDto            `json:"outputs,omitempty" ts:"ResourceConditionDto[] | undefined"`
