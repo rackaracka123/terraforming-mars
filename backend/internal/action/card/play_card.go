@@ -3,11 +3,14 @@ package card
 import (
 	"context"
 	"fmt"
+	"time"
+
 	baseaction "terraforming-mars-backend/internal/action"
 
 	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
@@ -98,11 +101,18 @@ func (a *PlayCardAction) Execute(
 
 	log.Debug("✅ Card requirements validated")
 
-	cardPayment := gamecards.CardPayment{
-		Credits:     payment.Credits,
-		Steel:       payment.Steel,
-		Titanium:    payment.Titanium,
-		Substitutes: payment.Substitutes,
+	calculator := gamecards.NewRequirementModifierCalculator(a.CardRegistry())
+	discountAmount := calculator.CalculateCardDiscounts(player, card)
+	effectiveCost := card.Cost - discountAmount
+	if effectiveCost < 0 {
+		effectiveCost = 0
+	}
+
+	if discountAmount > 0 {
+		log.Debug("Discount applied",
+			zap.Int("base_cost", card.Cost),
+			zap.Int("discount", discountAmount),
+			zap.Int("effective_cost", effectiveCost))
 	}
 
 	playerSubstitutes := player.Resources().PaymentSubstitutes()
@@ -110,19 +120,28 @@ func (a *PlayCardAction) Execute(
 	allowSteel := hasTag(card, shared.TagBuilding)
 	allowTitanium := hasTag(card, shared.TagSpace)
 
-	if err := cardPayment.CoversCardCost(card.Cost, allowSteel, allowTitanium, playerSubstitutes); err != nil {
+	adjustedPayment := adjustPaymentToEffectiveCost(payment, effectiveCost, allowSteel, allowTitanium, playerSubstitutes)
+
+	cardPayment := gamecards.CardPayment{
+		Credits:     adjustedPayment.Credits,
+		Steel:       adjustedPayment.Steel,
+		Titanium:    adjustedPayment.Titanium,
+		Substitutes: adjustedPayment.Substitutes,
+	}
+
+	if err := cardPayment.CoversCardCost(effectiveCost, allowSteel, allowTitanium, playerSubstitutes); err != nil {
 		log.Error("Payment validation failed", zap.Error(err))
 		return err
 	}
 
 	totalValue := cardPayment.TotalValue(playerSubstitutes)
 	log.Debug("Payment validated",
-		zap.Int("card_cost", card.Cost),
+		zap.Int("effective_cost", effectiveCost),
 		zap.Int("payment_value", totalValue),
-		zap.Int("credits", payment.Credits),
-		zap.Int("steel", payment.Steel),
-		zap.Int("titanium", payment.Titanium),
-		zap.Any("substitutes", payment.Substitutes))
+		zap.Int("credits", adjustedPayment.Credits),
+		zap.Int("steel", adjustedPayment.Steel),
+		zap.Int("titanium", adjustedPayment.Titanium),
+		zap.Any("substitutes", adjustedPayment.Substitutes))
 
 	resources := player.Resources().Get()
 	if err := cardPayment.CanAfford(resources); err != nil {
@@ -150,22 +169,22 @@ func (a *PlayCardAction) Execute(
 	}
 
 	deductions := map[shared.ResourceType]int{
-		shared.ResourceCredit:   -payment.Credits,
-		shared.ResourceSteel:    -payment.Steel,
-		shared.ResourceTitanium: -payment.Titanium,
+		shared.ResourceCredit:   -adjustedPayment.Credits,
+		shared.ResourceSteel:    -adjustedPayment.Steel,
+		shared.ResourceTitanium: -adjustedPayment.Titanium,
 	}
 
-	for resourceType, amount := range payment.Substitutes {
+	for resourceType, amount := range adjustedPayment.Substitutes {
 		deductions[resourceType] = -amount
 	}
 
 	player.Resources().Add(deductions)
 
 	log.Info("✅ Payment deducted",
-		zap.Int("credits", payment.Credits),
-		zap.Int("steel", payment.Steel),
-		zap.Int("titanium", payment.Titanium),
-		zap.Any("substitutes", payment.Substitutes))
+		zap.Int("credits", adjustedPayment.Credits),
+		zap.Int("steel", adjustedPayment.Steel),
+		zap.Int("titanium", adjustedPayment.Titanium),
+		zap.Any("substitutes", adjustedPayment.Substitutes))
 
 	if err := a.applyCardBehaviors(ctx, g, card, player, choiceIndex, log); err != nil {
 		log.Error("Failed to apply card behaviors", zap.Error(err))
@@ -356,6 +375,12 @@ func (a *PlayCardAction) applyCardBehaviors(
 					Behavior:      behavior,
 				}
 				p.Effects().AddEffect(effect)
+
+				events.Publish(g.EventBus(), events.PlayerEffectsChangedEvent{
+					GameID:    g.ID(),
+					PlayerID:  p.ID(),
+					Timestamp: time.Now(),
+				})
 			}
 		}
 
@@ -386,6 +411,12 @@ func (a *PlayCardAction) applyCardBehaviors(
 			}
 			p.Effects().AddEffect(effect)
 
+			events.Publish(g.EventBus(), events.PlayerEffectsChangedEvent{
+				GameID:    g.ID(),
+				PlayerID:  p.ID(),
+				Timestamp: time.Now(),
+			})
+
 			// Subscribe passive effects to relevant events
 			baseaction.SubscribePassiveEffectToEvents(ctx, g, p, effect, log)
 		}
@@ -393,4 +424,65 @@ func (a *PlayCardAction) applyCardBehaviors(
 
 	log.Info("✅ All card behaviors processed successfully")
 	return nil
+}
+
+func adjustPaymentToEffectiveCost(
+	payment PaymentRequest,
+	effectiveCost int,
+	allowSteel bool,
+	allowTitanium bool,
+	playerSubstitutes []shared.PaymentSubstitute,
+) PaymentRequest {
+	if effectiveCost <= 0 {
+		return PaymentRequest{}
+	}
+
+	steelRate := 2
+	titaniumRate := 3
+	for _, sub := range playerSubstitutes {
+		if sub.ResourceType == shared.ResourceSteel {
+			steelRate = sub.ConversionRate
+		}
+		if sub.ResourceType == shared.ResourceTitanium {
+			titaniumRate = sub.ConversionRate
+		}
+	}
+
+	nonCreditValue := 0
+	if allowSteel {
+		nonCreditValue += payment.Steel * steelRate
+	}
+	if allowTitanium {
+		nonCreditValue += payment.Titanium * titaniumRate
+	}
+
+	for resourceType, amount := range payment.Substitutes {
+		for _, sub := range playerSubstitutes {
+			if sub.ResourceType == resourceType {
+				nonCreditValue += amount * sub.ConversionRate
+				break
+			}
+		}
+	}
+
+	if nonCreditValue >= effectiveCost {
+		return PaymentRequest{
+			Credits:     0,
+			Steel:       payment.Steel,
+			Titanium:    payment.Titanium,
+			Substitutes: payment.Substitutes,
+		}
+	}
+
+	creditsNeeded := effectiveCost - nonCreditValue
+	if creditsNeeded > payment.Credits {
+		creditsNeeded = payment.Credits
+	}
+
+	return PaymentRequest{
+		Credits:     creditsNeeded,
+		Steel:       payment.Steel,
+		Titanium:    payment.Titanium,
+		Substitutes: payment.Substitutes,
+	}
 }
