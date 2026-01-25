@@ -21,35 +21,58 @@ This directory contains all the infrastructure configuration needed to deploy Te
 - **../DEPLOYMENT.md** - Complete deployment guide for Raspberry Pi
 - **../WEBHOOK_SETUP.md** - GitHub webhook setup instructions
 
-## Quick Start
+## Deployment Modes
+
+### Production (Raspberry Pi) - Pull pre-built images
+
+Uses `docker-compose.prod.yml` - pulls pre-built images from ghcr.io.
+
+```bash
+cd infra
+
+# First time setup
+./pi-setup.sh
+
+# Manual deploy
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+```
+
+See [CRON_SETUP.md](./CRON_SETUP.md) for automatic deployment setup.
+
+### Local Development - Build from source
+
+Uses `docker-compose.yml` - builds images locally from Dockerfiles.
+
+```bash
+cd infra
+docker compose up -d --build
+```
+
+## Quick Start (Production)
 
 ### 1. Initial Setup
 
 ```bash
-# Run from project root
-cd /path/to/terraforming-mars
-
-# Set up Cloudflare Tunnel
-./infra/cloudflare-tunnel-setup.sh
+cd /path/to/terraforming-mars/infra
 
 # Create .env file
-cp infra/.env.example .env
-nano .env  # Add your TUNNEL_TOKEN and WEBHOOK_SECRET
+cp .env.example .env
+nano .env  # Add TUNNEL_TOKEN and GHCR_TOKEN
 ```
 
 ### 2. Deploy
 
 ```bash
-cd infra
-docker compose build
-docker compose up -d
+chmod +x pi-setup.sh auto-deploy.sh
+./pi-setup.sh
 ```
 
 ### 3. Verify
 
 ```bash
-docker compose ps
-docker compose logs -f
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs -f
 ```
 
 ## Services
@@ -138,12 +161,10 @@ infra/
 
 ## Deployment Flow
 
-1. **Code Push** → GitHub repository
-2. **Webhook** → GitHub sends POST to webhook.yourdomain.com
-3. **Webhook Container** → Receives and verifies webhook
-4. **Deploy Script** → Pulls latest code
-5. **Docker Rebuild** → Builds new images
-6. **Container Restart** → Deploys updated application
+1. **Code Push** → GitHub repository (main branch)
+2. **GitHub Actions** → Builds and pushes images to ghcr.io
+3. **Cron Job** → Checks for new images every 5 minutes
+4. **Pull & Restart** → Downloads new images and restarts containers
 
 ## Troubleshooting
 

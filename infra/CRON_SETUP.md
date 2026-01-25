@@ -1,54 +1,111 @@
-# Auto-Deploy Cron Job Setup
+# Auto-Deploy Setup for Raspberry Pi
 
-Simple cron job that checks for new commits every minute and auto-deploys.
+Automatic deployment using pre-built Docker images from GitHub Container Registry.
 
-## Installation
+## Prerequisites
 
-1. **Make script executable** (already done):
-   ```bash
-   chmod +x /home/mhm/terraforming-mars/infra/auto-deploy-cron.sh
-   ```
+- Docker and Docker Compose installed
+- GitHub Personal Access Token (PAT) with `read:packages` scope
 
-2. **Add to crontab**:
-   ```bash
-   crontab -e
-   ```
+## Initial Setup
 
-3. **Add this line** (checks every minute):
-   ```
-   * * * * * /home/mhm/terraforming-mars/infra/auto-deploy-cron.sh
-   ```
+### 1. Create GitHub PAT
 
-   Or check every 5 minutes:
-   ```
-   */5 * * * * /home/mhm/terraforming-mars/infra/auto-deploy-cron.sh
-   ```
+1. Go to https://github.com/settings/tokens
+2. Click "Generate new token (classic)"
+3. Name: "Pi ghcr.io read access"
+4. Select scope: `read:packages`
+5. Generate and copy the token
+
+### 2. Configure Environment
+
+```bash
+cd /path/to/terraforming-mars/infra
+cp .env.example .env
+nano .env
+```
+
+Fill in:
+- `TUNNEL_TOKEN` - Your Cloudflare Tunnel token
+- `GHCR_TOKEN` - Your GitHub PAT from step 1
+
+### 3. Run Setup Script
+
+```bash
+chmod +x pi-setup.sh auto-deploy.sh
+./pi-setup.sh
+```
+
+This will:
+- Login to ghcr.io
+- Pull the latest images
+- Start all services
+
+### 4. Enable Auto-Deploy
+
+Add to crontab to check for updates every 5 minutes:
+
+```bash
+crontab -e
+```
+
+Add this line:
+```
+*/5 * * * * /path/to/terraforming-mars/infra/auto-deploy.sh
+```
 
 ## How It Works
 
-1. **Fetch**: Gets latest commits from GitHub
-2. **Compare**: Checks if local is behind remote
-3. **Deploy**: If behind, pulls code and runs `docker compose up -d --build`
-4. **Lock**: Uses lock file to prevent concurrent deployments
+1. **GitHub Actions** builds multi-arch images on push to main
+2. **Images** pushed to ghcr.io/rackaracka123/terraforming-mars-{backend,frontend}
+3. **Cron job** checks for new image digests every 5 minutes
+4. **If updated**, pulls new images and restarts containers
 
-## Logs
+## Commands
 
-View deployment logs:
+### Manual Deploy
+```bash
+./auto-deploy.sh
+```
+
+### View Logs
 ```bash
 tail -f /tmp/terraforming-mars-autodeploy.log
 ```
 
-## Manual Trigger
-
-Run deployment manually:
+### Check Container Status
 ```bash
-/home/mhm/terraforming-mars/infra/auto-deploy-cron.sh
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs -f
 ```
 
-## Disable
-
-Remove from crontab:
+### Force Re-pull
 ```bash
-crontab -e
-# Delete the line with auto-deploy-cron.sh
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+```
+
+### Stop Everything
+```bash
+docker compose -f docker-compose.prod.yml down
+```
+
+## Troubleshooting
+
+### Authentication Failed
+```bash
+source .env
+echo "$GHCR_TOKEN" | docker login ghcr.io -u rackaracka123 --password-stdin
+```
+
+### Images Not Found
+```bash
+docker manifest inspect ghcr.io/rackaracka123/terraforming-mars-backend:latest
+docker manifest inspect ghcr.io/rackaracka123/terraforming-mars-frontend:latest
+```
+
+### Service Won't Start
+```bash
+docker compose -f docker-compose.prod.yml logs backend
+docker compose -f docker-compose.prod.yml logs frontend
 ```
