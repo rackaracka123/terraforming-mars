@@ -63,6 +63,7 @@ func (a *CreateGameAction) Execute(
 	projectCardIDs, corpIDs, preludeIDs := cards.GetCardIDsByPacks(a.cardRegistry, settings.CardPacks)
 	gameDeck := deck.NewDeck(gameID, projectCardIDs, corpIDs, preludeIDs)
 	newGame.SetDeck(gameDeck)
+	newGame.SetVPCardLookup(cards.NewVPCardLookupAdapter(a.cardRegistry))
 	log.Info("✅ Deck initialized",
 		zap.Int("project_cards", len(projectCardIDs)),
 		zap.Int("corporations", len(corpIDs)),

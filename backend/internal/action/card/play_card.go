@@ -51,6 +51,7 @@ func (a *PlayCardAction) Execute(
 	cardID string,
 	payment PaymentRequest,
 	choiceIndex *int,
+	cardStorageTarget *string,
 ) error {
 	log := a.InitLogger(gameID, playerID).With(
 		zap.String("card_id", cardID),
@@ -58,6 +59,9 @@ func (a *PlayCardAction) Execute(
 	)
 	if choiceIndex != nil {
 		log = log.With(zap.Int("choice_index", *choiceIndex))
+	}
+	if cardStorageTarget != nil {
+		log = log.With(zap.String("card_storage_target", *cardStorageTarget))
 	}
 	log.Info("🃏 Player attempting to play card")
 
@@ -191,7 +195,7 @@ func (a *PlayCardAction) Execute(
 		zap.Int("titanium", adjustedPayment.Titanium),
 		zap.Any("substitutes", adjustedPayment.Substitutes))
 
-	if err := a.applyCardBehaviors(ctx, g, card, player, choiceIndex, log); err != nil {
+	if err := a.applyCardBehaviors(ctx, g, card, player, choiceIndex, cardStorageTarget, log); err != nil {
 		log.Error("Failed to apply card behaviors", zap.Error(err))
 		return fmt.Errorf("failed to apply card behaviors: %w", err)
 	}
@@ -336,6 +340,7 @@ func (a *PlayCardAction) applyCardBehaviors(
 	card *gamecards.Card,
 	p *player.Player,
 	choiceIndex *int,
+	cardStorageTarget *string,
 	log *zap.Logger,
 ) error {
 	if len(card.Behaviors) == 0 {
@@ -363,6 +368,9 @@ func (a *PlayCardAction) applyCardBehaviors(
 			// Use BehaviorApplier for consistent output handling
 			applier := gamecards.NewBehaviorApplier(p, g, card.Name, log).
 				WithSourceCardID(card.ID)
+			if cardStorageTarget != nil {
+				applier = applier.WithTargetCardID(*cardStorageTarget)
+			}
 			if err := applier.ApplyOutputs(ctx, outputs); err != nil {
 				return fmt.Errorf("failed to apply auto behavior %d outputs: %w", behaviorIndex, err)
 			}

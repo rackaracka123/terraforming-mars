@@ -364,7 +364,7 @@ func TestValueModifier_PlayCardWithModifiedTitanium(t *testing.T) {
 		Titanium: 4, // 4 titanium at 4 MC each = 16 MC
 	}
 
-	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-asteroid", payment, nil)
+	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-asteroid", payment, nil, nil)
 	testutil.AssertNoError(t, err, "Should be able to play 14-cost card with 4 titanium at value 4")
 
 	// Verify titanium was deducted
@@ -409,7 +409,7 @@ func TestValueModifier_MixedPaymentWithModifier(t *testing.T) {
 		Titanium: 2, // 2 titanium at 4 MC each = 8 MC
 	}
 
-	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-asteroid", payment, nil)
+	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-asteroid", payment, nil, nil)
 	testutil.AssertNoError(t, err, "Should be able to play 14-cost card with 2 titanium (8) + 6 credits")
 
 	// Verify resources were deducted
@@ -451,7 +451,7 @@ func TestValueModifier_InsufficientPaymentRejected(t *testing.T) {
 		Titanium: 3, // 3 titanium at 4 MC each = 12 MC (not enough for 14)
 	}
 
-	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-asteroid", payment, nil)
+	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-asteroid", payment, nil, nil)
 	testutil.AssertError(t, err, "Should reject payment of 12 MC for 14 cost card")
 
 	// Verify titanium was NOT deducted (action failed)

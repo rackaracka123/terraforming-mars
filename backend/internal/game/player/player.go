@@ -22,6 +22,7 @@ type Player struct {
 	actions            *Actions
 	effects            *Effects
 	generationalEvents *GenerationalEvents
+	vpGranters         *VPGranters
 }
 
 // NewPlayer creates a new player with initialized components
@@ -42,6 +43,7 @@ func NewPlayer(eventBus *events.EventBusImpl, gameID, playerID, name string) *Pl
 		actions:            NewActions(),
 		effects:            NewEffects(eventBus),
 		generationalEvents: newGenerationalEvents(),
+		vpGranters:         NewVPGranters(eventBus, gameID, playerID),
 	}
 }
 
@@ -106,6 +108,10 @@ func (p *Player) Effects() *Effects {
 
 func (p *Player) GenerationalEvents() *GenerationalEvents {
 	return p.generationalEvents
+}
+
+func (p *Player) VPGranters() *VPGranters {
+	return p.vpGranters
 }
 
 func (p *Player) HasPassed() bool {
