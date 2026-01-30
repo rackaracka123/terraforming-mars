@@ -31,7 +31,6 @@ interface GameLayoutProps {
   triggeredEffects?: TriggeredEffectDto[];
   onOpenCardEffectsModal?: () => void;
   onOpenCardsPlayedModal?: () => void;
-  onOpenVictoryPointsModal?: () => void;
   onOpenActionsModal?: () => void;
   onActionSelect?: (action: PlayerActionDto) => void;
   onConvertPlantsToGreenery?: () => void;
@@ -62,7 +61,6 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   triggeredEffects = [],
   onOpenCardEffectsModal,
   onOpenCardsPlayedModal,
-  onOpenVictoryPointsModal,
   onOpenActionsModal,
   onActionSelect,
   onConvertPlantsToGreenery,
@@ -153,7 +151,6 @@ const GameLayout: React.FC<GameLayoutProps> = ({
             changedPaths={changedPaths}
             onOpenCardEffectsModal={onOpenCardEffectsModal}
             onOpenCardsPlayedModal={onOpenCardsPlayedModal}
-            onOpenVictoryPointsModal={onOpenVictoryPointsModal}
             onOpenActionsModal={onOpenActionsModal}
             onActionSelect={onActionSelect}
             onConvertPlantsToGreenery={onConvertPlantsToGreenery}

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import GameLayout from "./GameLayout.tsx";
 import CardsPlayedModal from "../../ui/modals/CardsPlayedModal.tsx";
-import VictoryPointsModal from "../../ui/modals/VictoryPointsModal.tsx";
 import EffectsModal from "../../ui/modals/EffectsModal.tsx";
 import ActionsModal from "../../ui/modals/ActionsModal.tsx";
 import StandardProjectPopover from "../../ui/popover/StandardProjectPopover.tsx";
@@ -68,7 +67,6 @@ export default function GameInterface() {
 
   // New modal states
   const [showCardsPlayedModal, setShowCardsPlayedModal] = useState(false);
-  const [showVictoryPointsModal, setShowVictoryPointsModal] = useState(false);
   const [showCardEffectsModal, setShowCardEffectsModal] = useState(false);
   const [showActionsModal, setShowActionsModal] = useState(false);
   const [showStandardProjectsPopover, setShowStandardProjectsPopover] = useState(false);
@@ -353,10 +351,11 @@ export default function GameInterface() {
 
   // Helper function to check if outputs need card storage selection
   const needsCardStorageSelection = useCallback(
-    (outputs: any[] | undefined): { resourceType: ResourceType; amount: number } | null => {
+    (
+      outputs: any[] | undefined,
+    ): { resourceType: ResourceType; amount: number; target: string } | null => {
       if (!outputs) return null;
 
-      // Check for any-card targets with storage resource types
       const storageResources = [
         "animal",
         "microbe",
@@ -367,12 +366,13 @@ export default function GameInterface() {
 
       for (const output of outputs) {
         if (
-          output.target === "any-card" &&
+          (output.target === "any-card" || output.target === "self-card") &&
           storageResources.includes(output.type as ResourceType)
         ) {
           return {
             resourceType: output.type as ResourceType,
             amount: output.amount || 1,
+            target: output.target as string,
           };
         }
       }
@@ -441,6 +441,7 @@ export default function GameInterface() {
             let storageNeeded: {
               resourceType: ResourceType;
               amount: number;
+              target: string;
             } | null = null;
             for (const behavior of autoTriggerBehaviors || []) {
               storageNeeded = needsCardStorageSelection(behavior.outputs);
@@ -448,14 +449,19 @@ export default function GameInterface() {
             }
 
             if (storageNeeded) {
-              // Show storage selection popover
-              setPendingCardStorage({
-                cardId: card.id,
-                payment: payment,
-                resourceType: storageNeeded.resourceType,
-                amount: storageNeeded.amount,
-              });
-              setShowCardStorageSelection(true);
+              if (storageNeeded.target === "self-card") {
+                // Self-card target: backend uses sourceCardID, no popover needed
+                await globalWebSocketManager.playCard(cardId, payment);
+              } else {
+                // Show storage selection popover for any-card targets
+                setPendingCardStorage({
+                  cardId: card.id,
+                  payment: payment,
+                  resourceType: storageNeeded.resourceType,
+                  amount: storageNeeded.amount,
+                });
+                setShowCardStorageSelection(true);
+              }
             } else {
               // No storage needed, play the card directly
               await globalWebSocketManager.playCard(cardId, payment);
@@ -505,17 +511,24 @@ export default function GameInterface() {
           const storageInfo = needsCardStorageSelection(selectedChoice?.outputs);
 
           if (storageInfo) {
-            // Show card storage selection popover
-            setPendingCardStorage({
-              cardId: cardPendingChoice.id,
-              payment: payment,
-              choiceIndex: choiceIndex,
-              resourceType: storageInfo.resourceType,
-              amount: storageInfo.amount,
-            });
-            setShowCardStorageSelection(true);
-            setCardPendingChoice(null);
-            setPendingCardBehaviorIndex(0);
+            if (storageInfo.target === "self-card") {
+              // Self-card target: backend uses sourceCardID, no popover needed
+              await globalWebSocketManager.playCard(cardPendingChoice.id, payment, choiceIndex);
+              setCardPendingChoice(null);
+              setPendingCardBehaviorIndex(0);
+            } else {
+              // Show card storage selection popover for any-card targets
+              setPendingCardStorage({
+                cardId: cardPendingChoice.id,
+                payment: payment,
+                choiceIndex: choiceIndex,
+                resourceType: storageInfo.resourceType,
+                amount: storageInfo.amount,
+              });
+              setShowCardStorageSelection(true);
+              setCardPendingChoice(null);
+              setPendingCardBehaviorIndex(0);
+            }
           } else {
             // No card storage needed, play the card directly
             await globalWebSocketManager.playCard(cardPendingChoice.id, payment, choiceIndex);
@@ -555,16 +568,27 @@ export default function GameInterface() {
         const storageInfo = needsCardStorageSelection(selectedChoice?.outputs);
 
         if (storageInfo) {
-          // Show action storage selection popover
-          setPendingActionStorage({
-            cardId: actionPendingChoice.cardId,
-            behaviorIndex: actionPendingChoice.behaviorIndex,
-            choiceIndex: choiceIndex,
-            resourceType: storageInfo.resourceType,
-            amount: storageInfo.amount,
-          });
-          setShowActionStorageSelection(true);
-          setActionPendingChoice(null);
+          if (storageInfo.target === "self-card") {
+            // Self-card target: send directly with the source card as target
+            await globalWebSocketManager.playCardAction(
+              actionPendingChoice.cardId,
+              actionPendingChoice.behaviorIndex,
+              choiceIndex,
+              actionPendingChoice.cardId,
+            );
+            setActionPendingChoice(null);
+          } else {
+            // Show action storage selection popover for any-card targets
+            setPendingActionStorage({
+              cardId: actionPendingChoice.cardId,
+              behaviorIndex: actionPendingChoice.behaviorIndex,
+              choiceIndex: choiceIndex,
+              resourceType: storageInfo.resourceType,
+              amount: storageInfo.amount,
+            });
+            setShowActionStorageSelection(true);
+            setActionPendingChoice(null);
+          }
         } else {
           // No card storage needed, execute action directly
           await globalWebSocketManager.playCardAction(
@@ -606,6 +630,7 @@ export default function GameInterface() {
         let storageNeeded: {
           resourceType: ResourceType;
           amount: number;
+          target: string;
         } | null = null;
         for (const behavior of autoTriggerBehaviors || []) {
           storageNeeded = needsCardStorageSelection(behavior.outputs);
@@ -613,15 +638,24 @@ export default function GameInterface() {
         }
 
         if (storageNeeded) {
-          // Show storage selection popover
-          setPendingCardStorage({
-            cardId: pendingCardPayment.card.id,
-            payment: payment,
-            choiceIndex: pendingCardPayment.choiceIndex,
-            resourceType: storageNeeded.resourceType,
-            amount: storageNeeded.amount,
-          });
-          setShowCardStorageSelection(true);
+          if (storageNeeded.target === "self-card") {
+            // Self-card target: backend uses sourceCardID, no popover needed
+            await globalWebSocketManager.playCard(
+              pendingCardPayment.card.id,
+              payment,
+              pendingCardPayment.choiceIndex,
+            );
+          } else {
+            // Show storage selection popover for any-card targets
+            setPendingCardStorage({
+              cardId: pendingCardPayment.card.id,
+              payment: payment,
+              choiceIndex: pendingCardPayment.choiceIndex,
+              resourceType: storageNeeded.resourceType,
+              amount: storageNeeded.amount,
+            });
+            setShowCardStorageSelection(true);
+          }
         } else {
           // No storage needed, play the card directly
           await globalWebSocketManager.playCard(
@@ -814,14 +848,24 @@ export default function GameInterface() {
         const storageInfo = needsCardStorageSelection(action.behavior.outputs);
 
         if (storageInfo) {
-          // Show action storage selection popover
-          setPendingActionStorage({
-            cardId: action.cardId,
-            behaviorIndex: action.behaviorIndex,
-            resourceType: storageInfo.resourceType,
-            amount: storageInfo.amount,
-          });
-          setShowActionStorageSelection(true);
+          if (storageInfo.target === "self-card") {
+            // Self-card target: skip popover and send directly with the source card as target
+            void globalWebSocketManager.playCardAction(
+              action.cardId,
+              action.behaviorIndex,
+              undefined,
+              action.cardId,
+            );
+          } else {
+            // Show action storage selection popover for any-card targets
+            setPendingActionStorage({
+              cardId: action.cardId,
+              behaviorIndex: action.behaviorIndex,
+              resourceType: storageInfo.resourceType,
+              amount: storageInfo.amount,
+            });
+            setShowActionStorageSelection(true);
+          }
         } else {
           // No card storage needed, execute action directly
           void globalWebSocketManager.playCardAction(action.cardId, action.behaviorIndex);
@@ -1101,10 +1145,6 @@ export default function GameInterface() {
             event.preventDefault();
             setShowCardsPlayedModal(true);
             break;
-          case "2":
-            event.preventDefault();
-            setShowVictoryPointsModal(true);
-            break;
           case "4":
             event.preventDefault();
             // Actions are now handled via popover in BottomResourceBar
@@ -1158,7 +1198,6 @@ export default function GameInterface() {
   const isAnyModalOpen =
     showCorporationModal ||
     showCardsPlayedModal ||
-    showVictoryPointsModal ||
     showCardEffectsModal ||
     showActionsModal ||
     showProductionPhaseModal;
@@ -1204,7 +1243,6 @@ export default function GameInterface() {
         triggeredEffects={triggeredEffects}
         onOpenCardEffectsModal={() => setShowCardEffectsModal(true)}
         onOpenCardsPlayedModal={() => setShowCardsPlayedModal(true)}
-        onOpenVictoryPointsModal={() => setShowVictoryPointsModal(true)}
         onOpenActionsModal={() => setShowActionsModal(true)}
         onActionSelect={handleActionSelect}
         onConvertPlantsToGreenery={handleConvertPlantsToGreenery}
@@ -1227,13 +1265,6 @@ export default function GameInterface() {
         isVisible={showCardsPlayedModal}
         onClose={() => setShowCardsPlayedModal(false)}
         cards={currentPlayer?.playedCards || []}
-      />
-
-      <VictoryPointsModal
-        isVisible={showVictoryPointsModal}
-        onClose={() => setShowVictoryPointsModal(false)}
-        cards={[]}
-        terraformRating={currentPlayer?.terraformRating}
       />
 
       <EffectsModal

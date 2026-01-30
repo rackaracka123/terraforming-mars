@@ -12,6 +12,7 @@ import {
   ResourceTypeHeat,
 } from "../../../types/generated/api-types.ts";
 import { getCorporationLogo } from "@/utils/corporationLogos.tsx";
+import { FormattedDescription } from "../display/FormattedDescription";
 
 interface Corporation {
   id: string;
@@ -332,7 +333,7 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
 
       {/* Description at bottom */}
       <div className="text-xs text-white/80 leading-[1.4] text-center">
-        {corporation.description}
+        <FormattedDescription text={corporation.description} />
       </div>
 
       {/* Expansion badge */}
