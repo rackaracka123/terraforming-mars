@@ -78,6 +78,10 @@ func (a *PlayCardAction) Execute(
 		return err
 	}
 
+	if err := baseaction.ValidateActionsRemaining(g, playerID, log); err != nil {
+		return err
+	}
+
 	player, err := a.GetPlayerFromGame(g, playerID, log)
 	if err != nil {
 		return err
@@ -199,6 +203,8 @@ func (a *PlayCardAction) Execute(
 		log.Error("Failed to apply card behaviors", zap.Error(err))
 		return fmt.Errorf("failed to apply card behaviors: %w", err)
 	}
+
+	a.ConsumePlayerAction(g, log)
 
 	log.Info("🎉 Card played successfully",
 		zap.String("card_name", card.Name),

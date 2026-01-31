@@ -25,6 +25,7 @@ func CalculatePlayerCardState(
 	metadata := make(map[string]interface{})
 
 	errors = append(errors, validatePhase(g)...)
+	errors = append(errors, validateActionsRemaining(p, g)...)
 	errors = append(errors, validateNoActiveTileSelection(p, g)...)
 
 	costMap, discounts := calculateEffectiveCost(card, p, cardRegistry)
@@ -64,6 +65,7 @@ func CalculatePlayerCardActionState(
 		})
 	}
 
+	errors = append(errors, validateActionsRemaining(p, g)...)
 	errors = append(errors, validateNoActiveTileSelection(p, g)...)
 
 	resources := p.Resources().Get()
@@ -100,6 +102,7 @@ func CalculatePlayerStandardProjectState(
 	var errors []player.StateError
 	metadata := make(map[string]interface{})
 
+	errors = append(errors, validateActionsRemaining(p, g)...)
 	errors = append(errors, validateNoActiveTileSelection(p, g)...)
 
 	baseCosts := getStandardProjectBaseCosts(projectType)
@@ -196,6 +199,26 @@ func CalculatePlayerStandardProjectState(
 		Metadata:       metadata,
 		LastCalculated: time.Now(),
 	}
+}
+
+// validateActionsRemaining checks if the player has actions remaining in their turn.
+func validateActionsRemaining(p *player.Player, g *game.Game) []player.StateError {
+	currentTurn := g.CurrentTurn()
+	if currentTurn == nil {
+		return nil
+	}
+	if currentTurn.PlayerID() != p.ID() {
+		return nil
+	}
+	remaining := currentTurn.ActionsRemaining()
+	if remaining == 0 {
+		return []player.StateError{{
+			Code:     player.ErrorCodeNoActionsRemaining,
+			Category: player.ErrorCategoryTurn,
+			Message:  "No actions remaining",
+		}}
+	}
+	return nil
 }
 
 // validatePhase checks if action is allowed in current phase.
@@ -983,6 +1006,7 @@ func CalculateMilestoneState(
 
 	milestones := g.Milestones()
 
+	errors = append(errors, validateActionsRemaining(p, g)...)
 	errors = append(errors, validateNoActiveTileSelection(p, g)...)
 
 	if milestones.IsClaimed(milestoneType) {
@@ -1059,6 +1083,7 @@ func CalculateAwardState(
 
 	awards := g.Awards()
 
+	errors = append(errors, validateActionsRemaining(p, g)...)
 	errors = append(errors, validateNoActiveTileSelection(p, g)...)
 
 	if awards.IsFunded(awardType) {
