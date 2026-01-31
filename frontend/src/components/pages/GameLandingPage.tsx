@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { apiService } from "../../services/apiService";
 import { globalWebSocketManager } from "../../services/globalWebSocketManager.ts";
@@ -20,6 +20,8 @@ const GameLandingPage: React.FC = () => {
     playerId: string;
     playerName: string;
   } | null>(null);
+  const [isDismissing, setIsDismissing] = useState(false);
+  const reconnectCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const checkExistingGame = async () => {
@@ -159,63 +161,80 @@ const GameLandingPage: React.FC = () => {
     }
   };
 
+  const handleDismiss = () => {
+    setIsDismissing(true);
+  };
+
+  const handleDismissTransitionEnd = () => {
+    if (isDismissing) {
+      clearGameSession();
+      setSavedGameData(null);
+      setIsDismissing(false);
+    }
+  };
+
   return (
     <div
-      className={`flex items-center justify-center min-h-screen text-white font-sans transition-opacity duration-300 ease-out relative z-10 ${isFadingOut ? "opacity-0" : "opacity-100"}`}
+      className={`min-h-screen text-white font-sans transition-opacity duration-300 ease-out relative z-10 ${isFadingOut ? "opacity-0" : "opacity-100"}`}
     >
-      <div className="relative z-[1] flex items-center justify-center w-full min-h-screen">
-        <div className="text-center px-5 py-5">
-          {/* Title with Orbitron font */}
-          <h1 className="font-orbitron text-[56px] text-white mb-[60px] text-shadow-glow-strong font-bold tracking-wider-2xl text-center mx-auto leading-tight">
-            TERRAFORMING
-            <br />
-            MARS
-          </h1>
+      <div className="relative z-[1] w-full min-h-screen">
+        {/* Layer 1: Title + buttons — positioned above center */}
+        <div
+          className="absolute inset-0 flex items-center justify-center pointer-events-none"
+          style={{ marginTop: "-10vh" }}
+        >
+          <div className="text-center px-5 py-5 pointer-events-auto">
+            <h1 className="font-orbitron text-[56px] text-white mb-[60px] text-shadow-glow-strong font-bold tracking-wider-2xl text-center mx-auto leading-tight">
+              TERRAFORMING
+              <br />
+              MARS
+            </h1>
 
-          {/* Main action buttons - smaller and darker */}
-          <div className="flex gap-5 mb-10 justify-center">
-            <Link
-              to="/create"
-              onClick={handleCreateGame}
-              className="bg-space-black-darker/90 border-2 border-space-blue-500 rounded-xl px-10 py-5 cursor-pointer transition-all duration-300 backdrop-blur-space text-white text-lg font-semibold font-orbitron tracking-wide hover:border-space-blue-900 hover:shadow-glow hover:shadow-glow-lg hover:-translate-y-1 no-underline inline-block"
-            >
-              CREATE
-            </Link>
+            <div className="flex gap-5 justify-center">
+              <Link
+                to="/create"
+                onClick={handleCreateGame}
+                className="bg-space-black-darker/90 border-2 border-space-blue-500 rounded-xl px-10 py-5 cursor-pointer transition-all duration-300 backdrop-blur-space text-white text-lg font-semibold font-orbitron tracking-wide hover:border-space-blue-900 hover:shadow-glow hover:shadow-glow-lg hover:-translate-y-1 no-underline inline-block"
+              >
+                CREATE
+              </Link>
 
-            <Link
-              to="/join"
-              onClick={handleJoinGame}
-              className="bg-space-black-darker/90 border-2 border-space-blue-500 rounded-xl px-10 py-5 cursor-pointer transition-all duration-300 backdrop-blur-space text-white text-lg font-semibold font-orbitron tracking-wide hover:border-space-blue-900 hover:shadow-glow hover:shadow-glow-lg hover:-translate-y-1 no-underline inline-block"
-            >
-              JOIN
-            </Link>
+              <Link
+                to="/join"
+                onClick={handleJoinGame}
+                className="bg-space-black-darker/90 border-2 border-space-blue-500 rounded-xl px-10 py-5 cursor-pointer transition-all duration-300 backdrop-blur-space text-white text-lg font-semibold font-orbitron tracking-wide hover:border-space-blue-900 hover:shadow-glow hover:shadow-glow-lg hover:-translate-y-1 no-underline inline-block"
+              >
+                JOIN
+              </Link>
 
-            <button
-              onClick={(e) => void handleDemoGame(e)}
-              disabled={isCreatingDemo}
-              className="bg-space-black-darker/90 border-2 border-space-blue-500 rounded-xl px-10 py-5 cursor-pointer transition-all duration-300 backdrop-blur-space text-white text-lg font-semibold font-orbitron tracking-wide hover:border-space-blue-900 hover:shadow-glow hover:shadow-glow-lg hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isCreatingDemo ? "CREATING..." : "DEMO"}
-            </button>
+              <button
+                onClick={(e) => void handleDemoGame(e)}
+                disabled={isCreatingDemo}
+                className="bg-space-black-darker/90 border-2 border-space-blue-500 rounded-xl px-10 py-5 cursor-pointer transition-all duration-300 backdrop-blur-space text-white text-lg font-semibold font-orbitron tracking-wide hover:border-space-blue-900 hover:shadow-glow hover:shadow-glow-lg hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isCreatingDemo ? "CREATING..." : "DEMO"}
+              </button>
+            </div>
           </div>
+        </div>
 
-          {/* Error message - shown below buttons, near reconnect card */}
+        {/* Layer 2: Error + Reconnect card — positioned below center */}
+        <div className="absolute left-1/2 -translate-x-1/2 top-[55%] mt-8 flex flex-col items-center gap-5">
           {error && (
-            <div className="text-error-red mb-5 p-3 bg-error-red/10 border border-error-red/30 rounded-lg text-sm">
+            <div className="text-error-red p-3 bg-error-red/10 border border-error-red/30 rounded-lg text-sm">
               {error}
             </div>
           )}
 
-          {/* Reconnect card - shown when saved game exists */}
           {savedGameData && (
-            <div className="flex justify-center mb-10">
+            <div
+              ref={reconnectCardRef}
+              onTransitionEnd={handleDismissTransitionEnd}
+              className={`transition-all duration-300 ${isDismissing ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`}
+            >
               <div className="relative w-[500px] bg-space-black-darker/90 border-2 border-space-blue-500 rounded-xl p-8 backdrop-blur-space">
-                {/* Dismiss button */}
                 <button
-                  onClick={() => {
-                    clearGameSession();
-                    setSavedGameData(null);
-                  }}
+                  onClick={handleDismiss}
                   className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center text-white/40 hover:text-white/80 transition-colors rounded-full hover:bg-white/10"
                   title="Dismiss"
                 >
@@ -233,7 +252,6 @@ const GameLandingPage: React.FC = () => {
                   </svg>
                 </button>
 
-                {/* Corporation Logo */}
                 <div className="mb-6 flex justify-center">
                   {savedGameData.game.currentPlayer?.corporation ? (
                     getCorporationLogo(
@@ -244,7 +262,6 @@ const GameLandingPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Game Info */}
                 <div className="flex justify-center gap-6 mb-4 text-white/90 text-base">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">
@@ -261,7 +278,6 @@ const GameLandingPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Reconnect Button */}
                 <button
                   onClick={() => void handleReconnect()}
                   className="w-full bg-space-blue-600 border-2 border-space-blue-500 rounded-lg py-4 px-6 cursor-pointer transition-all duration-300 text-white text-lg font-bold font-orbitron tracking-wide hover:bg-space-blue-500 hover:border-space-blue-900 hover:shadow-glow hover:shadow-glow-lg"
@@ -273,7 +289,6 @@ const GameLandingPage: React.FC = () => {
           )}
         </div>
 
-        {/* View Cards button - bottom right corner */}
         <Link
           to="/cards"
           className="fixed bottom-[30px] right-[30px] bg-space-black-darker/80 border border-white/20 rounded-lg py-3 px-5 text-white/70 cursor-pointer transition-all duration-300 text-sm backdrop-blur-space-light font-orbitron hover:text-white/95 hover:border-space-blue-600 hover:bg-space-black-darker/95 hover:shadow-glow-sm no-underline"
