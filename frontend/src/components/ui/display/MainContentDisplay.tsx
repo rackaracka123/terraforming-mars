@@ -8,18 +8,24 @@ interface MainContentDisplayProps {
   gameState: GameDto;
   tileHighlightMode?: TileHighlightMode;
   vpIndicators?: TileVPIndicator[];
+  animateHexEntrance?: boolean;
+  onSkyboxReady?: () => void;
 }
 
 const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
   gameState,
   tileHighlightMode,
   vpIndicators = [],
+  animateHexEntrance = false,
+  onSkyboxReady,
 }) => {
   return (
     <Game3DView
       gameState={gameState}
       tileHighlightMode={tileHighlightMode}
       vpIndicators={vpIndicators}
+      animateHexEntrance={animateHexEntrance}
+      onSkyboxReady={onSkyboxReady}
     />
   );
 };
