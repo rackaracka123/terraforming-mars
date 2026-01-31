@@ -7,9 +7,13 @@ import CardsPage from "./components/pages/CardsPage.tsx";
 import GameLandingPage from "./components/pages/GameLandingPage.tsx";
 import ReconnectingPage from "./components/pages/ReconnectingPage.tsx";
 import { globalWebSocketManager } from "./services/globalWebSocketManager.ts";
-import { SpaceBackgroundProvider } from "./contexts/SpaceBackgroundContext.tsx";
+import { SpaceBackgroundProvider, useSpaceBackground } from "./contexts/SpaceBackgroundContext.tsx";
 import { SoundProvider } from "./contexts/SoundContext.tsx";
+import { audioService } from "./services/audioService.ts";
+import { skyboxCache } from "./services/SkyboxCache.ts";
+import MainMenuSettingsButton from "./components/ui/buttons/MainMenuSettingsButton.tsx";
 import SpaceBackground from "./components/3d/SpaceBackground.tsx";
+import LoadingOverlay from "./components/game/view/LoadingOverlay.tsx";
 import "./App.css";
 
 function App() {
@@ -66,16 +70,34 @@ function App() {
   );
 }
 
-// Component that handles background visibility based on route
 function AppWithBackground() {
   const location = useLocation();
+  const { isLoaded } = useSpaceBackground();
+  const [overlayVisible, setOverlayVisible] = useState(() => !skyboxCache.isReady());
 
-  // Show space background for landing, create, and join pages
   const showSpaceBackground = ["/", "/create", "/join"].includes(location.pathname);
+
+  useEffect(() => {
+    if (!showSpaceBackground) {
+      setOverlayVisible(false);
+    }
+  }, [showSpaceBackground]);
+
+  useEffect(() => {
+    if (showSpaceBackground && isLoaded) {
+      audioService.playAmbient();
+    } else if (!showSpaceBackground && location.pathname !== "/game") {
+      audioService.stopAmbient();
+    }
+  }, [showSpaceBackground, isLoaded, location.pathname]);
 
   return (
     <>
-      {showSpaceBackground && <SpaceBackground animationSpeed={0.5} overlayOpacity={0.3} />}
+      <SpaceBackground animationSpeed={0.5} overlayOpacity={0.3} active={showSpaceBackground} />
+      {showSpaceBackground && overlayVisible && (
+        <LoadingOverlay isLoaded={isLoaded} onTransitionEnd={() => setOverlayVisible(false)} />
+      )}
+      {showSpaceBackground && !overlayVisible && <MainMenuSettingsButton />}
       <Routes>
         <Route path="/" element={<GameLandingPage />} />
         <Route path="/create" element={<CreateGamePage />} />

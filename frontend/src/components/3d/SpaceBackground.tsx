@@ -1,13 +1,13 @@
-import { Suspense, useEffect, useState, useRef } from "react";
+import { Suspense, useState, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import SkyboxLoader from "../game/view/SkyboxLoader.tsx";
-import { skyboxCache, SkyboxLoadingState } from "../../services/SkyboxCache.ts";
 import * as THREE from "three";
 
 interface SpaceBackgroundProps {
   animationSpeed?: number;
   overlayOpacity?: number;
   showOverlay?: boolean;
+  active?: boolean;
   children?: React.ReactNode;
 }
 
@@ -45,26 +45,13 @@ export default function SpaceBackground({
   animationSpeed = 1,
   overlayOpacity = 0.2,
   showOverlay = true,
+  active = true,
   children,
 }: SpaceBackgroundProps) {
   const [cameraConfig] = useState({
     position: [0, 0, 12] as [number, number, number],
     fov: 60,
   });
-  const [skyboxLoadingState, setSkyboxLoadingState] = useState<SkyboxLoadingState>({
-    isLoading: false,
-    isLoaded: false,
-    error: null,
-    texture: null,
-  });
-
-  useEffect(() => {
-    const unsubscribe = skyboxCache.subscribe((state) => {
-      setSkyboxLoadingState(state);
-    });
-
-    return unsubscribe;
-  }, []);
 
   return (
     <div
@@ -75,6 +62,8 @@ export default function SpaceBackground({
         width: "100vw",
         height: "100vh",
         zIndex: 0,
+        visibility: active ? "visible" : "hidden",
+        pointerEvents: active ? "auto" : "none",
       }}
     >
       <Canvas
@@ -82,6 +71,7 @@ export default function SpaceBackground({
           position: cameraConfig.position,
           fov: cameraConfig.fov,
         }}
+        frameloop={active ? "always" : "never"}
         style={{
           background: "#000000",
           width: "100%",
@@ -130,51 +120,6 @@ export default function SpaceBackground({
           }}
         >
           {children}
-
-          {skyboxLoadingState.isLoading && (
-            <div
-              style={{
-                position: "fixed",
-                bottom: "200px",
-                left: "50%",
-                transform: "translateX(-50%)",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: "12px",
-                zIndex: 10,
-              }}
-            >
-              <div
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  border: "4px solid rgba(255, 255, 255, 0.2)",
-                  borderTop: "4px solid rgba(255, 255, 255, 0.9)",
-                  borderRadius: "50%",
-                  animation: "spin 1s linear infinite",
-                }}
-              />
-              <style>
-                {`
-                  @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                  }
-                `}
-              </style>
-              <div
-                style={{
-                  color: "rgba(255, 255, 255, 0.8)",
-                  fontSize: "14px",
-                  fontFamily: "Orbitron, sans-serif",
-                  letterSpacing: "0.05em",
-                }}
-              >
-                Loading...
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

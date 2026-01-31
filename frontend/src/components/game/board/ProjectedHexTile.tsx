@@ -1,9 +1,10 @@
-import { useRef, useState, useMemo } from "react";
+import { useRef, useState, useMemo, useEffect } from "react";
 import { useFrame, useLoader } from "@react-three/fiber";
 import { Text, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { HexTile2D } from "../../../utils/hex-grid-2d";
 import { SkeletonUtils } from "three-stdlib";
+import { panState } from "../controls/PanControls";
 
 // Preload 3D models for better performance
 useGLTF.preload("/assets/models/city.glb");
@@ -30,6 +31,10 @@ interface ProjectedHexTileProps {
   vpAmount?: number;
   /** Whether the VP indicator should animate (float up) */
   vpAnimating?: boolean;
+  /** Whether to animate entrance (scale from 0 to 1) */
+  animateEntrance?: boolean;
+  /** Delay in ms before starting entrance animation */
+  entranceDelay?: number;
 }
 
 export default function ProjectedHexTile({
@@ -42,11 +47,27 @@ export default function ProjectedHexTile({
   highlightMode = null,
   vpAmount,
   vpAnimating = false,
+  animateEntrance = false,
+  entranceDelay = 0,
 }: ProjectedHexTileProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const vpTextRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
   const animationStartTimeRef = useRef<number | null>(null);
+
+  // Entrance animation state
+  const [entranceScale, setEntranceScale] = useState(animateEntrance ? 0 : 1);
+  const entranceStartRef = useRef<number | null>(null);
+  const entranceDoneRef = useRef(!animateEntrance);
+
+  useEffect(() => {
+    if (animateEntrance && entranceDoneRef.current) {
+      // Reset for a new entrance animation
+      setEntranceScale(0);
+      entranceStartRef.current = null;
+      entranceDoneRef.current = false;
+    }
+  }, [animateEntrance]);
 
   // Create hexagon geometry that's oriented along the surface normal
   const hexGeometry = useMemo(() => {
@@ -242,8 +263,25 @@ export default function ProjectedHexTile({
     });
   }, []);
 
-  // Update shader time uniforms and handle hover animations
+  // Update shader time uniforms and handle hover/entrance animations
   useFrame((state) => {
+    // Entrance animation: staggered scale from 0 to 1
+    if (animateEntrance && !entranceDoneRef.current) {
+      if (entranceStartRef.current === null) {
+        entranceStartRef.current = state.clock.elapsedTime;
+      }
+      const elapsed = (state.clock.elapsedTime - entranceStartRef.current) * 1000;
+      if (elapsed >= entranceDelay) {
+        const animDuration = 400;
+        const t = Math.min((elapsed - entranceDelay) / animDuration, 1);
+        // Ease-out cubic
+        const eased = 1 - Math.pow(1 - t, 3);
+        setEntranceScale(eased);
+        if (t >= 1) {
+          entranceDoneRef.current = true;
+        }
+      }
+    }
     if (oceanBorderMaterial.uniforms) {
       oceanBorderMaterial.uniforms.time.value = state.clock.elapsedTime;
     }
@@ -394,18 +432,23 @@ export default function ProjectedHexTile({
   }, [tileData.bonuses]);
 
   return (
-    <group position={adjustedPosition} quaternion={surfaceQuaternion}>
+    <group
+      position={adjustedPosition}
+      quaternion={surfaceQuaternion}
+      scale={[entranceScale, entranceScale, entranceScale]}
+    >
       {/* Main hex tile */}
       <mesh
         ref={meshRef}
         geometry={hexGeometry}
         onPointerEnter={() => {
-          setHovered(true);
+          if (!panState.isPanning) setHovered(true);
         }}
         onPointerLeave={() => {
           setHovered(false);
         }}
         onClick={(event) => {
+          if (panState.isPanning) return;
           event.stopPropagation();
           onClick();
         }}

@@ -10,6 +10,7 @@ interface ProjectedHexGridProps {
   onHexClick?: (hexCoordinate: string) => void;
   tileHighlightMode?: TileHighlightMode;
   vpIndicators?: TileVPIndicator[];
+  animateHexEntrance?: boolean;
 }
 
 // Local type for tiles with projected positions
@@ -37,6 +38,7 @@ export default function ProjectedHexGrid({
   onHexClick,
   tileHighlightMode,
   vpIndicators = [],
+  animateHexEntrance = false,
 }: ProjectedHexGridProps) {
   const SPHERE_RADIUS = 2.02;
 
@@ -174,7 +176,7 @@ export default function ProjectedHexGrid({
 
   return (
     <>
-      {projectedHexGrid.map((tile) => {
+      {projectedHexGrid.map((tile, index) => {
         const hexKey = HexGrid2D.coordinateToKey(tile.coordinate);
         const tileData = getTileData(tile);
         const isAvailable = availableHexes.includes(hexKey);
@@ -194,6 +196,8 @@ export default function ProjectedHexGrid({
             highlightMode={getHighlightModeForTile(tileData.type, tileHighlightMode, vpIndicator)}
             vpAmount={vpIndicator?.showVPText ? vpIndicator.amount : undefined}
             vpAnimating={vpIndicator?.isAnimating}
+            animateEntrance={animateHexEntrance}
+            entranceDelay={index * 15}
           />
         );
       })}

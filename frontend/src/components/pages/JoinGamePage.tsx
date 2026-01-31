@@ -4,7 +4,7 @@ import { apiService } from "../../services/apiService";
 import { globalWebSocketManager } from "../../services/globalWebSocketManager";
 import { skyboxCache } from "../../services/SkyboxCache.ts";
 import { saveGameSession } from "../../utils/sessionStorage.ts";
-import LoadingOverlay from "../ui/overlay/LoadingOverlay";
+import LoadingOverlay from "../game/view/LoadingOverlay.tsx";
 import GameIcon from "../ui/display/GameIcon.tsx";
 
 const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -266,9 +266,9 @@ const JoinGamePage: React.FC = () => {
       <div className="relative z-[1] flex items-center justify-center w-full min-h-screen">
         <button
           onClick={handleBackToHome}
-          className="fixed top-[30px] left-[30px] bg-space-black-darker/80 border-2 border-space-blue-400 rounded-lg py-3 px-5 text-white cursor-pointer transition-all duration-300 text-sm backdrop-blur-space z-[100] hover:bg-space-black-darker/90 hover:border-space-blue-800 hover:shadow-glow hover:-translate-y-0.5"
+          className="fixed top-[30px] left-[30px] bg-space-black-darker/80 border border-white/20 rounded-lg py-2.5 px-4 text-white text-sm cursor-pointer hover:bg-white/20 transition-colors backdrop-blur-space z-[100]"
         >
-          ← Back to Home
+          ← Back
         </button>
         <div className="max-w-[600px] w-full px-5 py-10">
           <div className="text-center">
@@ -278,7 +278,7 @@ const JoinGamePage: React.FC = () => {
 
             {!gameValidated ? (
               <form onSubmit={handleGameIdSubmit} className="max-w-[400px] mx-auto">
-                <div className="relative flex items-center bg-space-black-darker/95 border-2 border-space-blue-400 rounded-xl p-0 transition-all duration-200 backdrop-blur-space shadow-[0_0_20px_rgba(30,60,150,0.2)] focus-within:border-space-blue-600 focus-within:shadow-[0_0_30px_rgba(30,60,150,0.4)]">
+                <div className="relative flex items-center bg-space-black-darker/95 border border-white/20 rounded-xl p-0 transition-all duration-200 backdrop-blur-space focus-within:border-white/60 focus-within:shadow-[0_0_20px_rgba(255,255,255,0.1)]">
                   <input
                     type="text"
                     value={gameId}
@@ -322,7 +322,7 @@ const JoinGamePage: React.FC = () => {
                   </p>
                 </div>
 
-                <div className="relative flex items-center bg-space-black-darker/95 border-2 border-space-blue-400 rounded-xl p-0 transition-all duration-200 backdrop-blur-space shadow-[0_0_20px_rgba(30,60,150,0.2)] focus-within:border-space-blue-600 focus-within:shadow-[0_0_30px_rgba(30,60,150,0.4)]">
+                <div className="relative flex items-center bg-space-black-darker/95 border border-white/20 rounded-xl p-0 transition-all duration-200 backdrop-blur-space focus-within:border-white/60 focus-within:shadow-[0_0_20px_rgba(255,255,255,0.1)]">
                   <input
                     type="text"
                     value={playerName}
@@ -357,10 +357,9 @@ const JoinGamePage: React.FC = () => {
         </div>
       </div>
 
-      <LoadingOverlay
-        isLoading={isLoadingGameValidation || isLoadingJoin}
-        message={getLoadingMessage()}
-      />
+      {(isLoadingGameValidation || isLoadingJoin) && (
+        <LoadingOverlay isLoaded={false} message={getLoadingMessage()} />
+      )}
     </div>
   );
 };

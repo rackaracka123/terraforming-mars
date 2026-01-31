@@ -1,59 +1,60 @@
 import { getSoundSettings } from "../utils/soundStorage.ts";
 
-/**
- * Audio service for managing game sound effects
- * Handles loading, caching, and playing audio files for game events
- */
+interface AudioFileEntry {
+  key: string;
+  path: string;
+  volumeMultiplier: number;
+}
+
 class AudioService {
   private audioCache: Map<string, HTMLAudioElement> = new Map();
+  private ambientAudio: HTMLAudioElement | null = null;
   private isEnabled: boolean = true;
   private volume: number = 0.5;
+  private musicVolume: number = 0.5;
+  private volumeMultipliers: Map<string, number> = new Map();
+  private ambientVolumeMultiplier: number = 0.3;
+  private fadeOutInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
-    // Initialize from localStorage settings
     const settings = getSoundSettings();
     this.isEnabled = settings.enabled;
     this.volume = settings.volume;
+    this.musicVolume = settings.musicVolume;
 
     this.preloadAudioFiles();
   }
 
-  /**
-   * Preload audio files for better performance
-   */
   private preloadAudioFiles() {
-    const audioFiles = [
-      { key: "production", path: "/assets/audio/production.mp3" },
-      { key: "temperature-increase", path: "/sounds/temperature-increase.mp3" },
-      { key: "water-placement", path: "/sounds/water-placement.mp3" },
-      { key: "oxygen-increase", path: "/sounds/oxygen-increase.mp3" },
+    const audioFiles: AudioFileEntry[] = [
+      { key: "production", path: "/sounds/production.mp3", volumeMultiplier: 1.0 },
+      {
+        key: "temperature-increase",
+        path: "/sounds/temperature-increase.mp3",
+        volumeMultiplier: 1.0,
+      },
+      { key: "water-placement", path: "/sounds/water-placement.mp3", volumeMultiplier: 1.0 },
+      { key: "oxygen-increase", path: "/sounds/oxygen-increase.mp3", volumeMultiplier: 1.0 },
     ];
 
-    audioFiles.forEach(({ key, path }) => {
+    audioFiles.forEach(({ key, path, volumeMultiplier }) => {
       try {
         const audio = new Audio(path);
         audio.preload = "auto";
-        audio.volume = this.volume;
-
-        // Handle loading events
-        audio.addEventListener("canplaythrough", () => {
-          // Audio preloaded successfully
-        });
+        audio.volume = this.volume * volumeMultiplier;
 
         audio.addEventListener("error", (e) => {
-          console.warn(`⚠️ Failed to preload audio: ${key}`, e);
+          console.warn(`Failed to preload audio: ${key}`, e);
         });
 
         this.audioCache.set(key, audio);
+        this.volumeMultipliers.set(key, volumeMultiplier);
       } catch (error) {
-        console.warn(`⚠️ Error creating audio element for ${key}:`, error);
+        console.warn(`Error creating audio element for ${key}:`, error);
       }
     });
   }
 
-  /**
-   * Play a sound effect by key
-   */
   public async playSound(soundKey: string): Promise<void> {
     if (!this.isEnabled) {
       return;
@@ -61,79 +62,122 @@ class AudioService {
 
     const audio = this.audioCache.get(soundKey);
     if (!audio) {
-      console.warn(`⚠️ Sound not found: ${soundKey}`);
+      console.warn(`Sound not found: ${soundKey}`);
       return;
     }
 
     try {
-      // Clone the audio element to allow overlapping sounds
       const audioClone = audio.cloneNode() as HTMLAudioElement;
-      audioClone.volume = this.volume;
+      const multiplier = this.volumeMultipliers.get(soundKey) ?? 1.0;
+      audioClone.volume = this.volume * multiplier;
 
       await audioClone.play();
     } catch (error) {
-      console.warn(`⚠️ Failed to play sound ${soundKey}:`, error);
+      console.warn(`Failed to play sound ${soundKey}:`, error);
     }
   }
 
-  /**
-   * Play production phase sound effect
-   */
   public async playProductionSound(): Promise<void> {
     return this.playSound("production");
   }
 
-  /**
-   * Play temperature increase sound effect
-   */
   public async playTemperatureSound(): Promise<void> {
     return this.playSound("temperature-increase");
   }
 
-  /**
-   * Play water/ocean placement sound effect
-   */
   public async playWaterPlacementSound(): Promise<void> {
     return this.playSound("water-placement");
   }
 
-  /**
-   * Play oxygen increase sound effect
-   */
   public async playOxygenSound(): Promise<void> {
     return this.playSound("oxygen-increase");
   }
 
-  /**
-   * Set audio enabled/disabled
-   */
-  public setEnabled(enabled: boolean): void {
-    this.isEnabled = enabled;
+  public playAmbient(): void {
+    // Cancel any in-progress fadeOut to prevent it from killing playback
+    if (this.fadeOutInterval !== null) {
+      clearInterval(this.fadeOutInterval);
+      this.fadeOutInterval = null;
+    }
+
+    if (!this.ambientAudio) {
+      this.ambientAudio = new Audio("/sounds/main-ambient.mp3");
+      this.ambientAudio.loop = true;
+    }
+    this.ambientAudio.volume = this.musicVolume * this.ambientVolumeMultiplier;
+
+    if (this.isEnabled) {
+      void this.ambientAudio.play().catch(() => {});
+    }
   }
 
-  /**
-   * Set audio volume (0.0 to 1.0)
-   */
+  private fadeOut(audio: HTMLAudioElement, duration: number = 300): void {
+    const steps = 15;
+    const interval = duration / steps;
+    const volumeStep = audio.volume / steps;
+
+    this.fadeOutInterval = setInterval(() => {
+      audio.volume = Math.max(0, audio.volume - volumeStep);
+      if (audio.volume <= 0.01) {
+        if (this.fadeOutInterval !== null) {
+          clearInterval(this.fadeOutInterval);
+          this.fadeOutInterval = null;
+        }
+        audio.pause();
+        audio.currentTime = 0;
+        audio.volume = this.musicVolume * this.ambientVolumeMultiplier;
+      }
+    }, interval);
+  }
+
+  public stopAmbient(): void {
+    if (this.ambientAudio) {
+      this.fadeOut(this.ambientAudio);
+    }
+  }
+
+  public stopAmbientWithDuration(duration: number): void {
+    if (this.ambientAudio) {
+      this.fadeOut(this.ambientAudio, duration);
+    }
+  }
+
+  public setEnabled(enabled: boolean): void {
+    this.isEnabled = enabled;
+    if (this.ambientAudio) {
+      if (enabled) {
+        void this.ambientAudio.play().catch(() => {});
+      } else {
+        this.fadeOut(this.ambientAudio);
+      }
+    }
+  }
+
   public setVolume(volume: number): void {
     this.volume = Math.max(0, Math.min(1, volume));
 
-    // Update volume on all cached audio elements
-    this.audioCache.forEach((audio) => {
-      audio.volume = this.volume;
+    this.audioCache.forEach((audio, key) => {
+      const multiplier = this.volumeMultipliers.get(key) ?? 1.0;
+      audio.volume = this.volume * multiplier;
     });
   }
 
-  /**
-   * Get current audio settings
-   */
+  public setMusicVolume(volume: number): void {
+    this.musicVolume = Math.max(0, Math.min(1, volume));
+
+    if (this.ambientAudio) {
+      this.ambientAudio.volume = this.musicVolume * this.ambientVolumeMultiplier;
+    }
+  }
+
   public getSettings() {
     return {
       enabled: this.isEnabled,
       volume: this.volume,
+      musicVolume: this.musicVolume,
     };
   }
 }
 
-// Singleton instance for application-wide use
 export const audioService = new AudioService();
 export default audioService;

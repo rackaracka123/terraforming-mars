@@ -5,6 +5,7 @@ interface CopyLinkButtonProps {
   defaultText: string;
   copiedText?: string;
   className?: string;
+  icon?: React.ReactNode;
   onCopySuccess?: () => void;
   onCopyError?: (error: Error) => void;
 }
@@ -14,6 +15,7 @@ const CopyLinkButton: React.FC<CopyLinkButtonProps> = ({
   defaultText,
   copiedText = "Copied!",
   className = "",
+  icon,
   onCopySuccess,
   onCopyError,
 }) => {
@@ -37,14 +39,15 @@ const CopyLinkButton: React.FC<CopyLinkButtonProps> = ({
 
   return (
     <button
-      className={`bg-space-black-darker/90 border-2 border-space-blue-800 rounded-lg py-3 px-5 text-white cursor-pointer transition-all duration-300 text-sm font-semibold backdrop-blur-space min-w-[120px] hover:bg-space-black-darker/95 hover:border-space-blue-600 hover:shadow-glow hover:-translate-y-0.5 disabled:cursor-default disabled:transform-none ${className}`}
+      className={`bg-space-black-darker/90 border-2 border-space-blue-500 rounded-xl py-3 px-5 text-white cursor-pointer transition-all duration-300 text-sm font-semibold font-orbitron tracking-wide backdrop-blur-space min-w-[120px] hover:border-space-blue-900 hover:shadow-glow hover:shadow-glow-lg hover:-translate-y-1 disabled:cursor-default disabled:transform-none ${className}`}
       onClick={handleCopy}
       disabled={isCopied}
     >
       <span
-        className={`inline-block transition-opacity duration-300 ${isCopied ? "opacity-70" : "opacity-100"}`}
+        className={`inline-flex items-center gap-2 transition-opacity duration-300 ${isCopied ? "opacity-70" : "opacity-100"}`}
       >
         {isCopied ? copiedText : defaultText}
+        {icon && !isCopied && icon}
       </span>
     </button>
   );
