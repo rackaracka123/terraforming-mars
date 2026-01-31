@@ -45,6 +45,7 @@ const (
 	ErrorCodeGenerationalEventNotMet StateErrorCode = "generational-event-not-met"
 
 	ErrorCodeActionAlreadyPlayed StateErrorCode = "action-already-played"
+	ErrorCodeNoActionsRemaining  StateErrorCode = "no-actions-remaining"
 )
 
 // StateErrorCategory represents categories for error grouping.

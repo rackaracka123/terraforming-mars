@@ -126,3 +126,30 @@ func ValidateCurrentTurn(
 
 	return nil
 }
+
+// ValidateActionsRemaining validates that the current player has actions remaining
+// Returns error if actionsRemaining == 0; allows -1 (unlimited) and >0
+func ValidateActionsRemaining(
+	gameInstance *game.Game,
+	playerID string,
+	log *zap.Logger,
+) error {
+	currentTurn := gameInstance.CurrentTurn()
+	if currentTurn == nil {
+		return nil
+	}
+
+	if currentTurn.PlayerID() != playerID {
+		return nil
+	}
+
+	remaining := currentTurn.ActionsRemaining()
+	if remaining == 0 {
+		log.Warn("No actions remaining",
+			zap.String("player_id", playerID),
+			zap.Int("actions_remaining", remaining))
+		return fmt.Errorf("no actions remaining")
+	}
+
+	return nil
+}
