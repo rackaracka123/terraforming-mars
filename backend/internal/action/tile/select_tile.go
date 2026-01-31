@@ -195,6 +195,8 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		return fmt.Errorf("failed to process next tile: %w", err)
 	}
 
+	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+
 	log.Info("✅ Tile selected and placed successfully",
 		zap.String("tile_type", tileType),
 		zap.String("position", selectedHex))

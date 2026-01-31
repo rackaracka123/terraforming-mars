@@ -1,6 +1,7 @@
 package action
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -68,6 +69,7 @@ func (b *BaseAction) GetPlayerFromGame(g *game.Game, playerID string, log *zap.L
 // ConsumePlayerAction consumes an action from the game's current turn
 // Returns true if an action was consumed, false if unlimited (-1) or no actions remaining (0)
 // This properly handles unlimited actions by not consuming them
+// When the last action is consumed and no tile placement is pending, auto-advances to the next player
 func (b *BaseAction) ConsumePlayerAction(g *game.Game, log *zap.Logger) bool {
 	currentTurn := g.CurrentTurn()
 	if currentTurn == nil {
@@ -75,12 +77,15 @@ func (b *BaseAction) ConsumePlayerAction(g *game.Game, log *zap.Logger) bool {
 		return false
 	}
 
+	playerID := currentTurn.PlayerID()
 	consumed := currentTurn.ConsumeAction()
 	if consumed {
 		log.Debug("✅ Action consumed", zap.Int("remaining_actions", currentTurn.ActionsRemaining()))
 
-		// Publish GameStateChangedEvent to trigger broadcast
-		// This ensures all clients see the updated action count immediately
+		if currentTurn.ActionsRemaining() == 0 {
+			AutoAdvanceTurnIfNeeded(g, playerID, log)
+		}
+
 		if eventBus := g.EventBus(); eventBus != nil {
 			events.Publish(eventBus, events.GameStateChangedEvent{
 				GameID:    g.ID(),
@@ -90,4 +95,89 @@ func (b *BaseAction) ConsumePlayerAction(g *game.Game, log *zap.Logger) bool {
 	}
 
 	return consumed
+}
+
+// AutoAdvanceTurnIfNeeded advances the turn to the next non-passed player
+// if the current player has 0 actions remaining and no pending tile selection.
+// This is called after consuming an action or after completing a tile placement.
+func AutoAdvanceTurnIfNeeded(g *game.Game, playerID string, log *zap.Logger) {
+	currentTurn := g.CurrentTurn()
+	if currentTurn == nil {
+		return
+	}
+	if currentTurn.PlayerID() != playerID {
+		return
+	}
+	if currentTurn.ActionsRemaining() != 0 {
+		return
+	}
+	if g.GetPendingTileSelection(playerID) != nil {
+		return
+	}
+
+	turnOrder := g.TurnOrder()
+	if len(turnOrder) == 0 {
+		return
+	}
+
+	currentIndex := -1
+	for i, id := range turnOrder {
+		if id == playerID {
+			currentIndex = i
+			break
+		}
+	}
+	if currentIndex == -1 {
+		return
+	}
+
+	// Count non-passed players to determine if next player should get unlimited actions
+	nonPassedCount := 0
+	for _, id := range turnOrder {
+		p, err := g.GetPlayer(id)
+		if err == nil && !p.HasPassed() {
+			nonPassedCount++
+		}
+	}
+
+	// If current player is the only non-passed player, give them unlimited actions
+	if nonPassedCount == 1 {
+		currentPlayer, err := g.GetPlayer(playerID)
+		if err == nil && !currentPlayer.HasPassed() {
+			if err := g.SetCurrentTurn(context.Background(), playerID, -1); err != nil {
+				log.Error("Failed to grant unlimited actions to last player", zap.Error(err))
+			} else {
+				log.Info("🏃 Last non-passed player granted unlimited actions",
+					zap.String("player_id", playerID))
+			}
+			return
+		}
+	}
+
+	for i := 1; i < len(turnOrder); i++ {
+		nextIndex := (currentIndex + i) % len(turnOrder)
+		nextID := turnOrder[nextIndex]
+		nextPlayer, err := g.GetPlayer(nextID)
+		if err != nil {
+			continue
+		}
+		if !nextPlayer.HasPassed() {
+			// If next player will be the only non-passed player, give unlimited actions
+			nextActions := 2
+			if nonPassedCount == 1 {
+				nextActions = -1
+				log.Info("🏃 Last non-passed player granted unlimited actions",
+					zap.String("player_id", nextID))
+			}
+			if err := g.SetCurrentTurn(context.Background(), nextID, nextActions); err != nil {
+				log.Error("Failed to auto-advance turn", zap.Error(err))
+			} else {
+				log.Info("🔄 Auto-advanced turn to next player",
+					zap.String("from", playerID),
+					zap.String("to", nextID),
+					zap.Int("actions", nextActions))
+			}
+			return
+		}
+	}
 }
