@@ -17,6 +17,7 @@ import ActionsPopover from "../popover/ActionsPopover.tsx";
 import EffectsPopover from "../popover/EffectsPopover.tsx";
 import TagsPopover from "../popover/TagsPopover.tsx";
 import StoragesPopover from "../popover/StoragesPopover.tsx";
+import VictoryPointsPopover from "../popover/VictoryPointsPopover.tsx";
 import GameIcon from "../display/GameIcon.tsx";
 import {
   calculatePlantsForGreenery,
@@ -39,7 +40,6 @@ interface BottomResourceBarProps {
   changedPaths?: Set<string>;
   onOpenCardEffectsModal?: () => void;
   onOpenCardsPlayedModal?: () => void;
-  onOpenVictoryPointsModal?: () => void;
   onOpenActionsModal?: () => void;
   onActionSelect?: (action: PlayerActionDto) => void;
   onConvertPlantsToGreenery?: () => void;
@@ -53,7 +53,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   changedPaths = new Set(),
   onOpenCardEffectsModal,
   onOpenCardsPlayedModal,
-  onOpenVictoryPointsModal,
   onOpenActionsModal,
   onActionSelect,
   onConvertPlantsToGreenery,
@@ -63,10 +62,12 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   const [showEffectsPopover, setShowEffectsPopover] = useState(false);
   const [showTagsPopover, setShowTagsPopover] = useState(false);
   const [showStoragesPopover, setShowStoragesPopover] = useState(false);
+  const [showVPPopover, setShowVPPopover] = useState(false);
   const actionsButtonRef = useRef<HTMLButtonElement>(null);
   const effectsButtonRef = useRef<HTMLButtonElement>(null);
   const tagsButtonRef = useRef<HTMLButtonElement>(null);
   const storagesButtonRef = useRef<HTMLButtonElement>(null);
+  const vpButtonRef = useRef<HTMLButtonElement>(null);
 
   // Helper function to check if a path has changed
   const hasPathChanged = (path: string): boolean => {
@@ -221,9 +222,10 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     setShowTagsPopover(!showTagsPopover);
   };
 
-  const handleOpenVictoryPointsModal = () => {
-    // Opening victory points modal
-    onOpenVictoryPointsModal?.();
+  const totalVP = (currentPlayer?.vpGranters || []).reduce((sum, g) => sum + g.computedValue, 0);
+
+  const handleOpenVPPopover = () => {
+    setShowVPPopover(!showVPPopover);
   };
 
   // Modal escape handling is now managed in GameInterface
@@ -496,6 +498,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         </button>
 
         <button
+          ref={vpButtonRef}
           className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#ffc864] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
           style={{ boxShadow: "0 0 10px #ffc86440" }}
           onMouseEnter={(e) => {
@@ -504,7 +507,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           onMouseLeave={(e) => {
             e.currentTarget.style.boxShadow = "0 0 10px #ffc86440";
           }}
-          onClick={handleOpenVictoryPointsModal}
+          onClick={handleOpenVPPopover}
         >
           <div
             className="font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center justify-center h-[32px] w-[32px] relative"
@@ -515,13 +518,13 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           </div>
           <div
             className={`text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${
-              hasPathChanged("currentPlayer.victoryPoints") ||
+              hasPathChanged("currentPlayer.vpGranters") ||
               hasPathChanged("currentPlayer.terraformRating")
                 ? "[animation:valueUpdateShine_0.8s_ease-in-out]"
                 : ""
             }`}
           >
-            {currentPlayer?.victoryPoints || 0}
+            {totalVP}
           </div>
           <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
             VP
@@ -570,7 +573,14 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         anchorRef={storagesButtonRef as React.RefObject<HTMLElement>}
       />
 
-      {/* Modal components are now rendered in GameInterface */}
+      {/* Victory Points Popover */}
+      <VictoryPointsPopover
+        isVisible={showVPPopover}
+        onClose={() => setShowVPPopover(false)}
+        vpGranters={currentPlayer?.vpGranters || []}
+        totalVP={totalVP}
+        anchorRef={vpButtonRef as React.RefObject<HTMLElement>}
+      />
     </div>
   );
 };

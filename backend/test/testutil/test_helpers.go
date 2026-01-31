@@ -149,6 +149,28 @@ func CreateTestCardRegistry() cards.CardRegistry {
 			Pack: "base",
 		},
 		{
+			ID:   "corp-arklight",
+			Name: "Arklight",
+			Type: gamecards.CardTypeCorporation,
+			Pack: "base",
+			Tags: []shared.CardTag{shared.TagAnimal},
+			ResourceStorage: &gamecards.ResourceStorage{
+				Type:     shared.ResourceAnimal,
+				Starting: 0,
+			},
+			VPConditions: []gamecards.VictoryPointCondition{
+				{
+					Amount:    1,
+					Condition: gamecards.VPConditionPer,
+					Per: &gamecards.PerCondition{
+						Type:   shared.ResourceAnimal,
+						Amount: 2,
+						Target: ptrTargetType(gamecards.TargetSelfCard),
+					},
+				},
+			},
+		},
+		{
 			ID:   "corp-teractor",
 			Name: "Teractor",
 			Type: gamecards.CardTypeCorporation,
@@ -344,6 +366,29 @@ func CreateTestCardRegistry() cards.CardRegistry {
 			Cost: 13,
 		},
 		{
+			ID:   "card-birds",
+			Name: "Birds",
+			Type: gamecards.CardTypeActive,
+			Pack: "base",
+			Cost: 10,
+			Tags: []shared.CardTag{shared.TagAnimal},
+			ResourceStorage: &gamecards.ResourceStorage{
+				Type:     shared.ResourceAnimal,
+				Starting: 0,
+			},
+			VPConditions: []gamecards.VictoryPointCondition{
+				{
+					Amount:    1,
+					Condition: gamecards.VPConditionPer,
+					Per: &gamecards.PerCondition{
+						Type:   shared.ResourceAnimal,
+						Amount: 1,
+						Target: ptrTargetType(gamecards.TargetSelfCard),
+					},
+				},
+			},
+		},
+		{
 			ID:   "card-fish",
 			Name: "Fish",
 			Type: gamecards.CardTypeActive,
@@ -377,6 +422,18 @@ func CreateTestCardRegistry() cards.CardRegistry {
 			Type: gamecards.CardTypeAutomated,
 			Pack: "base",
 			Cost: 20,
+			Tags: []shared.CardTag{shared.TagJovian, shared.TagSpace},
+			VPConditions: []gamecards.VictoryPointCondition{
+				{
+					Amount:    1,
+					Condition: gamecards.VPConditionPer,
+					Per: &gamecards.PerCondition{
+						Type:   shared.ResourceType(shared.TagJovian),
+						Amount: 1,
+						Tag:    ptrCardTag(shared.TagJovian),
+					},
+				},
+			},
 		},
 		{
 			ID:   "card-gene-repair",
@@ -442,11 +499,30 @@ func CreateTestCardRegistry() cards.CardRegistry {
 			Cost: 23,
 		},
 		{
+			ID:   "card-io-mining-industries",
+			Name: "Io Mining Industries",
+			Type: gamecards.CardTypeAutomated,
+			Pack: "base",
+			Cost: 41,
+			Tags: []shared.CardTag{shared.TagJovian, shared.TagSpace},
+		},
+		{
 			ID:   "card-immigration-shuttles",
 			Name: "Immigration Shuttles",
 			Type: gamecards.CardTypeAutomated,
 			Pack: "base",
 			Cost: 31,
+			Tags: []shared.CardTag{shared.TagSpace},
+			VPConditions: []gamecards.VictoryPointCondition{
+				{
+					Amount:    1,
+					Condition: gamecards.VPConditionPer,
+					Per: &gamecards.PerCondition{
+						Type:   shared.ResourceCityTile,
+						Amount: 3,
+					},
+				},
+			},
 		},
 		{
 			ID:   "card-imported-ghg",
@@ -629,6 +705,7 @@ func CreateTestGameWithPlayers(t *testing.T, numPlayers int, broadcaster *MockBr
 	// Create and set deck
 	gameDeck := deck.NewDeck(testGame.ID(), projectCards, corpCards, preludeCards)
 	testGame.SetDeck(gameDeck)
+	testGame.SetVPCardLookup(cards.NewVPCardLookupAdapter(cardRegistry))
 
 	err := repo.Create(context.Background(), testGame)
 	if err != nil {
@@ -700,4 +777,12 @@ func AssertFalse(t *testing.T, condition bool, message string) {
 	if condition {
 		t.Fatalf("%s: expected false, got true", message)
 	}
+}
+
+func ptrTargetType(t gamecards.TargetType) *gamecards.TargetType {
+	return &t
+}
+
+func ptrCardTag(t shared.CardTag) *shared.CardTag {
+	return &t
 }

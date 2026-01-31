@@ -32,7 +32,6 @@ export interface Player {
     heat: number;
   };
   terraformRating: number;
-  victoryPoints: number;
   corporation?: string;
   passed?: boolean;
   availableActions?: number;
@@ -87,7 +86,6 @@ const createMockGameState = (): GameState => ({
         heat: 1,
       },
       terraformRating: 20,
-      victoryPoints: 15,
       corporation: "mining-guild",
       passed: false,
       availableActions: 2,
@@ -112,7 +110,6 @@ const createMockGameState = (): GameState => ({
         heat: 2,
       },
       terraformRating: 18,
-      victoryPoints: 12,
       corporation: "ecoline",
       passed: false,
       availableActions: 1,

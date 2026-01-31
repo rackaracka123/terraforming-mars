@@ -14,7 +14,6 @@ type PlayerResources struct {
 	resources          shared.Resources
 	production         shared.Production
 	terraformRating    int
-	victoryPoints      int
 	resourceStorage    map[string]int
 	paymentSubstitutes []shared.PaymentSubstitute
 	valueModifiers     map[shared.ResourceType]int // e.g., {"titanium": 1, "steel": 1} for cards like Phobolog, Advanced Alloys
@@ -28,7 +27,6 @@ func newResources(eventBus *events.EventBusImpl, gameID, playerID string) *Playe
 		resources:          shared.Resources{},
 		production:         shared.Production{},
 		terraformRating:    20,
-		victoryPoints:      0,
 		resourceStorage:    make(map[string]int),
 		paymentSubstitutes: []shared.PaymentSubstitute{},
 		valueModifiers:     make(map[shared.ResourceType]int),
@@ -54,12 +52,6 @@ func (r *PlayerResources) TerraformRating() int {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.terraformRating
-}
-
-func (r *PlayerResources) VictoryPoints() int {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	return r.victoryPoints
 }
 
 func (r *PlayerResources) Storage() map[string]int {
@@ -194,25 +186,6 @@ func (r *PlayerResources) SetTerraformRating(tr int) {
 			PlayerID:  r.playerID,
 			OldRating: oldRating,
 			NewRating: newRating,
-			Timestamp: time.Now(),
-		})
-	}
-}
-
-func (r *PlayerResources) SetVictoryPoints(vp int) {
-	r.mu.Lock()
-	oldPoints := r.victoryPoints
-	r.victoryPoints = vp
-	newPoints := r.victoryPoints
-	r.mu.Unlock()
-
-	if r.eventBus != nil {
-		events.Publish(r.eventBus, events.VictoryPointsChangedEvent{
-			GameID:    r.gameID,
-			PlayerID:  r.playerID,
-			OldPoints: oldPoints,
-			NewPoints: newPoints,
-			Source:    "direct", // Direct setter without specific source context
 			Timestamp: time.Now(),
 		})
 	}
@@ -363,8 +336,21 @@ func (r *PlayerResources) AddToStorage(cardID string, amount int) {
 	if r.resourceStorage == nil {
 		r.resourceStorage = make(map[string]int)
 	}
+	oldAmount := r.resourceStorage[cardID]
 	r.resourceStorage[cardID] += amount
+	newAmount := r.resourceStorage[cardID]
 	r.mu.Unlock()
+
+	if r.eventBus != nil {
+		events.Publish(r.eventBus, events.ResourceStorageChangedEvent{
+			GameID:    r.gameID,
+			PlayerID:  r.playerID,
+			CardID:    cardID,
+			OldAmount: oldAmount,
+			NewAmount: newAmount,
+			Timestamp: time.Now(),
+		})
+	}
 }
 
 // GetCardStorage returns the amount of resources stored on a specific card

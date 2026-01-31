@@ -9,6 +9,7 @@ import GameIcon from "../display/GameIcon.tsx";
 import { webSocketService } from "@/services/webSocketService.ts";
 import { canPerformActions } from "@/utils/actionUtils.ts";
 import { GamePopover, GamePopoverItem } from "../GamePopover";
+import { FormattedDescription } from "../display/FormattedDescription";
 
 interface AwardPopoverProps {
   isVisible: boolean;
@@ -138,7 +139,7 @@ const AwardPopover: React.FC<AwardPopoverProps> = ({
                 </div>
 
                 <p className="text-white/70 text-xs leading-relaxed m-0 text-left">
-                  {award.description}
+                  <FormattedDescription text={award.description} />
                 </p>
 
                 {isFunded && award.fundedBy && (

@@ -72,7 +72,6 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 		Resources:        toResourcesDto(resources),
 		Production:       toProductionDto(production),
 		TerraformRating:  resourcesComponent.TerraformRating(),
-		VictoryPoints:    resourcesComponent.VictoryPoints(),
 		Status:           PlayerStatusWaiting, // Default status
 		Corporation:      corporation,
 		Cards:            handCards, // PlayerCardDto[] with state
@@ -96,6 +95,7 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 		ResourceStorage:          p.Resources().Storage(),
 		PaymentSubstitutes:       convertPaymentSubstitutes(p.Resources().PaymentSubstitutes()),
 		GenerationalEvents:       convertGenerationalEvents(p.GenerationalEvents().GetAll()),
+		VPGranters:               toVPGranterDtos(p.VPGranters().GetAll()),
 	}
 }
 
@@ -116,7 +116,6 @@ func ToOtherPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardReg
 		Resources:        toResourcesDto(resources),
 		Production:       toProductionDto(production),
 		TerraformRating:  resourcesComponent.TerraformRating(),
-		VictoryPoints:    resourcesComponent.VictoryPoints(),
 		Status:           PlayerStatusWaiting,
 		Corporation:      corporation,
 		HandCardCount:    handCardCount,

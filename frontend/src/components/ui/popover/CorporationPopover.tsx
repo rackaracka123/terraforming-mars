@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { CardDto } from "../../../types/generated/api-types.ts";
+import { FormattedDescription } from "../display/FormattedDescription";
 
 interface CorporationPopoverProps {
   isVisible: boolean;
@@ -95,7 +96,9 @@ const CorporationPopover: React.FC<CorporationPopoverProps> = ({
 
       {/* Description */}
       <div className="px-5 pb-4">
-        <div className="text-sm text-white/90 leading-relaxed">{corporation.description}</div>
+        <div className="text-sm text-white/90 leading-relaxed">
+          <FormattedDescription text={corporation.description} />
+        </div>
       </div>
 
       {/* Tags (if any) */}

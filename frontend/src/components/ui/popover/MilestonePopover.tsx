@@ -9,6 +9,7 @@ import GameIcon from "../display/GameIcon.tsx";
 import { webSocketService } from "@/services/webSocketService.ts";
 import { canPerformActions } from "@/utils/actionUtils.ts";
 import { GamePopover, GamePopoverItem } from "../GamePopover";
+import { FormattedDescription } from "../display/FormattedDescription";
 
 interface MilestonePopoverProps {
   isVisible: boolean;
@@ -161,7 +162,7 @@ const MilestonePopover: React.FC<MilestonePopoverProps> = ({
                 </div>
 
                 <p className="text-white/70 text-xs leading-relaxed m-0 text-left">
-                  {milestone.description}
+                  <FormattedDescription text={milestone.description} />
                 </p>
 
                 {isClaimed && milestone.claimedBy && (
