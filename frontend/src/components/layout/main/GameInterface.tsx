@@ -1,12 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import GameLayout from "./GameLayout.tsx";
 import CardsPlayedModal from "../../ui/modals/CardsPlayedModal.tsx";
 import EffectsModal from "../../ui/modals/EffectsModal.tsx";
 import ActionsModal from "../../ui/modals/ActionsModal.tsx";
-import StandardProjectPopover from "../../ui/popover/StandardProjectPopover.tsx";
-import MilestonePopover from "../../ui/popover/MilestonePopover.tsx";
-import AwardPopover from "../../ui/popover/AwardPopover.tsx";
 import ProductionPhaseModal from "../../ui/modals/ProductionPhaseModal.tsx";
 import PaymentSelectionPopover from "../../ui/popover/PaymentSelectionPopover.tsx";
 import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
@@ -69,20 +66,14 @@ export default function GameInterface() {
   const [reconnectionStep, setReconnectionStep] = useState<"game" | "environment" | null>(null);
   const [currentPlayer, setCurrentPlayer] = useState<PlayerDto | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null); // Track player ID separately
-  const [showCorporationModal, setShowCorporationModal] = useState(false);
+  const [_showCorporationModal, setShowCorporationModal] = useState(false);
   const [corporationData, setCorporationData] = useState<CardDto | null>(null);
 
   // New modal states
   const [showCardsPlayedModal, setShowCardsPlayedModal] = useState(false);
   const [showCardEffectsModal, setShowCardEffectsModal] = useState(false);
   const [showActionsModal, setShowActionsModal] = useState(false);
-  const [showStandardProjectsPopover, setShowStandardProjectsPopover] = useState(false);
-  const [showMilestonePopover, setShowMilestonePopover] = useState(false);
-  const [showAwardPopover, setShowAwardPopover] = useState(false);
   const [showDebugDropdown, setShowDebugDropdown] = useState(false);
-  const standardProjectsButtonRef = useRef<HTMLButtonElement>(null);
-  const milestonesButtonRef = useRef<HTMLButtonElement>(null);
-  const awardsButtonRef = useRef<HTMLButtonElement>(null);
 
   // Set corporation data directly from player (backend now sends full CardDto)
   useEffect(() => {
@@ -899,9 +890,6 @@ export default function GameInterface() {
         return;
       }
 
-      // Close dropdown first
-      setShowStandardProjectsPopover(false);
-
       // All standard projects execute immediately
       // Backend will create tile queue for projects requiring placement
       switch (project) {
@@ -1191,14 +1179,6 @@ export default function GameInterface() {
     return "Connecting to game...";
   })();
 
-  // Check if any modal is currently open
-  const isAnyModalOpen =
-    showCorporationModal ||
-    showCardsPlayedModal ||
-    showCardEffectsModal ||
-    showActionsModal ||
-    showProductionPhaseModal;
-
   // Check if game is in lobby phase
   const isLobbyPhase = game?.status === GameStatusLobby;
 
@@ -1263,6 +1243,18 @@ export default function GameInterface() {
     }
   }, [game, isPreGamePhase]);
 
+  const bottomBarCallbacks = useMemo(
+    () => ({
+      onOpenCardEffectsModal: () => setShowCardEffectsModal(true),
+      onOpenCardsPlayedModal: () => setShowCardsPlayedModal(true),
+      onOpenActionsModal: () => setShowActionsModal(true),
+      onActionSelect: handleActionSelect,
+      onConvertPlantsToGreenery: handleConvertPlantsToGreenery,
+      onConvertHeatToTemperature: handleConvertHeatToTemperature,
+    }),
+    [handleActionSelect, handleConvertPlantsToGreenery, handleConvertHeatToTemperature],
+  );
+
   // Check if we need the persistent backdrop (during overlay transitions)
   const shouldShowBackdrop = showCardSelection;
 
@@ -1306,8 +1298,6 @@ export default function GameInterface() {
           currentPlayer={currentPlayer}
           playedCards={currentPlayer?.playedCards || []}
           corporationCard={corporationData}
-          isAnyModalOpen={isAnyModalOpen}
-          isLobbyPhase={isLobbyPhase}
           showCardSelection={showCardSelection}
           transitionPhase={transitionPhase}
           animateHexEntrance={
@@ -1319,23 +1309,8 @@ export default function GameInterface() {
           tileHighlightMode={tileHighlightMode}
           vpIndicators={vpIndicators}
           triggeredEffects={triggeredEffects}
-          onOpenCardEffectsModal={() => setShowCardEffectsModal(true)}
-          onOpenCardsPlayedModal={() => setShowCardsPlayedModal(true)}
-          onOpenActionsModal={() => setShowActionsModal(true)}
-          onActionSelect={handleActionSelect}
-          onConvertPlantsToGreenery={handleConvertPlantsToGreenery}
-          onConvertHeatToTemperature={handleConvertHeatToTemperature}
-          showStandardProjectsPopover={showStandardProjectsPopover}
-          onToggleStandardProjectsPopover={() =>
-            setShowStandardProjectsPopover(!showStandardProjectsPopover)
-          }
-          standardProjectsButtonRef={standardProjectsButtonRef}
-          showMilestonePopover={showMilestonePopover}
-          onToggleMilestonePopover={() => setShowMilestonePopover(!showMilestonePopover)}
-          milestonesButtonRef={milestonesButtonRef}
-          showAwardPopover={showAwardPopover}
-          onToggleAwardPopover={() => setShowAwardPopover(!showAwardPopover)}
-          awardsButtonRef={awardsButtonRef}
+          bottomBarCallbacks={bottomBarCallbacks}
+          onStandardProjectSelect={handleStandardProjectSelect}
           onLeaveGame={handleLeaveGame}
           onSkyboxReady={handleSkyboxReady}
         />
@@ -1359,28 +1334,6 @@ export default function GameInterface() {
         actions={currentPlayer?.actions || []}
         onActionSelect={handleActionSelect}
         gameState={game ?? undefined}
-      />
-
-      <StandardProjectPopover
-        isVisible={showStandardProjectsPopover}
-        onClose={() => setShowStandardProjectsPopover(false)}
-        onProjectSelect={handleStandardProjectSelect}
-        gameState={game ?? undefined}
-        anchorRef={standardProjectsButtonRef}
-      />
-
-      <MilestonePopover
-        isVisible={showMilestonePopover}
-        onClose={() => setShowMilestonePopover(false)}
-        gameState={game ?? undefined}
-        anchorRef={milestonesButtonRef}
-      />
-
-      <AwardPopover
-        isVisible={showAwardPopover}
-        onClose={() => setShowAwardPopover(false)}
-        gameState={game ?? undefined}
-        anchorRef={awardsButtonRef}
       />
 
       <ProductionPhaseModal

@@ -1,38 +1,35 @@
 import React, { useEffect, useState, useRef } from "react";
-import { GameDto } from "@/types/generated/api-types.ts";
+import { GameDto, PlayerDto } from "@/types/generated/api-types.ts";
+import { StandardProject } from "@/types/cards.tsx";
 import SoundToggleButton from "../../ui/buttons/SoundToggleButton.tsx";
+import StandardProjectPopover from "../../ui/popover/StandardProjectPopover.tsx";
+import MilestonePopover from "../../ui/popover/MilestonePopover.tsx";
+import AwardPopover from "../../ui/popover/AwardPopover.tsx";
 
 interface TopMenuBarProps {
   gameState: GameDto;
-  showStandardProjectsPopover?: boolean;
-  onToggleStandardProjectsPopover?: () => void;
-  standardProjectsButtonRef?: React.RefObject<HTMLButtonElement | null>;
-  showMilestonePopover?: boolean;
-  onToggleMilestonePopover?: () => void;
-  milestonesButtonRef?: React.RefObject<HTMLButtonElement | null>;
-  showAwardPopover?: boolean;
-  onToggleAwardPopover?: () => void;
-  awardsButtonRef?: React.RefObject<HTMLButtonElement | null>;
+  currentPlayer?: PlayerDto | null;
+  onStandardProjectSelect?: (project: StandardProject) => void;
   onLeaveGame?: () => void;
   gameId?: string;
 }
 
 const TopMenuBar: React.FC<TopMenuBarProps> = ({
-  gameState: _gameState,
-  showStandardProjectsPopover,
-  onToggleStandardProjectsPopover,
-  standardProjectsButtonRef,
-  showMilestonePopover,
-  onToggleMilestonePopover,
-  milestonesButtonRef,
-  showAwardPopover,
-  onToggleAwardPopover,
-  awardsButtonRef,
+  gameState,
+  currentPlayer,
+  onStandardProjectSelect,
   onLeaveGame,
   gameId,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const [showStandardProjectsPopover, setShowStandardProjectsPopover] = useState(false);
+  const [showMilestonePopover, setShowMilestonePopover] = useState(false);
+  const [showAwardPopover, setShowAwardPopover] = useState(false);
+  const standardProjectsButtonRef = useRef<HTMLButtonElement>(null);
+  const milestonesButtonRef = useRef<HTMLButtonElement>(null);
+  const awardsButtonRef = useRef<HTMLButtonElement>(null);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -60,24 +57,29 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
     onLeaveGame?.();
   };
 
+  const handleStandardProjectSelect = (project: StandardProject) => {
+    setShowStandardProjectsPopover(false);
+    onStandardProjectSelect?.(project);
+  };
+
   // Reset button inline border style when popovers close
   useEffect(() => {
-    if (!showStandardProjectsPopover && standardProjectsButtonRef?.current) {
+    if (!showStandardProjectsPopover && standardProjectsButtonRef.current) {
       standardProjectsButtonRef.current.style.borderColor = "rgba(255,255,255,0.2)";
     }
-  }, [showStandardProjectsPopover, standardProjectsButtonRef]);
+  }, [showStandardProjectsPopover]);
 
   useEffect(() => {
-    if (!showMilestonePopover && milestonesButtonRef?.current) {
+    if (!showMilestonePopover && milestonesButtonRef.current) {
       milestonesButtonRef.current.style.borderColor = "rgba(255,255,255,0.2)";
     }
-  }, [showMilestonePopover, milestonesButtonRef]);
+  }, [showMilestonePopover]);
 
   useEffect(() => {
-    if (!showAwardPopover && awardsButtonRef?.current) {
+    if (!showAwardPopover && awardsButtonRef.current) {
       awardsButtonRef.current.style.borderColor = "rgba(255,255,255,0.2)";
     }
-  }, [showAwardPopover, awardsButtonRef]);
+  }, [showAwardPopover]);
 
   const menuItems = [
     { id: "projects" as const, label: "STANDARD PROJECTS", color: "#4a90e2" },
@@ -86,12 +88,14 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
   ];
 
   const handleTabClick = (tabId: "milestones" | "projects" | "awards") => {
+    if (currentPlayer?.pendingTileSelection) return;
+
     if (tabId === "projects") {
-      onToggleStandardProjectsPopover?.();
+      setShowStandardProjectsPopover((prev) => !prev);
     } else if (tabId === "milestones") {
-      onToggleMilestonePopover?.();
+      setShowMilestonePopover((prev) => !prev);
     } else if (tabId === "awards") {
-      onToggleAwardPopover?.();
+      setShowAwardPopover((prev) => !prev);
     }
   };
 
@@ -220,6 +224,28 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
           )}
         </div>
       </div>
+
+      <StandardProjectPopover
+        isVisible={showStandardProjectsPopover}
+        onClose={() => setShowStandardProjectsPopover(false)}
+        onProjectSelect={handleStandardProjectSelect}
+        gameState={gameState}
+        anchorRef={standardProjectsButtonRef}
+      />
+
+      <MilestonePopover
+        isVisible={showMilestonePopover}
+        onClose={() => setShowMilestonePopover(false)}
+        gameState={gameState}
+        anchorRef={milestonesButtonRef}
+      />
+
+      <AwardPopover
+        isVisible={showAwardPopover}
+        onClose={() => setShowAwardPopover(false)}
+        gameState={gameState}
+        anchorRef={awardsButtonRef}
+      />
     </div>
   );
 };

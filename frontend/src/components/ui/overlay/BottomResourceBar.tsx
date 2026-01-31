@@ -33,11 +33,7 @@ interface ResourceData {
   color: string;
 }
 
-interface BottomResourceBarProps {
-  currentPlayer?: PlayerDto | null;
-  gameState?: GameDto;
-  playedCards?: CardDto[];
-  changedPaths?: Set<string>;
+export interface BottomResourceBarCallbacks {
   onOpenCardEffectsModal?: () => void;
   onOpenCardsPlayedModal?: () => void;
   onOpenActionsModal?: () => void;
@@ -46,18 +42,29 @@ interface BottomResourceBarProps {
   onConvertHeatToTemperature?: () => void;
 }
 
+interface BottomResourceBarProps {
+  currentPlayer?: PlayerDto | null;
+  gameState?: GameDto;
+  playedCards?: CardDto[];
+  changedPaths?: Set<string>;
+  callbacks?: BottomResourceBarCallbacks;
+}
+
 const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   currentPlayer,
   gameState,
   playedCards = [],
   changedPaths = new Set(),
-  onOpenCardEffectsModal,
-  onOpenCardsPlayedModal,
-  onOpenActionsModal,
-  onActionSelect,
-  onConvertPlantsToGreenery,
-  onConvertHeatToTemperature,
+  callbacks = {},
 }) => {
+  const {
+    onOpenCardEffectsModal,
+    onOpenCardsPlayedModal,
+    onOpenActionsModal,
+    onActionSelect,
+    onConvertPlantsToGreenery,
+    onConvertHeatToTemperature,
+  } = callbacks;
   const [showActionsPopover, setShowActionsPopover] = useState(false);
   const [showEffectsPopover, setShowEffectsPopover] = useState(false);
   const [showTagsPopover, setShowTagsPopover] = useState(false);

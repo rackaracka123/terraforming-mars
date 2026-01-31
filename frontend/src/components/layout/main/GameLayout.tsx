@@ -5,27 +5,27 @@ import RightSidebar from "../panels/RightSidebar.tsx";
 import MainContentDisplay from "../../ui/display/MainContentDisplay.tsx";
 import { TileHighlightMode } from "../../game/board/ProjectedHexTile.tsx";
 import { TileVPIndicator } from "../../ui/overlay/EndGameOverlay.tsx";
-import BottomResourceBar from "../../ui/overlay/BottomResourceBar.tsx";
+import BottomResourceBar, {
+  BottomResourceBarCallbacks,
+} from "../../ui/overlay/BottomResourceBar.tsx";
 import PlayerOverlay from "../../ui/overlay/PlayerOverlay.tsx";
 import CorporationViewer from "../../ui/display/CorporationViewer.tsx";
+import { StandardProject } from "../../../types/cards.tsx";
 import {
   GameDto,
   PlayerDto,
   OtherPlayerDto,
-  PlayerActionDto,
   CardDto,
   TriggeredEffectDto,
 } from "../../../types/generated/api-types.ts";
 
-type TransitionPhase = "idle" | "lobby" | "fadeOutLobby" | "animateUI" | "complete";
+export type TransitionPhase = "idle" | "lobby" | "fadeOutLobby" | "animateUI" | "complete";
 
 interface GameLayoutProps {
   gameState: GameDto;
   currentPlayer: PlayerDto | null;
   playedCards?: CardDto[];
   corporationCard?: CardDto | null;
-  isAnyModalOpen?: boolean;
-  isLobbyPhase?: boolean;
   showCardSelection?: boolean;
   transitionPhase?: TransitionPhase;
   animateHexEntrance?: boolean;
@@ -33,21 +33,8 @@ interface GameLayoutProps {
   tileHighlightMode?: TileHighlightMode;
   vpIndicators?: TileVPIndicator[];
   triggeredEffects?: TriggeredEffectDto[];
-  onOpenCardEffectsModal?: () => void;
-  onOpenCardsPlayedModal?: () => void;
-  onOpenActionsModal?: () => void;
-  onActionSelect?: (action: PlayerActionDto) => void;
-  onConvertPlantsToGreenery?: () => void;
-  onConvertHeatToTemperature?: () => void;
-  showStandardProjectsPopover?: boolean;
-  onToggleStandardProjectsPopover?: () => void;
-  standardProjectsButtonRef?: React.RefObject<HTMLButtonElement | null>;
-  showMilestonePopover?: boolean;
-  onToggleMilestonePopover?: () => void;
-  milestonesButtonRef?: React.RefObject<HTMLButtonElement | null>;
-  showAwardPopover?: boolean;
-  onToggleAwardPopover?: () => void;
-  awardsButtonRef?: React.RefObject<HTMLButtonElement | null>;
+  bottomBarCallbacks?: BottomResourceBarCallbacks;
+  onStandardProjectSelect?: (project: StandardProject) => void;
   onLeaveGame?: () => void;
   onSkyboxReady?: () => void;
 }
@@ -57,8 +44,6 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   currentPlayer,
   playedCards = [],
   corporationCard = null,
-  isAnyModalOpen: _isAnyModalOpen = false,
-  isLobbyPhase: _isLobbyPhase = false,
   showCardSelection = false,
   transitionPhase = "idle",
   animateHexEntrance = false,
@@ -66,21 +51,8 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   tileHighlightMode,
   vpIndicators = [],
   triggeredEffects = [],
-  onOpenCardEffectsModal,
-  onOpenCardsPlayedModal,
-  onOpenActionsModal,
-  onActionSelect,
-  onConvertPlantsToGreenery,
-  onConvertHeatToTemperature,
-  showStandardProjectsPopover = false,
-  onToggleStandardProjectsPopover,
-  standardProjectsButtonRef,
-  showMilestonePopover = false,
-  onToggleMilestonePopover,
-  milestonesButtonRef,
-  showAwardPopover = false,
-  onToggleAwardPopover,
-  awardsButtonRef,
+  bottomBarCallbacks,
+  onStandardProjectSelect,
   onLeaveGame,
   onSkyboxReady,
 }) => {
@@ -141,15 +113,8 @@ const GameLayout: React.FC<GameLayoutProps> = ({
         <div className={uiAnimationClass}>
           <TopMenuBar
             gameState={gameState}
-            showStandardProjectsPopover={showStandardProjectsPopover}
-            onToggleStandardProjectsPopover={onToggleStandardProjectsPopover}
-            standardProjectsButtonRef={standardProjectsButtonRef}
-            showMilestonePopover={showMilestonePopover}
-            onToggleMilestonePopover={onToggleMilestonePopover}
-            milestonesButtonRef={milestonesButtonRef}
-            showAwardPopover={showAwardPopover}
-            onToggleAwardPopover={onToggleAwardPopover}
-            awardsButtonRef={awardsButtonRef}
+            currentPlayer={currentPlayer}
+            onStandardProjectSelect={onStandardProjectSelect}
             onLeaveGame={onLeaveGame}
             gameId={gameState?.id}
           />
@@ -186,12 +151,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
               gameState={gameState}
               playedCards={playedCards}
               changedPaths={changedPaths}
-              onOpenCardEffectsModal={onOpenCardEffectsModal}
-              onOpenCardsPlayedModal={onOpenCardsPlayedModal}
-              onOpenActionsModal={onOpenActionsModal}
-              onActionSelect={onActionSelect}
-              onConvertPlantsToGreenery={onConvertPlantsToGreenery}
-              onConvertHeatToTemperature={onConvertHeatToTemperature}
+              callbacks={bottomBarCallbacks}
             />
           </div>
 
