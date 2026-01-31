@@ -1290,6 +1290,10 @@ export default function GameInterface() {
           from { opacity: 0; transform: scale(0.95); }
           to { opacity: 1; transform: scale(1); }
         }
+        @keyframes uiFadeIn {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
       `}</style>
 
       {game && (
@@ -1558,17 +1562,30 @@ export default function GameInterface() {
 
       {/* Card fan overlay for hand cards */}
       {game && currentPlayer && (
-        <CardFanOverlay
-          cards={currentPlayer.cards || []}
-          hideWhenModalOpen={
-            showCardSelection || showPendingCardSelection || showCardDrawSelection || isPreGamePhase
+        <div
+          className={
+            transitionPhase === "animateUI"
+              ? "animate-[uiFadeIn_1200ms_ease-out_both]"
+              : transitionPhase === "fadeOutLobby"
+                ? "opacity-0"
+                : ""
           }
-          onCardSelect={(_cardId) => {
-            // TODO: Implement card selection logic (view details, etc.)
-          }}
-          onPlayCard={handlePlayCard}
-          onUnplayableCard={handleUnplayableCard}
-        />
+        >
+          <CardFanOverlay
+            cards={currentPlayer.cards || []}
+            hideWhenModalOpen={
+              showCardSelection ||
+              showPendingCardSelection ||
+              showCardDrawSelection ||
+              isPreGamePhase
+            }
+            onCardSelect={(_cardId) => {
+              // TODO: Implement card selection logic (view details, etc.)
+            }}
+            onPlayCard={handlePlayCard}
+            onUnplayableCard={handleUnplayableCard}
+          />
+        </div>
       )}
 
       {/* Hexagonal shield overlay */}
