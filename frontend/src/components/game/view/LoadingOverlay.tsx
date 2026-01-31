@@ -1,24 +1,38 @@
-interface LoadingSpinnerProps {
+interface LoadingOverlayProps {
   message?: string;
+  isLoaded: boolean;
+  onTransitionEnd?: () => void;
 }
 
-export default function LoadingSpinner({ message = "Loading..." }: LoadingSpinnerProps) {
+export default function LoadingOverlay({
+  message = "Loading...",
+  isLoaded,
+  onTransitionEnd,
+}: LoadingOverlayProps) {
   return (
     <div
       style={{
-        position: "absolute",
+        position: "fixed",
         top: 0,
         left: 0,
-        width: "100%",
-        height: "100%",
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        width: "100vw",
+        height: "100vh",
+        backgroundColor: "#000000",
+        zIndex: 9999,
+        opacity: isLoaded ? 0 : 1,
+        transition: "opacity 0.8s ease-out",
+        pointerEvents: isLoaded ? "none" : "auto",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        zIndex: 10,
         color: "white",
         fontSize: "18px",
+      }}
+      onTransitionEnd={(e) => {
+        if (e.propertyName === "opacity" && isLoaded) {
+          onTransitionEnd?.();
+        }
       }}
     >
       <div
