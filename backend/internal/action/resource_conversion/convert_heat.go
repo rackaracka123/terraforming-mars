@@ -30,10 +30,11 @@ type ConvertHeatToTemperatureAction struct {
 func NewConvertHeatToTemperatureAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
+	stateRepo game.GameStateRepository,
 	logger *zap.Logger,
 ) *ConvertHeatToTemperatureAction {
 	return &ConvertHeatToTemperatureAction{
-		BaseAction:   baseaction.NewBaseAction(gameRepo, nil),
+		BaseAction:   baseaction.NewBaseActionWithStateRepo(gameRepo, nil, stateRepo),
 		cardRegistry: cardRegistry,
 	}
 }
@@ -116,6 +117,8 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 	}
 
 	a.ConsumePlayerAction(g, log)
+
+	a.WriteStateLog(ctx, g, "Convert Heat", game.SourceTypeResourceConvert, playerID, "Converted heat to raise temperature")
 
 	log.Info("✅ Heat converted successfully",
 		zap.Int("heat_spent", requiredHeat))

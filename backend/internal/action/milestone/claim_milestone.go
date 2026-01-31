@@ -22,9 +22,11 @@ type ClaimMilestoneAction struct {
 func NewClaimMilestoneAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
+	stateRepo game.GameStateRepository,
+	logger *zap.Logger,
 ) *ClaimMilestoneAction {
 	return &ClaimMilestoneAction{
-		BaseAction: baseaction.NewBaseAction(gameRepo, cardRegistry),
+		BaseAction: baseaction.NewBaseActionWithStateRepo(gameRepo, cardRegistry, stateRepo),
 	}
 }
 
@@ -95,6 +97,8 @@ func (a *ClaimMilestoneAction) Execute(ctx context.Context, gameID string, playe
 	}
 
 	a.ConsumePlayerAction(g, log)
+
+	a.WriteStateLog(ctx, g, milestoneType, game.SourceTypeMilestone, playerID, fmt.Sprintf("Claimed %s milestone", milestoneType))
 
 	log.Info("✅ Milestone claimed successfully",
 		zap.String("milestone", milestoneType),

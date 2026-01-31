@@ -25,10 +25,11 @@ type BuildCityAction struct {
 // NewBuildCityAction creates a new build city action
 func NewBuildCityAction(
 	gameRepo game.GameRepository,
+	stateRepo game.GameStateRepository,
 	logger *zap.Logger,
 ) *BuildCityAction {
 	return &BuildCityAction{
-		BaseAction: baseaction.NewBaseAction(gameRepo, nil),
+		BaseAction: baseaction.NewBaseActionWithStateRepo(gameRepo, nil, stateRepo),
 	}
 }
 
@@ -87,6 +88,12 @@ func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID s
 	log.Info("📋 Created tile queue for city placement (auto-processed by SetPendingTileSelectionQueue)")
 
 	a.ConsumePlayerAction(g, log)
+
+	calculatedOutputs := []game.CalculatedOutput{
+		{ResourceType: string(shared.ResourceCreditProduction), Amount: 1, IsScaled: false},
+		{ResourceType: string(shared.ResourceCityPlacement), Amount: 1, IsScaled: false},
+	}
+	a.WriteStateLogWithChoiceAndOutputs(ctx, g, "City", game.SourceTypeStandardProject, playerID, "Built city", nil, calculatedOutputs)
 
 	log.Info("✅ City built successfully, tile selection ready",
 		zap.Int("new_credit_production", production.Credits),

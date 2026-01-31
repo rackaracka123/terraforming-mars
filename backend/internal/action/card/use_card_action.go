@@ -24,10 +24,11 @@ type UseCardActionAction struct {
 func NewUseCardActionAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
+	stateRepo game.GameStateRepository,
 	logger *zap.Logger,
 ) *UseCardActionAction {
 	return &UseCardActionAction{
-		BaseAction: baseaction.NewBaseAction(gameRepo, cardRegistry),
+		BaseAction: baseaction.NewBaseActionWithStateRepo(gameRepo, cardRegistry, stateRepo),
 	}
 }
 
@@ -88,7 +89,8 @@ func (a *UseCardActionAction) Execute(
 		zap.Int("times_used_this_generation", cardAction.TimesUsedThisGeneration))
 
 	applier := gamecards.NewBehaviorApplier(p, g, cardAction.CardName, log).
-		WithSourceCardID(cardID)
+		WithSourceCardID(cardID).
+		WithCardRegistry(a.CardRegistry())
 	if cardStorageTarget != nil {
 		applier = applier.WithTargetCardID(*cardStorageTarget)
 	}
@@ -107,7 +109,8 @@ func (a *UseCardActionAction) Execute(
 		return err
 	}
 
-	if err := applier.ApplyOutputs(ctx, outputs); err != nil {
+	calculatedOutputs, err := applier.ApplyOutputsAndGetCalculated(ctx, outputs)
+	if err != nil {
 		log.Error("Failed to apply outputs", zap.Error(err))
 		return err
 	}
@@ -115,6 +118,9 @@ func (a *UseCardActionAction) Execute(
 	a.incrementUsageCounts(p, cardID, behaviorIndex, log)
 
 	a.ConsumePlayerAction(g, log)
+
+	description := fmt.Sprintf("Used %s action", cardAction.CardName)
+	a.WriteStateLogWithChoiceAndOutputs(ctx, g, cardAction.CardName, game.SourceTypeCardAction, playerID, description, choiceIndex, calculatedOutputs)
 
 	log.Info("🎉 Card action executed successfully")
 	return nil

@@ -74,6 +74,10 @@ func main() {
 	gameRepo := game.NewInMemoryGameRepository()
 	log.Info("🎮 Game repository initialized")
 
+	// ========== Initialize Game State Repository (Diff Logging) ==========
+	stateRepo := game.NewInMemoryGameStateRepository()
+	log.Info("📊 Game state repository initialized")
+
 	// ========== Initialize WebSocket Hub ==========
 	hub := core.NewHub()
 	log.Info("🔌 WebSocket hub initialized")
@@ -92,24 +96,24 @@ func main() {
 	finalScoringAction := gameAction.NewFinalScoringAction(gameRepo, cardRegistry, log)
 
 	// Milestones & Awards (2)
-	claimMilestoneAction := milestoneAction.NewClaimMilestoneAction(gameRepo, cardRegistry)
-	fundAwardAction := awardAction.NewFundAwardAction(gameRepo, cardRegistry)
+	claimMilestoneAction := milestoneAction.NewClaimMilestoneAction(gameRepo, cardRegistry, stateRepo, log)
+	fundAwardAction := awardAction.NewFundAwardAction(gameRepo, cardRegistry, stateRepo, log)
 
 	// Card actions (2)
-	playCardAction := cardAction.NewPlayCardAction(gameRepo, cardRegistry, log)
-	useCardActionAction := cardAction.NewUseCardActionAction(gameRepo, cardRegistry, log)
+	playCardAction := cardAction.NewPlayCardAction(gameRepo, cardRegistry, stateRepo, log)
+	useCardActionAction := cardAction.NewUseCardActionAction(gameRepo, cardRegistry, stateRepo, log)
 
 	// Standard projects (6)
-	launchAsteroidAction := stdprojAction.NewLaunchAsteroidAction(gameRepo, log)
-	buildPowerPlantAction := stdprojAction.NewBuildPowerPlantAction(gameRepo, cardRegistry, log)
-	buildAquiferAction := stdprojAction.NewBuildAquiferAction(gameRepo, log)
-	buildCityAction := stdprojAction.NewBuildCityAction(gameRepo, log)
-	plantGreeneryAction := stdprojAction.NewPlantGreeneryAction(gameRepo, log)
-	sellPatentsAction := stdprojAction.NewSellPatentsAction(gameRepo, log)
+	launchAsteroidAction := stdprojAction.NewLaunchAsteroidAction(gameRepo, stateRepo, log)
+	buildPowerPlantAction := stdprojAction.NewBuildPowerPlantAction(gameRepo, cardRegistry, stateRepo, log)
+	buildAquiferAction := stdprojAction.NewBuildAquiferAction(gameRepo, stateRepo, log)
+	buildCityAction := stdprojAction.NewBuildCityAction(gameRepo, stateRepo, log)
+	plantGreeneryAction := stdprojAction.NewPlantGreeneryAction(gameRepo, stateRepo, log)
+	sellPatentsAction := stdprojAction.NewSellPatentsAction(gameRepo, stateRepo, log)
 
 	// Resource conversions (2)
-	convertHeatAction := resconvAction.NewConvertHeatToTemperatureAction(gameRepo, cardRegistry, log)
-	convertPlantsAction := resconvAction.NewConvertPlantsToGreeneryAction(gameRepo, cardRegistry, log)
+	convertHeatAction := resconvAction.NewConvertHeatToTemperatureAction(gameRepo, cardRegistry, stateRepo, log)
+	convertPlantsAction := resconvAction.NewConvertPlantsToGreeneryAction(gameRepo, cardRegistry, stateRepo, log)
 
 	// Tile selection (1)
 	selectTileAction := tileAction.NewSelectTileAction(gameRepo, cardRegistry, log)
@@ -139,8 +143,9 @@ func main() {
 	adminStartTileSelectionAction := admin.NewStartTileSelectionAction(gameRepo, log)
 	adminSetTRAction := admin.NewSetTRAction(gameRepo, log)
 
-	// Query actions for HTTP (4)
+	// Query actions for HTTP (5)
 	getGameAction := query.NewGetGameAction(gameRepo, log)
+	getGameLogsAction := query.NewGetGameLogsAction(stateRepo, log)
 	listGamesAction := query.NewListGamesAction(gameRepo, log)
 	listCardsAction := query.NewListCardsAction(cardRegistry, log)
 	getPlayerAction := query.NewGetPlayerAction(gameRepo, log)
@@ -156,7 +161,7 @@ func main() {
 	log.Info("   📌 Connection Management (2): PlayerReconnected, PlayerDisconnected")
 	log.Info("   📌 Milestones & Awards (2): ClaimMilestone, FundAward")
 	log.Info("   📌 Admin Actions (9): SetPhase, SetCurrentTurn, SetResources, SetProduction, SetGlobalParameters, GiveCard, SetCorporation, StartTileSelection, SetTR")
-	log.Info("   📌 Query Actions (4): GetGame, ListGames, ListCards, GetPlayer")
+	log.Info("   📌 Query Actions (5): GetGame, GetGameLogs, ListGames, ListCards, GetPlayer")
 
 	// ========== Register Migration Handlers with WebSocket Hub ==========
 	wsHandler.RegisterHandlers(
@@ -225,6 +230,7 @@ func main() {
 		createGameAction,
 		createDemoLobbyAction,
 		getGameAction,
+		getGameLogsAction,
 		listGamesAction,
 		listCardsAction,
 		getPlayerAction,
@@ -245,6 +251,7 @@ func main() {
 	log.Info("   📌 POST /api/v1/games/demo/lobby - Create demo lobby")
 	log.Info("   📌 GET  /api/v1/games - List games")
 	log.Info("   📌 GET  /api/v1/games/{gameId} - Get game")
+	log.Info("   📌 GET  /api/v1/games/{gameId}/logs - Get game logs")
 	log.Info("   📌 GET  /api/v1/cards - List cards")
 	log.Info("   📌 GET  /api/v1/games/{gameId}/players/{playerId} - Get player")
 	log.Info("   📌 WS   /ws - WebSocket endpoint")

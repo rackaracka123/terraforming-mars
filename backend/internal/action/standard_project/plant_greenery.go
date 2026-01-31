@@ -25,10 +25,11 @@ type PlantGreeneryAction struct {
 // NewPlantGreeneryAction creates a new plant greenery action
 func NewPlantGreeneryAction(
 	gameRepo game.GameRepository,
+	stateRepo game.GameStateRepository,
 	logger *zap.Logger,
 ) *PlantGreeneryAction {
 	return &PlantGreeneryAction{
-		BaseAction: baseaction.NewBaseAction(gameRepo, nil),
+		BaseAction: baseaction.NewBaseActionWithStateRepo(gameRepo, nil, stateRepo),
 	}
 }
 
@@ -79,6 +80,11 @@ func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID string, player
 	log.Info("📋 Created tile queue for greenery placement (auto-processed by SetPendingTileSelectionQueue)")
 
 	a.ConsumePlayerAction(g, log)
+
+	calculatedOutputs := []game.CalculatedOutput{
+		{ResourceType: string(shared.ResourceGreeneryPlacement), Amount: 1, IsScaled: false},
+	}
+	a.WriteStateLogWithChoiceAndOutputs(ctx, g, "Greenery", game.SourceTypeStandardProject, playerID, "Planted greenery", nil, calculatedOutputs)
 
 	log.Info("✅ Greenery tile selection ready",
 		zap.Int("remaining_credits", resources.Credits))

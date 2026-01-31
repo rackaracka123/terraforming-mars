@@ -21,9 +21,11 @@ type FundAwardAction struct {
 func NewFundAwardAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
+	stateRepo game.GameStateRepository,
+	logger *zap.Logger,
 ) *FundAwardAction {
 	return &FundAwardAction{
-		BaseAction: baseaction.NewBaseAction(gameRepo, cardRegistry),
+		BaseAction: baseaction.NewBaseActionWithStateRepo(gameRepo, cardRegistry, stateRepo),
 	}
 }
 
@@ -85,6 +87,8 @@ func (a *FundAwardAction) Execute(ctx context.Context, gameID string, playerID s
 	}
 
 	a.ConsumePlayerAction(g, log)
+
+	a.WriteStateLog(ctx, g, awardType, game.SourceTypeAward, playerID, fmt.Sprintf("Funded %s award", awardType))
 
 	log.Info("✅ Award funded successfully",
 		zap.String("award", awardType),

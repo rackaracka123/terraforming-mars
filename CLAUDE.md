@@ -105,6 +105,8 @@ When working with energy, it's referenced as `power.png` in assets.
 ## Active Technologies
 - Go 1.21+ (backend), TypeScript 5.x (frontend) + gorilla/websocket, chi router, React 18, Tailwind CSS v4 (001-generational-events)
 - In-memory game state (no persistence required for generational events) (001-generational-events)
+- Go 1.21+, TypeScript 5.x + None (custom diff computation) (001-game-state-repo)
+- In-memory (map-based, per-game isolation) (001-game-state-repo)
 
 ## Recent Changes
 - 001-generational-events: Added Go 1.21+ (backend), TypeScript 5.x (frontend) + gorilla/websocket, chi router, React 18, Tailwind CSS v4

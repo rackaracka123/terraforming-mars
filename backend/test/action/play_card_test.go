@@ -44,7 +44,7 @@ func TestPlayCardAction_DiscountEffectRegistered(t *testing.T) {
 	testutil.AssertEqual(t, 0, len(effectsBefore), "Should have no effects initially")
 
 	// Play Space Station
-	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{Credits: 10}
 	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-space-station", payment, nil)
 	testutil.AssertNoError(t, err, "Failed to play Space Station")
@@ -94,7 +94,7 @@ func TestPlayCardAction_ChoiceCardPlantProduction(t *testing.T) {
 	testutil.AssertEqual(t, 0, productionBefore.Energy, "Should have 0 energy production initially")
 
 	// Play Artificial Photosynthesis with choice index 0 (plant production +1)
-	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{Credits: 12}
 	choiceIndex := 0
 	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-artificial-photosynthesis", payment, &choiceIndex)
@@ -139,7 +139,7 @@ func TestPlayCardAction_ChoiceCardEnergyProduction(t *testing.T) {
 	testutil.AssertEqual(t, 0, productionBefore.Energy, "Should have 0 energy production initially")
 
 	// Play Artificial Photosynthesis with choice index 1 (energy production +2)
-	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{Credits: 12}
 	choiceIndex := 1
 	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-artificial-photosynthesis", payment, &choiceIndex)
@@ -179,7 +179,7 @@ func TestPlayCardAction_DiscountCalculatedOnDemand(t *testing.T) {
 	player.Hand().AddCard("card-space-station")
 
 	// Play Space Station to register the discount effect
-	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{Credits: 10}
 	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-space-station", payment, nil)
 	testutil.AssertNoError(t, err, "Failed to play Space Station")
@@ -260,7 +260,7 @@ func TestPlayCardAction_WithSingleDiscount(t *testing.T) {
 
 	// Play Sponsors with only 3 credits (effective cost after discount)
 	// This should SUCCEED because the fix applies discounts during payment validation
-	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{Credits: 3}
 	err = playCardAction.Execute(ctx, testGame.ID(), p.ID(), "card-sponsors", payment, nil)
 
@@ -315,7 +315,7 @@ func TestPlayCardAction_WithDoubleDiscount(t *testing.T) {
 	p.Hand().AddCard("card-earth-office")
 
 	// Play Earth Office (cost 1, but free with 3 credit discount from Teractor)
-	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{Credits: 0}
 	err = playCardAction.Execute(ctx, testGame.ID(), p.ID(), "card-earth-office", payment, nil)
 
@@ -404,7 +404,7 @@ func TestPlayCardAction_DiscountDoesNotApplyToNonMatchingCard(t *testing.T) {
 	testutil.AssertEqual(t, 0, discount, "Arctic Algae (Plant tag) should have no discount from Teractor (Earth discount)")
 
 	// Try to play Arctic Algae with insufficient credits (9 credits, but card costs 12)
-	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{Credits: 9}
 	err = playCardAction.Execute(ctx, testGame.ID(), p.ID(), "card-arctic-algae", payment, nil)
 

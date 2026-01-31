@@ -25,10 +25,11 @@ type BuildAquiferAction struct {
 // NewBuildAquiferAction creates a new build aquifer action
 func NewBuildAquiferAction(
 	gameRepo game.GameRepository,
+	stateRepo game.GameStateRepository,
 	logger *zap.Logger,
 ) *BuildAquiferAction {
 	return &BuildAquiferAction{
-		BaseAction: baseaction.NewBaseAction(gameRepo, nil),
+		BaseAction: baseaction.NewBaseActionWithStateRepo(gameRepo, nil, stateRepo),
 	}
 }
 
@@ -85,6 +86,12 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID string, playerI
 	log.Info("📋 Created tile queue for ocean placement (auto-processed by SetPendingTileSelectionQueue)")
 
 	a.ConsumePlayerAction(g, log)
+
+	calculatedOutputs := []game.CalculatedOutput{
+		{ResourceType: string(shared.ResourceOceanPlacement), Amount: 1, IsScaled: false},
+		{ResourceType: string(shared.ResourceTR), Amount: 1, IsScaled: false},
+	}
+	a.WriteStateLogWithChoiceAndOutputs(ctx, g, "Aquifer", game.SourceTypeStandardProject, playerID, "Built aquifer", nil, calculatedOutputs)
 
 	log.Info("✅ Aquifer built successfully, ocean tile queued for placement",
 		zap.Int("new_terraform_rating", newTR),

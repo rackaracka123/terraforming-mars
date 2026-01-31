@@ -17,6 +17,7 @@ import ActionsPopover from "../popover/ActionsPopover.tsx";
 import EffectsPopover from "../popover/EffectsPopover.tsx";
 import TagsPopover from "../popover/TagsPopover.tsx";
 import StoragesPopover from "../popover/StoragesPopover.tsx";
+import LogPopover from "../popover/LogPopover.tsx";
 import GameIcon from "../display/GameIcon.tsx";
 import {
   calculatePlantsForGreenery,
@@ -44,6 +45,7 @@ interface BottomResourceBarProps {
   onActionSelect?: (action: PlayerActionDto) => void;
   onConvertPlantsToGreenery?: () => void;
   onConvertHeatToTemperature?: () => void;
+  gameId?: string;
 }
 
 const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
@@ -58,15 +60,18 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   onActionSelect,
   onConvertPlantsToGreenery,
   onConvertHeatToTemperature,
+  gameId,
 }) => {
   const [showActionsPopover, setShowActionsPopover] = useState(false);
   const [showEffectsPopover, setShowEffectsPopover] = useState(false);
   const [showTagsPopover, setShowTagsPopover] = useState(false);
   const [showStoragesPopover, setShowStoragesPopover] = useState(false);
+  const [showLogPopover, setShowLogPopover] = useState(false);
   const actionsButtonRef = useRef<HTMLButtonElement>(null);
   const effectsButtonRef = useRef<HTMLButtonElement>(null);
   const tagsButtonRef = useRef<HTMLButtonElement>(null);
   const storagesButtonRef = useRef<HTMLButtonElement>(null);
+  const logButtonRef = useRef<HTMLButtonElement>(null);
 
   // Helper function to check if a path has changed
   const hasPathChanged = (path: string): boolean => {
@@ -527,6 +532,32 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
             VP
           </div>
         </button>
+
+        {/* Log Button */}
+        {gameId && (
+          <button
+            ref={logButtonRef}
+            className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#64c8ff] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
+            style={{ boxShadow: "0 0 10px #64c8ff40" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #64c8ff";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = "0 0 10px #64c8ff40";
+            }}
+            onClick={() => setShowLogPopover(!showLogPopover)}
+          >
+            <div
+              className="font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center justify-center h-[32px] w-[32px] relative text-lg"
+              style={{ color: "#64c8ff" }}
+            >
+              ☰
+            </div>
+            <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
+              Log
+            </div>
+          </button>
+        )}
       </div>
 
       {/* Actions Popover */}
@@ -569,6 +600,17 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         player={currentPlayer}
         anchorRef={storagesButtonRef as React.RefObject<HTMLElement>}
       />
+
+      {/* Log Popover */}
+      {gameId && (
+        <LogPopover
+          isVisible={showLogPopover}
+          onClose={() => setShowLogPopover(false)}
+          anchorRef={logButtonRef as React.RefObject<HTMLElement>}
+          gameId={gameId}
+          gameState={gameState}
+        />
+      )}
 
       {/* Modal components are now rendered in GameInterface */}
     </div>

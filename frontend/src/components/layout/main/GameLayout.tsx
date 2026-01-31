@@ -158,6 +158,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
             onActionSelect={onActionSelect}
             onConvertPlantsToGreenery={onConvertPlantsToGreenery}
             onConvertHeatToTemperature={onConvertHeatToTemperature}
+            gameId={gameState?.id}
           />
 
           {corporationCard && <CorporationViewer corporation={corporationCard} />}

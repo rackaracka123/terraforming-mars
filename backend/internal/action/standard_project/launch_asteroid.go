@@ -24,10 +24,11 @@ type LaunchAsteroidAction struct {
 // NewLaunchAsteroidAction creates a new launch asteroid action
 func NewLaunchAsteroidAction(
 	gameRepo game.GameRepository,
+	stateRepo game.GameStateRepository,
 	logger *zap.Logger,
 ) *LaunchAsteroidAction {
 	return &LaunchAsteroidAction{
-		BaseAction: baseaction.NewBaseAction(gameRepo, nil),
+		BaseAction: baseaction.NewBaseActionWithStateRepo(gameRepo, nil, stateRepo),
 	}
 }
 
@@ -93,6 +94,16 @@ func (a *LaunchAsteroidAction) Execute(ctx context.Context, gameID string, playe
 	}
 
 	a.ConsumePlayerAction(g, log)
+
+	calculatedOutputs := []game.CalculatedOutput{
+		{ResourceType: string(shared.ResourceTemperature), Amount: stepsRaised, IsScaled: false},
+	}
+	if stepsRaised > 0 {
+		calculatedOutputs = append(calculatedOutputs, game.CalculatedOutput{
+			ResourceType: string(shared.ResourceTR), Amount: 1, IsScaled: false,
+		})
+	}
+	a.WriteStateLogWithChoiceAndOutputs(ctx, g, "Asteroid", game.SourceTypeStandardProject, playerID, "Launched asteroid", nil, calculatedOutputs)
 
 	log.Info("✅ Asteroid launched successfully",
 		zap.Int("remaining_credits", resources.Credits))
