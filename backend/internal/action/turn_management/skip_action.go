@@ -95,14 +95,11 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 			}
 		}
 	} else {
+		// SKIP: Player is done with their turn but not passing for the generation
+		// Don't consume action - just advance to next player
 		log.Debug("Player SKIPPED (turn advanced, not passed)",
 			zap.String("player_id", playerID),
 			zap.Int("available_actions", availableActions))
-
-		consumed := a.ConsumePlayerAction(g, log)
-		if !consumed {
-			log.Warn("⚠️ Could not consume action during skip (unlimited actions or already at 0)")
-		}
 	}
 
 	players = g.GetAllPlayers()
@@ -164,8 +161,19 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 	nextPlayerID := players[nextPlayerIndex].ID()
 	nextActions := 2
 
-	if nextPlayerID == playerID && !isPassing {
-		nextActions = currentTurn.ActionsRemaining()
+	// Count non-passed players to determine if next player should get unlimited actions
+	// After PASS: current player is already marked as passed, so !HasPassed() correctly excludes them
+	// After SKIP: current player is still active, so !HasPassed() correctly includes them
+	nonPassedCount := 0
+	for _, p := range players {
+		if !p.HasPassed() {
+			nonPassedCount++
+		}
+	}
+	if nonPassedCount == 1 {
+		nextActions = -1
+		log.Info("🏃 Next player is the last non-passed player, granting unlimited actions",
+			zap.String("player_id", nextPlayerID))
 	}
 
 	err = g.SetCurrentTurn(ctx, nextPlayerID, nextActions)
@@ -256,10 +264,22 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameInsta
 	}
 	newGeneration := gameInstance.Generation()
 
-	if len(players) > 0 {
-		firstPlayerID := players[0].ID()
+	// Rotate turn order for new generation (starting player rotates each generation)
+	turnOrder := gameInstance.TurnOrder()
+	if len(turnOrder) > 1 {
+		rotatedOrder := append(turnOrder[1:], turnOrder[0])
+		if err := gameInstance.SetTurnOrder(ctx, rotatedOrder); err != nil {
+			return fmt.Errorf("failed to rotate turn order: %w", err)
+		}
+		turnOrder = rotatedOrder
+		log.Info("🔄 Turn order rotated for new generation",
+			zap.Strings("new_turn_order", turnOrder))
+	}
+
+	if len(turnOrder) > 0 {
+		firstPlayerID := turnOrder[0]
 		actionsForNewGeneration := 2
-		if len(players) == 1 {
+		if len(turnOrder) == 1 {
 			actionsForNewGeneration = -1
 		}
 		if err := gameInstance.SetCurrentTurn(ctx, firstPlayerID, actionsForNewGeneration); err != nil {
