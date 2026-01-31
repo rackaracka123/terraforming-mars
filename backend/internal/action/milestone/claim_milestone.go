@@ -47,6 +47,10 @@ func (a *ClaimMilestoneAction) Execute(ctx context.Context, gameID string, playe
 		return err
 	}
 
+	if err := baseaction.ValidateActionsRemaining(g, playerID, log); err != nil {
+		return err
+	}
+
 	player, err := a.GetPlayerFromGame(g, playerID, log)
 	if err != nil {
 		return err

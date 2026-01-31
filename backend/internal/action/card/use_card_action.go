@@ -67,6 +67,10 @@ func (a *UseCardActionAction) Execute(
 		return err
 	}
 
+	if err := baseaction.ValidateActionsRemaining(g, playerID, log); err != nil {
+		return err
+	}
+
 	p, err := a.GetPlayerFromGame(g, playerID, log)
 	if err != nil {
 		return err
