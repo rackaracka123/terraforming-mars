@@ -18,7 +18,9 @@ import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelection
 import PendingCardSelectionOverlay from "../../ui/overlay/PendingCardSelectionOverlay.tsx";
 import CardDrawSelectionOverlay from "../../ui/overlay/CardDrawSelectionOverlay.tsx";
 import CardFanOverlay from "../../ui/overlay/CardFanOverlay.tsx";
-import LoadingSpinner from "../../game/view/LoadingSpinner.tsx";
+import LoadingOverlay from "../../game/view/LoadingOverlay.tsx";
+import MainMenuSettingsButton from "../../ui/buttons/MainMenuSettingsButton.tsx";
+import SpaceBackground from "../../3d/SpaceBackground.tsx";
 import HexagonalShieldOverlay from "../../ui/overlay/HexagonalShieldOverlay.tsx";
 import EndGameOverlay, { TileVPIndicator } from "../../ui/overlay/EndGameOverlay.tsx";
 import { TileHighlightMode } from "../../game/board/ProjectedHexTile.tsx";
@@ -28,6 +30,7 @@ import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import { getTabManager } from "@/utils/tabManager.ts";
 import { useSoundEffects } from "@/hooks/useSoundEffects.ts";
 import { skyboxCache } from "@/services/SkyboxCache.ts";
+import { audioService } from "@/services/audioService.ts";
 import { clearGameSession, getGameSession, saveGameSession } from "@/utils/sessionStorage.ts";
 import {
   CardDto,
@@ -51,6 +54,8 @@ import { shouldShowPaymentModal, createDefaultPayment } from "@/utils/paymentUti
 import { deepClone, findChangedPaths } from "@/utils/deepCompare.ts";
 import { StandardProject } from "@/types/cards.tsx";
 
+type TransitionPhase = "idle" | "lobby" | "fadeOutLobby" | "animateUI" | "complete";
+
 export default function GameInterface() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -58,6 +63,8 @@ export default function GameInterface() {
     useSoundEffects();
   const [game, setGame] = useState<GameDto | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [transitionPhase, setTransitionPhase] = useState<TransitionPhase>("idle");
+  const wasInLobby = useRef(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [reconnectionStep, setReconnectionStep] = useState<"game" | "environment" | null>(null);
   const [currentPlayer, setCurrentPlayer] = useState<PlayerDto | null>(null);
@@ -164,6 +171,15 @@ export default function GameInterface() {
 
   // Triggered effects notifications
   const [triggeredEffects, setTriggeredEffects] = useState<TriggeredEffectDto[]>([]);
+
+  // Skybox readiness tracking for smooth loading overlay
+  const [isSkyboxReady, setIsSkyboxReady] = useState(() => skyboxCache.isReady());
+  const [overlayVisible, setOverlayVisible] = useState(true);
+
+  const handleSkyboxReady = useCallback(() => setIsSkyboxReady(true), []);
+
+  const isFullyLoaded =
+    isConnected && !!game && !isReconnecting && (isSkyboxReady || transitionPhase === "lobby");
 
   // WebSocket stability
   const isWebSocketInitialized = useRef(false);
@@ -1166,33 +1182,14 @@ export default function GameInterface() {
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, [showDebugDropdown]);
 
-  if (!isConnected || !game || isReconnecting) {
-    let loadingMessage = "Connecting to game...";
-
+  const loadingMessage = (() => {
     if (isReconnecting && reconnectionStep) {
-      if (reconnectionStep === "game") {
-        loadingMessage = "Reconnecting to game...";
-      } else if (reconnectionStep === "environment") {
-        loadingMessage = "Loading 3D environment...";
-      }
+      if (reconnectionStep === "game") return "Reconnecting to game...";
+      if (reconnectionStep === "environment") return "Loading 3D environment...";
     }
-
-    return (
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          background: "#000011",
-          zIndex: 9999,
-        }}
-      >
-        <LoadingSpinner message={loadingMessage} />
-      </div>
-    );
-  }
+    if (!isSkyboxReady) return "Loading 3D environment...";
+    return "Connecting to game...";
+  })();
 
   // Check if any modal is currently open
   const isAnyModalOpen =
@@ -1205,61 +1202,144 @@ export default function GameInterface() {
   // Check if game is in lobby phase
   const isLobbyPhase = game?.status === GameStatusLobby;
 
+  // Pre-game phase covers both lobby AND starting card selection
+  const isPreGamePhase =
+    isLobbyPhase ||
+    (game?.status === GameStatusActive && game?.currentPhase === GamePhaseStartingCardSelection);
+
+  // Show waiting modal when player has finished card selection but others haven't
+  const showWaitingForPlayers =
+    game?.status === GameStatusActive &&
+    game?.currentPhase === GamePhaseStartingCardSelection &&
+    !game?.currentPlayer?.selectStartingCardsPhase &&
+    !!currentPlayer?.corporation;
+
+  // Lobby exit animation state
+  const [isLobbyExiting, setIsLobbyExiting] = useState(false);
+
+  // Handle lobby exit animation when game starts (lobby → card selection)
+  useEffect(() => {
+    if (!isLobbyPhase && wasInLobby.current && !isLobbyExiting) {
+      setIsLobbyExiting(true);
+      const timer = setTimeout(() => {
+        setIsLobbyExiting(false);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [isLobbyPhase]);
+
+  // Transition state machine: lobby → fadeOutLobby → animateUI → complete
+  useEffect(() => {
+    if (isPreGamePhase) {
+      setTransitionPhase("lobby");
+      wasInLobby.current = true;
+      return;
+    }
+
+    if (!wasInLobby.current || transitionPhase !== "lobby") return;
+
+    setTransitionPhase("fadeOutLobby");
+    audioService.stopAmbientWithDuration(2000);
+
+    const animateTimer = setTimeout(() => {
+      setTransitionPhase("animateUI");
+    }, 1500);
+
+    const completeTimer = setTimeout(() => {
+      setTransitionPhase("complete");
+    }, 1500 + 2500);
+
+    return () => {
+      clearTimeout(animateTimer);
+      clearTimeout(completeTimer);
+    };
+  }, [isPreGamePhase]);
+
+  // On mount: if game is already active (reload/reconnect), stop ambient immediately
+  useEffect(() => {
+    if (game && !isPreGamePhase && !wasInLobby.current) {
+      audioService.stopAmbient();
+    }
+  }, [game, isPreGamePhase]);
+
   // Check if we need the persistent backdrop (during overlay transitions)
-  const shouldShowBackdrop = isLobbyPhase || showCardSelection;
+  const shouldShowBackdrop = showCardSelection;
 
   return (
     <>
+      {/* Loading overlay with fade-out transition */}
+      {overlayVisible && (
+        <LoadingOverlay
+          isLoaded={isFullyLoaded}
+          message={loadingMessage}
+          onTransitionEnd={() => setOverlayVisible(false)}
+        />
+      )}
+
       {/* Dev Mode Chip - Always visible in dev mode */}
       {game?.settings?.developmentMode && <DevModeChip />}
 
-      {/* Persistent backdrop for overlays to prevent blink during transitions */}
+      {/* Persistent backdrop for card selection / waiting overlay */}
       {shouldShowBackdrop && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] animate-[backdropFadeIn_0.3s_ease-out]">
-          <style>{`
-            @keyframes backdropFadeIn {
-              0% {
-                opacity: 0;
-              }
-              100% {
-                opacity: 1;
-              }
-            }
-          `}</style>
-        </div>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] animate-[backdropFadeIn_0.3s_ease-out]" />
       )}
 
-      <GameLayout
-        gameState={game}
-        currentPlayer={currentPlayer}
-        playedCards={currentPlayer?.playedCards || []}
-        corporationCard={corporationData}
-        isAnyModalOpen={isAnyModalOpen}
-        isLobbyPhase={isLobbyPhase}
-        showCardSelection={showCardSelection}
-        changedPaths={changedPaths}
-        tileHighlightMode={tileHighlightMode}
-        vpIndicators={vpIndicators}
-        triggeredEffects={triggeredEffects}
-        onOpenCardEffectsModal={() => setShowCardEffectsModal(true)}
-        onOpenCardsPlayedModal={() => setShowCardsPlayedModal(true)}
-        onOpenActionsModal={() => setShowActionsModal(true)}
-        onActionSelect={handleActionSelect}
-        onConvertPlantsToGreenery={handleConvertPlantsToGreenery}
-        onConvertHeatToTemperature={handleConvertHeatToTemperature}
-        showStandardProjectsPopover={showStandardProjectsPopover}
-        onToggleStandardProjectsPopover={() =>
-          setShowStandardProjectsPopover(!showStandardProjectsPopover)
+      <style>{`
+        @keyframes backdropFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
-        standardProjectsButtonRef={standardProjectsButtonRef}
-        showMilestonePopover={showMilestonePopover}
-        onToggleMilestonePopover={() => setShowMilestonePopover(!showMilestonePopover)}
-        milestonesButtonRef={milestonesButtonRef}
-        showAwardPopover={showAwardPopover}
-        onToggleAwardPopover={() => setShowAwardPopover(!showAwardPopover)}
-        awardsButtonRef={awardsButtonRef}
-        onLeaveGame={handleLeaveGame}
-      />
+        @keyframes fadeOut {
+          from { opacity: 1; }
+          to { opacity: 0; }
+        }
+        @keyframes modalFadeIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
+
+      {game && (
+        <GameLayout
+          gameState={game}
+          currentPlayer={currentPlayer}
+          playedCards={currentPlayer?.playedCards || []}
+          corporationCard={corporationData}
+          isAnyModalOpen={isAnyModalOpen}
+          isLobbyPhase={isLobbyPhase}
+          showCardSelection={showCardSelection}
+          transitionPhase={transitionPhase}
+          animateHexEntrance={
+            transitionPhase === "fadeOutLobby" ||
+            transitionPhase === "animateUI" ||
+            transitionPhase === "complete"
+          }
+          changedPaths={changedPaths}
+          tileHighlightMode={tileHighlightMode}
+          vpIndicators={vpIndicators}
+          triggeredEffects={triggeredEffects}
+          onOpenCardEffectsModal={() => setShowCardEffectsModal(true)}
+          onOpenCardsPlayedModal={() => setShowCardsPlayedModal(true)}
+          onOpenActionsModal={() => setShowActionsModal(true)}
+          onActionSelect={handleActionSelect}
+          onConvertPlantsToGreenery={handleConvertPlantsToGreenery}
+          onConvertHeatToTemperature={handleConvertHeatToTemperature}
+          showStandardProjectsPopover={showStandardProjectsPopover}
+          onToggleStandardProjectsPopover={() =>
+            setShowStandardProjectsPopover(!showStandardProjectsPopover)
+          }
+          standardProjectsButtonRef={standardProjectsButtonRef}
+          showMilestonePopover={showMilestonePopover}
+          onToggleMilestonePopover={() => setShowMilestonePopover(!showMilestonePopover)}
+          milestonesButtonRef={milestonesButtonRef}
+          showAwardPopover={showAwardPopover}
+          onToggleAwardPopover={() => setShowAwardPopover(!showAwardPopover)}
+          awardsButtonRef={awardsButtonRef}
+          onLeaveGame={handleLeaveGame}
+          onSkyboxReady={handleSkyboxReady}
+        />
+      )}
 
       <CardsPlayedModal
         isVisible={showCardsPlayedModal}
@@ -1278,28 +1358,28 @@ export default function GameInterface() {
         onClose={() => setShowActionsModal(false)}
         actions={currentPlayer?.actions || []}
         onActionSelect={handleActionSelect}
-        gameState={game}
+        gameState={game ?? undefined}
       />
 
       <StandardProjectPopover
         isVisible={showStandardProjectsPopover}
         onClose={() => setShowStandardProjectsPopover(false)}
         onProjectSelect={handleStandardProjectSelect}
-        gameState={game}
+        gameState={game ?? undefined}
         anchorRef={standardProjectsButtonRef}
       />
 
       <MilestonePopover
         isVisible={showMilestonePopover}
         onClose={() => setShowMilestonePopover(false)}
-        gameState={game}
+        gameState={game ?? undefined}
         anchorRef={milestonesButtonRef}
       />
 
       <AwardPopover
         isVisible={showAwardPopover}
         onClose={() => setShowAwardPopover(false)}
-        gameState={game}
+        gameState={game ?? undefined}
         anchorRef={awardsButtonRef}
       />
 
@@ -1325,7 +1405,19 @@ export default function GameInterface() {
         changedPaths={changedPaths}
       />
 
-      {isLobbyPhase && game && playerId && <WaitingRoomOverlay game={game} playerId={playerId} />}
+      {(transitionPhase === "lobby" || transitionPhase === "fadeOutLobby") && (
+        <div
+          className={
+            transitionPhase === "fadeOutLobby" ? "animate-[fadeOut_1500ms_ease-out_forwards]" : ""
+          }
+        >
+          <SpaceBackground animationSpeed={0.5} overlayOpacity={0.3} />
+        </div>
+      )}
+
+      {(isLobbyPhase || isLobbyExiting) && game && playerId && (
+        <WaitingRoomOverlay game={game} playerId={playerId} isExiting={isLobbyExiting} />
+      )}
 
       {/* Demo setup overlay - shown after start game in demo mode */}
       {game?.currentPhase === GamePhaseDemoSetup && game && playerId && (
@@ -1393,6 +1485,104 @@ export default function GameInterface() {
         onSelectCards={handleCardSelection}
       />
 
+      {/* Waiting for other players to finish card selection */}
+      {showWaitingForPlayers && game && (
+        <>
+          <div className="z-[10000]">
+            <MainMenuSettingsButton />
+          </div>
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center">
+            <div className="w-[450px] max-w-[90vw] bg-space-black-darker/95 border-2 border-space-blue-400 rounded-[20px] p-8 backdrop-blur-space shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_40px_rgba(30,60,150,0.3)] animate-[modalFadeIn_0.3s_ease-out]">
+              <div className="text-center mb-6">
+                <h2 className="font-orbitron text-white text-[24px] m-0 mb-2 text-shadow-glow font-bold tracking-wider">
+                  Waiting for players...
+                </h2>
+              </div>
+
+              <div className="mb-6">
+                <h3 className="text-white text-sm font-semibold mb-2 uppercase tracking-wide">
+                  Players
+                </h3>
+                <div className="flex flex-col gap-2">
+                  {(() => {
+                    const allPlayers: {
+                      id: string;
+                      name: string;
+                      isReady: boolean;
+                      isSelf: boolean;
+                    }[] = [];
+
+                    if (game.currentPlayer) {
+                      allPlayers.push({
+                        id: game.currentPlayer.id,
+                        name: game.currentPlayer.name,
+                        isReady:
+                          !game.currentPlayer.selectStartingCardsPhase &&
+                          !!game.currentPlayer.corporation,
+                        isSelf: true,
+                      });
+                    }
+
+                    game.otherPlayers?.forEach((other) => {
+                      allPlayers.push({
+                        id: other.id,
+                        name: other.name,
+                        isReady: !other.selectStartingCardsPhase && !!other.corporation,
+                        isSelf: false,
+                      });
+                    });
+
+                    const ordered = game.turnOrder?.length
+                      ? game.turnOrder
+                          .map((pid) => allPlayers.find((p) => p.id === pid))
+                          .filter((p) => p !== undefined)
+                      : allPlayers;
+
+                    return ordered.map((player) => (
+                      <div
+                        key={player.id}
+                        className="flex justify-between items-center py-2 px-3 bg-black/40 rounded-lg border border-space-blue-600/50"
+                      >
+                        <span className="text-white text-sm font-medium">{player.name}</span>
+                        <div className="flex gap-1.5 items-center">
+                          {player.isSelf && (
+                            <span className="bg-space-blue-800 text-white py-0.5 px-1.5 rounded text-[10px] font-bold uppercase">
+                              You
+                            </span>
+                          )}
+                          {player.isReady ? (
+                            <span className="flex items-center gap-1 bg-emerald-700/80 text-white py-0.5 px-1.5 rounded text-[10px] font-bold uppercase">
+                              <svg
+                                width="10"
+                                height="10"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                              Ready
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 bg-white/10 text-white/70 py-0.5 px-1.5 rounded text-[10px] font-bold uppercase">
+                              <div className="w-2.5 h-2.5 border border-white/50 border-t-transparent rounded-full animate-spin" />
+                              Selecting...
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Pending card selection overlay (sell patents, etc.) */}
       {game?.currentPlayer?.pendingCardSelection && (
         <PendingCardSelectionOverlay
@@ -1418,7 +1608,7 @@ export default function GameInterface() {
         <CardFanOverlay
           cards={currentPlayer.cards || []}
           hideWhenModalOpen={
-            showCardSelection || showPendingCardSelection || showCardDrawSelection || isLobbyPhase
+            showCardSelection || showPendingCardSelection || showCardDrawSelection || isPreGamePhase
           }
           onCardSelect={(_cardId) => {
             // TODO: Implement card selection logic (view details, etc.)
@@ -1523,48 +1713,6 @@ export default function GameInterface() {
           onCancel={handleActionStorageCancel}
           isVisible={showActionStorageSelection}
         />
-      )}
-
-      {/* Reconnection overlay */}
-      {isReconnecting && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.7)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-            color: "white",
-            fontSize: "18px",
-            textAlign: "center",
-            flexDirection: "column",
-            gap: "20px",
-          }}
-        >
-          <div style={{ fontSize: "24px", fontWeight: "bold" }}>🔄 Reconnecting to Game...</div>
-          <div>Please wait while we restore your connection</div>
-          <div
-            style={{
-              width: "40px",
-              height: "40px",
-              border: "4px solid rgba(255, 255, 255, 0.3)",
-              borderTop: "4px solid white",
-              borderRadius: "50%",
-              animation: "spin 1s linear infinite",
-            }}
-          />
-          <style>{`
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `}</style>
-        </div>
       )}
 
       {/* Return to Production Modal button */}

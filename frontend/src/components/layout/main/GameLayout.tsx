@@ -17,6 +17,8 @@ import {
   TriggeredEffectDto,
 } from "../../../types/generated/api-types.ts";
 
+type TransitionPhase = "idle" | "lobby" | "fadeOutLobby" | "animateUI" | "complete";
+
 interface GameLayoutProps {
   gameState: GameDto;
   currentPlayer: PlayerDto | null;
@@ -25,6 +27,8 @@ interface GameLayoutProps {
   isAnyModalOpen?: boolean;
   isLobbyPhase?: boolean;
   showCardSelection?: boolean;
+  transitionPhase?: TransitionPhase;
+  animateHexEntrance?: boolean;
   changedPaths?: Set<string>;
   tileHighlightMode?: TileHighlightMode;
   vpIndicators?: TileVPIndicator[];
@@ -45,6 +49,7 @@ interface GameLayoutProps {
   onToggleAwardPopover?: () => void;
   awardsButtonRef?: React.RefObject<HTMLButtonElement | null>;
   onLeaveGame?: () => void;
+  onSkyboxReady?: () => void;
 }
 
 const GameLayout: React.FC<GameLayoutProps> = ({
@@ -53,8 +58,10 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   playedCards = [],
   corporationCard = null,
   isAnyModalOpen: _isAnyModalOpen = false,
-  isLobbyPhase = false,
+  isLobbyPhase: _isLobbyPhase = false,
   showCardSelection = false,
+  transitionPhase = "idle",
+  animateHexEntrance = false,
   changedPaths = new Set(),
   tileHighlightMode,
   vpIndicators = [],
@@ -75,6 +82,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   onToggleAwardPopover,
   awardsButtonRef,
   onLeaveGame,
+  onSkyboxReady,
 }) => {
   // Create a map of all players (current + others) for easy lookup
   const playerMap = new Map<string, PlayerDto | OtherPlayerDto>();
@@ -95,69 +103,103 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   const currentTurnPlayer =
     allPlayers.find((player) => player.id === gameState?.currentTurn) || null;
 
+  const showUI =
+    transitionPhase === "animateUI" || transitionPhase === "complete" || transitionPhase === "idle";
+  const isAnimatingIn = transitionPhase === "animateUI";
+  const uiAnimationClass = isAnimatingIn ? "animate-[uiFadeIn_1200ms_ease-out_both]" : "";
+  const corpAnimationClass = isAnimatingIn ? "animate-[corpFadeIn_800ms_ease-out_800ms_both]" : "";
+
   return (
-    <div className="relative w-screen h-screen bg-[#000011] bg-[url('/assets/background-noise.png')] [background-attachment:fixed] bg-repeat text-white overflow-hidden">
-      {/* Game content takes full screen */}
-      <div className="absolute inset-0">
-        <MainContentDisplay
-          gameState={gameState}
-          tileHighlightMode={tileHighlightMode}
-          vpIndicators={vpIndicators}
-        />
-      </div>
+    <div className="relative w-screen h-screen bg-[#000000] text-white overflow-hidden">
+      {/* CSS animations for transition */}
+      <style>{`
+        @keyframes uiFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes corpFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
+
+      {/* Game content takes full screen - hidden during lobby (SpaceBackground shown instead) */}
+      {transitionPhase !== "lobby" && (
+        <div className="absolute inset-0">
+          <MainContentDisplay
+            gameState={gameState}
+            tileHighlightMode={tileHighlightMode}
+            vpIndicators={vpIndicators}
+            animateHexEntrance={animateHexEntrance}
+            onSkyboxReady={onSkyboxReady}
+          />
+        </div>
+      )}
 
       {/* TopMenuBar overlays on top */}
-      {!isLobbyPhase && !showCardSelection && (
-        <TopMenuBar
-          gameState={gameState}
-          showStandardProjectsPopover={showStandardProjectsPopover}
-          onToggleStandardProjectsPopover={onToggleStandardProjectsPopover}
-          standardProjectsButtonRef={standardProjectsButtonRef}
-          showMilestonePopover={showMilestonePopover}
-          onToggleMilestonePopover={onToggleMilestonePopover}
-          milestonesButtonRef={milestonesButtonRef}
-          showAwardPopover={showAwardPopover}
-          onToggleAwardPopover={onToggleAwardPopover}
-          awardsButtonRef={awardsButtonRef}
-          onLeaveGame={onLeaveGame}
-          gameId={gameState?.id}
-        />
+      {showUI && !showCardSelection && (
+        <div className={uiAnimationClass}>
+          <TopMenuBar
+            gameState={gameState}
+            showStandardProjectsPopover={showStandardProjectsPopover}
+            onToggleStandardProjectsPopover={onToggleStandardProjectsPopover}
+            standardProjectsButtonRef={standardProjectsButtonRef}
+            showMilestonePopover={showMilestonePopover}
+            onToggleMilestonePopover={onToggleMilestonePopover}
+            milestonesButtonRef={milestonesButtonRef}
+            showAwardPopover={showAwardPopover}
+            onToggleAwardPopover={onToggleAwardPopover}
+            awardsButtonRef={awardsButtonRef}
+            onLeaveGame={onLeaveGame}
+            gameId={gameState?.id}
+          />
+        </div>
       )}
 
       {/* Overlay Components */}
-      <LeftSidebar
-        players={allPlayers}
-        currentPlayer={currentPlayer}
-        turnPlayerId={gameState?.currentTurn || ""}
-        currentPhase={gameState?.currentPhase}
-        hasPendingTilePlacement={!!currentPlayer?.pendingTileSelection}
-        triggeredEffects={triggeredEffects}
-      />
-
-      <RightSidebar
-        globalParameters={gameState?.globalParameters}
-        generation={gameState?.generation}
-        currentPlayer={currentTurnPlayer}
-      />
-
-      <PlayerOverlay players={allPlayers} currentPlayer={currentPlayer} />
-
-      {!isLobbyPhase && !showCardSelection && (
-        <>
-          <BottomResourceBar
+      {showUI && (
+        <div className={uiAnimationClass}>
+          <LeftSidebar
+            players={allPlayers}
             currentPlayer={currentPlayer}
-            gameState={gameState}
-            playedCards={playedCards}
-            changedPaths={changedPaths}
-            onOpenCardEffectsModal={onOpenCardEffectsModal}
-            onOpenCardsPlayedModal={onOpenCardsPlayedModal}
-            onOpenActionsModal={onOpenActionsModal}
-            onActionSelect={onActionSelect}
-            onConvertPlantsToGreenery={onConvertPlantsToGreenery}
-            onConvertHeatToTemperature={onConvertHeatToTemperature}
+            turnPlayerId={gameState?.currentTurn || ""}
+            currentPhase={gameState?.currentPhase}
+            hasPendingTilePlacement={!!currentPlayer?.pendingTileSelection}
+            triggeredEffects={triggeredEffects}
           />
 
-          {corporationCard && <CorporationViewer corporation={corporationCard} />}
+          <RightSidebar
+            globalParameters={gameState?.globalParameters}
+            generation={gameState?.generation}
+            currentPlayer={currentTurnPlayer}
+          />
+
+          <PlayerOverlay players={allPlayers} currentPlayer={currentPlayer} />
+        </div>
+      )}
+
+      {showUI && !showCardSelection && (
+        <>
+          <div className={uiAnimationClass}>
+            <BottomResourceBar
+              currentPlayer={currentPlayer}
+              gameState={gameState}
+              playedCards={playedCards}
+              changedPaths={changedPaths}
+              onOpenCardEffectsModal={onOpenCardEffectsModal}
+              onOpenCardsPlayedModal={onOpenCardsPlayedModal}
+              onOpenActionsModal={onOpenActionsModal}
+              onActionSelect={onActionSelect}
+              onConvertPlantsToGreenery={onConvertPlantsToGreenery}
+              onConvertHeatToTemperature={onConvertHeatToTemperature}
+            />
+          </div>
+
+          {corporationCard && (
+            <div className={corpAnimationClass}>
+              <CorporationViewer corporation={corporationCard} />
+            </div>
+          )}
         </>
       )}
     </div>
