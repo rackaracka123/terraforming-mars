@@ -1,9 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import {
-  StateDiffDto,
-  GameDto,
-  CalculatedOutputDto,
-} from "@/types/generated/api-types.ts";
+import { StateDiffDto, GameDto, CalculatedOutputDto } from "@/types/generated/api-types.ts";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import GameIcon from "@/components/ui/display/GameIcon.tsx";
 import VictoryPointIcon from "@/components/ui/display/VictoryPointIcon.tsx";
@@ -48,10 +44,22 @@ const GLOBAL_PARAMETER_TYPES = ["temperature", "oxygen"];
 
 const BEHAVIOR_OUTPUT_TYPES = [...TILE_PLACEMENT_TYPES, ...GLOBAL_PARAMETER_TYPES];
 
-const CalculatedOutputsDisplay: React.FC<{ outputs: CalculatedOutputDto[]; showAll?: boolean; excludeBehaviors?: boolean }> = ({ outputs, showAll = false, excludeBehaviors = false }) => {
+const CalculatedOutputsDisplay: React.FC<{
+  outputs: CalculatedOutputDto[];
+  showAll?: boolean;
+  excludeBehaviors?: boolean;
+}> = ({ outputs, showAll = false, excludeBehaviors = false }) => {
   const outputsToShow = showAll
-    ? outputs.filter(o => o.amount !== 0 && (!excludeBehaviors || !BEHAVIOR_OUTPUT_TYPES.includes(o.resourceType)))
-    : outputs.filter(o => o.isScaled && o.amount !== 0 && (!excludeBehaviors || !BEHAVIOR_OUTPUT_TYPES.includes(o.resourceType)));
+    ? outputs.filter(
+        (o) =>
+          o.amount !== 0 && (!excludeBehaviors || !BEHAVIOR_OUTPUT_TYPES.includes(o.resourceType)),
+      )
+    : outputs.filter(
+        (o) =>
+          o.isScaled &&
+          o.amount !== 0 &&
+          (!excludeBehaviors || !BEHAVIOR_OUTPUT_TYPES.includes(o.resourceType)),
+      );
 
   if (outputsToShow.length === 0) return null;
 
@@ -104,7 +112,7 @@ const groupLogsByGeneration = (logs: StateDiffDto[]): LogGroup[] => {
       currentGeneration = log.changes.generation.new;
     }
 
-    let genGroup = groups.find(g => g.generation === currentGeneration);
+    let genGroup = groups.find((g) => g.generation === currentGeneration);
     if (!genGroup) {
       genGroup = { generation: currentGeneration, playerTurns: [] };
       groups.push(genGroup);
@@ -165,10 +173,7 @@ const PlayerTurnSection: React.FC<PlayerTurnSectionProps> = ({
         className="flex items-center gap-2 py-1.5 px-3"
         style={{ borderBottom: `1px solid ${color.border}` }}
       >
-        <div
-          className="w-1.5 h-1.5 rounded-full"
-          style={{ backgroundColor: color.text }}
-        />
+        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color.text }} />
         <span
           className="text-[10px] font-semibold uppercase tracking-wider"
           style={{ color: color.text }}
@@ -181,11 +186,7 @@ const PlayerTurnSection: React.FC<PlayerTurnSectionProps> = ({
       </div>
       <div className="flex flex-col">
         {entries.map((diff) => (
-          <LogEntry
-            key={diff.sequenceNumber}
-            diff={diff}
-            playerNames={playerNames}
-          />
+          <LogEntry key={diff.sequenceNumber} diff={diff} playerNames={playerNames} />
         ))}
       </div>
     </div>
@@ -215,8 +216,16 @@ const LogEntry: React.FC<LogEntryProps> = ({ diff, playerNames }) => {
     }
 
     // Check if the behavior has a single behavior with choices array (e.g., Artificial Photosynthesis)
-    if (behaviorsToShow.length === 1 && behaviorsToShow[0].choices && behaviorsToShow[0].choices.length > 0) {
-      return { hasChoices: true, type: "within-behavior" as const, choices: behaviorsToShow[0].choices };
+    if (
+      behaviorsToShow.length === 1 &&
+      behaviorsToShow[0].choices &&
+      behaviorsToShow[0].choices.length > 0
+    ) {
+      return {
+        hasChoices: true,
+        type: "within-behavior" as const,
+        choices: behaviorsToShow[0].choices,
+      };
     }
 
     // Check if there are multiple behaviors (OR between behaviors)
@@ -228,9 +237,7 @@ const LogEntry: React.FC<LogEntryProps> = ({ diff, playerNames }) => {
   }, [diff.choiceIndex, behaviorsToShow, isCardPlay]);
 
   return (
-    <div
-      className="relative flex flex-col gap-1 py-2 px-3 hover:bg-white/5 rounded transition-colors border-b border-[rgba(100,200,255,0.2)] last:border-b-0"
-    >
+    <div className="relative flex flex-col gap-1 py-2 px-3 hover:bg-white/5 rounded transition-colors border-b border-[rgba(100,200,255,0.2)] last:border-b-0">
       <div className="flex items-center gap-2">
         <span className="text-xs text-[#64c8ff] font-medium shrink-0">{playerName}</span>
         <span className="text-sm text-white truncate font-medium">{diff.source}</span>
@@ -290,10 +297,12 @@ const LogEntry: React.FC<LogEntryProps> = ({ diff, playerNames }) => {
             );
           })}
         </div>
-      ) : behaviorsToShow.length > 0 && (
-        <div className="mt-1 [&>div]:!relative [&>div]:!bottom-auto [&>div]:!left-auto [&>div]:!right-auto [&>div]:w-full [&>div:hover]:!transform-none [&>div:hover]:!shadow-none [&>div:hover]:!filter-none scale-90 origin-left">
-          <BehaviorSection behaviors={behaviorsToShow} />
-        </div>
+      ) : (
+        behaviorsToShow.length > 0 && (
+          <div className="mt-1 [&>div]:!relative [&>div]:!bottom-auto [&>div]:!left-auto [&>div]:!right-auto [&>div]:w-full [&>div:hover]:!transform-none [&>div:hover]:!shadow-none [&>div:hover]:!filter-none scale-90 origin-left">
+            <BehaviorSection behaviors={behaviorsToShow} />
+          </div>
+        )
       )}
 
       {diff.calculatedOutputs && diff.calculatedOutputs.length > 0 && (
@@ -411,10 +420,7 @@ const LogPopover: React.FC<LogPopoverProps> = ({
             const totalEntries = group.playerTurns.reduce((sum, t) => sum + t.entries.length, 0);
             return (
               <div key={group.generation} className="flex flex-col">
-                <GenerationDivider
-                  generation={group.generation}
-                  entryCount={totalEntries}
-                />
+                <GenerationDivider generation={group.generation} entryCount={totalEntries} />
                 <div className="p-2 flex flex-col">
                   {group.playerTurns.map((turn, turnIndex) => (
                     <PlayerTurnSection

@@ -7,6 +7,7 @@ import "time"
 // The single source of truth is the Errors slice - availability is computed from it.
 type EntityState struct {
 	Errors         []StateError
+	Warnings       []StateWarning
 	Cost           map[string]int
 	Metadata       map[string]any
 	LastCalculated time.Time
@@ -24,4 +25,11 @@ type StateError struct {
 	Code     StateErrorCode
 	Category StateErrorCategory
 	Message  string
+}
+
+// StateWarning represents a non-blocking warning about an action.
+// Warnings inform the player of potential issues without preventing the action.
+type StateWarning struct {
+	Code    StateWarningCode
+	Message string
 }

@@ -22,6 +22,7 @@ func CalculatePlayerCardState(
 	cardRegistry cards.CardRegistry,
 ) player.EntityState {
 	var errors []player.StateError
+	var warnings []player.StateWarning
 	metadata := make(map[string]interface{})
 
 	errors = append(errors, validatePhase(g)...)
@@ -36,10 +37,14 @@ func CalculatePlayerCardState(
 	errors = append(errors, validateAffordabilityWithSubstitutes(p, costMap)...)
 	errors = append(errors, validateRequirements(card, p, g, cardRegistry)...)
 	errors = append(errors, validateProductionOutputs(card, p)...)
-	errors = append(errors, validateTileOutputs(card, p, g)...)
+
+	tileErrors, tileWarnings := validateTileOutputs(card, p, g)
+	errors = append(errors, tileErrors...)
+	warnings = append(warnings, tileWarnings...)
 
 	return player.EntityState{
 		Errors:         errors,
+		Warnings:       warnings,
 		Cost:           costMap,
 		Metadata:       metadata,
 		LastCalculated: time.Now(),
@@ -77,6 +82,24 @@ func CalculatePlayerCardActionState(
 				Category: player.ErrorCategoryInput,
 				Message:  fmt.Sprintf("Not enough %s", input.ResourceType),
 			})
+		}
+	}
+
+	for _, output := range behavior.Outputs {
+		if output.Target == "steal-from-any-card" {
+			totalAvailable := 0
+			for _, anyPlayer := range g.GetAllPlayers() {
+				for _, cardID := range anyPlayer.PlayedCards().Cards() {
+					totalAvailable += anyPlayer.Resources().GetCardStorage(cardID)
+				}
+			}
+			if totalAvailable < output.Amount {
+				errors = append(errors, player.StateError{
+					Code:     player.ErrorCodeInsufficientResources,
+					Category: player.ErrorCategoryInput,
+					Message:  fmt.Sprintf("No %s available on any card", output.ResourceType),
+				})
+			}
 		}
 	}
 
@@ -169,7 +192,7 @@ func CalculatePlayerStandardProjectState(
 	case shared.StandardProjectAsteroid:
 
 	case shared.StandardProjectCity:
-		cityPlacements := g.CountAvailableHexesForTile("city", p.ID())
+		cityPlacements := g.CountAvailableHexesForTile("city", p.ID(), nil)
 		if cityPlacements == 0 {
 			errors = append(errors, player.StateError{
 				Code:     player.ErrorCodeNoCityPlacements,
@@ -179,7 +202,7 @@ func CalculatePlayerStandardProjectState(
 		}
 
 	case shared.StandardProjectGreenery:
-		greeneryPlacements := g.CountAvailableHexesForTile("greenery", p.ID())
+		greeneryPlacements := g.CountAvailableHexesForTile("greenery", p.ID(), nil)
 		if greeneryPlacements == 0 {
 			errors = append(errors, player.StateError{
 				Code:     player.ErrorCodeNoGreeneryPlacements,
@@ -373,21 +396,19 @@ func validateProductionOutputs(
 
 // validateTileOutputs checks that the board has available placements for any tile outputs.
 // If a card outputs city/greenery/ocean tiles, the player must have valid placement locations.
+// Returns both errors (blocking) and warnings (non-blocking).
+// If tile restrictions are specified (e.g., adjacency="none"), missing placements become warnings.
 func validateTileOutputs(
 	card *gamecards.Card,
 	p *player.Player,
 	g *game.Game,
-) []player.StateError {
+) ([]player.StateError, []player.StateWarning) {
 	if len(card.Behaviors) == 0 || g == nil {
-		return nil
+		return nil, nil
 	}
 
 	var errors []player.StateError
-
-	// Track which tile types we need to check (avoid checking same type multiple times)
-	needsCityPlacement := false
-	needsGreeneryPlacement := false
-	needsOceanPlacement := false
+	var warnings []player.StateWarning
 
 	// Check all behaviors for auto-triggers with tile placement outputs
 	for _, behavior := range card.Behaviors {
@@ -400,50 +421,54 @@ func validateTileOutputs(
 		for _, output := range behavior.Outputs {
 			switch output.ResourceType {
 			case shared.ResourceCityPlacement:
-				needsCityPlacement = true
+				// Extract tile restrictions
+				var tileRestrictions *shared.TileRestrictions
+				if output.TileRestrictions != nil {
+					tileRestrictions = output.TileRestrictions
+				}
+
+				cityPlacements := g.CountAvailableHexesForTile("city", p.ID(), tileRestrictions)
+				if cityPlacements == 0 {
+					// If restrictions exist, it's a warning (card still playable)
+					// If no restrictions, it's an error (normal city rules blocked)
+					if tileRestrictions != nil && (len(tileRestrictions.BoardTags) > 0 || tileRestrictions.Adjacency != "") {
+						warnings = append(warnings, player.StateWarning{
+							Code:    player.WarningCodeNoValidTilePlacements,
+							Message: "No valid city placements available",
+						})
+					} else {
+						errors = append(errors, player.StateError{
+							Code:     player.ErrorCodeNoCityPlacements,
+							Category: player.ErrorCategoryAvailability,
+							Message:  "No valid city placements",
+						})
+					}
+				}
+
 			case shared.ResourceGreeneryPlacement:
-				needsGreeneryPlacement = true
+				greeneryPlacements := g.CountAvailableHexesForTile("greenery", p.ID(), nil)
+				if greeneryPlacements == 0 {
+					errors = append(errors, player.StateError{
+						Code:     player.ErrorCodeNoGreeneryPlacements,
+						Category: player.ErrorCategoryAvailability,
+						Message:  "No valid greenery placements",
+					})
+				}
+
 			case shared.ResourceOceanPlacement:
-				needsOceanPlacement = true
+				oceanPlacements := g.CountAvailableHexesForTile("ocean", p.ID(), nil)
+				if oceanPlacements == 0 {
+					errors = append(errors, player.StateError{
+						Code:     player.ErrorCodeNoOceanTiles,
+						Category: player.ErrorCategoryAvailability,
+						Message:  "No ocean tiles remaining",
+					})
+				}
 			}
 		}
 	}
 
-	// Check availability for required tile types
-	if needsCityPlacement {
-		cityPlacements := g.CountAvailableHexesForTile("city", p.ID())
-		if cityPlacements == 0 {
-			errors = append(errors, player.StateError{
-				Code:     player.ErrorCodeNoCityPlacements,
-				Category: player.ErrorCategoryAvailability,
-				Message:  "No valid city placements",
-			})
-		}
-	}
-
-	if needsGreeneryPlacement {
-		greeneryPlacements := g.CountAvailableHexesForTile("greenery", p.ID())
-		if greeneryPlacements == 0 {
-			errors = append(errors, player.StateError{
-				Code:     player.ErrorCodeNoGreeneryPlacements,
-				Category: player.ErrorCategoryAvailability,
-				Message:  "No valid greenery placements",
-			})
-		}
-	}
-
-	if needsOceanPlacement {
-		oceanPlacements := g.CountAvailableHexesForTile("ocean", p.ID())
-		if oceanPlacements == 0 {
-			errors = append(errors, player.StateError{
-				Code:     player.ErrorCodeNoOceanTiles,
-				Category: player.ErrorCategoryAvailability,
-				Message:  "No ocean tiles remaining",
-			})
-		}
-	}
-
-	return errors
+	return errors, warnings
 }
 
 func validateGenerationalEventRequirements(
@@ -513,7 +538,7 @@ func validateBehaviorTileOutputs(
 	for _, output := range behavior.Outputs {
 		switch output.ResourceType {
 		case shared.ResourceCityPlacement:
-			cityPlacements := g.CountAvailableHexesForTile("city", p.ID())
+			cityPlacements := g.CountAvailableHexesForTile("city", p.ID(), nil)
 			if cityPlacements == 0 {
 				errors = append(errors, player.StateError{
 					Code:     player.ErrorCodeNoCityPlacements,
@@ -522,7 +547,7 @@ func validateBehaviorTileOutputs(
 				})
 			}
 		case shared.ResourceGreeneryPlacement:
-			greeneryPlacements := g.CountAvailableHexesForTile("greenery", p.ID())
+			greeneryPlacements := g.CountAvailableHexesForTile("greenery", p.ID(), nil)
 			if greeneryPlacements == 0 {
 				errors = append(errors, player.StateError{
 					Code:     player.ErrorCodeNoGreeneryPlacements,
@@ -531,7 +556,7 @@ func validateBehaviorTileOutputs(
 				})
 			}
 		case shared.ResourceOceanPlacement:
-			oceanPlacements := g.CountAvailableHexesForTile("ocean", p.ID())
+			oceanPlacements := g.CountAvailableHexesForTile("ocean", p.ID(), nil)
 			if oceanPlacements == 0 {
 				errors = append(errors, player.StateError{
 					Code:     player.ErrorCodeNoOceanTiles,

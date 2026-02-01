@@ -352,6 +352,22 @@ func convertStateErrors(errors []player.StateError) []StateErrorDto {
 	return result
 }
 
+// convertStateWarnings converts EntityState warnings to DTOs.
+// Since domain and DTO enums have identical string values, we cast between them.
+func convertStateWarnings(warnings []player.StateWarning) []StateWarningDto {
+	if len(warnings) == 0 {
+		return nil
+	}
+	result := make([]StateWarningDto, len(warnings))
+	for i, warn := range warnings {
+		result[i] = StateWarningDto{
+			Code:    StateWarningCode(warn.Code),
+			Message: warn.Message,
+		}
+	}
+	return result
+}
+
 // ToPlayerCardDto converts a PlayerCard to PlayerCardDto with state information
 func ToPlayerCardDto(pc *player.PlayerCard) PlayerCardDto {
 	state := pc.State()
@@ -429,6 +445,7 @@ func ToPlayerCardDto(pc *player.PlayerCard) PlayerCardDto {
 		VPConditions:    vpConditions,
 		Available:       state.Available(),
 		Errors:          convertStateErrors(state.Errors),
+		Warnings:        convertStateWarnings(state.Warnings),
 		EffectiveCost:   effectiveCost,
 		Discounts:       discounts,
 	}

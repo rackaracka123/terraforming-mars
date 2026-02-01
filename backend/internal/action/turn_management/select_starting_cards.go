@@ -34,7 +34,7 @@ func NewSelectStartingCardsAction(
 	return &SelectStartingCardsAction{
 		gameRepo:     gameRepo,
 		cardRegistry: cardRegistry,
-		corpProc:     gamecards.NewCorporationProcessor(logger),
+		corpProc:     gamecards.NewCorporationProcessor(cardRegistry, logger),
 		logger:       logger,
 	}
 }
@@ -168,7 +168,7 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 				zap.Int("behavior_index", effect.BehaviorIndex))
 
 			// Subscribe trigger effects to relevant events
-			baseaction.SubscribePassiveEffectToEvents(ctx, g, player, effect, log)
+			baseaction.SubscribePassiveEffectToEvents(ctx, g, player, effect, log, a.cardRegistry)
 		}
 	}
 

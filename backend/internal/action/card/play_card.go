@@ -53,6 +53,7 @@ func (a *PlayCardAction) Execute(
 	payment PaymentRequest,
 	choiceIndex *int,
 	cardStorageTarget *string,
+	targetPlayerID *string,
 ) error {
 	log := a.InitLogger(gameID, playerID).With(
 		zap.String("card_id", cardID),
@@ -63,6 +64,9 @@ func (a *PlayCardAction) Execute(
 	}
 	if cardStorageTarget != nil {
 		log = log.With(zap.String("card_storage_target", *cardStorageTarget))
+	}
+	if targetPlayerID != nil {
+		log = log.With(zap.String("target_player_id", *targetPlayerID))
 	}
 	log.Info("🃏 Player attempting to play card")
 
@@ -200,7 +204,7 @@ func (a *PlayCardAction) Execute(
 		zap.Int("titanium", adjustedPayment.Titanium),
 		zap.Any("substitutes", adjustedPayment.Substitutes))
 
-	calculatedOutputs, err := a.applyCardBehaviors(ctx, g, card, player, choiceIndex, cardStorageTarget, log)
+	calculatedOutputs, err := a.applyCardBehaviors(ctx, g, card, player, choiceIndex, cardStorageTarget, targetPlayerID, log)
 	if err != nil {
 		log.Error("Failed to apply card behaviors", zap.Error(err))
 		return fmt.Errorf("failed to apply card behaviors: %w", err)
@@ -354,6 +358,7 @@ func (a *PlayCardAction) applyCardBehaviors(
 	p *player.Player,
 	choiceIndex *int,
 	cardStorageTarget *string,
+	targetPlayerID *string,
 	log *zap.Logger,
 ) ([]game.CalculatedOutput, error) {
 	if len(card.Behaviors) == 0 {
@@ -387,10 +392,15 @@ func (a *PlayCardAction) applyCardBehaviors(
 			if cardStorageTarget != nil {
 				applier = applier.WithTargetCardID(*cardStorageTarget)
 			}
+			if targetPlayerID != nil {
+				applier = applier.WithTargetPlayerID(*targetPlayerID)
+			}
+
 			calculatedOutputs, err := applier.ApplyOutputsAndGetCalculated(ctx, outputs)
 			if err != nil {
 				return nil, fmt.Errorf("failed to apply auto behavior %d outputs: %w", behaviorIndex, err)
 			}
+
 			allCalculatedOutputs = append(allCalculatedOutputs, calculatedOutputs...)
 
 			// Also register as effect if it has persistent outputs (discount, payment-substitute)
@@ -449,7 +459,7 @@ func (a *PlayCardAction) applyCardBehaviors(
 			})
 
 			// Subscribe passive effects to relevant events
-			baseaction.SubscribePassiveEffectToEvents(ctx, g, p, effect, log)
+			baseaction.SubscribePassiveEffectToEvents(ctx, g, p, effect, log, a.CardRegistry())
 		}
 	}
 

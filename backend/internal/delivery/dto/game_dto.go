@@ -199,17 +199,24 @@ type ResourceSet struct {
 	Heat     int `json:"heat" ts:"number"`
 }
 
+// TileRestrictionsDto represents tile placement restrictions for client consumption
+type TileRestrictionsDto struct {
+	BoardTags []string `json:"boardTags,omitempty" ts:"string[] | undefined"`
+	Adjacency string   `json:"adjacency,omitempty" ts:"string | undefined"` // "none" = no adjacent occupied tiles
+}
+
 // ResourceConditionDto represents a resource condition for client consumption
 type ResourceConditionDto struct {
-	Type                     ResourceType      `json:"type" ts:"ResourceType"`
-	Amount                   int               `json:"amount" ts:"number"`
-	Target                   TargetType        `json:"target" ts:"TargetType"`
-	AffectedResources        []string          `json:"affectedResources,omitempty" ts:"string[] | undefined"`
-	AffectedTags             []CardTag         `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`
-	AffectedCardTypes        []CardType        `json:"affectedCardTypes,omitempty" ts:"CardType[] | undefined"`
-	AffectedStandardProjects []StandardProject `json:"affectedStandardProjects,omitempty" ts:"StandardProject[] | undefined"`
-	MaxTrigger               *int              `json:"maxTrigger,omitempty" ts:"number | undefined"`
-	Per                      *PerConditionDto  `json:"per,omitempty" ts:"PerConditionDto | undefined"`
+	Type                     ResourceType         `json:"type" ts:"ResourceType"`
+	Amount                   int                  `json:"amount" ts:"number"`
+	Target                   TargetType           `json:"target" ts:"TargetType"`
+	AffectedResources        []string             `json:"affectedResources,omitempty" ts:"string[] | undefined"`
+	AffectedTags             []CardTag            `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`
+	AffectedCardTypes        []CardType           `json:"affectedCardTypes,omitempty" ts:"CardType[] | undefined"`
+	AffectedStandardProjects []StandardProject    `json:"affectedStandardProjects,omitempty" ts:"StandardProject[] | undefined"`
+	MaxTrigger               *int                 `json:"maxTrigger,omitempty" ts:"number | undefined"`
+	Per                      *PerConditionDto     `json:"per,omitempty" ts:"PerConditionDto | undefined"`
+	TileRestrictions         *TileRestrictionsDto `json:"tileRestrictions,omitempty" ts:"TileRestrictionsDto | undefined"`
 }
 
 // PerConditionDto represents a per condition for client consumption
@@ -439,6 +446,21 @@ type StateErrorDto struct {
 	Message  string             `json:"message" ts:"string"`              // Human-readable error message
 }
 
+// StateWarningCode represents warning codes for entity state validation.
+// All codes use kebab-case for consistency with JSON serialization.
+type StateWarningCode string
+
+const (
+	WarningCodeNoValidTilePlacements StateWarningCode = "no-valid-tile-placements"
+)
+
+// StateWarningDto represents a non-blocking warning about an action
+// Warnings inform the player of potential issues without preventing the action
+type StateWarningDto struct {
+	Code    StateWarningCode `json:"code" ts:"StateWarningCode"`
+	Message string           `json:"message" ts:"string"`
+}
+
 // PlayerCardDto represents a card in a player's hand with calculated playability state
 // Part of the Player-Scoped Card Architecture
 type PlayerCardDto struct {
@@ -454,10 +476,11 @@ type PlayerCardDto struct {
 	ResourceStorage *ResourceStorageDto `json:"resourceStorage,omitempty" ts:"ResourceStorageDto | undefined"`
 	VPConditions    []VPConditionDto    `json:"vpConditions,omitempty" ts:"VPConditionDto[] | undefined"`
 
-	Available     bool            `json:"available" ts:"boolean"`                                      // Computed: len(Errors) == 0
-	Errors        []StateErrorDto `json:"errors" ts:"StateErrorDto[]"`                                 // Single source of truth for availability
-	EffectiveCost int             `json:"effectiveCost" ts:"number"`                                   // Effective cost after discounts (credits)
-	Discounts     map[string]int  `json:"discounts,omitempty" ts:"Record<string, number> | undefined"` // Discount amounts per resource type (if any)
+	Available     bool              `json:"available" ts:"boolean"`                                      // Computed: len(Errors) == 0
+	Errors        []StateErrorDto   `json:"errors" ts:"StateErrorDto[]"`                                 // Single source of truth for availability
+	Warnings      []StateWarningDto `json:"warnings,omitempty" ts:"StateWarningDto[] | undefined"`       // Non-blocking warnings
+	EffectiveCost int               `json:"effectiveCost" ts:"number"`                                   // Effective cost after discounts (credits)
+	Discounts     map[string]int    `json:"discounts,omitempty" ts:"Record<string, number> | undefined"` // Discount amounts per resource type (if any)
 }
 
 // PlayerEffectDto represents ongoing effects that a player has active for client consumption

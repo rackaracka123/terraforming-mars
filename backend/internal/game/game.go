@@ -677,7 +677,8 @@ func (g *Game) SetPendingTileSelectionQueue(ctx context.Context, playerID string
 
 // AppendToPendingTileSelectionQueue atomically appends tile types to a player's tile selection queue
 // This is thread-safe and prevents race conditions when multiple tiles need to be queued
-func (g *Game) AppendToPendingTileSelectionQueue(ctx context.Context, playerID string, tileTypes []string, source string) error {
+// tileRestrictions restricts placement based on board tags or adjacency rules (nil for normal placement)
+func (g *Game) AppendToPendingTileSelectionQueue(ctx context.Context, playerID string, tileTypes []string, source string, tileRestrictions *shared.TileRestrictions) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -690,20 +691,24 @@ func (g *Game) AppendToPendingTileSelectionQueue(ctx context.Context, playerID s
 	existingQueue, exists := g.pendingTileSelectionQueues[playerID]
 	var items []string
 	var queueSource string
+	var queueTileRestrictions *shared.TileRestrictions
 
 	if exists && existingQueue != nil {
 		items = existingQueue.Items
 		queueSource = existingQueue.Source
+		queueTileRestrictions = existingQueue.TileRestrictions
 	} else {
 		items = []string{}
 		queueSource = source
+		queueTileRestrictions = tileRestrictions
 	}
 
 	items = append(items, tileTypes...)
 
 	g.pendingTileSelectionQueues[playerID] = &player.PendingTileSelectionQueue{
-		Items:  items,
-		Source: queueSource,
+		Items:            items,
+		TileRestrictions: queueTileRestrictions,
+		Source:           queueSource,
 	}
 	g.updatedAt = time.Now()
 	g.mu.Unlock()
@@ -860,19 +865,21 @@ func (g *Game) ProcessNextTile(ctx context.Context, playerID string) error {
 	remainingItems := queue.Items[1:]
 	source := queue.Source
 	onComplete := queue.OnComplete
+	tileRestrictions := queue.TileRestrictions
 
 	if len(remainingItems) > 0 {
 		g.pendingTileSelectionQueues[playerID] = &player.PendingTileSelectionQueue{
-			Items:      remainingItems,
-			Source:     source,
-			OnComplete: onComplete,
+			Items:            remainingItems,
+			TileRestrictions: tileRestrictions,
+			Source:           source,
+			OnComplete:       onComplete,
 		}
 	} else {
 		delete(g.pendingTileSelectionQueues, playerID)
 	}
 	g.mu.Unlock()
 
-	availableHexes := g.calculateAvailableHexesForTile(nextTileType, playerID)
+	availableHexes := g.calculateAvailableHexesForTile(nextTileType, playerID, tileRestrictions)
 
 	err := g.SetPendingTileSelection(ctx, playerID, &player.PendingTileSelection{
 		TileType:       nextTileType,
@@ -885,7 +892,14 @@ func (g *Game) ProcessNextTile(ctx context.Context, playerID string) error {
 }
 
 // calculateAvailableHexesForTile returns a list of valid hex positions for placing a tile
-func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string) []string {
+// tileRestrictions controls placement rules:
+//   - BoardTags: restricts to tiles with matching tags (e.g., Noctis City)
+//   - Adjacency: "none" means no adjacent occupied tiles allowed (Research Outpost)
+//
+// For cities: if BoardTags is set, only matching tiles are valid (ignoring adjacency);
+// if Adjacency is "none", tiles must have no adjacent occupied tiles;
+// otherwise, tagged tiles (reserved areas) are excluded and normal adjacency rules apply
+func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string, tileRestrictions *shared.TileRestrictions) []string {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 
@@ -895,6 +909,43 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string) 
 
 	tiles := g.board.Tiles()
 	availableHexes := []string{}
+
+	// Extract restrictions
+	var boardTags []string
+	var adjacency string
+	if tileRestrictions != nil {
+		boardTags = tileRestrictions.BoardTags
+		adjacency = tileRestrictions.Adjacency
+	}
+
+	// Helper to check if tile has any of the required board tags
+	tileHasRequiredTag := func(tile board.Tile, requiredTags []string) bool {
+		for _, reqTag := range requiredTags {
+			for _, tileTag := range tile.Tags {
+				if tileTag == reqTag {
+					return true
+				}
+			}
+		}
+		return false
+	}
+
+	// Helper to check if tile has any tags (is a reserved area)
+	tileHasAnyTag := func(tile board.Tile) bool {
+		return len(tile.Tags) > 0
+	}
+
+	// Helper to check if a tile has any adjacent occupied tiles
+	hasAnyAdjacentOccupied := func(tile board.Tile) bool {
+		for _, neighborPos := range tile.Coordinates.GetNeighbors() {
+			for _, neighborTile := range tiles {
+				if neighborTile.Coordinates.Equals(neighborPos) && neighborTile.OccupiedBy != nil {
+					return true
+				}
+			}
+		}
+		return false
+	}
 
 	for _, tile := range tiles {
 		// Skip tiles that are already occupied
@@ -908,6 +959,36 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string) 
 				continue
 			}
 
+			// If boardTags specified, only allow tiles with matching tags (Noctis City case)
+			if len(boardTags) > 0 {
+				if tileHasRequiredTag(tile, boardTags) {
+					availableHexes = append(availableHexes, tile.Coordinates.String())
+					logger.Get().Debug("✅ Tile available for city (board tag match)",
+						zap.String("tile", tile.Coordinates.String()),
+						zap.Strings("board_tags", boardTags))
+				}
+				continue
+			}
+
+			// Normal city placement: exclude reserved areas (tagged tiles)
+			if tileHasAnyTag(tile) {
+				logger.Get().Debug("⏭️ Skipping reserved tile for normal city placement",
+					zap.String("tile", tile.Coordinates.String()),
+					zap.Strings("tile_tags", tile.Tags))
+				continue
+			}
+
+			// Handle "no adjacent tiles" restriction (Research Outpost)
+			if adjacency == "none" {
+				if !hasAnyAdjacentOccupied(tile) {
+					availableHexes = append(availableHexes, tile.Coordinates.String())
+					logger.Get().Debug("✅ Tile available for city (no adjacent tiles)",
+						zap.String("tile", tile.Coordinates.String()))
+				}
+				continue // Skip normal city adjacency rules
+			}
+
+			// Check city adjacency rule (no adjacent cities)
 			hasAdjacentCity := false
 			neighbors := tile.Coordinates.GetNeighbors()
 
@@ -953,6 +1034,10 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string) 
 			}
 
 		case "greenery":
+			// Exclude reserved areas from normal greenery placement
+			if len(boardTags) == 0 && tileHasAnyTag(tile) {
+				continue
+			}
 			if tile.Type == shared.ResourceLandTile {
 				availableHexes = append(availableHexes, tile.Coordinates.String())
 			}
@@ -963,10 +1048,23 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string) 
 			}
 
 		default:
+			// Exclude reserved areas from normal placement
+			if len(boardTags) == 0 && tileHasAnyTag(tile) {
+				continue
+			}
 			if tile.Type == shared.ResourceLandTile {
 				availableHexes = append(availableHexes, tile.Coordinates.String())
 			}
 		}
+	}
+
+	// If boardTags specified but no matching tiles found (e.g., Noctis City already occupied),
+	// fall back to normal placement rules
+	if len(boardTags) > 0 && len(availableHexes) == 0 {
+		logger.Get().Info("🔄 No tiles match board tags, falling back to normal placement",
+			zap.Strings("board_tags", boardTags),
+			zap.String("tile_type", tileType))
+		return g.calculateAvailableHexesForTile(tileType, playerID, nil)
 	}
 
 	return availableHexes
@@ -974,8 +1072,8 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string) 
 
 // CountAvailableHexesForTile returns the number of valid hex positions for placing a tile
 // This is used by state calculators to determine if tile-placing actions are available
-func (g *Game) CountAvailableHexesForTile(tileType string, playerID string) int {
-	return len(g.calculateAvailableHexesForTile(tileType, playerID))
+func (g *Game) CountAvailableHexesForTile(tileType string, playerID string, tileRestrictions *shared.TileRestrictions) int {
+	return len(g.calculateAvailableHexesForTile(tileType, playerID, tileRestrictions))
 }
 
 // TriggeredEffect represents a card effect that was triggered (for frontend notifications)

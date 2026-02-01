@@ -284,7 +284,7 @@
             "per": {
               "type": "city-tile",
               "amount": 1,
-              "location": "anywhere"
+              "location": "mars"
             }
           }
         ],
@@ -754,7 +754,10 @@
           {
             "type": "city-placement",
             "amount": 1,
-            "target": "none"
+            "target": "none",
+            "tileRestrictions": {
+              "boardTags": ["noctis-city"]
+            }
           }
         ],
         "description": "Decrease your energy production 1 step and increase your M€ production 3 steps. Place a city tile **on the reserved area**, disregarding normal placement restrictions."
@@ -888,7 +891,10 @@
           {
             "type": "city-placement",
             "amount": 1,
-            "target": "none"
+            "target": "none",
+            "tileRestrictions": {
+              "adjacency": "none"
+            }
           }
         ],
         "description": "When you play a card, you pay 1 M€ less for it. Place a city tile **next to no other tile**."
@@ -1059,7 +1065,7 @@
           {
             "type": "animal",
             "amount": 1,
-            "target": "self-card"
+            "target": "steal-from-any-card"
           }
         ],
         "description": "Remove 1 animal from any card and add it to this card. Requires 11% oxygen. 1 VP per animal on this card."
@@ -1539,7 +1545,7 @@
           {
             "type": "microbe",
             "amount": 1,
-            "target": "self-card"
+            "target": "steal-from-any-card"
           }
         ],
         "description": "Remove 1 microbe from any card to add 1 to this card. Requires 4% oxygen. 1 VP per 2 microbes on this card."
@@ -4955,8 +4961,8 @@
             "outputs": [
               {
                 "type": "steel",
-                "amount": -2,
-                "target": "any-player"
+                "amount": 2,
+                "target": "steal-any-player"
               }
             ]
           },
@@ -4964,8 +4970,8 @@
             "outputs": [
               {
                 "type": "credit",
-                "amount": -3,
-                "target": "any-player"
+                "amount": 3,
+                "target": "steal-any-player"
               }
             ]
           }
@@ -5172,7 +5178,7 @@
             "per": {
               "type": "city-tile",
               "amount": 1,
-              "location": "anywhere"
+              "location": "mars"
             }
           }
         ],
@@ -11321,7 +11327,7 @@
           {
             "type": "credit",
             "amount": 5,
-            "target": "any-player"
+            "target": "steal-any-player"
           }
         ],
         "description": "Requires that you lose 1 floater. Steal 5 M€ from any player."
@@ -16268,7 +16274,7 @@
           {
             "type": "credit",
             "amount": 3,
-            "target": "any-player"
+            "target": "steal-any-player"
           }
         ],
         "description": "Steal 3 M€ from a player that **removed your resources or decreased your production** this generation. Place this card face down in **that player's event pile**."

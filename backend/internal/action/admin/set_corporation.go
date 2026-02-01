@@ -31,7 +31,7 @@ func NewSetCorporationAction(
 	return &SetCorporationAction{
 		gameRepo:     gameRepo,
 		cardRegistry: cardRegistry,
-		corpProc:     gamecards.NewCorporationProcessor(logger),
+		corpProc:     gamecards.NewCorporationProcessor(cardRegistry, logger),
 		logger:       logger,
 	}
 }
@@ -110,7 +110,7 @@ func (a *SetCorporationAction) Execute(ctx context.Context, gameID string, playe
 			zap.String("card_name", effect.CardName),
 			zap.Int("behavior_index", effect.BehaviorIndex))
 
-		baseaction.SubscribePassiveEffectToEvents(ctx, g, player, effect, log)
+		baseaction.SubscribePassiveEffectToEvents(ctx, g, player, effect, log, a.cardRegistry)
 	}
 
 	// Publish TagPlayedEvent for each corporation tag (triggers Saturn Systems, etc.)

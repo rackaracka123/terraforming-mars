@@ -101,6 +101,11 @@ func (h *PlayCardHandler) HandleMessage(ctx context.Context, connection *core.Co
 		cardStorageTarget = &target
 	}
 
+	var targetPlayerID *string
+	if tpID, ok := payload["targetPlayerId"].(string); ok && tpID != "" {
+		targetPlayerID = &tpID
+	}
+
 	log.Debug("Payment extracted",
 		zap.Int("credits", payment.Credits),
 		zap.Int("steel", payment.Steel),
@@ -112,8 +117,11 @@ func (h *PlayCardHandler) HandleMessage(ctx context.Context, connection *core.Co
 	if cardStorageTarget != nil {
 		log.Debug("Card storage target extracted", zap.String("card_storage_target", *cardStorageTarget))
 	}
+	if targetPlayerID != nil {
+		log.Debug("Target player extracted", zap.String("target_player_id", *targetPlayerID))
+	}
 
-	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, cardID, payment, choiceIndex, cardStorageTarget)
+	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, cardID, payment, choiceIndex, cardStorageTarget, targetPlayerID)
 	if err != nil {
 		log.Error("Failed to execute play card action", zap.Error(err))
 		h.sendError(connection, err.Error())

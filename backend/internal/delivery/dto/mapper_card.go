@@ -137,6 +137,13 @@ func toResourceTriggerConditionDto(cond shared.ResourceTriggerCondition) Resourc
 	}
 }
 
+func toTileRestrictionsDto(tr shared.TileRestrictions) TileRestrictionsDto {
+	return TileRestrictionsDto{
+		BoardTags: tr.BoardTags,
+		Adjacency: tr.Adjacency,
+	}
+}
+
 func toResourceConditionDto(rc shared.ResourceCondition) ResourceConditionDto {
 	return ResourceConditionDto{
 		Type:                     ResourceType(rc.ResourceType),
@@ -148,6 +155,7 @@ func toResourceConditionDto(rc shared.ResourceCondition) ResourceConditionDto {
 		AffectedStandardProjects: mapSlice(rc.AffectedStandardProjects, func(sp shared.StandardProject) StandardProject { return StandardProject(sp) }),
 		MaxTrigger:               rc.MaxTrigger,
 		Per:                      ptrCast(rc.Per, toPerConditionDto),
+		TileRestrictions:         ptrCast(rc.TileRestrictions, toTileRestrictionsDto),
 	}
 }
 

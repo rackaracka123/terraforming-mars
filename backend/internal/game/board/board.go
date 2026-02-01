@@ -16,6 +16,13 @@ const (
 	TileTypeOcean    = "ocean"
 )
 
+// BoardTag represents a tag on a board tile for reserved areas
+type BoardTag = string
+
+const (
+	BoardTagNoctisCity BoardTag = "noctis-city"
+)
+
 // TileLocation represents the celestial body where tiles are located
 type TileLocation string
 
@@ -104,6 +111,14 @@ func GenerateMarsBoard() []Tile {
 		{Q: 2, R: -3, S: 1}:  {Type: shared.ResourceCardDraw, Amount: 2},
 	}
 
+	type taggedTileInfo struct {
+		Tags        []string
+		DisplayName string
+	}
+	taggedTiles := map[shared.HexPosition]taggedTileInfo{
+		{Q: -4, R: 2, S: 2}: {Tags: []string{BoardTagNoctisCity}, DisplayName: "Noctis City"},
+	}
+
 	radius := 4
 	for q := -radius; q <= radius; q++ {
 		r1 := max(-radius, -q-radius)
@@ -128,11 +143,22 @@ func GenerateMarsBoard() []Tile {
 				bonuses = append(bonuses, bonus)
 			}
 
+			// Build tags and display name for tagged tiles
+			var tags []string
+			var displayName *string
+			if tagInfo, hasTag := taggedTiles[pos]; hasTag {
+				tags = tagInfo.Tags
+				displayName = &tagInfo.DisplayName
+			} else {
+				tags = []string{}
+			}
+
 			tile := Tile{
 				Coordinates: pos,
 				Type:        tileType,
 				Location:    TileLocationMars,
-				Tags:        []string{},
+				Tags:        tags,
+				DisplayName: displayName,
 				Bonuses:     bonuses,
 				OccupiedBy:  nil,
 				OwnerID:     nil,

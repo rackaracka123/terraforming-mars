@@ -25,6 +25,8 @@ import EndGameOverlay, { TileVPIndicator } from "../../ui/overlay/EndGameOverlay
 import { TileHighlightMode } from "../../game/board/ProjectedHexTile.tsx";
 import ChoiceSelectionPopover from "../../ui/popover/ChoiceSelectionPopover.tsx";
 import CardStorageSelectionPopover from "../../ui/popover/CardStorageSelectionPopover.tsx";
+import TargetPlayerSelectionPopover from "../../ui/popover/TargetPlayerSelectionPopover.tsx";
+import CardResourceSelectionPopover from "../../ui/popover/CardResourceSelectionPopover.tsx";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import { apiService } from "@/services/apiService.ts";
 import { getTabManager } from "@/utils/tabManager.ts";
@@ -150,6 +152,41 @@ export default function GameInterface() {
     cardId: string;
     behaviorIndex: number;
     choiceIndex?: number;
+    resourceType: ResourceType;
+    amount: number;
+  } | null>(null);
+
+  // Target player selection state (for any-player resource/production removal)
+  const [showTargetPlayerSelection, setShowTargetPlayerSelection] = useState(false);
+  const [pendingTargetPlayer, setPendingTargetPlayer] = useState<{
+    cardId: string;
+    payment: CardPaymentDto;
+    choiceIndex?: number;
+    cardStorageTarget?: string;
+    resourceType: ResourceType;
+    amount: number;
+    isSteal: boolean;
+  } | null>(null);
+
+  // Action target player selection state
+  const [showActionTargetPlayerSelection, setShowActionTargetPlayerSelection] = useState(false);
+  const [pendingActionTargetPlayer, setPendingActionTargetPlayer] = useState<{
+    cardId: string;
+    behaviorIndex: number;
+    choiceIndex?: number;
+    cardStorageTarget?: string;
+    resourceType: ResourceType;
+    amount: number;
+    isSteal: boolean;
+  } | null>(null);
+
+  // Card resource selection state (for steal-from-any-card inputs like Predators/Ants)
+  const [showCardResourceSelection, setShowCardResourceSelection] = useState(false);
+  const [pendingCardResourceInput, setPendingCardResourceInput] = useState<{
+    cardId: string;
+    behaviorIndex: number;
+    choiceIndex?: number;
+    cardStorageTarget?: string;
     resourceType: ResourceType;
     amount: number;
   } | null>(null);
@@ -409,6 +446,105 @@ export default function GameInterface() {
     [],
   );
 
+  const needsTargetPlayerSelection = useCallback(
+    (
+      outputs: any[] | undefined,
+    ): { resourceType: ResourceType; amount: number; isSteal: boolean } | null => {
+      if (!outputs) return null;
+
+      // Solo mode: no other players, skip target selection
+      if (!game?.otherPlayers || game.otherPlayers.length === 0) return null;
+
+      const targetableResources = [
+        "credit",
+        "steel",
+        "titanium",
+        "plant",
+        "energy",
+        "heat",
+        "credit-production",
+        "steel-production",
+        "titanium-production",
+        "plant-production",
+        "energy-production",
+        "heat-production",
+      ] as ResourceType[];
+
+      for (const output of outputs) {
+        if (
+          (output.target === "any-player" || output.target === "steal-any-player") &&
+          targetableResources.includes(output.type as ResourceType)
+        ) {
+          return {
+            resourceType: output.type as ResourceType,
+            amount: output.amount || 1,
+            isSteal: output.target === "steal-any-player",
+          };
+        }
+      }
+
+      return null;
+    },
+    [game?.otherPlayers],
+  );
+
+  const needsCardResourceInput = useCallback(
+    (inputs: any[] | undefined): { resourceType: ResourceType; amount: number } | null => {
+      if (!inputs) return null;
+
+      for (const input of inputs) {
+        if (input.target === "steal-from-any-card") {
+          return {
+            resourceType: input.type as ResourceType,
+            amount: input.amount || 1,
+          };
+        }
+      }
+
+      return null;
+    },
+    [],
+  );
+
+  const finalizePlayCard = useCallback(
+    async (
+      cardId: string,
+      payment: CardPaymentDto,
+      choiceIndex?: number,
+      cardStorageTarget?: string,
+      cardForBehaviors?: CardDto,
+    ) => {
+      // Check if any auto-trigger behavior needs target player selection
+      const card = cardForBehaviors || currentPlayer?.cards.find((c) => c.id === cardId);
+      if (card) {
+        const autoTriggerBehaviors = card.behaviors?.filter((b) =>
+          b.triggers?.some((t) => t.type === "auto"),
+        );
+        for (const behavior of autoTriggerBehaviors || []) {
+          const outputs =
+            choiceIndex !== undefined ? behavior.choices?.[choiceIndex]?.outputs : behavior.outputs;
+          const targetInfo = needsTargetPlayerSelection(outputs);
+          if (targetInfo) {
+            setPendingTargetPlayer({
+              cardId,
+              payment,
+              choiceIndex,
+              cardStorageTarget,
+              resourceType: targetInfo.resourceType,
+              amount: targetInfo.amount,
+              isSteal: targetInfo.isSteal,
+            });
+            setShowTargetPlayerSelection(true);
+            return;
+          }
+        }
+      }
+
+      await globalWebSocketManager.playCard(cardId, payment, choiceIndex, cardStorageTarget);
+    },
+    [currentPlayer?.cards, needsTargetPlayerSelection],
+  );
+
   const handlePlayCard = useCallback(
     async (cardId: string) => {
       try {
@@ -478,7 +614,7 @@ export default function GameInterface() {
             if (storageNeeded) {
               if (storageNeeded.target === "self-card") {
                 // Self-card target: backend uses sourceCardID, no popover needed
-                await globalWebSocketManager.playCard(cardId, payment);
+                await finalizePlayCard(cardId, payment, undefined, undefined, card);
               } else {
                 // Show storage selection popover for any-card targets
                 setPendingCardStorage({
@@ -491,7 +627,7 @@ export default function GameInterface() {
               }
             } else {
               // No storage needed, play the card directly
-              await globalWebSocketManager.playCard(cardId, payment);
+              await finalizePlayCard(cardId, payment, undefined, undefined, card);
             }
           }
         }
@@ -500,7 +636,7 @@ export default function GameInterface() {
         throw error; // Re-throw to allow CardFanOverlay to handle the error
       }
     },
-    [currentPlayer?.cards, needsCardStorageSelection],
+    [currentPlayer?.cards, needsCardStorageSelection, finalizePlayCard],
   );
 
   const handleChoiceSelect = useCallback(
@@ -540,7 +676,13 @@ export default function GameInterface() {
           if (storageInfo) {
             if (storageInfo.target === "self-card") {
               // Self-card target: backend uses sourceCardID, no popover needed
-              await globalWebSocketManager.playCard(cardPendingChoice.id, payment, choiceIndex);
+              await finalizePlayCard(
+                cardPendingChoice.id,
+                payment,
+                choiceIndex,
+                undefined,
+                cardPendingChoice,
+              );
               setCardPendingChoice(null);
               setPendingCardBehaviorIndex(0);
             } else {
@@ -558,7 +700,13 @@ export default function GameInterface() {
             }
           } else {
             // No card storage needed, play the card directly
-            await globalWebSocketManager.playCard(cardPendingChoice.id, payment, choiceIndex);
+            await finalizePlayCard(
+              cardPendingChoice.id,
+              payment,
+              choiceIndex,
+              undefined,
+              cardPendingChoice,
+            );
             setCardPendingChoice(null);
             setPendingCardBehaviorIndex(0);
           }
@@ -572,7 +720,13 @@ export default function GameInterface() {
         setPendingCardBehaviorIndex(0);
       }
     },
-    [cardPendingChoice, currentPlayer, pendingCardBehaviorIndex, needsCardStorageSelection],
+    [
+      cardPendingChoice,
+      currentPlayer,
+      pendingCardBehaviorIndex,
+      needsCardStorageSelection,
+      finalizePlayCard,
+    ],
   );
 
   const handleChoiceCancel = useCallback(() => {
@@ -596,14 +750,29 @@ export default function GameInterface() {
 
         if (storageInfo) {
           if (storageInfo.target === "self-card") {
-            // Self-card target: send directly with the source card as target
-            await globalWebSocketManager.playCardAction(
-              actionPendingChoice.cardId,
-              actionPendingChoice.behaviorIndex,
-              choiceIndex,
-              actionPendingChoice.cardId,
-            );
-            setActionPendingChoice(null);
+            // Self-card target: check target player needs
+            const targetInfo = needsTargetPlayerSelection(selectedChoice?.outputs);
+            if (targetInfo) {
+              setPendingActionTargetPlayer({
+                cardId: actionPendingChoice.cardId,
+                behaviorIndex: actionPendingChoice.behaviorIndex,
+                choiceIndex,
+                cardStorageTarget: actionPendingChoice.cardId,
+                resourceType: targetInfo.resourceType,
+                amount: targetInfo.amount,
+                isSteal: targetInfo.isSteal,
+              });
+              setShowActionTargetPlayerSelection(true);
+              setActionPendingChoice(null);
+            } else {
+              await globalWebSocketManager.playCardAction(
+                actionPendingChoice.cardId,
+                actionPendingChoice.behaviorIndex,
+                choiceIndex,
+                actionPendingChoice.cardId,
+              );
+              setActionPendingChoice(null);
+            }
           } else {
             // Show action storage selection popover for any-card targets
             setPendingActionStorage({
@@ -617,13 +786,27 @@ export default function GameInterface() {
             setActionPendingChoice(null);
           }
         } else {
-          // No card storage needed, execute action directly
-          await globalWebSocketManager.playCardAction(
-            actionPendingChoice.cardId,
-            actionPendingChoice.behaviorIndex,
-            choiceIndex,
-          );
-          setActionPendingChoice(null);
+          // No card storage needed, check target player needs
+          const targetInfo = needsTargetPlayerSelection(selectedChoice?.outputs);
+          if (targetInfo) {
+            setPendingActionTargetPlayer({
+              cardId: actionPendingChoice.cardId,
+              behaviorIndex: actionPendingChoice.behaviorIndex,
+              choiceIndex,
+              resourceType: targetInfo.resourceType,
+              amount: targetInfo.amount,
+              isSteal: targetInfo.isSteal,
+            });
+            setShowActionTargetPlayerSelection(true);
+            setActionPendingChoice(null);
+          } else {
+            await globalWebSocketManager.playCardAction(
+              actionPendingChoice.cardId,
+              actionPendingChoice.behaviorIndex,
+              choiceIndex,
+            );
+            setActionPendingChoice(null);
+          }
         }
       } catch (error) {
         console.error(
@@ -633,7 +816,7 @@ export default function GameInterface() {
         setActionPendingChoice(null);
       }
     },
-    [actionPendingChoice, needsCardStorageSelection],
+    [actionPendingChoice, needsCardStorageSelection, needsTargetPlayerSelection],
   );
 
   const handleActionChoiceCancel = useCallback(() => {
@@ -667,10 +850,12 @@ export default function GameInterface() {
         if (storageNeeded) {
           if (storageNeeded.target === "self-card") {
             // Self-card target: backend uses sourceCardID, no popover needed
-            await globalWebSocketManager.playCard(
+            await finalizePlayCard(
               pendingCardPayment.card.id,
               payment,
               pendingCardPayment.choiceIndex,
+              undefined,
+              pendingCardPayment.card,
             );
           } else {
             // Show storage selection popover for any-card targets
@@ -685,10 +870,12 @@ export default function GameInterface() {
           }
         } else {
           // No storage needed, play the card directly
-          await globalWebSocketManager.playCard(
+          await finalizePlayCard(
             pendingCardPayment.card.id,
             payment,
             pendingCardPayment.choiceIndex,
+            undefined,
+            pendingCardPayment.card,
           );
         }
 
@@ -698,7 +885,7 @@ export default function GameInterface() {
         setPendingCardPayment(null);
       }
     },
-    [pendingCardPayment, currentPlayer, needsCardStorageSelection],
+    [pendingCardPayment, currentPlayer, needsCardStorageSelection, finalizePlayCard],
   );
 
   const handlePaymentCancel = useCallback(() => {
@@ -712,6 +899,38 @@ export default function GameInterface() {
 
       try {
         setShowCardStorageSelection(false);
+
+        // Find the card to check for target player needs
+        const card = currentPlayer?.cards.find((c) => c.id === pendingCardStorage.cardId);
+        const autoTriggerBehaviors = card?.behaviors?.filter((b) =>
+          b.triggers?.some((t) => t.type === "auto"),
+        );
+        let targetInfo: { resourceType: ResourceType; amount: number; isSteal: boolean } | null =
+          null;
+        for (const behavior of autoTriggerBehaviors || []) {
+          const outputs =
+            pendingCardStorage.choiceIndex !== undefined
+              ? behavior.choices?.[pendingCardStorage.choiceIndex]?.outputs
+              : behavior.outputs;
+          targetInfo = needsTargetPlayerSelection(outputs);
+          if (targetInfo) break;
+        }
+
+        if (targetInfo) {
+          setPendingTargetPlayer({
+            cardId: pendingCardStorage.cardId,
+            payment: pendingCardStorage.payment,
+            choiceIndex: pendingCardStorage.choiceIndex,
+            cardStorageTarget: targetCardId,
+            resourceType: targetInfo.resourceType,
+            amount: targetInfo.amount,
+            isSteal: targetInfo.isSteal,
+          });
+          setShowTargetPlayerSelection(true);
+          setPendingCardStorage(null);
+          return;
+        }
+
         await globalWebSocketManager.playCard(
           pendingCardStorage.cardId,
           pendingCardStorage.payment,
@@ -727,7 +946,7 @@ export default function GameInterface() {
         setPendingCardStorage(null);
       }
     },
-    [pendingCardStorage],
+    [pendingCardStorage, currentPlayer?.cards, needsTargetPlayerSelection],
   );
 
   const handleCardStorageCancel = useCallback(() => {
@@ -741,6 +960,36 @@ export default function GameInterface() {
 
       try {
         setShowActionStorageSelection(false);
+
+        // Check if the action also needs target player selection
+        // We look at the action's behavior outputs
+        const actionPlayer = currentPlayer;
+        const action = actionPlayer?.actions?.find(
+          (a) =>
+            a.cardId === pendingActionStorage.cardId &&
+            a.behaviorIndex === pendingActionStorage.behaviorIndex,
+        );
+        const outputs =
+          pendingActionStorage.choiceIndex !== undefined
+            ? action?.behavior.choices?.[pendingActionStorage.choiceIndex]?.outputs
+            : action?.behavior.outputs;
+        const targetInfo = needsTargetPlayerSelection(outputs);
+
+        if (targetInfo) {
+          setPendingActionTargetPlayer({
+            cardId: pendingActionStorage.cardId,
+            behaviorIndex: pendingActionStorage.behaviorIndex,
+            choiceIndex: pendingActionStorage.choiceIndex,
+            cardStorageTarget: targetCardId,
+            resourceType: targetInfo.resourceType,
+            amount: targetInfo.amount,
+            isSteal: targetInfo.isSteal,
+          });
+          setShowActionTargetPlayerSelection(true);
+          setPendingActionStorage(null);
+          return;
+        }
+
         await globalWebSocketManager.playCardAction(
           pendingActionStorage.cardId,
           pendingActionStorage.behaviorIndex,
@@ -756,12 +1005,103 @@ export default function GameInterface() {
         setPendingActionStorage(null);
       }
     },
-    [pendingActionStorage],
+    [pendingActionStorage, currentPlayer, needsTargetPlayerSelection],
   );
 
   const handleActionStorageCancel = useCallback(() => {
     setShowActionStorageSelection(false);
     setPendingActionStorage(null);
+  }, []);
+
+  const handleTargetPlayerSelect = useCallback(
+    async (targetPlayerId: string) => {
+      if (!pendingTargetPlayer) return;
+
+      try {
+        setShowTargetPlayerSelection(false);
+        await globalWebSocketManager.playCard(
+          pendingTargetPlayer.cardId,
+          pendingTargetPlayer.payment,
+          pendingTargetPlayer.choiceIndex,
+          pendingTargetPlayer.cardStorageTarget,
+          targetPlayerId,
+        );
+        setPendingTargetPlayer(null);
+      } catch (error) {
+        console.error(
+          `❌ Failed to play card ${pendingTargetPlayer.cardId} with target player ${targetPlayerId}:`,
+          error,
+        );
+        setPendingTargetPlayer(null);
+      }
+    },
+    [pendingTargetPlayer],
+  );
+
+  const handleTargetPlayerCancel = useCallback(() => {
+    setShowTargetPlayerSelection(false);
+    setPendingTargetPlayer(null);
+  }, []);
+
+  const handleActionTargetPlayerSelect = useCallback(
+    async (targetPlayerId: string) => {
+      if (!pendingActionTargetPlayer) return;
+
+      try {
+        setShowActionTargetPlayerSelection(false);
+        await globalWebSocketManager.playCardAction(
+          pendingActionTargetPlayer.cardId,
+          pendingActionTargetPlayer.behaviorIndex,
+          pendingActionTargetPlayer.choiceIndex,
+          pendingActionTargetPlayer.cardStorageTarget,
+          targetPlayerId,
+        );
+        setPendingActionTargetPlayer(null);
+      } catch (error) {
+        console.error(
+          `❌ Failed to play action ${pendingActionTargetPlayer.cardId} with target player ${targetPlayerId}:`,
+          error,
+        );
+        setPendingActionTargetPlayer(null);
+      }
+    },
+    [pendingActionTargetPlayer],
+  );
+
+  const handleActionTargetPlayerCancel = useCallback(() => {
+    setShowActionTargetPlayerSelection(false);
+    setPendingActionTargetPlayer(null);
+  }, []);
+
+  const handleCardResourceSelect = useCallback(
+    async (sourceCardId: string) => {
+      if (!pendingCardResourceInput) return;
+
+      try {
+        setShowCardResourceSelection(false);
+        await globalWebSocketManager.playCardAction(
+          pendingCardResourceInput.cardId,
+          pendingCardResourceInput.behaviorIndex,
+          pendingCardResourceInput.choiceIndex,
+          pendingCardResourceInput.cardStorageTarget,
+          undefined,
+          sourceCardId,
+        );
+        setPendingCardResourceInput(null);
+      } catch (error) {
+        console.error(
+          `Failed to play action ${pendingCardResourceInput.cardId} with source card ${sourceCardId}:`,
+          error,
+        );
+        setPendingCardResourceInput(null);
+      }
+    },
+    [pendingCardResourceInput],
+  );
+
+  const handleCardResourceCancel = useCallback(() => {
+    setShowCardResourceSelection(false);
+    setPendingCardResourceInput(null);
   }, []);
 
   const handleUnplayableCard = useCallback(
@@ -880,35 +1220,84 @@ export default function GameInterface() {
         setActionPendingChoice(action);
         setShowActionChoiceSelection(true);
       } else {
-        // No choices, check if action outputs need card storage selection
-        const storageInfo = needsCardStorageSelection(action.behavior.outputs);
+        // No choices, check if inputs need card resource selection (steal-from-any-card)
+        const cardResourceInfo = needsCardResourceInput(action.behavior.inputs);
 
-        if (storageInfo) {
-          if (storageInfo.target === "self-card") {
-            // Self-card target: skip popover and send directly with the source card as target
-            void globalWebSocketManager.playCardAction(
-              action.cardId,
-              action.behaviorIndex,
-              undefined,
-              action.cardId,
-            );
-          } else {
-            // Show action storage selection popover for any-card targets
-            setPendingActionStorage({
-              cardId: action.cardId,
-              behaviorIndex: action.behaviorIndex,
-              resourceType: storageInfo.resourceType,
-              amount: storageInfo.amount,
-            });
-            setShowActionStorageSelection(true);
-          }
+        if (cardResourceInfo) {
+          // Determine cardStorageTarget for the output side
+          const storageInfo = needsCardStorageSelection(action.behavior.outputs);
+          const cardStorageTarget = storageInfo?.target === "self-card" ? action.cardId : undefined;
+
+          setPendingCardResourceInput({
+            cardId: action.cardId,
+            behaviorIndex: action.behaviorIndex,
+            cardStorageTarget,
+            resourceType: cardResourceInfo.resourceType,
+            amount: cardResourceInfo.amount,
+          });
+          setShowCardResourceSelection(true);
         } else {
-          // No card storage needed, execute action directly
-          void globalWebSocketManager.playCardAction(action.cardId, action.behaviorIndex);
+          // No card resource input, check if action outputs need card storage selection
+          const storageInfo = needsCardStorageSelection(action.behavior.outputs);
+
+          if (storageInfo) {
+            if (storageInfo.target === "self-card") {
+              // Self-card target: skip popover and send directly with the source card as target
+              // Check target player needs
+              const targetInfo = needsTargetPlayerSelection(action.behavior.outputs);
+              if (targetInfo) {
+                setPendingActionTargetPlayer({
+                  cardId: action.cardId,
+                  behaviorIndex: action.behaviorIndex,
+                  cardStorageTarget: action.cardId,
+                  resourceType: targetInfo.resourceType,
+                  amount: targetInfo.amount,
+                  isSteal: targetInfo.isSteal,
+                });
+                setShowActionTargetPlayerSelection(true);
+              } else {
+                void globalWebSocketManager.playCardAction(
+                  action.cardId,
+                  action.behaviorIndex,
+                  undefined,
+                  action.cardId,
+                );
+              }
+            } else {
+              // Show action storage selection popover for any-card targets
+              setPendingActionStorage({
+                cardId: action.cardId,
+                behaviorIndex: action.behaviorIndex,
+                resourceType: storageInfo.resourceType,
+                amount: storageInfo.amount,
+              });
+              setShowActionStorageSelection(true);
+            }
+          } else {
+            // No card storage needed, check target player needs
+            const targetInfo = needsTargetPlayerSelection(action.behavior.outputs);
+            if (targetInfo) {
+              setPendingActionTargetPlayer({
+                cardId: action.cardId,
+                behaviorIndex: action.behaviorIndex,
+                resourceType: targetInfo.resourceType,
+                amount: targetInfo.amount,
+                isSteal: targetInfo.isSteal,
+              });
+              setShowActionTargetPlayerSelection(true);
+            } else {
+              void globalWebSocketManager.playCardAction(action.cardId, action.behaviorIndex);
+            }
+          }
         }
       }
     },
-    [currentPlayer?.pendingTileSelection, needsCardStorageSelection],
+    [
+      currentPlayer?.pendingTileSelection,
+      needsCardStorageSelection,
+      needsTargetPlayerSelection,
+      needsCardResourceInput,
+    ],
   );
 
   // Standard project selection handler
@@ -1830,6 +2219,96 @@ export default function GameInterface() {
           onCardSelect={handleActionStorageSelect}
           onCancel={handleActionStorageCancel}
           isVisible={showActionStorageSelection}
+        />
+      )}
+
+      {/* Target player selection popover (card play flow) */}
+      {pendingTargetPlayer && game && (
+        <TargetPlayerSelectionPopover
+          resourceType={pendingTargetPlayer.resourceType}
+          amount={pendingTargetPlayer.amount}
+          isSteal={pendingTargetPlayer.isSteal}
+          players={[
+            ...(currentPlayer
+              ? [
+                  {
+                    id: currentPlayer.id,
+                    name: currentPlayer.name,
+                    resources: currentPlayer.resources,
+                    production: currentPlayer.production,
+                  },
+                ]
+              : []),
+            ...(game.otherPlayers || []).map((p) => ({
+              id: p.id,
+              name: p.name,
+              resources: p.resources,
+              production: p.production,
+            })),
+          ]}
+          onPlayerSelect={handleTargetPlayerSelect}
+          onCancel={handleTargetPlayerCancel}
+          isVisible={showTargetPlayerSelection}
+        />
+      )}
+
+      {/* Target player selection popover (action flow) */}
+      {pendingActionTargetPlayer && game && (
+        <TargetPlayerSelectionPopover
+          resourceType={pendingActionTargetPlayer.resourceType}
+          amount={pendingActionTargetPlayer.amount}
+          isSteal={pendingActionTargetPlayer.isSteal}
+          players={[
+            ...(currentPlayer
+              ? [
+                  {
+                    id: currentPlayer.id,
+                    name: currentPlayer.name,
+                    resources: currentPlayer.resources,
+                    production: currentPlayer.production,
+                  },
+                ]
+              : []),
+            ...(game.otherPlayers || []).map((p) => ({
+              id: p.id,
+              name: p.name,
+              resources: p.resources,
+              production: p.production,
+            })),
+          ]}
+          onPlayerSelect={handleActionTargetPlayerSelect}
+          onCancel={handleActionTargetPlayerCancel}
+          isVisible={showActionTargetPlayerSelection}
+        />
+      )}
+
+      {/* Card resource selection popover (steal-from-any-card like Predators/Ants) */}
+      {pendingCardResourceInput && (
+        <CardResourceSelectionPopover
+          resourceType={pendingCardResourceInput.resourceType}
+          amount={pendingCardResourceInput.amount}
+          excludeCardId={pendingCardResourceInput.cardId}
+          players={[
+            ...(currentPlayer
+              ? [
+                  {
+                    id: currentPlayer.id,
+                    name: currentPlayer.name,
+                    playedCards: currentPlayer.playedCards,
+                    resourceStorage: currentPlayer.resourceStorage,
+                  },
+                ]
+              : []),
+            ...(game?.otherPlayers || []).map((p) => ({
+              id: p.id,
+              name: p.name,
+              playedCards: p.playedCards,
+              resourceStorage: p.resourceStorage,
+            })),
+          ]}
+          onCardSelect={handleCardResourceSelect}
+          onCancel={handleCardResourceCancel}
+          isVisible={showCardResourceSelection}
         />
       )}
 

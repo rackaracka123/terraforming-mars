@@ -257,6 +257,7 @@ export class WebSocketService {
     payment: CardPaymentDto,
     choiceIndex?: number,
     cardStorageTarget?: string,
+    targetPlayerId?: string,
   ): string {
     return this.send(MessageTypeActionPlayCard, {
       type: "play-card",
@@ -264,6 +265,7 @@ export class WebSocketService {
       payment,
       ...(choiceIndex !== undefined && { choiceIndex }),
       ...(cardStorageTarget !== undefined && { cardStorageTarget }),
+      ...(targetPlayerId !== undefined && { targetPlayerId }),
     });
   }
 
@@ -272,6 +274,8 @@ export class WebSocketService {
     behaviorIndex: number,
     choiceIndex?: number,
     cardStorageTarget?: string,
+    targetPlayerId?: string,
+    sourceCardForInput?: string,
   ): string {
     return this.send(MessageTypeActionCardAction, {
       type: "card-action",
@@ -279,6 +283,8 @@ export class WebSocketService {
       behaviorIndex,
       ...(choiceIndex !== undefined && { choiceIndex }),
       ...(cardStorageTarget !== undefined && { cardStorageTarget }),
+      ...(targetPlayerId !== undefined && { targetPlayerId }),
+      ...(sourceCardForInput !== undefined && { sourceCardForInput }),
     });
   }
 

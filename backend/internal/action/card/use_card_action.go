@@ -41,6 +41,8 @@ func (a *UseCardActionAction) Execute(
 	behaviorIndex int,
 	choiceIndex *int,
 	cardStorageTarget *string,
+	targetPlayerID *string,
+	stealSourceCardID *string,
 ) error {
 	log := a.InitLogger(gameID, playerID).With(
 		zap.String("card_id", cardID),
@@ -52,6 +54,12 @@ func (a *UseCardActionAction) Execute(
 	}
 	if cardStorageTarget != nil {
 		log = log.With(zap.String("card_storage_target", *cardStorageTarget))
+	}
+	if targetPlayerID != nil {
+		log = log.With(zap.String("target_player_id", *targetPlayerID))
+	}
+	if stealSourceCardID != nil {
+		log = log.With(zap.String("source_card_for_input", *stealSourceCardID))
 	}
 	log.Info("🎯 Player attempting to use card action")
 
@@ -94,10 +102,16 @@ func (a *UseCardActionAction) Execute(
 
 	applier := gamecards.NewBehaviorApplier(p, g, cardAction.CardName, log).
 		WithSourceCardID(cardID).
-		WithCardRegistry(a.CardRegistry()).
-		WithSourceBehaviorIndex(behaviorIndex)
+		WithSourceBehaviorIndex(behaviorIndex).
+		WithCardRegistry(a.CardRegistry())
 	if cardStorageTarget != nil {
 		applier = applier.WithTargetCardID(*cardStorageTarget)
+	}
+	if targetPlayerID != nil {
+		applier = applier.WithTargetPlayerID(*targetPlayerID)
+	}
+	if stealSourceCardID != nil {
+		applier = applier.WithStealSourceCardID(*stealSourceCardID)
 	}
 
 	inputs, outputs := cardAction.Behavior.ExtractInputsOutputs(choiceIndex)

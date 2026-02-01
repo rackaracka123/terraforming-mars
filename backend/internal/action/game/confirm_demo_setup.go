@@ -34,7 +34,7 @@ func NewConfirmDemoSetupAction(
 	return &ConfirmDemoSetupAction{
 		gameRepo:     gameRepo,
 		cardRegistry: cardRegistry,
-		corpProc:     gamecards.NewCorporationProcessor(logger),
+		corpProc:     gamecards.NewCorporationProcessor(cardRegistry, logger),
 		logger:       logger,
 	}
 }
@@ -128,7 +128,7 @@ func (a *ConfirmDemoSetupAction) Execute(
 				zap.Int("behavior_index", effect.BehaviorIndex))
 
 			// Subscribe trigger effects to relevant events
-			action.SubscribePassiveEffectToEvents(ctx, g, p, effect, log)
+			action.SubscribePassiveEffectToEvents(ctx, g, p, effect, log, a.cardRegistry)
 		}
 
 		// Register corporation manual actions
