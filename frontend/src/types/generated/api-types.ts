@@ -1245,6 +1245,7 @@ export const MessageTypeActionConfirmProductionCards: MessageType =
   "action.card.confirm-production-cards";
 export const MessageTypeActionCardDrawConfirmed: MessageType = "action.card.card-draw-confirmed";
 export const MessageTypeAdminCommand: MessageType = "admin-command";
+export const MessageTypePlayerTakeover: MessageType = "player-takeover";
 
 //////////
 // source: websocket_dto.go
@@ -1330,4 +1331,11 @@ export interface ProductionPhaseStartedPayload {
 export interface ConfirmStartingCardSelectionMessage {
   gameId: string;
   playerId: string;
+}
+/**
+ * PlayerTakeoverPayload contains data for player takeover requests
+ */
+export interface PlayerTakeoverPayload {
+  gameId: string;
+  targetPlayerId: string;
 }
