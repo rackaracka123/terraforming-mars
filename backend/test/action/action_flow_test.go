@@ -57,7 +57,7 @@ func TestPlayCardConsumesAction(t *testing.T) {
 	testutil.SetPlayerCredits(context.Background(), p, 100)
 	p.Hand().AddCard("card-power-plant")
 
-	playAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{Credits: 4}
 
 	err := playAction.Execute(context.Background(), testGame.ID(), playerID, "card-power-plant", payment, nil, nil, nil)
@@ -79,7 +79,7 @@ func TestZeroActionsBlocksCardPlay(t *testing.T) {
 	testutil.SetPlayerCredits(context.Background(), p, 100)
 	p.Hand().AddCard("card-power-plant")
 
-	playAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{Credits: 4}
 
 	err = playAction.Execute(context.Background(), testGame.ID(), playerID, "card-power-plant", payment, nil, nil, nil)
@@ -96,7 +96,7 @@ func TestZeroActionsBlocksStandardProject(t *testing.T) {
 	p, _ := testGame.GetPlayer(playerID)
 	testutil.SetPlayerCredits(context.Background(), p, 100)
 
-	buildAction := spAction.NewBuildPowerPlantAction(repo, cardRegistry, logger)
+	buildAction := spAction.NewBuildPowerPlantAction(repo, cardRegistry, nil, logger)
 
 	err = buildAction.Execute(context.Background(), testGame.ID(), playerID)
 	testutil.AssertError(t, err, "Should fail with 0 actions remaining")
@@ -112,7 +112,7 @@ func TestZeroActionsBlocksConvertHeat(t *testing.T) {
 	p, _ := testGame.GetPlayer(playerID)
 	testutil.SetPlayerHeat(context.Background(), p, 20)
 
-	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, nil, logger)
 
 	err = convertAction.Execute(context.Background(), testGame.ID(), playerID)
 	testutil.AssertError(t, err, "Should fail with 0 actions remaining")
@@ -127,7 +127,7 @@ func TestAutoAdvanceAfterSecondAction(t *testing.T) {
 
 	// Play first card
 	p1.Hand().AddCard("card-power-plant")
-	playAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{Credits: 4}
 
 	err := playAction.Execute(context.Background(), testGame.ID(), player1ID, "card-power-plant", payment, nil, nil, nil)
@@ -158,7 +158,7 @@ func TestSoloUnlimitedActionsNotBlocked(t *testing.T) {
 
 	// Play card - should succeed and remain unlimited
 	p.Hand().AddCard("card-power-plant")
-	playAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{Credits: 4}
 
 	err := playAction.Execute(context.Background(), testGame.ID(), playerID, "card-power-plant", payment, nil, nil, nil)
@@ -252,7 +252,7 @@ func TestAutoAdvanceGrantsUnlimitedActionsToLastNonPassedPlayer(t *testing.T) {
 
 	// Play first card
 	p1.Hand().AddCard("card-power-plant")
-	playAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{Credits: 4}
 
 	err := playAction.Execute(context.Background(), testGame.ID(), player1ID, "card-power-plant", payment, nil, nil, nil)

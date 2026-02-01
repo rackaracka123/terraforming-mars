@@ -40,7 +40,7 @@ func TestPredatorsStealAnimalFromOtherPlayer(t *testing.T) {
 		},
 	})
 
-	useAction := cardAction.NewUseCardActionAction(repo, cardRegistry, logger)
+	useAction := cardAction.NewUseCardActionAction(repo, cardRegistry, nil, logger)
 	ctx := context.Background()
 
 	err := useAction.Execute(ctx, testGame.ID(), playerID, predatorsID, 0, nil, &predatorsID, nil, &targetCardID)
@@ -79,7 +79,7 @@ func TestPredatorsStealFromOwnCard(t *testing.T) {
 		},
 	})
 
-	useAction := cardAction.NewUseCardActionAction(repo, cardRegistry, logger)
+	useAction := cardAction.NewUseCardActionAction(repo, cardRegistry, nil, logger)
 	ctx := context.Background()
 
 	err := useAction.Execute(ctx, testGame.ID(), playerID, predatorsID, 0, nil, &predatorsID, nil, &targetCardID)
@@ -114,7 +114,7 @@ func TestPredatorsSkipsStealWithNoSourceCard(t *testing.T) {
 		},
 	})
 
-	useAction := cardAction.NewUseCardActionAction(repo, cardRegistry, logger)
+	useAction := cardAction.NewUseCardActionAction(repo, cardRegistry, nil, logger)
 	ctx := context.Background()
 
 	err := useAction.Execute(ctx, testGame.ID(), playerID, predatorsID, 0, nil, &predatorsID, nil, nil)
@@ -153,7 +153,7 @@ func TestPredatorsStealFromCardWithZeroAnimals(t *testing.T) {
 		},
 	})
 
-	useAction := cardAction.NewUseCardActionAction(repo, cardRegistry, logger)
+	useAction := cardAction.NewUseCardActionAction(repo, cardRegistry, nil, logger)
 	ctx := context.Background()
 
 	err := useAction.Execute(ctx, testGame.ID(), playerID, predatorsID, 0, nil, &predatorsID, nil, &targetCardID)
@@ -193,7 +193,7 @@ func TestAntsStealMicrobeFromOtherPlayer(t *testing.T) {
 		},
 	})
 
-	useAction := cardAction.NewUseCardActionAction(repo, cardRegistry, logger)
+	useAction := cardAction.NewUseCardActionAction(repo, cardRegistry, nil, logger)
 	ctx := context.Background()
 
 	err := useAction.Execute(ctx, testGame.ID(), playerID, antsID, 0, nil, &antsID, nil, &targetCardID)

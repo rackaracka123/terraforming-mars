@@ -37,7 +37,7 @@ func TestPlayCardAction_AsteroidRemovesPlantsFromTargetPlayer(t *testing.T) {
 		shared.ResourcePlant: 5,
 	})
 
-	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{Credits: 14}
 	targetID := target.ID()
 	err := playCardAction.Execute(ctx, testGame.ID(), attacker.ID(), "card-asteroid", payment, nil, nil, &targetID)
@@ -73,7 +73,7 @@ func TestPlayCardAction_AsteroidSoloMode_SkipsTargetPlayer(t *testing.T) {
 	})
 	player.Hand().AddCard("card-asteroid")
 
-	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{Credits: 14}
 
 	// No targetPlayerID = solo mode, skip the any-player output
@@ -115,7 +115,7 @@ func TestPlayCardAction_AsteroidPartialRemoval(t *testing.T) {
 		shared.ResourcePlant: 1,
 	})
 
-	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{Credits: 14}
 	targetID := target.ID()
 	err := playCardAction.Execute(ctx, testGame.ID(), attacker.ID(), "card-asteroid", payment, nil, nil, &targetID)
@@ -146,7 +146,7 @@ func TestPlayCardAction_InvalidTargetPlayerID(t *testing.T) {
 	})
 	attacker.Hand().AddCard("card-asteroid")
 
-	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{Credits: 14}
 	invalidID := "non-existent-player"
 	err := playCardAction.Execute(ctx, testGame.ID(), attacker.ID(), "card-asteroid", payment, nil, nil, &invalidID)
@@ -184,7 +184,7 @@ func TestPlayCardAction_AsteroidMiningConsortiumDecreasesTargetProduction(t *tes
 		shared.ResourceTitaniumProduction: 2,
 	})
 
-	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{Credits: 13}
 	targetID := target.ID()
 	err := playCardAction.Execute(ctx, testGame.ID(), attacker.ID(), "card-asteroid-mining-consortium", payment, nil, nil, &targetID)
@@ -225,7 +225,7 @@ func TestPlayCardAction_HiredRaidersStealsSteelFromTarget(t *testing.T) {
 		shared.ResourceSteel: 5,
 	})
 
-	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{Credits: 1}
 	targetID := target.ID()
 	choiceIndex := 0
@@ -260,7 +260,7 @@ func TestPlayCardAction_HiredRaidersSoloMode(t *testing.T) {
 	})
 	player.Hand().AddCard("card-hired-raiders")
 
-	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{Credits: 1}
 	choiceIndex := 0
 	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-hired-raiders", payment, &choiceIndex, nil, nil)
@@ -297,7 +297,7 @@ func TestPlayCardAction_StealPartialAmount(t *testing.T) {
 		shared.ResourceSteel: 1,
 	})
 
-	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{Credits: 1}
 	targetID := target.ID()
 	choiceIndex := 0

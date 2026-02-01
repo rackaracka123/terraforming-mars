@@ -57,6 +57,7 @@ func (a *BehaviorApplier) WithTargetCardID(cardID string) *BehaviorApplier {
 // WithCardRegistry sets the card registry for tag counting in scaled outputs
 func (a *BehaviorApplier) WithCardRegistry(registry CardRegistryInterface) *BehaviorApplier {
 	a.cardRegistry = registry
+	return a
 }
 
 // WithTargetPlayerID sets the target player ID for any-player resource/production removal
@@ -74,12 +75,6 @@ func (a *BehaviorApplier) WithStealSourceCardID(cardID string) *BehaviorApplier 
 // WithSourceBehaviorIndex sets the source behavior index for card draw selection tracking
 func (a *BehaviorApplier) WithSourceBehaviorIndex(behaviorIndex int) *BehaviorApplier {
 	a.sourceBehaviorIdx = behaviorIndex
-	return a
-}
-
-// WithCardRegistry sets the card registry for per condition tag counting
-func (a *BehaviorApplier) WithCardRegistry(cr CardRegistryInterface) *BehaviorApplier {
-	a.cardRegistry = cr
 	return a
 }
 
@@ -275,6 +270,9 @@ func (a *BehaviorApplier) countPerCondition(per *shared.PerCondition) int {
 
 	// Handle tag counting
 	if per.Tag != nil && a.cardRegistry != nil {
+		if per.Target != nil && *per.Target == "any-player" && a.game != nil {
+			return CountAllPlayersTagsByType(a.game.GetAllPlayers(), a.cardRegistry, *per.Tag)
+		}
 		return CountPlayerTagsByType(a.player, a.cardRegistry, *per.Tag)
 	}
 
@@ -378,46 +376,6 @@ func (a *BehaviorApplier) ApplyCardDrawOutputs(
 		zap.Int("max_buy", buyAmount))
 
 	return true, nil
-}
-
-// resolvePerCondition computes the count for a per condition.
-// Returns the raw count of matching items (before dividing by per.Amount).
-func (a *BehaviorApplier) resolvePerCondition(per *shared.PerCondition) int {
-	switch per.ResourceType {
-	case shared.ResourceCityTile, shared.ResourceOceanTile, shared.ResourceGreeneryTile:
-		if a.game == nil {
-			return 0
-		}
-		return CountTilesOfTypeByLocation(a.game.Board(), per.ResourceType, per.Location)
-
-	case shared.ResourceType("tag"):
-		if per.Tag == nil || a.player == nil || a.cardRegistry == nil {
-			return 0
-		}
-		target := "self-player"
-		if per.Target != nil {
-			target = *per.Target
-		}
-		if target == "any-player" && a.game != nil {
-			return CountAllPlayersTagsByType(a.game.GetAllPlayers(), a.cardRegistry, *per.Tag)
-		}
-		return CountPlayerTagsByType(a.player, a.cardRegistry, *per.Tag)
-
-	case shared.ResourceFloater, shared.ResourceAnimal, shared.ResourceMicrobe:
-		if a.player == nil {
-			return 0
-		}
-		target := ""
-		if per.Target != nil {
-			target = *per.Target
-		}
-		if target == "self-card" && a.sourceCardID != "" {
-			return a.player.Resources().GetCardStorage(a.sourceCardID)
-		}
-		return 0
-	}
-
-	return 0
 }
 
 // stealAnyPlayerResource removes resources from the target player and adds them to self
@@ -568,24 +526,6 @@ func (a *BehaviorApplier) applyOutput(
 	output shared.ResourceCondition,
 	log *zap.Logger,
 ) error {
-	if output.Per != nil {
-		count := a.resolvePerCondition(output.Per)
-		multiplier := count / output.Per.Amount
-		if multiplier <= 0 {
-			log.Debug("⏭️ Skipping output: per condition multiplier is zero",
-				zap.String("per_type", string(output.Per.ResourceType)),
-				zap.Int("count", count),
-				zap.Int("per_amount", output.Per.Amount))
-			return nil
-		}
-		output.Amount *= multiplier
-		log.Debug("📊 Applied per condition multiplier",
-			zap.String("per_type", string(output.Per.ResourceType)),
-			zap.Int("count", count),
-			zap.Int("multiplier", multiplier),
-			zap.Int("final_amount", output.Amount))
-	}
-
 	switch output.ResourceType {
 	case shared.ResourceCredit:
 		if output.Target == "steal-any-player" {
