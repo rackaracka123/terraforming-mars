@@ -70,3 +70,9 @@ type ConfirmStartingCardSelectionMessage struct {
 	GameID   string `json:"gameId" ts:"string"`
 	PlayerID string `json:"playerId" ts:"string"`
 }
+
+// PlayerTakeoverPayload contains data for player takeover requests
+type PlayerTakeoverPayload struct {
+	GameID         string `json:"gameId" ts:"string"`
+	TargetPlayerID string `json:"targetPlayerId" ts:"string"`
+}
