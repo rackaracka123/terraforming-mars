@@ -4,6 +4,7 @@ import { apiService } from "../../services/apiService";
 import { globalWebSocketManager } from "../../services/globalWebSocketManager";
 import { GameSettingsDto } from "../../types/generated/api-types.ts";
 import { skyboxCache } from "../../services/SkyboxCache.ts";
+import { saveGameSession } from "../../utils/sessionStorage.ts";
 import LoadingOverlay from "../game/view/LoadingOverlay.tsx";
 import GameIcon from "../ui/display/GameIcon.tsx";
 import InfoTooltip from "../ui/display/InfoTooltip.tsx";
@@ -19,6 +20,7 @@ const CreateGamePage: React.FC = () => {
   const [skyboxReady, setSkyboxReady] = useState(false);
   const [isFadedIn, setIsFadedIn] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [isCreatingDemo, setIsCreatingDemo] = useState(false);
 
   // Check if skybox is already loaded on component mount
   useEffect(() => {
@@ -133,7 +135,6 @@ const CreateGamePage: React.FC = () => {
   const handlePackToggle = (pack: string) => {
     setSelectedPacks((prev) => {
       if (prev.includes(pack)) {
-        // Don't allow deselecting if it's the only pack selected
         if (prev.length === 1) {
           return prev;
         }
@@ -142,6 +143,40 @@ const CreateGamePage: React.FC = () => {
         return [...prev, pack];
       }
     });
+  };
+
+  const handleDemoGame = async () => {
+    if (isCreatingDemo) return;
+
+    setIsCreatingDemo(true);
+    setError(null);
+
+    try {
+      const result = await apiService.createDemoLobby({
+        playerCount: 5,
+        playerName: "You",
+      });
+
+      saveGameSession({
+        gameId: result.game.id,
+        playerId: result.playerId,
+        playerName: "You",
+      });
+
+      await globalWebSocketManager.initialize();
+      await globalWebSocketManager.playerConnect("You", result.game.id, result.playerId);
+
+      navigate("/game", {
+        state: {
+          game: result.game,
+          playerId: result.playerId,
+          playerName: "You",
+        },
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create demo game");
+      setIsCreatingDemo(false);
+    }
   };
 
   const getLoadingMessage = () => {
@@ -176,6 +211,9 @@ const CreateGamePage: React.FC = () => {
                   onKeyDown={handleKeyDown}
                   placeholder="Enter your name"
                   disabled={isLoading}
+                  spellCheck={false}
+                  autoComplete="off"
+                  autoCorrect="off"
                   className="flex-1 bg-transparent border-none py-5 px-6 text-white text-lg outline-none placeholder:text-white/50 disabled:opacity-60"
                   autoFocus
                   maxLength={50}
@@ -193,13 +231,23 @@ const CreateGamePage: React.FC = () => {
                 </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowMore(!showMore)}
-                className="mt-3 text-white/50 text-sm py-1 px-3 cursor-pointer hover:text-white/70 transition-colors bg-transparent border-none mx-auto block"
-              >
-                Preferences
-              </button>
+              <div className="flex items-center justify-center gap-6 mt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowMore(!showMore)}
+                  className="text-white/50 text-sm py-1 px-3 cursor-pointer hover:text-white/70 transition-colors bg-transparent border-none"
+                >
+                  Settings
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDemoGame()}
+                  disabled={isCreatingDemo}
+                  className="text-white/50 text-sm py-1 px-3 cursor-pointer hover:text-white/70 transition-colors bg-transparent border-none disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isCreatingDemo ? "Creating..." : "Demo game"}
+                </button>
+              </div>
 
               <div
                 className={`absolute left-0 right-0 top-full mt-1 z-10 bg-space-black-darker/95 border border-white/20 rounded-xl p-4 transition-all duration-300 ${showMore ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none"}`}
