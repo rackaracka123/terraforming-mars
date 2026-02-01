@@ -1193,6 +1193,7 @@ export const MessageTypePlayerDisconnected: MessageType = "player-disconnected";
 export const MessageTypeError: MessageType = "error";
 export const MessageTypeFullState: MessageType = "full-state";
 export const MessageTypeProductionPhaseStarted: MessageType = "production-phase-started";
+export const MessageTypeLogUpdate: MessageType = "log-update";
 export const MessageTypeActionSellPatents: MessageType = "action.standard-project.sell-patents";
 export const MessageTypeActionConfirmSellPatents: MessageType = "action.standard-project.confirm-sell-patents";
 export const MessageTypeActionLaunchAsteroid: MessageType = "action.standard-project.launch-asteroid";
@@ -1401,6 +1402,12 @@ export interface ProductionPhaseStartedPayload {
   generation: number /* int */;
   playersData: PlayerProductionData[];
   game: GameDto;
+}
+/**
+ * LogUpdatePayload contains game log entries sent via WebSocket
+ */
+export interface LogUpdatePayload {
+  logs: StateDiffDto[];
 }
 /**
  * ConfirmStartingCardSelectionMessage represents confirm starting card selection message

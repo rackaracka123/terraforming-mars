@@ -14,6 +14,7 @@ const (
 	MessageTypeError                  MessageType = "error"
 	MessageTypeFullState              MessageType = "full-state"
 	MessageTypeProductionPhaseStarted MessageType = "production-phase-started"
+	MessageTypeLogUpdate              MessageType = "log-update"
 
 	MessageTypeActionSellPatents        MessageType = "action.standard-project.sell-patents"
 	MessageTypeActionConfirmSellPatents MessageType = "action.standard-project.confirm-sell-patents"

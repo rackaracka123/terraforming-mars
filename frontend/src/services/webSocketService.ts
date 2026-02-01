@@ -5,10 +5,12 @@ import {
   ErrorPayload,
   FullStatePayload,
   GameUpdatedPayload,
+  LogUpdatePayload,
   MessageType,
   MessageTypeError,
   MessageTypeFullState,
   MessageTypeGameUpdated,
+  MessageTypeLogUpdate,
   MessageTypePlayerConnect,
   MessageTypePlayerConnected,
   MessageTypePlayerDisconnected,
@@ -166,6 +168,11 @@ export class WebSocketService {
         const statePayload = message.payload as FullStatePayload;
         this.currentPlayerId = statePayload.playerId;
         this.emit("full-state", statePayload);
+        break;
+      }
+      case MessageTypeLogUpdate: {
+        const logPayload = message.payload as LogUpdatePayload;
+        this.emit("log-update", logPayload.logs);
         break;
       }
       default:

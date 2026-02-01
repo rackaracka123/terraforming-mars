@@ -89,6 +89,9 @@ func (h *JoinGameHandler) HandleMessage(ctx context.Context, connection *core.Co
 	h.broadcaster.BroadcastGameState(gameID, nil)
 	log.Debug("📡 Broadcasted game state to all players")
 
+	h.broadcaster.SendInitialLogs(gameID, playerID)
+	log.Debug("📜 Sent initial logs to player")
+
 	response := dto.WebSocketMessage{
 		Type:   dto.MessageTypePlayerConnected,
 		GameID: gameID,

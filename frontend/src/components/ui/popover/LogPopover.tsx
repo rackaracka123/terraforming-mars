@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
   StateDiffDto,
@@ -8,6 +8,7 @@ import {
   CalculatedOutputDto,
 } from "@/types/generated/api-types.ts";
 import { apiService } from "@/services/apiService.ts";
+import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import SimpleGameCard from "@/components/ui/cards/SimpleGameCard.tsx";
 import GameIcon from "@/components/ui/display/GameIcon.tsx";
 import VictoryPointIcon from "@/components/ui/display/VictoryPointIcon.tsx";
@@ -270,32 +271,38 @@ const LogPopover: React.FC<LogPopoverProps> = ({
     void loadCards();
   }, []);
 
-  useEffect(() => {
-    const fetchLogs = async () => {
-      if (!gameId || !isVisible) return;
-
-      setIsLoading(true);
-      try {
-        const newLogs = await apiService.getGameLogs(gameId, lastSequenceRef.current);
-        if (newLogs.length > 0) {
-          setLogs((prev) => [...prev, ...newLogs]);
-          lastSequenceRef.current = newLogs[newLogs.length - 1].sequenceNumber;
-        }
-      } catch (error) {
-        console.error("Failed to fetch logs:", error);
-      } finally {
-        setIsLoading(false);
+  // Handle incoming log updates via WebSocket
+  const handleLogUpdate = useCallback((newLogs: StateDiffDto[]) => {
+    setLogs((prev) => {
+      // Deduplicate by sequence number
+      const existingSeqs = new Set(prev.map((l) => l.sequenceNumber));
+      const uniqueNewLogs = newLogs.filter((l) => !existingSeqs.has(l.sequenceNumber));
+      if (uniqueNewLogs.length === 0) return prev;
+      return [...prev, ...uniqueNewLogs];
+    });
+    if (newLogs.length > 0) {
+      const maxSeq = Math.max(...newLogs.map((l) => l.sequenceNumber));
+      if (maxSeq > lastSequenceRef.current) {
+        lastSequenceRef.current = maxSeq;
       }
+    }
+    setIsLoading(false);
+  }, []);
+
+  // Subscribe to WebSocket log updates
+  useEffect(() => {
+    globalWebSocketManager.on("log-update", handleLogUpdate);
+    return () => {
+      globalWebSocketManager.off("log-update", handleLogUpdate);
     };
+  }, [handleLogUpdate]);
 
-    void fetchLogs();
-
-    const interval = setInterval(() => {
-      void fetchLogs();
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [gameId, isVisible]);
+  // Clear logs when game changes
+  useEffect(() => {
+    setLogs([]);
+    lastSequenceRef.current = 0;
+    setIsLoading(true);
+  }, [gameId]);
 
   return (
     <GamePopover

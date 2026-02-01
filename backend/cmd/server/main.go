@@ -83,7 +83,7 @@ func main() {
 	log.Info("🔌 WebSocket hub initialized")
 
 	// ========== Initialize Game State Broadcaster (Automatic Broadcasting) ==========
-	broadcaster := wsHandler.NewBroadcaster(gameRepo, hub, cardRegistry)
+	broadcaster := wsHandler.NewBroadcaster(gameRepo, stateRepo, hub, cardRegistry)
 	log.Info("📡 Game state broadcaster initialized (provides automatic broadcasting for all games)")
 
 	// ========== Initialize Game Actions ==========
