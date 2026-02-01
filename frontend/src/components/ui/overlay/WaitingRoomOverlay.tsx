@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { GameDto } from "../../../types/generated/api-types.ts";
 import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
@@ -11,6 +11,11 @@ interface WaitingRoomOverlayProps {
   isExiting?: boolean;
 }
 
+interface LeavingPlayer {
+  id: string;
+  name: string;
+}
+
 const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
   game,
   playerId,
@@ -18,7 +23,7 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
 }) => {
   const navigate = useNavigate();
   const isHost = game.hostPlayerId === playerId;
-  const joinUrl = `${window.location.origin}/join?code=${game.id}`;
+  const joinUrl = `${window.location.origin}/game/${game.id}?type=join`;
 
   const handleStartGame = () => {
     if (!isHost) return;
@@ -26,6 +31,59 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
   };
 
   const playerCount = (game.currentPlayer ? 1 : 0) + (game.otherPlayers?.length || 0);
+
+  const allPlayers = React.useMemo(() => {
+    const players: { id: string; name: string }[] = [];
+    if (game.currentPlayer)
+      players.push({ id: game.currentPlayer.id, name: game.currentPlayer.name });
+    game.otherPlayers?.forEach((p) => players.push({ id: p.id, name: p.name }));
+    return players;
+  }, [game.currentPlayer, game.otherPlayers]);
+
+  const currentPlayerIds = React.useMemo(() => new Set(allPlayers.map((p) => p.id)), [allPlayers]);
+
+  const prevPlayerIdsRef = useRef<Set<string>>(new Set());
+  const [newPlayerIds, setNewPlayerIds] = useState<Set<string>>(new Set());
+  const [leavingPlayers, setLeavingPlayers] = useState<LeavingPlayer[]>([]);
+  const prevPlayersRef = useRef<Map<string, string>>(new Map());
+
+  const handleAnimationEnd = useCallback((id: string) => {
+    setNewPlayerIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    const prevIds = prevPlayerIdsRef.current;
+
+    const joined = new Set<string>();
+    for (const id of currentPlayerIds) {
+      if (!prevIds.has(id)) joined.add(id);
+    }
+
+    const left: LeavingPlayer[] = [];
+    for (const id of prevIds) {
+      if (!currentPlayerIds.has(id)) {
+        left.push({ id, name: prevPlayersRef.current.get(id) ?? "Player" });
+      }
+    }
+
+    if (joined.size > 0) setNewPlayerIds(joined);
+
+    if (left.length > 0) {
+      setLeavingPlayers((prev) => [...prev, ...left]);
+      setTimeout(() => {
+        setLeavingPlayers((prev) => prev.filter((p) => !left.some((l) => l.id === p.id)));
+      }, 300);
+    }
+
+    prevPlayerIdsRef.current = new Set(currentPlayerIds);
+    const nameMap = new Map<string, string>();
+    allPlayers.forEach((p) => nameMap.set(p.id, p.name));
+    prevPlayersRef.current = nameMap;
+  }, [currentPlayerIds, allPlayers]);
 
   const animationClass = isExiting
     ? "animate-[lobbyExit_800ms_ease-out_forwards]"
@@ -61,6 +119,14 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
               opacity: 0;
             }
           }
+          @keyframes playerSlideIn {
+            from { opacity: 0; transform: translateY(-8px) scale(0.95); max-height: 0; }
+            to { opacity: 1; transform: translateY(0) scale(1); max-height: 60px; }
+          }
+          @keyframes playerSlideOut {
+            from { opacity: 1; transform: translateY(0) scale(1); max-height: 60px; }
+            to { opacity: 0; transform: translateY(-8px) scale(0.95); max-height: 0; padding: 0; margin: 0; }
+          }
         `}</style>
 
           {/* Header */}
@@ -95,26 +161,52 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
                         .filter((player) => player !== undefined)
                     : Array.from(playerMap.values());
 
-                return orderedPlayers.map((player) => (
-                  <div
-                    key={player.id}
-                    className="flex justify-between items-center py-2 px-3 bg-black/40 rounded-lg border border-space-blue-600/50"
-                  >
-                    <span className="text-white text-sm font-medium">{player.name}</span>
-                    <div className="flex gap-1.5 items-center">
-                      {player.id === playerId && (
-                        <span className="bg-space-blue-800 text-white py-0.5 px-1.5 rounded text-[10px] font-bold uppercase">
-                          You
-                        </span>
-                      )}
-                      {game.hostPlayerId === player.id && (
-                        <span className="bg-gradient-to-br from-[#ffa500] to-[#ff8c00] text-white py-0.5 px-1.5 rounded text-[10px] font-bold uppercase">
-                          Host
-                        </span>
-                      )}
+                const playerItems = orderedPlayers.map((player) => ({
+                  id: player.id,
+                  name: player.name,
+                  isLeaving: false,
+                }));
+
+                leavingPlayers.forEach((lp) => {
+                  if (!playerMap.has(lp.id)) {
+                    playerItems.push({ id: lp.id, name: lp.name, isLeaving: true });
+                  }
+                });
+
+                return playerItems.map((player) => {
+                  let animClass = "";
+                  if (player.isLeaving) {
+                    animClass = "animate-[playerSlideOut_0.3s_ease-out_forwards] overflow-hidden";
+                  } else if (newPlayerIds.has(player.id)) {
+                    animClass = "animate-[playerSlideIn_0.3s_ease-out]";
+                  }
+
+                  return (
+                    <div
+                      key={player.id}
+                      className={`flex justify-between items-center py-2 px-3 bg-black/40 rounded-lg border border-space-blue-600/50 ${animClass}`}
+                      onAnimationEnd={
+                        !player.isLeaving && newPlayerIds.has(player.id)
+                          ? () => handleAnimationEnd(player.id)
+                          : undefined
+                      }
+                    >
+                      <span className="text-white text-sm font-medium">{player.name}</span>
+                      <div className="flex gap-1.5 items-center">
+                        {player.id === playerId && (
+                          <span className="bg-space-blue-800 text-white py-0.5 px-1.5 rounded text-[10px] font-bold uppercase">
+                            You
+                          </span>
+                        )}
+                        {game.hostPlayerId === player.id && (
+                          <span className="bg-gradient-to-br from-[#ffa500] to-[#ff8c00] text-white py-0.5 px-1.5 rounded text-[10px] font-bold uppercase">
+                            Host
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ));
+                  );
+                });
               })()}
             </div>
 
