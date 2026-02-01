@@ -60,7 +60,7 @@ func TestPlayCardConsumesAction(t *testing.T) {
 	playAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
 	payment := cardAction.PaymentRequest{Credits: 4}
 
-	err := playAction.Execute(context.Background(), testGame.ID(), playerID, "card-power-plant", payment, nil, nil)
+	err := playAction.Execute(context.Background(), testGame.ID(), playerID, "card-power-plant", payment, nil, nil, nil)
 	testutil.AssertNoError(t, err, "Playing card should succeed")
 
 	turn := testGame.CurrentTurn()
@@ -82,7 +82,7 @@ func TestZeroActionsBlocksCardPlay(t *testing.T) {
 	playAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
 	payment := cardAction.PaymentRequest{Credits: 4}
 
-	err = playAction.Execute(context.Background(), testGame.ID(), playerID, "card-power-plant", payment, nil, nil)
+	err = playAction.Execute(context.Background(), testGame.ID(), playerID, "card-power-plant", payment, nil, nil, nil)
 	testutil.AssertError(t, err, "Should fail with 0 actions remaining")
 }
 
@@ -130,7 +130,7 @@ func TestAutoAdvanceAfterSecondAction(t *testing.T) {
 	playAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
 	payment := cardAction.PaymentRequest{Credits: 4}
 
-	err := playAction.Execute(context.Background(), testGame.ID(), player1ID, "card-power-plant", payment, nil, nil)
+	err := playAction.Execute(context.Background(), testGame.ID(), player1ID, "card-power-plant", payment, nil, nil, nil)
 	testutil.AssertNoError(t, err, "First card play should succeed")
 	testutil.AssertEqual(t, 1, testGame.CurrentTurn().ActionsRemaining(), "Should have 1 action after first play")
 	testutil.AssertEqual(t, player1ID, testGame.CurrentTurn().PlayerID(), "Should still be player 1's turn")
@@ -138,7 +138,7 @@ func TestAutoAdvanceAfterSecondAction(t *testing.T) {
 	// Play second card
 	p1.Hand().AddCard("card-asteroid")
 	payment2 := cardAction.PaymentRequest{Credits: 14}
-	err = playAction.Execute(context.Background(), testGame.ID(), player1ID, "card-asteroid", payment2, nil, nil)
+	err = playAction.Execute(context.Background(), testGame.ID(), player1ID, "card-asteroid", payment2, nil, nil, nil)
 	testutil.AssertNoError(t, err, "Second card play should succeed")
 
 	// Should auto-advance to player 2
@@ -161,7 +161,7 @@ func TestSoloUnlimitedActionsNotBlocked(t *testing.T) {
 	playAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
 	payment := cardAction.PaymentRequest{Credits: 4}
 
-	err := playAction.Execute(context.Background(), testGame.ID(), playerID, "card-power-plant", payment, nil, nil)
+	err := playAction.Execute(context.Background(), testGame.ID(), playerID, "card-power-plant", payment, nil, nil, nil)
 	testutil.AssertNoError(t, err, "Solo card play should succeed")
 
 	testutil.AssertEqual(t, -1, testGame.CurrentTurn().ActionsRemaining(), "Solo should still have unlimited actions")
@@ -255,14 +255,14 @@ func TestAutoAdvanceGrantsUnlimitedActionsToLastNonPassedPlayer(t *testing.T) {
 	playAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
 	payment := cardAction.PaymentRequest{Credits: 4}
 
-	err := playAction.Execute(context.Background(), testGame.ID(), player1ID, "card-power-plant", payment, nil, nil)
+	err := playAction.Execute(context.Background(), testGame.ID(), player1ID, "card-power-plant", payment, nil, nil, nil)
 	testutil.AssertNoError(t, err, "First card play should succeed")
 	testutil.AssertEqual(t, 1, testGame.CurrentTurn().ActionsRemaining(), "Should have 1 action after first play")
 
 	// Play second card - this should auto-advance and grant unlimited actions to player 1
 	p1.Hand().AddCard("card-asteroid")
 	payment2 := cardAction.PaymentRequest{Credits: 14}
-	err = playAction.Execute(context.Background(), testGame.ID(), player1ID, "card-asteroid", payment2, nil, nil)
+	err = playAction.Execute(context.Background(), testGame.ID(), player1ID, "card-asteroid", payment2, nil, nil, nil)
 	testutil.AssertNoError(t, err, "Second card play should succeed")
 
 	// Player 1 should now have unlimited actions since they're the last non-passed player

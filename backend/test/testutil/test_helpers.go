@@ -205,6 +205,21 @@ func CreateTestCardRegistry() cards.CardRegistry {
 			Pack: "base",
 			Cost: 14,
 			Tags: []shared.CardTag{shared.TagSpace, shared.TagEvent},
+			Behaviors: []shared.CardBehavior{
+				{
+					Triggers: []shared.Trigger{{Type: "auto"}},
+					Outputs: []shared.ResourceCondition{
+						{ResourceType: shared.ResourcePlant, Amount: 3, Target: "any-player"},
+					},
+				},
+				{
+					Triggers: []shared.Trigger{{Type: "auto"}},
+					Outputs: []shared.ResourceCondition{
+						{ResourceType: shared.ResourceTitanium, Amount: 2, Target: "self-player"},
+						{ResourceType: shared.ResourceTemperature, Amount: 1, Target: "none"},
+					},
+				},
+			},
 		},
 		{
 			ID:   "card-water-import",
@@ -233,6 +248,31 @@ func CreateTestCardRegistry() cards.CardRegistry {
 			Type: gamecards.CardTypeAutomated,
 			Pack: "base",
 			Cost: 30,
+		},
+		{
+			ID:   "card-asteroid-mining-consortium",
+			Name: "Asteroid Mining Consortium",
+			Type: gamecards.CardTypeAutomated,
+			Pack: "corporate-era",
+			Cost: 13,
+			Tags: []shared.CardTag{shared.TagJovian},
+			Requirements: []gamecards.Requirement{
+				{Type: "production", Min: func() *int { v := 1; return &v }(), Resource: func() *shared.ResourceType { v := shared.ResourceTitaniumProduction; return &v }()},
+			},
+			Behaviors: []shared.CardBehavior{
+				{
+					Triggers: []shared.Trigger{{Type: "auto"}},
+					Outputs: []shared.ResourceCondition{
+						{ResourceType: shared.ResourceTitaniumProduction, Amount: 1, Target: "self-player"},
+					},
+				},
+				{
+					Triggers: []shared.Trigger{{Type: "auto"}},
+					Outputs: []shared.ResourceCondition{
+						{ResourceType: shared.ResourceTitaniumProduction, Amount: -1, Target: "any-player"},
+					},
+				},
+			},
 		},
 		{
 			ID:   "card-biomass-combustors",
@@ -572,6 +612,31 @@ func CreateTestCardRegistry() cards.CardRegistry {
 			Type: gamecards.CardTypeAutomated,
 			Pack: "base",
 			Cost: 17,
+		},
+		{
+			ID:          "card-hired-raiders",
+			Name:        "Hired Raiders",
+			Type:        gamecards.CardTypeEvent,
+			Pack:        "corporate-era",
+			Cost:        1,
+			Description: "Steal up to 2 steel, or 3 M€ from any player.",
+			Behaviors: []shared.CardBehavior{
+				{
+					Triggers: []shared.Trigger{{Type: shared.TriggerTypeAuto}},
+					Choices: []shared.Choice{
+						{
+							Outputs: []shared.ResourceCondition{
+								{ResourceType: shared.ResourceSteel, Amount: 2, Target: "steal-any-player"},
+							},
+						},
+						{
+							Outputs: []shared.ResourceCondition{
+								{ResourceType: shared.ResourceCredit, Amount: 3, Target: "steal-any-player"},
+							},
+						},
+					},
+				},
+			},
 		},
 		// Preludes
 		{

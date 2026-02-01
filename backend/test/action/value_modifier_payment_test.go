@@ -364,12 +364,12 @@ func TestValueModifier_PlayCardWithModifiedTitanium(t *testing.T) {
 		Titanium: 4, // 4 titanium at 4 MC each = 16 MC
 	}
 
-	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-asteroid", payment, nil, nil)
+	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-asteroid", payment, nil, nil, nil)
 	testutil.AssertNoError(t, err, "Should be able to play 14-cost card with 4 titanium at value 4")
 
 	// Verify titanium was deducted
 	resources := player.Resources().Get()
-	testutil.AssertEqual(t, 1, resources.Titanium, "Should have 1 titanium remaining (5 - 4)")
+	testutil.AssertEqual(t, 3, resources.Titanium, "Should have 3 titanium remaining (5 - 4 + 2 from Asteroid behavior)")
 
 	// Verify card is no longer in hand
 	testutil.AssertFalse(t, player.Hand().HasCard("card-asteroid"), "Card should be removed from hand")
@@ -409,12 +409,12 @@ func TestValueModifier_MixedPaymentWithModifier(t *testing.T) {
 		Titanium: 2, // 2 titanium at 4 MC each = 8 MC
 	}
 
-	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-asteroid", payment, nil, nil)
+	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-asteroid", payment, nil, nil, nil)
 	testutil.AssertNoError(t, err, "Should be able to play 14-cost card with 2 titanium (8) + 6 credits")
 
 	// Verify resources were deducted
 	resources := player.Resources().Get()
-	testutil.AssertEqual(t, 0, resources.Titanium, "Should have 0 titanium remaining")
+	testutil.AssertEqual(t, 2, resources.Titanium, "Should have 2 titanium remaining (0 + 2 from Asteroid behavior)")
 	testutil.AssertEqual(t, 44, resources.Credits, "Should have 44 credits remaining (50 - 6)")
 }
 
@@ -451,7 +451,7 @@ func TestValueModifier_InsufficientPaymentRejected(t *testing.T) {
 		Titanium: 3, // 3 titanium at 4 MC each = 12 MC (not enough for 14)
 	}
 
-	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-asteroid", payment, nil, nil)
+	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-asteroid", payment, nil, nil, nil)
 	testutil.AssertError(t, err, "Should reject payment of 12 MC for 14 cost card")
 
 	// Verify titanium was NOT deducted (action failed)
