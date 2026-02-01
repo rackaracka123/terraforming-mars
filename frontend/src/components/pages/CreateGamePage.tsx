@@ -8,15 +8,16 @@ import { saveGameSession } from "../../utils/sessionStorage.ts";
 import LoadingOverlay from "../game/view/LoadingOverlay.tsx";
 import GameIcon from "../ui/display/GameIcon.tsx";
 import InfoTooltip from "../ui/display/InfoTooltip.tsx";
+import { useNotifications } from "../../contexts/NotificationContext.tsx";
 
 const CreateGamePage: React.FC = () => {
   const navigate = useNavigate();
+  const { showNotification } = useNotifications();
   const [playerName, setPlayerName] = useState("");
   const [developmentMode, setDevelopmentMode] = useState(true);
   const [selectedPacks, setSelectedPacks] = useState<string[]>(["base-game"]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState<"game" | "environment" | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [skyboxReady, setSkyboxReady] = useState(false);
   const [isFadedIn, setIsFadedIn] = useState(false);
   const [showMore, setShowMore] = useState(false);
@@ -37,17 +38,16 @@ const CreateGamePage: React.FC = () => {
     e.preventDefault();
 
     if (!playerName.trim()) {
-      setError("Please enter your name");
+      showNotification({ message: "Please enter your name", type: "error" });
       return;
     }
 
     if (playerName.trim().length < 2) {
-      setError("Name must be at least 2 characters long");
+      showNotification({ message: "Name must be at least 2 characters long", type: "error" });
       return;
     }
 
     setIsLoading(true);
-    setError(null);
     setLoadingStep("game");
 
     try {
@@ -110,7 +110,10 @@ const CreateGamePage: React.FC = () => {
       // Step 5: Connect player to the game via WebSocket (non-blocking)
       globalWebSocketManager.playerConnect(playerName.trim(), game.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create game");
+      showNotification({
+        message: err instanceof Error ? err.message : "Failed to create game",
+        type: "error",
+      });
     } finally {
       setIsLoading(false);
       setLoadingStep(null);
@@ -119,7 +122,6 @@ const CreateGamePage: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPlayerName(e.target.value);
-    if (error) setError(null); // Clear error when user starts typing
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -149,7 +151,6 @@ const CreateGamePage: React.FC = () => {
     if (isCreatingDemo) return;
 
     setIsCreatingDemo(true);
-    setError(null);
 
     try {
       const result = await apiService.createDemoLobby({
@@ -174,7 +175,10 @@ const CreateGamePage: React.FC = () => {
         },
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create demo game");
+      showNotification({
+        message: err instanceof Error ? err.message : "Failed to create demo game",
+        type: "error",
+      });
       setIsCreatingDemo(false);
     }
   };
@@ -320,12 +324,6 @@ const CreateGamePage: React.FC = () => {
                   </div>
                 </div>
               </div>
-
-              {error && (
-                <div className="text-error-red mt-4 p-3 bg-error-red/10 border border-error-red/30 rounded-lg text-sm">
-                  {error}
-                </div>
-              )}
             </form>
           </div>
         </div>
