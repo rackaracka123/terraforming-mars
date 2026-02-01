@@ -9,6 +9,7 @@ import {
   TagSpace,
 } from "@/types/generated/api-types.ts";
 import GameIcon from "../display/GameIcon.tsx";
+import { Z_INDEX } from "@/constants/zIndex";
 
 interface PaymentSelectionPopoverProps {
   cardId: string;
@@ -207,7 +208,10 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
   };
 
   return (
-    <div className="fixed top-0 left-0 right-0 bottom-0 z-[10002] flex items-start justify-center pt-[30vh] pointer-events-auto overflow-hidden">
+    <div
+      className="fixed top-0 left-0 right-0 bottom-0 flex items-start justify-center pt-[30vh] pointer-events-auto overflow-hidden"
+      style={{ zIndex: Z_INDEX.SELECTION_POPOVER }}
+    >
       <div
         className={`
           min-w-[400px] w-fit max-w-[90vw] max-h-[600px]

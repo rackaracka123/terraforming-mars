@@ -22,6 +22,7 @@ const GameModal: React.FC<GameModalProps> = ({
   lockScroll = true,
   preventClose = false,
   onPreventedClose,
+  glow = true,
   children,
   className = "",
 }) => {
@@ -64,7 +65,7 @@ const GameModal: React.FC<GameModalProps> = ({
       />
 
       <div
-        className={`relative w-full ${sizeClasses[size]} max-h-[90vh] bg-space-black-darker/95 border-2 border-[var(--modal-accent)] rounded-[20px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_30px_var(--modal-accent)] backdrop-blur-space ${animationClass} flex flex-col ${className}`}
+        className={`relative w-full ${sizeClasses[size]} max-h-[90vh] bg-space-black-darker/95 border-2 border-[var(--modal-accent)] rounded-[20px] overflow-hidden ${glow ? "shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_30px_var(--modal-accent)]" : "shadow-[0_20px_60px_rgba(0,0,0,0.6)]"} backdrop-blur-space ${animationClass} flex flex-col ${className}`}
         style={themeStyles}
       >
         {children}

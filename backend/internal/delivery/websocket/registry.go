@@ -57,6 +57,7 @@ func RegisterHandlers(
 	confirmCardDrawAction *confirmAction.ConfirmCardDrawAction,
 	playerReconnectedAction *connAction.PlayerReconnectedAction,
 	playerDisconnectedAction *connAction.PlayerDisconnectedAction,
+	playerTakeoverAction *connAction.PlayerTakeoverAction,
 	claimMilestoneAction *milestoneAction.ClaimMilestoneAction,
 	fundAwardAction *awardAction.FundAwardAction,
 	adminSetPhaseAction *adminAction.SetPhaseAction,
@@ -143,6 +144,9 @@ func RegisterHandlers(
 	playerDisconnectedHandler := connection.NewPlayerDisconnectedHandler(playerDisconnectedAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypePlayerDisconnected, playerDisconnectedHandler)
 
+	playerTakeoverHandler := connection.NewPlayerTakeoverHandler(playerTakeoverAction, broadcaster)
+	hub.RegisterHandler(dto.MessageTypePlayerTakeover, playerTakeoverHandler)
+
 	claimMilestoneHandler := milestone.NewClaimMilestoneHandler(claimMilestoneAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionClaimMilestone, claimMilestoneHandler)
 
@@ -171,10 +175,10 @@ func RegisterHandlers(
 	log.Info("   ✅ Tile Selection (1): SelectTile")
 	log.Info("   ✅ Turn Management (3): StartGame, SkipAction, SelectStartingCards")
 	log.Info("   ✅ Confirmations (3): ConfirmSellPatents, ConfirmProductionCards, ConfirmCardDraw")
-	log.Info("   ✅ Connection (1): PlayerDisconnected")
+	log.Info("   ✅ Connection (2): PlayerDisconnected, PlayerTakeover")
 	log.Info("   ✅ Milestones & Awards (2): ClaimMilestone, FundAward")
 	log.Info("   ✅ Admin (1): AdminCommand (routes to 9 sub-commands)")
-	log.Info("   📌 Total: 24 handlers registered")
+	log.Info("   📌 Total: 25 handlers registered")
 }
 
 // MigrateSingleHandler migrates a specific message type from old to new handler

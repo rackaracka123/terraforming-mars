@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ChoiceDto, CardBehaviorDto, ResourcesDto } from "../../../types/generated/api-types.ts";
 import BehaviorSection from "../cards/BehaviorSection";
+import { Z_INDEX } from "@/constants/zIndex";
 
 interface ChoiceItem {
   index: number;
@@ -155,7 +156,10 @@ const ChoiceSelectionPopover: React.FC<ChoiceSelectionPopoverProps> = ({
   if (!isVisible || choices.length === 0) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 bottom-0 z-[10002] flex items-center justify-center pointer-events-auto overflow-hidden">
+    <div
+      className="fixed top-0 left-0 right-0 bottom-0 flex items-center justify-center pointer-events-auto overflow-hidden"
+      style={{ zIndex: Z_INDEX.SELECTION_POPOVER }}
+    >
       <div
         className={`
           min-w-[240px] w-fit max-w-[90vw] max-h-[500px]

@@ -29,6 +29,7 @@ func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string) G
 	}
 
 	if viewingPlayer == nil && len(players) > 0 {
+		otherPlayers = make([]OtherPlayerDto, 0)
 		currentPlayer = ToPlayerDto(players[0], g, cardRegistry)
 		for i := 1; i < len(players); i++ {
 			otherPlayers = append(otherPlayers, ToOtherPlayerDto(players[i], g, cardRegistry))

@@ -101,6 +101,21 @@ void playProductionSound();
 
 Add new sounds to `public/assets/audio/` and register in the audio service preload list.
 
+### Notifications
+
+Use `useNotifications()` from `contexts/NotificationContext.tsx` for error and warning messages. Notifications are displayed by `NotificationContainer` at the bottom-left of the screen.
+
+- **Only shown outside game pages**: `NotificationContainer` returns `null` on `/game/*` routes, so notifications fired during gameplay are silently ignored. Use in-game UI (modals, overlays) for in-game feedback instead.
+- **Types**: `"error"` (red) and `"warning"` (yellow).
+- **Auto-dismiss**: Default 3000ms. Pass `duration: 0` for persistent notifications that require manual dismiss (e.g. "Server is down").
+
+```tsx
+const { showNotification } = useNotifications();
+
+showNotification({ message: "Name too short", type: "error" });
+showNotification({ message: "Server is down", type: "error", duration: 0 });
+```
+
 ### WebSocket Communication
 
 WebSocket service in `services/` handles real-time game state sync.

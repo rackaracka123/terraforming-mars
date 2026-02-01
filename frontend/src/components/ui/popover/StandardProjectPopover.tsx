@@ -84,7 +84,6 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
       }}
       width={500}
       maxHeight="calc(100vh - 80px)"
-      zIndex={3000}
       animation="slideDown"
     >
       <div className="p-2">

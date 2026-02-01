@@ -30,6 +30,7 @@ export interface GameModalProps {
   lockScroll?: boolean;
   preventClose?: boolean;
   onPreventedClose?: () => void;
+  glow?: boolean;
   children: React.ReactNode;
   className?: string;
 }

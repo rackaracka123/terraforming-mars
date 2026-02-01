@@ -8,6 +8,7 @@ import (
 
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 
 	"go.uber.org/zap"
@@ -139,6 +140,11 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 
 	player.Selection().SetPendingCardDrawSelection(nil)
 
+	// If this selection was triggered by a card action, complete the action now
+	if selection.SourceCardID != "" {
+		a.completeSourceCardAction(g, player, selection, log)
+	}
+
 	log.Info("✅ Card draw confirmation completed",
 		zap.String("source", selection.Source),
 		zap.Int("cards_taken", len(cardsToTake)),
@@ -146,4 +152,32 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 		zap.Int("total_cost", totalCost))
 
 	return nil
+}
+
+// completeSourceCardAction increments usage counts and consumes an action
+// for the card action that triggered this card draw selection
+func (a *ConfirmCardDrawAction) completeSourceCardAction(
+	g *game.Game,
+	p *player.Player,
+	selection *player.PendingCardDrawSelection,
+	log *zap.Logger,
+) {
+	// Increment usage counts for the source card action
+	actions := p.Actions().List()
+	for i := range actions {
+		if actions[i].CardID == selection.SourceCardID && actions[i].BehaviorIndex == selection.SourceBehaviorIndex {
+			actions[i].TimesUsedThisTurn++
+			actions[i].TimesUsedThisGeneration++
+			log.Debug("📊 Incremented action usage counts from card draw confirmation",
+				zap.String("card_id", selection.SourceCardID),
+				zap.Int("behavior_index", selection.SourceBehaviorIndex),
+				zap.Int("times_used_this_turn", actions[i].TimesUsedThisTurn),
+				zap.Int("times_used_this_generation", actions[i].TimesUsedThisGeneration))
+			break
+		}
+	}
+	p.Actions().SetActions(actions)
+
+	// Consume the player action
+	a.ConsumePlayerAction(g, log)
 }
