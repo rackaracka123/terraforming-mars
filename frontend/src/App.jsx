@@ -9,6 +9,8 @@ import ReconnectingPage from "./components/pages/ReconnectingPage.tsx";
 import { globalWebSocketManager } from "./services/globalWebSocketManager.ts";
 import { SpaceBackgroundProvider, useSpaceBackground } from "./contexts/SpaceBackgroundContext.tsx";
 import { SoundProvider } from "./contexts/SoundContext.tsx";
+import { NotificationProvider } from "./contexts/NotificationContext.tsx";
+import NotificationContainer from "./components/ui/notifications/NotificationContainer.tsx";
 import { audioService } from "./services/audioService.ts";
 import { skyboxCache } from "./services/SkyboxCache.ts";
 import MainMenuSettingsButton from "./components/ui/buttons/MainMenuSettingsButton.tsx";
@@ -62,7 +64,10 @@ function App() {
       <SpaceBackgroundProvider>
         <div className="App" style={{ margin: 0, padding: 0 }}>
           <Router>
-            <AppWithBackground />
+            <NotificationProvider>
+              <AppWithBackground />
+              <NotificationContainer />
+            </NotificationProvider>
           </Router>
         </div>
       </SpaceBackgroundProvider>
@@ -104,6 +109,7 @@ function AppWithBackground() {
         <Route path="/join" element={<JoinGamePage />} />
         <Route path="/cards" element={<CardsPage />} />
         <Route path="/reconnecting" element={<ReconnectingPage />} />
+        <Route path="/game/:gameId" element={<GameInterface />} />
         <Route path="/game" element={<GameInterface />} />
       </Routes>
     </>
