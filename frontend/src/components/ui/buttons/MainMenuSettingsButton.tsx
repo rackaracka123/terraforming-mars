@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import SoundToggleButton from "./SoundToggleButton.tsx";
+import { GamePopover } from "../GamePopover";
 
 const MainMenuSettingsButton: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const gearButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -17,18 +18,6 @@ const MainMenuSettingsButton: React.FC = () => {
   const handleEnterFullscreen = () => {
     void document.documentElement.requestFullscreen();
   };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    if (menuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [menuOpen]);
 
   return (
     <>
@@ -57,8 +46,9 @@ const MainMenuSettingsButton: React.FC = () => {
           </button>
         </div>
       )}
-      <div className="fixed top-[30px] right-[30px] z-50" ref={menuRef}>
+      <div className="fixed top-[30px] right-[30px] z-50">
         <button
+          ref={gearButtonRef}
           onClick={() => setMenuOpen(!menuOpen)}
           className="bg-space-black-darker/80 border border-white/20 text-white p-2.5 rounded-lg cursor-pointer hover:bg-white/20 transition-colors"
           aria-label="Settings"
@@ -78,25 +68,18 @@ const MainMenuSettingsButton: React.FC = () => {
           </svg>
         </button>
 
-        {menuOpen && (
-          <>
-            <div className="absolute right-0 top-full mt-1 bg-black/95 border border-[#444] rounded-lg shadow-lg min-w-[180px] overflow-hidden z-50 animate-[menuSlideDown_0.2s_ease-out]">
-              <SoundToggleButton />
-            </div>
-            <style>{`
-            @keyframes menuSlideDown {
-              from {
-                opacity: 0;
-                transform: translateY(-10px);
-              }
-              to {
-                opacity: 1;
-                transform: translateY(0);
-              }
-            }
-          `}</style>
-          </>
-        )}
+        <GamePopover
+          isVisible={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          position={{ type: "anchor", anchorRef: gearButtonRef, placement: "below" }}
+          theme="menu"
+          width={200}
+          maxHeight="auto"
+          animation="slideDown"
+          excludeRef={gearButtonRef}
+        >
+          <SoundToggleButton />
+        </GamePopover>
       </div>
     </>
   );
