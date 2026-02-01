@@ -58,3 +58,30 @@ func CountAllTilesOfType(b *board.Board, tileType shared.ResourceType) int {
 	}
 	return count
 }
+
+// CountTilesOfTypeByLocation counts tiles of a specific type, optionally filtered by location.
+// If location is "mars", only counts tiles with TileLocationMars.
+// If location is nil or "anywhere", counts all tiles of that type.
+func CountTilesOfTypeByLocation(b *board.Board, tileType shared.ResourceType, location *string) int {
+	count := 0
+	tiles := b.Tiles()
+	for _, tile := range tiles {
+		if tile.OccupiedBy == nil || tile.OccupiedBy.Type != tileType {
+			continue
+		}
+		if location != nil && *location == "mars" && tile.Location != board.TileLocationMars {
+			continue
+		}
+		count++
+	}
+	return count
+}
+
+// CountAllPlayersTagsByType sums tag counts of a specific type across all players.
+func CountAllPlayersTagsByType(players []*player.Player, cardRegistry CardRegistryInterface, tagType shared.CardTag) int {
+	count := 0
+	for _, p := range players {
+		count += CountPlayerTagsByType(p, cardRegistry, tagType)
+	}
+	return count
+}

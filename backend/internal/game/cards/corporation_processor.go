@@ -14,13 +14,15 @@ import (
 
 // CorporationProcessor handles applying corporation card effects
 type CorporationProcessor struct {
-	logger *zap.Logger
+	cardRegistry CardRegistryInterface
+	logger       *zap.Logger
 }
 
 // NewCorporationProcessor creates a new corporation processor
-func NewCorporationProcessor(logger *zap.Logger) *CorporationProcessor {
+func NewCorporationProcessor(cardRegistry CardRegistryInterface, logger *zap.Logger) *CorporationProcessor {
 	return &CorporationProcessor{
-		logger: logger,
+		cardRegistry: cardRegistry,
+		logger:       logger,
 	}
 }
 
@@ -41,7 +43,8 @@ func (p *CorporationProcessor) ApplyStartingEffects(
 	log.Info("💼 Applying corporation starting effects")
 
 	applier := NewBehaviorApplier(pl, g, card.Name, p.logger).
-		WithSourceCardID(card.ID)
+		WithSourceCardID(card.ID).
+		WithCardRegistry(p.cardRegistry)
 
 	// Process ONLY behaviors with auto-corporation-start trigger
 	for _, behavior := range card.Behaviors {
@@ -78,7 +81,8 @@ func (p *CorporationProcessor) ApplyAutoEffects(
 	log.Info("💼 Applying corporation auto effects")
 
 	applier := NewBehaviorApplier(pl, g, card.Name, p.logger).
-		WithSourceCardID(card.ID)
+		WithSourceCardID(card.ID).
+		WithCardRegistry(p.cardRegistry)
 
 	// Process behaviors with auto trigger WITHOUT conditions
 	for _, behavior := range card.Behaviors {
