@@ -62,3 +62,11 @@ const (
 	ErrorCategoryConfiguration StateErrorCategory = "configuration"
 	ErrorCategoryAchievement   StateErrorCategory = "achievement"
 )
+
+// StateWarningCode represents warning codes for entity state validation.
+// All codes use kebab-case for consistency with JSON serialization.
+type StateWarningCode string
+
+const (
+	WarningCodeNoValidTilePlacements StateWarningCode = "no-valid-tile-placements"
+)

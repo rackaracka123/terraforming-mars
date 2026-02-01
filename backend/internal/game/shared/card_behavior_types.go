@@ -22,6 +22,12 @@ type ResourceTriggerCondition struct {
 	Target            *string        `json:"target,omitempty"`
 }
 
+// TileRestrictions represents restrictions for tile placement
+type TileRestrictions struct {
+	BoardTags []string `json:"boardTags,omitempty" ts:"string[]"`
+	Adjacency string   `json:"adjacency,omitempty" ts:"string"` // "none" = no adjacent occupied tiles
+}
+
 // ResourceCondition represents a resource amount (input or output)
 type ResourceCondition struct {
 	ResourceType             ResourceType      `json:"type"`
@@ -33,6 +39,7 @@ type ResourceCondition struct {
 	AffectedStandardProjects []StandardProject `json:"affectedStandardProjects,omitempty"`
 	MaxTrigger               *int              `json:"maxTrigger,omitempty"`
 	Per                      *PerCondition     `json:"per,omitempty"`
+	TileRestrictions         *TileRestrictions `json:"tileRestrictions,omitempty" ts:"TileRestrictions | undefined"`
 }
 
 // PerCondition represents what to count for conditional resource gains

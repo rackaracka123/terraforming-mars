@@ -1,10 +1,9 @@
 package player
 
-import "terraforming-mars-backend/internal/game/shared"
-
 import (
 	"sync"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/game/shared"
 )
 
 // Selection manages player-specific card selection state
@@ -125,9 +124,10 @@ type PendingTileSelection struct {
 
 // PendingTileSelectionQueue represents a queue of tile placements
 type PendingTileSelectionQueue struct {
-	Items      []string
-	Source     string
-	OnComplete *TileCompletionCallback
+	Items            []string
+	Source           string
+	OnComplete       *TileCompletionCallback
+	TileRestrictions *shared.TileRestrictions
 }
 
 // ForcedFirstAction represents an action that must be completed as first action

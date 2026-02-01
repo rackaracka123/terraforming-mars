@@ -484,6 +484,13 @@ export interface ResourceSet {
   heat: number /* int */;
 }
 /**
+ * TileRestrictionsDto represents tile placement restrictions for client consumption
+ */
+export interface TileRestrictionsDto {
+  boardTags?: string[];
+  adjacency?: string; // "none" = no adjacent occupied tiles
+}
+/**
  * ResourceConditionDto represents a resource condition for client consumption
  */
 export interface ResourceConditionDto {
@@ -496,6 +503,7 @@ export interface ResourceConditionDto {
   affectedStandardProjects?: StandardProject[];
   maxTrigger?: number /* int */;
   per?: PerConditionDto;
+  tileRestrictions?: TileRestrictionsDto;
 }
 /**
  * PerConditionDto represents a per condition for client consumption
@@ -728,6 +736,20 @@ export interface StateErrorDto {
   message: string; // Human-readable error message
 }
 /**
+ * StateWarningCode represents warning codes for entity state validation.
+ * All codes use kebab-case for consistency with JSON serialization.
+ */
+export type StateWarningCode = string;
+export const WarningCodeNoValidTilePlacements: StateWarningCode = "no-valid-tile-placements";
+/**
+ * StateWarningDto represents a non-blocking warning about an action
+ * Warnings inform the player of potential issues without preventing the action
+ */
+export interface StateWarningDto {
+  code: StateWarningCode;
+  message: string;
+}
+/**
  * PlayerCardDto represents a card in a player's hand with calculated playability state
  * Part of the Player-Scoped Card Architecture
  */
@@ -745,6 +767,7 @@ export interface PlayerCardDto {
   vpConditions?: VPConditionDto[];
   available: boolean; // Computed: len(Errors) == 0
   errors: StateErrorDto[]; // Single source of truth for availability
+  warnings?: StateWarningDto[]; // Non-blocking warnings
   effectiveCost: number /* int */; // Effective cost after discounts (credits)
   discounts?: { [key: string]: number /* int */}; // Discount amounts per resource type (if any)
 }
