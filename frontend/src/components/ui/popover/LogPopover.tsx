@@ -49,31 +49,62 @@ const TagIcon: React.FC<{ tag: string }> = ({ tag }) => {
 };
 
 const resourceTypeToIconType: Record<string, string> = {
-  credits: "credits",
+  credits: "credit",
   steel: "steel",
   titanium: "titanium",
-  plants: "plants",
+  plants: "plant",
   energy: "energy",
   heat: "heat",
-  "credits-production": "credits-production",
+  "credits-production": "credit-production",
   "steel-production": "steel-production",
   "titanium-production": "titanium-production",
-  "plants-production": "plants-production",
+  "plants-production": "plant-production",
   "energy-production": "energy-production",
   "heat-production": "heat-production",
   tr: "tr",
   oxygen: "oxygen",
   temperature: "temperature",
-  "ocean-placement": "ocean",
-  "greenery-placement": "greenery",
-  "city-placement": "city",
+  "ocean-placement": "ocean-placement",
+  "greenery-placement": "greenery-placement",
+  "city-placement": "city-placement",
 };
 
-const CalculatedOutputsDisplay: React.FC<{ outputs: CalculatedOutputDto[]; showAll?: boolean }> = ({ outputs, showAll = false }) => {
-  // Show all outputs when showAll is true (for standard projects), otherwise only scaled outputs
+const TILE_PLACEMENT_TYPES = ["ocean-placement", "greenery-placement", "city-placement"];
+const GLOBAL_PARAMETER_TYPES = ["temperature", "oxygen"];
+
+const STANDARD_PROJECT_BEHAVIORS: Record<string, { outputs: Array<{ type: string; amount: number; target: string }> }> = {
+  "Standard Project: Power Plant": {
+    outputs: [{ type: "energy-production", amount: 1, target: "self" }],
+  },
+  "Standard Project: Asteroid": {
+    outputs: [{ type: "temperature", amount: 1, target: "global" }],
+  },
+  "Standard Project: Aquifer": {
+    outputs: [{ type: "ocean-placement", amount: 1, target: "global" }],
+  },
+  "Standard Project: Greenery": {
+    outputs: [{ type: "greenery-placement", amount: 1, target: "global" }],
+  },
+  "Standard Project: City": {
+    outputs: [{ type: "city-placement", amount: 1, target: "global" }],
+  },
+  "Standard Project: Sell Patents": {
+    outputs: [{ type: "credit", amount: 1, target: "self" }],
+  },
+  "Convert Heat": {
+    outputs: [{ type: "temperature", amount: 1, target: "global" }],
+  },
+  "Convert Plants": {
+    outputs: [{ type: "greenery-placement", amount: 1, target: "global" }],
+  },
+};
+
+const BEHAVIOR_OUTPUT_TYPES = [...TILE_PLACEMENT_TYPES, ...GLOBAL_PARAMETER_TYPES];
+
+const CalculatedOutputsDisplay: React.FC<{ outputs: CalculatedOutputDto[]; showAll?: boolean; excludeBehaviors?: boolean }> = ({ outputs, showAll = false, excludeBehaviors = false }) => {
   const outputsToShow = showAll
-    ? outputs.filter(o => o.amount !== 0)
-    : outputs.filter(o => o.isScaled && o.amount !== 0);
+    ? outputs.filter(o => o.amount !== 0 && (!excludeBehaviors || !BEHAVIOR_OUTPUT_TYPES.includes(o.resourceType)))
+    : outputs.filter(o => o.isScaled && o.amount !== 0 && (!excludeBehaviors || !BEHAVIOR_OUTPUT_TYPES.includes(o.resourceType)));
 
   if (outputsToShow.length === 0) return null;
 
@@ -92,18 +123,167 @@ const CalculatedOutputsDisplay: React.FC<{ outputs: CalculatedOutputDto[]; showA
   );
 };
 
+interface StandardProjectBehaviorDisplayProps {
+  projectName: string;
+}
+
+const StandardProjectBehaviorDisplay: React.FC<StandardProjectBehaviorDisplayProps> = ({ projectName }) => {
+  const behavior = STANDARD_PROJECT_BEHAVIORS[projectName];
+  if (!behavior) return null;
+
+  return (
+    <div className="mt-1 flex items-center gap-1.5 px-1">
+      {behavior.outputs.map((output, index) => {
+        const iconType = resourceTypeToIconType[output.type] || output.type;
+        return (
+          <GameIcon
+            key={index}
+            iconType={iconType}
+            amount={output.amount > 1 ? output.amount : undefined}
+            size="small"
+          />
+        );
+      })}
+    </div>
+  );
+};
+
 interface LogEntryProps {
   diff: StateDiffDto;
   cardLookup: Map<string, CardDto>;
   playerNames: Map<string, string>;
 }
 
+interface PlayerTurnGroup {
+  playerId: string;
+  entries: StateDiffDto[];
+}
+
+interface LogGroup {
+  generation: number;
+  playerTurns: PlayerTurnGroup[];
+}
+
+const PLAYER_COLORS = [
+  { border: "rgba(100, 200, 255, 0.4)", bg: "rgba(100, 200, 255, 0.05)", text: "#64c8ff" },
+  { border: "rgba(255, 180, 100, 0.4)", bg: "rgba(255, 180, 100, 0.05)", text: "#ffb464" },
+  { border: "rgba(180, 255, 100, 0.4)", bg: "rgba(180, 255, 100, 0.05)", text: "#b4ff64" },
+  { border: "rgba(255, 100, 180, 0.4)", bg: "rgba(255, 100, 180, 0.05)", text: "#ff64b4" },
+  { border: "rgba(180, 100, 255, 0.4)", bg: "rgba(180, 100, 255, 0.05)", text: "#b464ff" },
+];
+
+const groupLogsByGeneration = (logs: StateDiffDto[]): LogGroup[] => {
+  if (logs.length === 0) return [];
+
+  const groups: LogGroup[] = [];
+  let currentGeneration = 1;
+
+  for (const log of logs) {
+    if (log.changes?.generation) {
+      currentGeneration = log.changes.generation.new;
+    }
+
+    let genGroup = groups.find(g => g.generation === currentGeneration);
+    if (!genGroup) {
+      genGroup = { generation: currentGeneration, playerTurns: [] };
+      groups.push(genGroup);
+    }
+
+    const lastTurn = genGroup.playerTurns[genGroup.playerTurns.length - 1];
+    if (lastTurn && lastTurn.playerId === log.playerId) {
+      lastTurn.entries.push(log);
+    } else {
+      genGroup.playerTurns.push({ playerId: log.playerId, entries: [log] });
+    }
+  }
+
+  return groups;
+};
+
+interface GenerationDividerProps {
+  generation: number;
+  entryCount: number;
+}
+
+const GenerationDivider: React.FC<GenerationDividerProps> = ({ generation, entryCount }) => (
+  <div className="sticky top-0 z-10 flex items-center gap-2 py-2 px-3 bg-[#1a1a2e] border-b border-[rgba(100,200,255,0.3)]">
+    <div className="flex items-center gap-1.5">
+      <span className="text-[10px] font-bold uppercase tracking-wider text-[#64c8ff]">
+        Generation {generation}
+      </span>
+    </div>
+    <div className="flex-1 h-px bg-gradient-to-r from-[rgba(100,200,255,0.3)] to-transparent" />
+    <span className="text-[9px] text-gray-500">{entryCount} actions</span>
+  </div>
+);
+
+interface PlayerTurnSectionProps {
+  playerName: string;
+  entries: StateDiffDto[];
+  colorIndex: number;
+  cardLookup: Map<string, CardDto>;
+  playerNames: Map<string, string>;
+}
+
+const PlayerTurnSection: React.FC<PlayerTurnSectionProps> = ({
+  playerName,
+  entries,
+  colorIndex,
+  cardLookup,
+  playerNames,
+}) => {
+  const color = PLAYER_COLORS[colorIndex % PLAYER_COLORS.length];
+
+  return (
+    <div
+      className="rounded-lg mb-2 overflow-hidden"
+      style={{
+        borderLeft: `3px solid ${color.border}`,
+        backgroundColor: color.bg,
+      }}
+    >
+      <div
+        className="flex items-center gap-2 py-1.5 px-3"
+        style={{ borderBottom: `1px solid ${color.border}` }}
+      >
+        <div
+          className="w-1.5 h-1.5 rounded-full"
+          style={{ backgroundColor: color.text }}
+        />
+        <span
+          className="text-[10px] font-semibold uppercase tracking-wider"
+          style={{ color: color.text }}
+        >
+          {playerName}
+        </span>
+        <span className="text-[9px] text-gray-500">
+          {entries.length} action{entries.length !== 1 ? "s" : ""}
+        </span>
+      </div>
+      <div className="flex flex-col">
+        {entries.map((diff) => (
+          <LogEntry
+            key={diff.sequenceNumber}
+            diff={diff}
+            cardLookup={cardLookup}
+            playerNames={playerNames}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const LogEntry: React.FC<LogEntryProps> = ({ diff, cardLookup, playerNames }) => {
   const [showTooltip, setShowTooltip] = useState(false);
 
   const isCardPlay = diff.sourceType === "card_play";
   const isCardAction = diff.sourceType === "card_action";
+  const isStandardProject = diff.sourceType === "standard_project";
+  const isResourceConvert = diff.sourceType === "resource_convert";
+  const isGameEvent = diff.sourceType === "game_event";
   const isCardSource = isCardPlay || isCardAction;
+  const isBehaviorSource = isStandardProject || isResourceConvert || isGameEvent;
   const card = isCardSource ? (cardLookup.get(diff.source) || null) : null;
 
   const playerName = playerNames.get(diff.playerId) || "Unknown";
@@ -210,14 +390,19 @@ const LogEntry: React.FC<LogEntryProps> = ({ diff, cardLookup, playerNames }) =>
         </div>
       )}
 
+      {isBehaviorSource && (
+        <StandardProjectBehaviorDisplay projectName={diff.source} />
+      )}
+
       {diff.calculatedOutputs && diff.calculatedOutputs.length > 0 && (
         <CalculatedOutputsDisplay
           outputs={diff.calculatedOutputs}
           showAll={!isCardSource || isCardAction}
+          excludeBehaviors={isBehaviorSource}
         />
       )}
 
-      {!card && !isCardSource && (
+      {!card && !isCardSource && !isBehaviorSource && (
         <div className="text-xs text-gray-400">{diff.description}</div>
       )}
 
@@ -304,6 +489,21 @@ const LogPopover: React.FC<LogPopoverProps> = ({
     setIsLoading(true);
   }, [gameId]);
 
+  const groupedLogs = useMemo(() => groupLogsByGeneration(logs), [logs]);
+
+  const playerColorMap = useMemo(() => {
+    const map = new Map<string, number>();
+    let colorIndex = 0;
+    for (const group of groupedLogs) {
+      for (const turn of group.playerTurns) {
+        if (!map.has(turn.playerId)) {
+          map.set(turn.playerId, colorIndex++);
+        }
+      }
+    }
+    return map;
+  }, [groupedLogs]);
+
   return (
     <GamePopover
       isVisible={isVisible}
@@ -327,15 +527,30 @@ const LogPopover: React.FC<LogPopoverProps> = ({
           description="Actions will appear here as the game progresses"
         />
       ) : (
-        <div className="p-2 flex flex-col">
-          {logs.map((diff) => (
-            <LogEntry
-              key={diff.sequenceNumber}
-              diff={diff}
-              cardLookup={cardLookup}
-              playerNames={playerNames}
-            />
-          ))}
+        <div className="flex flex-col">
+          {groupedLogs.map((group) => {
+            const totalEntries = group.playerTurns.reduce((sum, t) => sum + t.entries.length, 0);
+            return (
+              <div key={group.generation} className="flex flex-col">
+                <GenerationDivider
+                  generation={group.generation}
+                  entryCount={totalEntries}
+                />
+                <div className="p-2 flex flex-col">
+                  {group.playerTurns.map((turn, turnIndex) => (
+                    <PlayerTurnSection
+                      key={`${turn.playerId}-${turnIndex}`}
+                      playerName={playerNames.get(turn.playerId) || "Unknown"}
+                      entries={turn.entries}
+                      colorIndex={playerColorMap.get(turn.playerId) || 0}
+                      cardLookup={cardLookup}
+                      playerNames={playerNames}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </GamePopover>
