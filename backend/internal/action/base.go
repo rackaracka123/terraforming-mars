@@ -84,10 +84,15 @@ func (b *BaseAction) WriteStateLogWithChoice(ctx context.Context, g *game.Game, 
 
 // WriteStateLogWithChoiceAndOutputs writes a state diff with optional choice index and calculated outputs
 func (b *BaseAction) WriteStateLogWithChoiceAndOutputs(ctx context.Context, g *game.Game, source string, sourceType game.SourceType, playerID, description string, choiceIndex *int, calculatedOutputs []game.CalculatedOutput) {
+	b.WriteStateLogFull(ctx, g, source, sourceType, playerID, description, choiceIndex, calculatedOutputs, nil)
+}
+
+// WriteStateLogFull writes a state diff with all optional fields including display data
+func (b *BaseAction) WriteStateLogFull(ctx context.Context, g *game.Game, source string, sourceType game.SourceType, playerID, description string, choiceIndex *int, calculatedOutputs []game.CalculatedOutput, displayData *game.LogDisplayData) {
 	if b.stateRepo == nil {
 		return
 	}
-	_, err := b.stateRepo.WriteWithChoiceAndOutputs(ctx, g.ID(), g, source, sourceType, playerID, description, choiceIndex, calculatedOutputs)
+	_, err := b.stateRepo.WriteFull(ctx, g.ID(), g, source, sourceType, playerID, description, choiceIndex, calculatedOutputs, displayData)
 	if err != nil {
 		b.logger.Warn("Failed to write state log",
 			zap.String("game_id", g.ID()),

@@ -11,6 +11,7 @@ type GameStateRepository interface {
 	Write(ctx context.Context, gameID string, game *Game, source string, sourceType SourceType, playerID, description string) (*StateDiff, error)
 	WriteWithChoice(ctx context.Context, gameID string, game *Game, source string, sourceType SourceType, playerID, description string, choiceIndex *int) (*StateDiff, error)
 	WriteWithChoiceAndOutputs(ctx context.Context, gameID string, game *Game, source string, sourceType SourceType, playerID, description string, choiceIndex *int, calculatedOutputs []CalculatedOutput) (*StateDiff, error)
+	WriteFull(ctx context.Context, gameID string, game *Game, source string, sourceType SourceType, playerID, description string, choiceIndex *int, calculatedOutputs []CalculatedOutput, displayData *LogDisplayData) (*StateDiff, error)
 	Get(ctx context.Context, gameID string) (*Game, error)
 	GetDiff(ctx context.Context, gameID string) ([]StateDiff, error)
 }
@@ -83,6 +84,11 @@ func (r *InMemoryGameStateRepository) WriteWithChoice(ctx context.Context, gameI
 
 // WriteWithChoiceAndOutputs stores the current game state with optional choice index and calculated outputs
 func (r *InMemoryGameStateRepository) WriteWithChoiceAndOutputs(ctx context.Context, gameID string, game *Game, source string, sourceType SourceType, playerID, description string, choiceIndex *int, calculatedOutputs []CalculatedOutput) (*StateDiff, error) {
+	return r.WriteFull(ctx, gameID, game, source, sourceType, playerID, description, choiceIndex, calculatedOutputs, nil)
+}
+
+// WriteFull stores the current game state with all optional fields including display data
+func (r *InMemoryGameStateRepository) WriteFull(ctx context.Context, gameID string, game *Game, source string, sourceType SourceType, playerID, description string, choiceIndex *int, calculatedOutputs []CalculatedOutput, displayData *LogDisplayData) (*StateDiff, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -103,7 +109,7 @@ func (r *InMemoryGameStateRepository) WriteWithChoiceAndOutputs(ctx context.Cont
 		r.diffLogs[gameID] = NewDiffLog(gameID)
 	}
 
-	seqNum := r.diffLogs[gameID].AppendWithChoiceAndOutputs(changes, source, sourceType, playerID, description, choiceIndex, calculatedOutputs)
+	seqNum := r.diffLogs[gameID].AppendFull(changes, source, sourceType, playerID, description, choiceIndex, calculatedOutputs, displayData)
 	r.snapshots[gameID] = newSnapshot
 
 	return &StateDiff{
@@ -117,6 +123,7 @@ func (r *InMemoryGameStateRepository) WriteWithChoiceAndOutputs(ctx context.Cont
 		Description:       description,
 		ChoiceIndex:       choiceIndex,
 		CalculatedOutputs: calculatedOutputs,
+		DisplayData:       displayData,
 	}, nil
 }
 

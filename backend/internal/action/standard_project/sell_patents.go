@@ -74,7 +74,8 @@ func (a *SellPatentsAction) Execute(ctx context.Context, gameID string, playerID
 	log.Info("📋 Created pending card selection for sell patents",
 		zap.Int("available_cards", len(playerCards)))
 
-	a.WriteStateLog(ctx, g, "Standard Project: Sell Patents", game.SourceTypeStandardProject, playerID, "Selling patents (selecting cards)")
+	displayData := baseaction.GetStandardProjectDisplayData("Standard Project: Sell Patents")
+	a.WriteStateLogFull(ctx, g, "Standard Project: Sell Patents", game.SourceTypeStandardProject, playerID, "Selling patents (selecting cards)", nil, nil, displayData)
 
 	log.Info("✅ Sell patents initiated successfully, awaiting card selection")
 	return nil

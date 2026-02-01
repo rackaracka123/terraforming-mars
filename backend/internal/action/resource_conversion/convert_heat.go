@@ -128,7 +128,8 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 			ResourceType: string(shared.ResourceTR), Amount: 1, IsScaled: false,
 		})
 	}
-	a.WriteStateLogWithChoiceAndOutputs(ctx, g, "Convert Heat", game.SourceTypeResourceConvert, playerID, "Converted heat to raise temperature", nil, calculatedOutputs)
+	displayData := baseaction.GetStandardProjectDisplayData("Convert Heat")
+	a.WriteStateLogFull(ctx, g, "Convert Heat", game.SourceTypeResourceConvert, playerID, "Converted heat to raise temperature", nil, calculatedOutputs, displayData)
 
 	log.Info("✅ Heat converted successfully",
 		zap.Int("heat_spent", requiredHeat))

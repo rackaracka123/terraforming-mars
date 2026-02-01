@@ -93,7 +93,8 @@ func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID s
 		{ResourceType: string(shared.ResourceCreditProduction), Amount: 1, IsScaled: false},
 		{ResourceType: string(shared.ResourceCityPlacement), Amount: 1, IsScaled: false},
 	}
-	a.WriteStateLogWithChoiceAndOutputs(ctx, g, "Standard Project: City", game.SourceTypeStandardProject, playerID, "Built city", nil, calculatedOutputs)
+	displayData := baseaction.GetStandardProjectDisplayData("Standard Project: City")
+	a.WriteStateLogFull(ctx, g, "Standard Project: City", game.SourceTypeStandardProject, playerID, "Built city", nil, calculatedOutputs, displayData)
 
 	log.Info("✅ City built successfully, tile selection ready",
 		zap.Int("new_credit_production", production.Credits),

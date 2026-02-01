@@ -199,7 +199,8 @@ func (a *PlayCardAction) Execute(
 	}
 
 	description := fmt.Sprintf("Played %s for %d credits", card.Name, totalValue)
-	a.WriteStateLogWithChoiceAndOutputs(ctx, g, card.Name, game.SourceTypeCardPlay, playerID, description, choiceIndex, calculatedOutputs)
+	displayData := baseaction.BuildCardDisplayData(card, game.SourceTypeCardPlay)
+	a.WriteStateLogFull(ctx, g, card.Name, game.SourceTypeCardPlay, playerID, description, choiceIndex, calculatedOutputs, displayData)
 
 	log.Info("🎉 Card played successfully",
 		zap.String("card_name", card.Name),

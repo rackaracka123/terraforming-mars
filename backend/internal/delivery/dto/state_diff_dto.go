@@ -72,6 +72,13 @@ type CalculatedOutputDto struct {
 	IsScaled     bool   `json:"isScaled" ts:"boolean"`
 }
 
+// LogDisplayDataDto contains pre-computed display information for log entries
+type LogDisplayDataDto struct {
+	Behaviors    []CardBehaviorDto `json:"behaviors,omitempty" ts:"CardBehaviorDto[] | undefined"`
+	Tags         []CardTag         `json:"tags,omitempty" ts:"CardTag[] | undefined"`
+	VPConditions []VPConditionDto  `json:"vpConditions,omitempty" ts:"VPConditionDto[] | undefined"`
+}
+
 // StateDiffDto represents the difference between two consecutive game states
 type StateDiffDto struct {
 	SequenceNumber    int64                 `json:"sequenceNumber" ts:"number"`
@@ -84,6 +91,7 @@ type StateDiffDto struct {
 	Description       string                `json:"description" ts:"string"`
 	ChoiceIndex       *int                  `json:"choiceIndex,omitempty" ts:"number | undefined"`
 	CalculatedOutputs []CalculatedOutputDto `json:"calculatedOutputs,omitempty" ts:"CalculatedOutputDto[] | undefined"`
+	DisplayData       *LogDisplayDataDto    `json:"displayData,omitempty" ts:"LogDisplayDataDto | undefined"`
 }
 
 // DiffLogDto contains the complete history of state changes for a game

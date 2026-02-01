@@ -3,6 +3,7 @@ package tile
 import (
 	"context"
 
+	baseaction "terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
@@ -66,7 +67,8 @@ func (r *TileCompletionRegistry) handleConvertPlantsToGreenery(ctx context.Conte
 		outputs = append(outputs, game.CalculatedOutput{ResourceType: string(shared.ResourceTR), Amount: result.TRGained, IsScaled: false})
 	}
 
-	_, err := r.stateRepo.WriteWithChoiceAndOutputs(ctx, g.ID(), g, "Convert Plants", game.SourceTypeResourceConvert, playerID, "Converted plants to greenery", nil, outputs)
+	displayData := baseaction.GetStandardProjectDisplayData("Convert Plants")
+	_, err := r.stateRepo.WriteFull(ctx, g.ID(), g, "Convert Plants", game.SourceTypeResourceConvert, playerID, "Converted plants to greenery", nil, outputs, displayData)
 	return err
 }
 
@@ -81,7 +83,8 @@ func (r *TileCompletionRegistry) handleStandardProjectGreenery(ctx context.Conte
 		outputs = append(outputs, game.CalculatedOutput{ResourceType: string(shared.ResourceTR), Amount: result.TRGained, IsScaled: false})
 	}
 
-	_, err := r.stateRepo.WriteWithChoiceAndOutputs(ctx, g.ID(), g, "Standard Project: Greenery", game.SourceTypeStandardProject, playerID, "Planted greenery", nil, outputs)
+	displayData := baseaction.GetStandardProjectDisplayData("Standard Project: Greenery")
+	_, err := r.stateRepo.WriteFull(ctx, g.ID(), g, "Standard Project: Greenery", game.SourceTypeStandardProject, playerID, "Planted greenery", nil, outputs, displayData)
 	return err
 }
 
@@ -93,6 +96,7 @@ func (r *TileCompletionRegistry) handleStandardProjectAquifer(ctx context.Contex
 		outputs = append(outputs, game.CalculatedOutput{ResourceType: string(shared.ResourceTR), Amount: result.TRGained, IsScaled: false})
 	}
 
-	_, err := r.stateRepo.WriteWithChoiceAndOutputs(ctx, g.ID(), g, "Standard Project: Aquifer", game.SourceTypeStandardProject, playerID, "Built aquifer", nil, outputs)
+	displayData := baseaction.GetStandardProjectDisplayData("Standard Project: Aquifer")
+	_, err := r.stateRepo.WriteFull(ctx, g.ID(), g, "Standard Project: Aquifer", game.SourceTypeStandardProject, playerID, "Built aquifer", nil, outputs, displayData)
 	return err
 }

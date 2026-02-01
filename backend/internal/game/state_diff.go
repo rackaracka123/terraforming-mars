@@ -2,6 +2,8 @@ package game
 
 import (
 	"time"
+
+	"terraforming-mars-backend/internal/game/shared"
 )
 
 // DiffValueString represents old/new values for string fields
@@ -91,6 +93,21 @@ type CalculatedOutput struct {
 	IsScaled     bool // True if this was calculated from a Per condition
 }
 
+// VPConditionForLog is a simplified VP condition for log display
+type VPConditionForLog struct {
+	Amount     int
+	Condition  string
+	MaxTrigger *int
+	Per        *shared.PerCondition
+}
+
+// LogDisplayData contains pre-computed display information for log entries
+type LogDisplayData struct {
+	Behaviors    []shared.CardBehavior
+	Tags         []shared.CardTag
+	VPConditions []VPConditionForLog
+}
+
 // StateDiff represents the difference between two consecutive game states
 type StateDiff struct {
 	SequenceNumber    int64
@@ -103,6 +120,7 @@ type StateDiff struct {
 	Description       string
 	ChoiceIndex       *int               // For cards with choices, which choice was selected (0-indexed)
 	CalculatedOutputs []CalculatedOutput // Actual values applied (for scaled outputs like "per X tags")
+	DisplayData       *LogDisplayData    // Pre-computed display information for log entries
 }
 
 // DiffLog contains the complete history of state changes for a game
@@ -133,6 +151,11 @@ func (dl *DiffLog) AppendWithChoice(changes *GameChanges, source string, sourceT
 
 // AppendWithChoiceAndOutputs adds a new diff with optional choice index and calculated outputs
 func (dl *DiffLog) AppendWithChoiceAndOutputs(changes *GameChanges, source string, sourceType SourceType, playerID, description string, choiceIndex *int, calculatedOutputs []CalculatedOutput) int64 {
+	return dl.AppendFull(changes, source, sourceType, playerID, description, choiceIndex, calculatedOutputs, nil)
+}
+
+// AppendFull adds a new diff with all optional fields including display data
+func (dl *DiffLog) AppendFull(changes *GameChanges, source string, sourceType SourceType, playerID, description string, choiceIndex *int, calculatedOutputs []CalculatedOutput, displayData *LogDisplayData) int64 {
 	dl.CurrentSequence++
 	diff := StateDiff{
 		SequenceNumber:    dl.CurrentSequence,
@@ -145,6 +168,7 @@ func (dl *DiffLog) AppendWithChoiceAndOutputs(changes *GameChanges, source strin
 		Description:       description,
 		ChoiceIndex:       choiceIndex,
 		CalculatedOutputs: calculatedOutputs,
+		DisplayData:       displayData,
 	}
 	dl.Diffs = append(dl.Diffs, diff)
 	return dl.CurrentSequence

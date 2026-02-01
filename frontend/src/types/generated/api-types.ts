@@ -1302,6 +1302,14 @@ export interface CalculatedOutputDto {
   isScaled: boolean;
 }
 /**
+ * LogDisplayDataDto contains pre-computed display information for log entries
+ */
+export interface LogDisplayDataDto {
+  behaviors?: CardBehaviorDto[];
+  tags?: CardTag[];
+  vpConditions?: VPConditionDto[];
+}
+/**
  * StateDiffDto represents the difference between two consecutive game states
  */
 export interface StateDiffDto {
@@ -1315,6 +1323,7 @@ export interface StateDiffDto {
   description: string;
   choiceIndex?: number /* int */;
   calculatedOutputs?: CalculatedOutputDto[];
+  displayData?: LogDisplayDataDto;
 }
 /**
  * DiffLogDto contains the complete history of state changes for a game

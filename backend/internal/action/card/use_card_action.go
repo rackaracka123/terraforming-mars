@@ -120,7 +120,11 @@ func (a *UseCardActionAction) Execute(
 	a.ConsumePlayerAction(g, log)
 
 	description := fmt.Sprintf("Used %s action", cardAction.CardName)
-	a.WriteStateLogWithChoiceAndOutputs(ctx, g, cardAction.CardName, game.SourceTypeCardAction, playerID, description, choiceIndex, calculatedOutputs)
+	var displayData *game.LogDisplayData
+	if cardFromRegistry, err := a.CardRegistry().GetByID(cardID); err == nil {
+		displayData = baseaction.BuildCardDisplayData(cardFromRegistry, game.SourceTypeCardAction)
+	}
+	a.WriteStateLogFull(ctx, g, cardAction.CardName, game.SourceTypeCardAction, playerID, description, choiceIndex, calculatedOutputs, displayData)
 
 	log.Info("🎉 Card action executed successfully")
 	return nil

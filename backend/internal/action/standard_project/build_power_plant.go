@@ -106,7 +106,8 @@ func (a *BuildPowerPlantAction) Execute(
 	calculatedOutputs := []game.CalculatedOutput{
 		{ResourceType: string(shared.ResourceEnergyProduction), Amount: 1, IsScaled: false},
 	}
-	a.WriteStateLogWithChoiceAndOutputs(ctx, g, "Standard Project: Power Plant", game.SourceTypeStandardProject, playerID, "Built power plant", nil, calculatedOutputs)
+	displayData := baseaction.GetStandardProjectDisplayData("Standard Project: Power Plant")
+	a.WriteStateLogFull(ctx, g, "Standard Project: Power Plant", game.SourceTypeStandardProject, playerID, "Built power plant", nil, calculatedOutputs, displayData)
 
 	log.Info("✅ Power plant built successfully",
 		zap.Int("new_energy_production", production.Energy),

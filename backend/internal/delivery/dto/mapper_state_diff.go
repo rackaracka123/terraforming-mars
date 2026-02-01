@@ -2,6 +2,7 @@ package dto
 
 import (
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/shared"
 )
 
 // ToStateDiffDto converts a domain StateDiff to a DTO
@@ -29,6 +30,7 @@ func ToStateDiffDto(diff *game.StateDiff) StateDiffDto {
 		Description:       diff.Description,
 		ChoiceIndex:       diff.ChoiceIndex,
 		CalculatedOutputs: calculatedOutputs,
+		DisplayData:       toLogDisplayDataDto(diff.DisplayData),
 	}
 }
 
@@ -175,4 +177,25 @@ func toBoardChangesDto(changes *game.BoardChanges) *BoardChangesDto {
 	}
 
 	return &BoardChangesDto{TilesPlaced: placements}
+}
+
+func toLogDisplayDataDto(data *game.LogDisplayData) *LogDisplayDataDto {
+	if data == nil {
+		return nil
+	}
+
+	return &LogDisplayDataDto{
+		Behaviors:    mapSlice(data.Behaviors, toCardBehaviorDto),
+		Tags:         mapSlice(data.Tags, func(t shared.CardTag) CardTag { return CardTag(t) }),
+		VPConditions: mapSlice(data.VPConditions, toVPConditionForLogDto),
+	}
+}
+
+func toVPConditionForLogDto(vp game.VPConditionForLog) VPConditionDto {
+	return VPConditionDto{
+		Amount:     vp.Amount,
+		Condition:  VPConditionType(vp.Condition),
+		MaxTrigger: vp.MaxTrigger,
+		Per:        ptrCast(vp.Per, toPerConditionDto),
+	}
 }

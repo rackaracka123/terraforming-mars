@@ -103,7 +103,8 @@ func (a *LaunchAsteroidAction) Execute(ctx context.Context, gameID string, playe
 			ResourceType: string(shared.ResourceTR), Amount: 1, IsScaled: false,
 		})
 	}
-	a.WriteStateLogWithChoiceAndOutputs(ctx, g, "Standard Project: Asteroid", game.SourceTypeStandardProject, playerID, "Launched asteroid", nil, calculatedOutputs)
+	displayData := baseaction.GetStandardProjectDisplayData("Standard Project: Asteroid")
+	a.WriteStateLogFull(ctx, g, "Standard Project: Asteroid", game.SourceTypeStandardProject, playerID, "Launched asteroid", nil, calculatedOutputs, displayData)
 
 	log.Info("✅ Asteroid launched successfully",
 		zap.Int("remaining_credits", resources.Credits))
