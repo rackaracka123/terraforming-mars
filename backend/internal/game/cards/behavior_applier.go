@@ -14,12 +14,13 @@ import (
 // BehaviorApplier handles applying card behavior inputs and outputs
 // This is the single source of truth for all input/output application
 type BehaviorApplier struct {
-	player            *player.Player // Player affected by the behavior (may be nil for game-only effects)
-	game              *game.Game     // Game context for global params/tiles (may be nil for player-only effects)
-	source            string         // Source identifier for logging (card name, action name, etc.)
-	sourceCardID      string         // Card ID for self-card targeting (optional)
-	targetCardID      string         // Card ID for any-card targeting (optional, set by caller)
-	sourceBehaviorIdx int            // Behavior index for card draw selection tracking
+	player            *player.Player        // Player affected by the behavior (may be nil for game-only effects)
+	game              *game.Game            // Game context for global params/tiles (may be nil for player-only effects)
+	source            string                // Source identifier for logging (card name, action name, etc.)
+	sourceCardID      string                // Card ID for self-card targeting (optional)
+	targetCardID      string                // Card ID for any-card targeting (optional, set by caller)
+	cardRegistry      CardRegistryInterface // Card registry for tag counting (optional)
+	sourceBehaviorIdx int                   // Behavior index for card draw selection tracking
 	logger            *zap.Logger
 }
 
@@ -48,6 +49,12 @@ func (a *BehaviorApplier) WithSourceCardID(cardID string) *BehaviorApplier {
 // WithTargetCardID sets the target card ID for any-card resource placement
 func (a *BehaviorApplier) WithTargetCardID(cardID string) *BehaviorApplier {
 	a.targetCardID = cardID
+	return a
+}
+
+// WithCardRegistry sets the card registry for tag counting in scaled outputs
+func (a *BehaviorApplier) WithCardRegistry(registry CardRegistryInterface) *BehaviorApplier {
+	a.cardRegistry = registry
 	return a
 }
 
@@ -160,8 +167,18 @@ func (a *BehaviorApplier) ApplyOutputs(
 	ctx context.Context,
 	outputs []shared.ResourceCondition,
 ) error {
+	_, err := a.ApplyOutputsAndGetCalculated(ctx, outputs)
+	return err
+}
+
+// ApplyOutputsAndGetCalculated applies outputs and returns the calculated values
+// This is useful for logging scaled outputs (e.g., "+1 MC per 2 plant tags" becomes "+3 MC")
+func (a *BehaviorApplier) ApplyOutputsAndGetCalculated(
+	ctx context.Context,
+	outputs []shared.ResourceCondition,
+) ([]game.CalculatedOutput, error) {
 	if len(outputs) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	log := a.logger.With(
@@ -171,9 +188,44 @@ func (a *BehaviorApplier) ApplyOutputs(
 
 	log.Debug("✨ Processing behavior outputs")
 
+	var calculatedOutputs []game.CalculatedOutput
+
 	for _, output := range outputs {
-		if err := a.applyOutput(ctx, output, log); err != nil {
-			return err
+		// Calculate the actual amount if this output has a Per condition
+		actualAmount := output.Amount
+		isScaled := false
+
+		if output.Per != nil && a.player != nil && a.game != nil {
+			// Calculate scaled amount based on Per condition
+			count := a.countPerCondition(output.Per)
+			if output.Per.Amount > 0 {
+				multiplier := count / output.Per.Amount
+				actualAmount = output.Amount * multiplier
+				isScaled = true
+				log.Debug("📊 Calculated scaled output",
+					zap.String("resource_type", string(output.ResourceType)),
+					zap.Int("base_amount", output.Amount),
+					zap.Int("count", count),
+					zap.Int("per_amount", output.Per.Amount),
+					zap.Int("calculated_amount", actualAmount))
+			}
+		}
+
+		// Create a modified output with the calculated amount
+		modifiedOutput := output
+		modifiedOutput.Amount = actualAmount
+
+		if err := a.applyOutput(ctx, modifiedOutput, log); err != nil {
+			return calculatedOutputs, err
+		}
+
+		// Track the calculated output
+		if isScaled || actualAmount != 0 {
+			calculatedOutputs = append(calculatedOutputs, game.CalculatedOutput{
+				ResourceType: string(output.ResourceType),
+				Amount:       actualAmount,
+				IsScaled:     isScaled,
+			})
 		}
 	}
 
@@ -185,7 +237,55 @@ func (a *BehaviorApplier) ApplyOutputs(
 		})
 	}
 
-	return nil
+	return calculatedOutputs, nil
+}
+
+// countPerCondition counts items matching a Per condition
+func (a *BehaviorApplier) countPerCondition(per *shared.PerCondition) int {
+	if per == nil {
+		return 0
+	}
+
+	// Handle resource storage on card (e.g., animals on this card)
+	if per.Target != nil && *per.Target == string(TargetSelfCard) {
+		if a.sourceCardID != "" {
+			return a.player.Resources().GetCardStorage(a.sourceCardID)
+		}
+		return 0
+	}
+
+	// Handle tag counting
+	if per.Tag != nil && a.cardRegistry != nil {
+		return CountPlayerTagsByType(a.player, a.cardRegistry, *per.Tag)
+	}
+
+	// Handle tile counting
+	if a.game != nil {
+		cityTileType := shared.ResourceCityTile
+		greeneryTileType := shared.ResourceGreeneryTile
+
+		switch per.ResourceType {
+		case shared.ResourceOceanTile:
+			return CountAllTilesOfType(a.game.Board(), shared.ResourceOceanTile)
+		case shared.ResourceCityTile:
+			if per.Target != nil && *per.Target == string(TargetSelfPlayer) {
+				return CountPlayerTiles(a.player.ID(), a.game.Board(), &cityTileType)
+			}
+			return CountAllTilesOfType(a.game.Board(), shared.ResourceCityTile)
+		case shared.ResourceGreeneryTile:
+			if per.Target != nil && *per.Target == string(TargetSelfPlayer) {
+				return CountPlayerTiles(a.player.ID(), a.game.Board(), &greeneryTileType)
+			}
+			return CountAllTilesOfType(a.game.Board(), shared.ResourceGreeneryTile)
+		}
+	}
+
+	// Try to count as a tag type if cardRegistry is available
+	if a.cardRegistry != nil {
+		return CountPlayerTagsByType(a.player, a.cardRegistry, shared.CardTag(per.ResourceType))
+	}
+
+	return 0
 }
 
 // ApplyCardDrawOutputs processes card-peek/take/buy outputs together

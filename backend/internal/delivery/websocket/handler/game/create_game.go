@@ -22,6 +22,7 @@ type CreateGameHandler struct {
 // Broadcaster interface for explicit broadcasting
 type Broadcaster interface {
 	BroadcastGameState(gameID string, playerIDs []string)
+	SendInitialLogs(gameID string, playerID string)
 }
 
 // NewCreateGameHandler creates a new create game handler for migrated actions

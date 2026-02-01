@@ -358,7 +358,7 @@ func TestValueModifier_PlayCardWithModifiedTitanium(t *testing.T) {
 	player.Hand().AddCard("card-asteroid")
 
 	// Play card with 4 titanium (4 * 4 MC = 16 MC covers 14 cost)
-	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{
 		Credits:  0,
 		Titanium: 4, // 4 titanium at 4 MC each = 16 MC
@@ -403,7 +403,7 @@ func TestValueModifier_MixedPaymentWithModifier(t *testing.T) {
 	player.Hand().AddCard("card-asteroid")
 
 	// Play card with 2 titanium (8 MC) + 6 credits = 14 MC exactly
-	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{
 		Credits:  6,
 		Titanium: 2, // 2 titanium at 4 MC each = 8 MC
@@ -446,7 +446,7 @@ func TestValueModifier_InsufficientPaymentRejected(t *testing.T) {
 	player.Hand().AddCard("card-asteroid")
 
 	// Try to play card with only 3 titanium (12 MC) - not enough for 14 cost
-	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
 	payment := cardAction.PaymentRequest{
 		Titanium: 3, // 3 titanium at 4 MC each = 12 MC (not enough for 14)
 	}

@@ -64,7 +64,7 @@ func TestGlobalParameters_TemperatureProgression(t *testing.T) {
 	testutil.SetPlayerHeat(ctx, player, 32) // Enough for 4 conversions
 
 	logger := testutil.TestLogger()
-	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, nil, logger)
 
 	// Set as current turn
 	testGame.SetCurrentTurn(ctx, playerID, 2)
@@ -111,7 +111,7 @@ func TestGlobalParameters_TemperatureMax(t *testing.T) {
 	testGame.SetCurrentTurn(ctx, playerID, 10)
 
 	logger := testutil.TestLogger()
-	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, nil, logger)
 
 	// Try to raise temperature multiple times
 	for i := 0; i < 5; i++ {
@@ -164,7 +164,7 @@ func TestGlobalParameters_EventsPublished(t *testing.T) {
 	testGame.SetCurrentTurn(ctx, playerID, 2)
 
 	logger := testutil.TestLogger()
-	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, nil, logger)
 
 	initialTemp := testGame.GlobalParameters().Temperature()
 
@@ -193,7 +193,7 @@ func TestGlobalParameters_TRIncreasesWithTerraforming(t *testing.T) {
 	testGame.SetCurrentTurn(ctx, playerID, 2)
 
 	logger := testutil.TestLogger()
-	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, nil, logger)
 
 	err := convertAction.Execute(ctx, testGame.ID(), playerID)
 	testutil.AssertNoError(t, err, "Heat conversion failed")
@@ -224,7 +224,7 @@ func TestGlobalParameters_MultiplePlayers(t *testing.T) {
 	}
 
 	logger := testutil.TestLogger()
-	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, nil, logger)
 
 	initialTemp := testGame.GlobalParameters().Temperature()
 

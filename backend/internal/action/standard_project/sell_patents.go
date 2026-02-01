@@ -20,10 +20,11 @@ type SellPatentsAction struct {
 // NewSellPatentsAction creates a new sell patents action
 func NewSellPatentsAction(
 	gameRepo game.GameRepository,
+	stateRepo game.GameStateRepository,
 	logger *zap.Logger,
 ) *SellPatentsAction {
 	return &SellPatentsAction{
-		BaseAction: baseaction.NewBaseAction(gameRepo, nil),
+		BaseAction: baseaction.NewBaseActionWithStateRepo(gameRepo, nil, stateRepo),
 	}
 }
 
@@ -72,6 +73,9 @@ func (a *SellPatentsAction) Execute(ctx context.Context, gameID string, playerID
 
 	log.Info("📋 Created pending card selection for sell patents",
 		zap.Int("available_cards", len(playerCards)))
+
+	displayData := baseaction.GetStandardProjectDisplayData("Standard Project: Sell Patents")
+	a.WriteStateLogFull(ctx, g, "Standard Project: Sell Patents", game.SourceTypeStandardProject, playerID, "Selling patents (selecting cards)", nil, nil, displayData)
 
 	log.Info("✅ Sell patents initiated successfully, awaiting card selection")
 	return nil

@@ -63,7 +63,7 @@ func (h *SelectTileHandler) HandleMessage(ctx context.Context, connection *core.
 
 	log.Debug("Hex position extracted", zap.String("hex", selectedHex))
 
-	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, selectedHex)
+	_, err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, selectedHex)
 	if err != nil {
 		log.Error("Failed to execute select tile action", zap.Error(err))
 		h.sendError(connection, err.Error())

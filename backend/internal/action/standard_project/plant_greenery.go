@@ -25,10 +25,11 @@ type PlantGreeneryAction struct {
 // NewPlantGreeneryAction creates a new plant greenery action
 func NewPlantGreeneryAction(
 	gameRepo game.GameRepository,
+	stateRepo game.GameStateRepository,
 	logger *zap.Logger,
 ) *PlantGreeneryAction {
 	return &PlantGreeneryAction{
-		BaseAction: baseaction.NewBaseAction(gameRepo, nil),
+		BaseAction: baseaction.NewBaseActionWithStateRepo(gameRepo, nil, stateRepo),
 	}
 }
 
@@ -75,6 +76,9 @@ func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID string, player
 	queue := &playerPkg.PendingTileSelectionQueue{
 		Items:  []string{"greenery"},
 		Source: "standard-project-greenery",
+		OnComplete: &playerPkg.TileCompletionCallback{
+			Type: "standard-project-greenery",
+		},
 	}
 	if err := g.SetPendingTileSelectionQueue(ctx, playerID, queue); err != nil {
 		return fmt.Errorf("failed to queue tile placement: %w", err)

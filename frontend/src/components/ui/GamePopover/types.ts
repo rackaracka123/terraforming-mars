@@ -12,6 +12,7 @@ export const POPOVER_THEMES = {
   standardProjects: { accent: "#4a90e2" }, // Blue
   awards: { accent: "#f39c12" }, // Orange
   milestones: { accent: "#ff6b35" }, // Orange-red
+  log: { accent: "#64c8ff" }, // Cyan/light blue
   victoryPoints: { accent: "#ffc864" }, // Gold
   menu: { accent: "#9ca3af" }, // Neutral gray
 } as const;

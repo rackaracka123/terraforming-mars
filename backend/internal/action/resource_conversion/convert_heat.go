@@ -30,10 +30,11 @@ type ConvertHeatToTemperatureAction struct {
 func NewConvertHeatToTemperatureAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
+	stateRepo game.GameStateRepository,
 	logger *zap.Logger,
 ) *ConvertHeatToTemperatureAction {
 	return &ConvertHeatToTemperatureAction{
-		BaseAction:   baseaction.NewBaseAction(gameRepo, nil),
+		BaseAction:   baseaction.NewBaseActionWithStateRepo(gameRepo, nil, stateRepo),
 		cardRegistry: cardRegistry,
 	}
 }
@@ -92,9 +93,11 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 		zap.Int("heat_spent", requiredHeat),
 		zap.Int("remaining_heat", resources.Heat))
 
+	var stepsRaised int
 	currentTemp := g.GlobalParameters().Temperature()
 	if currentTemp < global_parameters.MaxTemperature {
-		stepsRaised, err := g.GlobalParameters().IncreaseTemperature(ctx, 1)
+		var err error
+		stepsRaised, err = g.GlobalParameters().IncreaseTemperature(ctx, 1)
 		if err != nil {
 			log.Error("Failed to raise temperature", zap.Error(err))
 			return fmt.Errorf("failed to raise temperature: %w", err)
@@ -120,6 +123,17 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 	}
 
 	a.ConsumePlayerAction(g, log)
+
+	calculatedOutputs := []game.CalculatedOutput{
+		{ResourceType: string(shared.ResourceTemperature), Amount: stepsRaised, IsScaled: false},
+	}
+	if stepsRaised > 0 {
+		calculatedOutputs = append(calculatedOutputs, game.CalculatedOutput{
+			ResourceType: string(shared.ResourceTR), Amount: 1, IsScaled: false,
+		})
+	}
+	displayData := baseaction.GetStandardProjectDisplayData("Convert Heat")
+	a.WriteStateLogFull(ctx, g, "Convert Heat", game.SourceTypeResourceConvert, playerID, "Converted heat to raise temperature", nil, calculatedOutputs, displayData)
 
 	log.Info("✅ Heat converted successfully",
 		zap.Int("heat_spent", requiredHeat))

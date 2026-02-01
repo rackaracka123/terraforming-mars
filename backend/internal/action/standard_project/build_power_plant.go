@@ -28,10 +28,11 @@ type BuildPowerPlantAction struct {
 func NewBuildPowerPlantAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
+	stateRepo game.GameStateRepository,
 	logger *zap.Logger,
 ) *BuildPowerPlantAction {
 	return &BuildPowerPlantAction{
-		BaseAction: baseaction.NewBaseAction(gameRepo, cardRegistry),
+		BaseAction: baseaction.NewBaseActionWithStateRepo(gameRepo, cardRegistry, stateRepo),
 	}
 }
 
@@ -105,6 +106,12 @@ func (a *BuildPowerPlantAction) Execute(
 		zap.Int("new_energy_production", production.Energy))
 
 	a.ConsumePlayerAction(g, log)
+
+	calculatedOutputs := []game.CalculatedOutput{
+		{ResourceType: string(shared.ResourceEnergyProduction), Amount: 1, IsScaled: false},
+	}
+	displayData := baseaction.GetStandardProjectDisplayData("Standard Project: Power Plant")
+	a.WriteStateLogFull(ctx, g, "Standard Project: Power Plant", game.SourceTypeStandardProject, playerID, "Built power plant", nil, calculatedOutputs, displayData)
 
 	log.Info("✅ Power plant built successfully",
 		zap.Int("new_energy_production", production.Energy),

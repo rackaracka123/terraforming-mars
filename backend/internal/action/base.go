@@ -20,6 +20,7 @@ import (
 type BaseAction struct {
 	gameRepo     game.GameRepository
 	cardRegistry cards.CardRegistry
+	stateRepo    game.GameStateRepository
 	logger       *zap.Logger
 }
 
@@ -28,6 +29,16 @@ func NewBaseAction(gameRepo game.GameRepository, cardRegistry cards.CardRegistry
 	return BaseAction{
 		gameRepo:     gameRepo,
 		cardRegistry: cardRegistry,
+		logger:       logger.Get(),
+	}
+}
+
+// NewBaseActionWithStateRepo creates a new BaseAction with state repository for logging
+func NewBaseActionWithStateRepo(gameRepo game.GameRepository, cardRegistry cards.CardRegistry, stateRepo game.GameStateRepository) BaseAction {
+	return BaseAction{
+		gameRepo:     gameRepo,
+		cardRegistry: cardRegistry,
+		stateRepo:    stateRepo,
 		logger:       logger.Get(),
 	}
 }
@@ -54,6 +65,40 @@ func (b *BaseAction) GameRepository() game.GameRepository {
 // CardRegistry returns the card registry
 func (b *BaseAction) CardRegistry() cards.CardRegistry {
 	return b.cardRegistry
+}
+
+// StateRepository returns the game state repository (may be nil)
+func (b *BaseAction) StateRepository() game.GameStateRepository {
+	return b.stateRepo
+}
+
+// WriteStateLog writes a state diff to the state repository if configured
+func (b *BaseAction) WriteStateLog(ctx context.Context, g *game.Game, source string, sourceType game.SourceType, playerID, description string) {
+	b.WriteStateLogWithChoice(ctx, g, source, sourceType, playerID, description, nil)
+}
+
+// WriteStateLogWithChoice writes a state diff with an optional choice index
+func (b *BaseAction) WriteStateLogWithChoice(ctx context.Context, g *game.Game, source string, sourceType game.SourceType, playerID, description string, choiceIndex *int) {
+	b.WriteStateLogWithChoiceAndOutputs(ctx, g, source, sourceType, playerID, description, choiceIndex, nil)
+}
+
+// WriteStateLogWithChoiceAndOutputs writes a state diff with optional choice index and calculated outputs
+func (b *BaseAction) WriteStateLogWithChoiceAndOutputs(ctx context.Context, g *game.Game, source string, sourceType game.SourceType, playerID, description string, choiceIndex *int, calculatedOutputs []game.CalculatedOutput) {
+	b.WriteStateLogFull(ctx, g, source, sourceType, playerID, description, choiceIndex, calculatedOutputs, nil)
+}
+
+// WriteStateLogFull writes a state diff with all optional fields including display data
+func (b *BaseAction) WriteStateLogFull(ctx context.Context, g *game.Game, source string, sourceType game.SourceType, playerID, description string, choiceIndex *int, calculatedOutputs []game.CalculatedOutput, displayData *game.LogDisplayData) {
+	if b.stateRepo == nil {
+		return
+	}
+	_, err := b.stateRepo.WriteFull(ctx, g.ID(), g, source, sourceType, playerID, description, choiceIndex, calculatedOutputs, displayData)
+	if err != nil {
+		b.logger.Warn("Failed to write state log",
+			zap.String("game_id", g.ID()),
+			zap.String("source", source),
+			zap.Error(err))
+	}
 }
 
 // GetPlayerFromGame fetches a player from the game with consistent error handling

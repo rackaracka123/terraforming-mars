@@ -21,6 +21,7 @@ type GameHandler struct {
 	createGameAction      *gameaction.CreateGameAction
 	createDemoLobbyAction *gameaction.CreateDemoLobbyAction
 	getGameAction         *query.GetGameAction
+	getGameLogsAction     *query.GetGameLogsAction
 	listGamesAction       *query.ListGamesAction
 	listCardsAction       *query.ListCardsAction
 	cardRegistry          cards.CardRegistry
@@ -31,6 +32,7 @@ func NewGameHandler(
 	createGameAction *gameaction.CreateGameAction,
 	createDemoLobbyAction *gameaction.CreateDemoLobbyAction,
 	getGameAction *query.GetGameAction,
+	getGameLogsAction *query.GetGameLogsAction,
 	listGamesAction *query.ListGamesAction,
 	listCardsAction *query.ListCardsAction,
 	cardRegistry cards.CardRegistry,
@@ -39,6 +41,7 @@ func NewGameHandler(
 		createGameAction:      createGameAction,
 		createDemoLobbyAction: createDemoLobbyAction,
 		getGameAction:         getGameAction,
+		getGameLogsAction:     getGameLogsAction,
 		listGamesAction:       listGamesAction,
 		listCardsAction:       listCardsAction,
 		cardRegistry:          cardRegistry,
@@ -214,6 +217,44 @@ func (h *GameHandler) ListCards(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Info("✅ Cards listed successfully", zap.Int("count", len(cardDtos)))
+}
+
+// GetGameLogs handles GET /api/v1/games/{gameId}/logs
+func (h *GameHandler) GetGameLogs(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
+	ctx := r.Context()
+
+	vars := mux.Vars(r)
+	gameID := vars["gameId"]
+
+	queryParams := r.URL.Query()
+	var since int64 = 0
+	if sinceParam := queryParams.Get("since"); sinceParam != "" {
+		var parsedSince int64
+		if _, err := fmt.Sscanf(sinceParam, "%d", &parsedSince); err == nil {
+			since = parsedSince
+		}
+	}
+
+	log.Info("📡 HTTP GET /api/v1/games/:gameId/logs", zap.String("game_id", gameID), zap.Int64("since", since))
+
+	diffs, err := h.getGameLogsAction.Execute(ctx, gameID, since)
+	if err != nil {
+		log.Error("Failed to get game logs", zap.Error(err))
+		http.Error(w, "Game not found", http.StatusNotFound)
+		return
+	}
+
+	diffsDto := dto.ToStateDiffDtos(diffs)
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(diffsDto); err != nil {
+		log.Error("Failed to encode response", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Info("✅ Game logs retrieved successfully", zap.String("game_id", gameID), zap.Int("count", len(diffs)))
 }
 
 // CreateDemoLobby handles POST /api/v1/games/demo/lobby

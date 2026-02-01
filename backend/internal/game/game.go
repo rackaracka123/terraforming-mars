@@ -859,11 +859,13 @@ func (g *Game) ProcessNextTile(ctx context.Context, playerID string) error {
 	nextTileType := queue.Items[0]
 	remainingItems := queue.Items[1:]
 	source := queue.Source
+	onComplete := queue.OnComplete
 
 	if len(remainingItems) > 0 {
 		g.pendingTileSelectionQueues[playerID] = &player.PendingTileSelectionQueue{
-			Items:  remainingItems,
-			Source: source,
+			Items:      remainingItems,
+			Source:     source,
+			OnComplete: onComplete,
 		}
 	} else {
 		delete(g.pendingTileSelectionQueues, playerID)
@@ -876,6 +878,7 @@ func (g *Game) ProcessNextTile(ctx context.Context, playerID string) error {
 		TileType:       nextTileType,
 		AvailableHexes: availableHexes,
 		Source:         source,
+		OnComplete:     onComplete,
 	})
 
 	return err

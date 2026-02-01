@@ -29,10 +29,11 @@ type ConvertPlantsToGreeneryAction struct {
 func NewConvertPlantsToGreeneryAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
+	stateRepo game.GameStateRepository,
 	logger *zap.Logger,
 ) *ConvertPlantsToGreeneryAction {
 	return &ConvertPlantsToGreeneryAction{
-		BaseAction:   baseaction.NewBaseAction(gameRepo, nil),
+		BaseAction:   baseaction.NewBaseActionWithStateRepo(gameRepo, nil, stateRepo),
 		cardRegistry: cardRegistry,
 	}
 }
@@ -92,6 +93,9 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID stri
 	queue := &playerPkg.PendingTileSelectionQueue{
 		Items:  []string{"greenery"},
 		Source: "convert-plants-to-greenery",
+		OnComplete: &playerPkg.TileCompletionCallback{
+			Type: "convert-plants-to-greenery",
+		},
 	}
 	if err := g.SetPendingTileSelectionQueue(ctx, playerID, queue); err != nil {
 		return fmt.Errorf("failed to queue tile placement: %w", err)

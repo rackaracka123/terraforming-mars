@@ -65,6 +65,11 @@ type ProductionPhaseStartedPayload struct {
 	Game        GameDto                `json:"game" ts:"GameDto"`
 }
 
+// LogUpdatePayload contains game log entries sent via WebSocket
+type LogUpdatePayload struct {
+	Logs []StateDiffDto `json:"logs" ts:"StateDiffDto[]"`
+}
+
 // ConfirmStartingCardSelectionMessage represents confirm starting card selection message
 type ConfirmStartingCardSelectionMessage struct {
 	GameID   string `json:"gameId" ts:"string"`

@@ -28,10 +28,11 @@ type PlayCardAction struct {
 func NewPlayCardAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
+	stateRepo game.GameStateRepository,
 	logger *zap.Logger,
 ) *PlayCardAction {
 	return &PlayCardAction{
-		BaseAction: baseaction.NewBaseAction(gameRepo, cardRegistry),
+		BaseAction: baseaction.NewBaseActionWithStateRepo(gameRepo, cardRegistry, stateRepo),
 	}
 }
 
@@ -199,12 +200,17 @@ func (a *PlayCardAction) Execute(
 		zap.Int("titanium", adjustedPayment.Titanium),
 		zap.Any("substitutes", adjustedPayment.Substitutes))
 
-	if err := a.applyCardBehaviors(ctx, g, card, player, choiceIndex, cardStorageTarget, log); err != nil {
+	calculatedOutputs, err := a.applyCardBehaviors(ctx, g, card, player, choiceIndex, cardStorageTarget, log)
+	if err != nil {
 		log.Error("Failed to apply card behaviors", zap.Error(err))
 		return fmt.Errorf("failed to apply card behaviors: %w", err)
 	}
 
 	a.ConsumePlayerAction(g, log)
+
+	description := fmt.Sprintf("Played %s for %d credits", card.Name, totalValue)
+	displayData := baseaction.BuildCardDisplayData(card, game.SourceTypeCardPlay)
+	a.WriteStateLogFull(ctx, g, card.Name, game.SourceTypeCardPlay, playerID, description, choiceIndex, calculatedOutputs, displayData)
 
 	log.Info("🎉 Card played successfully",
 		zap.String("card_name", card.Name),
@@ -340,6 +346,7 @@ func validateCardRequirements(card *gamecards.Card, g *game.Game, player *player
 }
 
 // applyCardBehaviors processes all card behaviors and applies immediate effects or registers actions/effects
+// Returns calculated outputs for logging purposes
 func (a *PlayCardAction) applyCardBehaviors(
 	ctx context.Context,
 	g *game.Game,
@@ -348,15 +355,17 @@ func (a *PlayCardAction) applyCardBehaviors(
 	choiceIndex *int,
 	cardStorageTarget *string,
 	log *zap.Logger,
-) error {
+) ([]game.CalculatedOutput, error) {
 	if len(card.Behaviors) == 0 {
 		log.Debug("No card behaviors to apply")
-		return nil
+		return nil, nil
 	}
 
 	log.Info("🎴 Processing card behaviors",
 		zap.String("card_id", card.ID),
 		zap.Int("behavior_count", len(card.Behaviors)))
+
+	var allCalculatedOutputs []game.CalculatedOutput
 
 	for behaviorIndex, behavior := range card.Behaviors {
 		log.Debug("Processing behavior",
@@ -373,13 +382,16 @@ func (a *PlayCardAction) applyCardBehaviors(
 
 			// Use BehaviorApplier for consistent output handling
 			applier := gamecards.NewBehaviorApplier(p, g, card.Name, log).
-				WithSourceCardID(card.ID)
+				WithSourceCardID(card.ID).
+				WithCardRegistry(a.CardRegistry())
 			if cardStorageTarget != nil {
 				applier = applier.WithTargetCardID(*cardStorageTarget)
 			}
-			if err := applier.ApplyOutputs(ctx, outputs); err != nil {
-				return fmt.Errorf("failed to apply auto behavior %d outputs: %w", behaviorIndex, err)
+			calculatedOutputs, err := applier.ApplyOutputsAndGetCalculated(ctx, outputs)
+			if err != nil {
+				return nil, fmt.Errorf("failed to apply auto behavior %d outputs: %w", behaviorIndex, err)
 			}
+			allCalculatedOutputs = append(allCalculatedOutputs, calculatedOutputs...)
 
 			// Also register as effect if it has persistent outputs (discount, payment-substitute)
 			// These need to show in the effects list for display and for modifier calculations
@@ -442,7 +454,7 @@ func (a *PlayCardAction) applyCardBehaviors(
 	}
 
 	log.Info("✅ All card behaviors processed successfully")
-	return nil
+	return allCalculatedOutputs, nil
 }
 
 func adjustPaymentToEffectiveCost(

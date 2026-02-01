@@ -109,17 +109,25 @@ type ProductionPhase struct {
 	CreditsIncome     int
 }
 
+// TileCompletionCallback stores info about what to call when tile placement completes
+type TileCompletionCallback struct {
+	Type string
+	Data map[string]interface{}
+}
+
 // PendingTileSelection represents a pending tile placement action
 type PendingTileSelection struct {
 	TileType       string
 	AvailableHexes []string
 	Source         string
+	OnComplete     *TileCompletionCallback
 }
 
 // PendingTileSelectionQueue represents a queue of tile placements
 type PendingTileSelectionQueue struct {
-	Items  []string
-	Source string
+	Items      []string
+	Source     string
+	OnComplete *TileCompletionCallback
 }
 
 // ForcedFirstAction represents an action that must be completed as first action

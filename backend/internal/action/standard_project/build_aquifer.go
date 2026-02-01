@@ -25,10 +25,11 @@ type BuildAquiferAction struct {
 // NewBuildAquiferAction creates a new build aquifer action
 func NewBuildAquiferAction(
 	gameRepo game.GameRepository,
+	stateRepo game.GameStateRepository,
 	logger *zap.Logger,
 ) *BuildAquiferAction {
 	return &BuildAquiferAction{
-		BaseAction: baseaction.NewBaseAction(gameRepo, nil),
+		BaseAction: baseaction.NewBaseActionWithStateRepo(gameRepo, nil, stateRepo),
 	}
 }
 
@@ -72,15 +73,12 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID string, playerI
 		zap.Int("cost", BuildAquiferCost),
 		zap.Int("remaining_credits", resources.Credits))
 
-	player.Resources().UpdateTerraformRating(1)
-
-	newTR := player.Resources().TerraformRating()
-	log.Info("🏆 Increased terraform rating",
-		zap.Int("new_tr", newTR))
-
 	queue := &playerPkg.PendingTileSelectionQueue{
 		Items:  []string{"ocean"},
 		Source: "standard-project-aquifer",
+		OnComplete: &playerPkg.TileCompletionCallback{
+			Type: "standard-project-aquifer",
+		},
 	}
 	if err := g.SetPendingTileSelectionQueue(ctx, playerID, queue); err != nil {
 		return fmt.Errorf("failed to queue tile placement: %w", err)
@@ -90,8 +88,7 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID string, playerI
 
 	a.ConsumePlayerAction(g, log)
 
-	log.Info("✅ Aquifer built successfully, ocean tile queued for placement",
-		zap.Int("new_terraform_rating", newTR),
+	log.Info("✅ Aquifer ocean tile queued for placement",
 		zap.Int("remaining_credits", resources.Credits))
 	return nil
 }
