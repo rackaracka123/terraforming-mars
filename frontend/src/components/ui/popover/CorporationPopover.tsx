@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { CardDto } from "../../../types/generated/api-types.ts";
 import { FormattedDescription } from "../display/FormattedDescription";
+import { Z_INDEX } from "@/constants/zIndex";
 
 interface CorporationPopoverProps {
   isVisible: boolean;
@@ -61,11 +63,15 @@ const CorporationPopover: React.FC<CorporationPopoverProps> = ({
 
   if (!isVisible) return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed w-[380px] bg-space-black-darker/95 border-2 border-space-blue-400 rounded-xl shadow-glow-lg backdrop-blur-space z-[10001] animate-[popoverSlideUp_0.3s_ease-out] flex flex-col overflow-hidden isolate pointer-events-auto max-[768px]:w-[320px]"
+      className="fixed w-[380px] bg-space-black-darker/95 border-2 border-space-blue-400 rounded-xl shadow-glow-lg backdrop-blur-space animate-[popoverSlideUp_0.3s_ease-out] flex flex-col overflow-hidden isolate pointer-events-auto max-[768px]:w-[320px]"
       ref={popoverRef}
-      style={{ bottom: `${position.bottom}px`, left: `${position.left}px` }}
+      style={{
+        bottom: `${position.bottom}px`,
+        left: `${position.left}px`,
+        zIndex: Z_INDEX.POPOVER,
+      }}
     >
       {/* Arrow pointing down to the corporation display */}
       <div className="absolute -bottom-2 left-[30px] w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-space-blue-400" />
@@ -122,7 +128,8 @@ const CorporationPopover: React.FC<CorporationPopoverProps> = ({
       <div className="px-5 pb-3 text-center text-xs text-white/50">
         Click outside or press ESC to close
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

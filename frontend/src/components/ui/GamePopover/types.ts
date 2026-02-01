@@ -13,6 +13,7 @@ export const POPOVER_THEMES = {
   awards: { accent: "#f39c12" }, // Orange
   milestones: { accent: "#ff6b35" }, // Orange-red
   victoryPoints: { accent: "#ffc864" }, // Gold
+  menu: { accent: "#9ca3af" }, // Neutral gray
 } as const;
 
 export type PopoverThemeName = keyof typeof POPOVER_THEMES;

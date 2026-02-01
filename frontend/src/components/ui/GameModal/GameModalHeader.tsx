@@ -24,7 +24,7 @@ const GameModalHeader: React.FC<GameModalHeaderProps> = ({
 
         {showCloseButton && onClose && (
           <button
-            className="bg-[linear-gradient(135deg,rgba(255,80,80,0.8)_0%,rgba(200,40,40,0.9)_100%)] border-2 border-[rgba(255,120,120,0.6)] rounded-full w-[45px] h-[45px] text-white text-2xl font-bold cursor-pointer flex items-center justify-center transition-all duration-300 shadow-[0_4px_15px_rgba(0,0,0,0.4)] flex-shrink-0 hover:scale-110 hover:shadow-[0_6px_25px_rgba(255,80,80,0.5)]"
+            className="text-white/70 hover:text-white text-xl leading-none transition-colors cursor-pointer"
             onClick={onClose}
           >
             ×

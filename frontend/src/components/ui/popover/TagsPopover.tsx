@@ -27,7 +27,6 @@ const TagsPopover: React.FC<TagsPopoverProps> = ({ isVisible, onClose, tagCounts
       header={{ title: `${totalTags} tags` }}
       width="auto"
       maxHeight="none"
-      zIndex={2000}
     >
       {visibleTags.length === 0 ? (
         <div className="py-8 px-5 text-center">

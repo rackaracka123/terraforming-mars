@@ -26,7 +26,6 @@ const VictoryPointsPopover: React.FC<VictoryPointsPopoverProps> = ({
       header={{ title: `${totalVP} VP` }}
       width="auto"
       maxHeight="none"
-      zIndex={2000}
     >
       {vpGranters.length === 0 ? (
         <div className="py-8 px-5 text-center">
