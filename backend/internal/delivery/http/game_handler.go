@@ -85,8 +85,13 @@ func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("📡 HTTP GET /api/v1/games")
 
-	// Execute query action (no status filter for now)
-	games, err := h.listGamesAction.Execute(ctx, nil)
+	var statusFilter *game.GameStatus
+	if statusParam := r.URL.Query().Get("status"); statusParam != "" {
+		status := game.GameStatus(statusParam)
+		statusFilter = &status
+	}
+
+	games, err := h.listGamesAction.Execute(ctx, statusFilter)
 	if err != nil {
 		log.Error("Failed to list games", zap.Error(err))
 		http.Error(w, "Failed to list games", http.StatusInternalServerError)
@@ -98,8 +103,10 @@ func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
 		gameDtos[i] = dto.ToGameDto(game, h.cardRegistry, "")
 	}
 
+	response := dto.ListGamesResponse{Games: gameDtos}
+
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(gameDtos); err != nil {
+	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.Error("Failed to encode response", zap.Error(err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
