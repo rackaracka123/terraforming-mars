@@ -116,7 +116,7 @@ func main() {
 	convertPlantsAction := resconvAction.NewConvertPlantsToGreeneryAction(gameRepo, cardRegistry, stateRepo, log)
 
 	// Tile selection (1)
-	selectTileAction := tileAction.NewSelectTileAction(gameRepo, cardRegistry, log)
+	selectTileAction := tileAction.NewSelectTileAction(gameRepo, cardRegistry, stateRepo, log)
 
 	// Turn management (3)
 	startGameAction := turnAction.NewStartGameAction(gameRepo, log)

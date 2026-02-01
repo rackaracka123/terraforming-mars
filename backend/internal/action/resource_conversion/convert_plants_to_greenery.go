@@ -89,6 +89,9 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID stri
 	queue := &playerPkg.PendingTileSelectionQueue{
 		Items:  []string{"greenery"},
 		Source: "convert-plants-to-greenery",
+		OnComplete: &playerPkg.TileCompletionCallback{
+			Type: "convert-plants-to-greenery",
+		},
 	}
 	if err := g.SetPendingTileSelectionQueue(ctx, playerID, queue); err != nil {
 		return fmt.Errorf("failed to queue tile placement: %w", err)
@@ -97,8 +100,6 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID stri
 	log.Info("📋 Created tile queue for greenery placement (auto-processed by SetPendingTileSelectionQueue)")
 
 	a.ConsumePlayerAction(g, log)
-
-	a.WriteStateLog(ctx, g, "Convert Plants", game.SourceTypeResourceConvert, playerID, "Converted plants to greenery")
 
 	log.Info("✅ Plants converted successfully, greenery tile queued for placement",
 		zap.Int("plants_spent", requiredPlants))

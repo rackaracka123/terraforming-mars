@@ -89,9 +89,11 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 		zap.Int("heat_spent", requiredHeat),
 		zap.Int("remaining_heat", resources.Heat))
 
+	var stepsRaised int
 	currentTemp := g.GlobalParameters().Temperature()
 	if currentTemp < global_parameters.MaxTemperature {
-		stepsRaised, err := g.GlobalParameters().IncreaseTemperature(ctx, 1)
+		var err error
+		stepsRaised, err = g.GlobalParameters().IncreaseTemperature(ctx, 1)
 		if err != nil {
 			log.Error("Failed to raise temperature", zap.Error(err))
 			return fmt.Errorf("failed to raise temperature: %w", err)
@@ -118,7 +120,15 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 
 	a.ConsumePlayerAction(g, log)
 
-	a.WriteStateLog(ctx, g, "Convert Heat", game.SourceTypeResourceConvert, playerID, "Converted heat to raise temperature")
+	calculatedOutputs := []game.CalculatedOutput{
+		{ResourceType: string(shared.ResourceTemperature), Amount: stepsRaised, IsScaled: false},
+	}
+	if stepsRaised > 0 {
+		calculatedOutputs = append(calculatedOutputs, game.CalculatedOutput{
+			ResourceType: string(shared.ResourceTR), Amount: 1, IsScaled: false,
+		})
+	}
+	a.WriteStateLogWithChoiceAndOutputs(ctx, g, "Convert Heat", game.SourceTypeResourceConvert, playerID, "Converted heat to raise temperature", nil, calculatedOutputs)
 
 	log.Info("✅ Heat converted successfully",
 		zap.Int("heat_spent", requiredHeat))

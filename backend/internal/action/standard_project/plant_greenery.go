@@ -72,6 +72,9 @@ func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID string, player
 	queue := &playerPkg.PendingTileSelectionQueue{
 		Items:  []string{"greenery"},
 		Source: "standard-project-greenery",
+		OnComplete: &playerPkg.TileCompletionCallback{
+			Type: "standard-project-greenery",
+		},
 	}
 	if err := g.SetPendingTileSelectionQueue(ctx, playerID, queue); err != nil {
 		return fmt.Errorf("failed to queue tile placement: %w", err)
@@ -80,11 +83,6 @@ func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID string, player
 	log.Info("📋 Created tile queue for greenery placement (auto-processed by SetPendingTileSelectionQueue)")
 
 	a.ConsumePlayerAction(g, log)
-
-	calculatedOutputs := []game.CalculatedOutput{
-		{ResourceType: string(shared.ResourceGreeneryPlacement), Amount: 1, IsScaled: false},
-	}
-	a.WriteStateLogWithChoiceAndOutputs(ctx, g, "Greenery", game.SourceTypeStandardProject, playerID, "Planted greenery", nil, calculatedOutputs)
 
 	log.Info("✅ Greenery tile selection ready",
 		zap.Int("remaining_credits", resources.Credits))
