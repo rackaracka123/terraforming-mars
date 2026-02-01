@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import GameLayout from "./GameLayout.tsx";
 import CardsPlayedModal from "../../ui/modals/CardsPlayedModal.tsx";
 import EffectsModal from "../../ui/modals/EffectsModal.tsx";
@@ -9,6 +9,8 @@ import PaymentSelectionPopover from "../../ui/popover/PaymentSelectionPopover.ts
 import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
 import DevModeChip from "../../ui/debug/DevModeChip.tsx";
 import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
+import PlayerSelectionOverlay from "../../ui/overlay/PlayerSelectionOverlay.tsx";
+import JoinGameOverlay from "../../ui/overlay/JoinGameOverlay.tsx";
 import DemoSetupOverlay from "../../ui/overlay/DemoSetupOverlay.tsx";
 import TabConflictOverlay from "../../ui/overlay/TabConflictOverlay.tsx";
 import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelectionOverlay.tsx";
@@ -24,6 +26,7 @@ import { TileHighlightMode } from "../../game/board/ProjectedHexTile.tsx";
 import ChoiceSelectionPopover from "../../ui/popover/ChoiceSelectionPopover.tsx";
 import CardStorageSelectionPopover from "../../ui/popover/CardStorageSelectionPopover.tsx";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
+import { apiService } from "@/services/apiService.ts";
 import { getTabManager } from "@/utils/tabManager.ts";
 import { useSoundEffects } from "@/hooks/useSoundEffects.ts";
 import { skyboxCache } from "@/services/SkyboxCache.ts";
@@ -53,9 +56,12 @@ import { StandardProject } from "@/types/cards.tsx";
 
 type TransitionPhase = "idle" | "lobby" | "fadeOutLobby" | "animateUI" | "complete";
 
+type LoadingPhase = "checking" | "selecting" | "joining" | "connecting" | "ready";
+
 export default function GameInterface() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { gameId: urlGameId } = useParams<{ gameId?: string }>();
   const { playProductionSound, playTemperatureSound, playWaterPlacementSound, playOxygenSound } =
     useSoundEffects();
   const [game, setGame] = useState<GameDto | null>(null);
@@ -66,6 +72,8 @@ export default function GameInterface() {
   const [reconnectionStep, setReconnectionStep] = useState<"game" | "environment" | null>(null);
   const [currentPlayer, setCurrentPlayer] = useState<PlayerDto | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null); // Track player ID separately
+  const [loadingPhase, setLoadingPhase] = useState<LoadingPhase>("checking");
+  const [gameForSelection, setGameForSelection] = useState<GameDto | null>(null);
   const [_showCorporationModal, setShowCorporationModal] = useState(false);
   const [corporationData, setCorporationData] = useState<CardDto | null>(null);
 
@@ -170,7 +178,9 @@ export default function GameInterface() {
   const handleSkyboxReady = useCallback(() => setIsSkyboxReady(true), []);
 
   const isFullyLoaded =
-    isConnected && !!game && !isReconnecting && (isSkyboxReady || transitionPhase === "lobby");
+    loadingPhase === "selecting" ||
+    loadingPhase === "joining" ||
+    (isConnected && !!game && !isReconnecting && (isSkyboxReady || transitionPhase === "lobby"));
 
   // WebSocket stability
   const isWebSocketInitialized = useRef(false);
@@ -264,6 +274,11 @@ export default function GameInterface() {
   }, []);
 
   const handleDisconnect = useCallback(() => {
+    // Skip disconnect handling if this was an intentional leave
+    if (globalWebSocketManager.isGracefulDisconnect()) {
+      return;
+    }
+
     // WebSocket connection closed - this client lost connection
     setIsConnected(false);
 
@@ -293,6 +308,11 @@ export default function GameInterface() {
     },
     [handleGameUpdated],
   );
+
+  const handleMaxReconnectsReached = useCallback(() => {
+    clearGameSession();
+    navigate("/", { state: { error: "Server is down", persistent: true } });
+  }, [navigate]);
 
   // Check if we should show production phase modal based on game state
   useEffect(() => {
@@ -824,6 +844,7 @@ export default function GameInterface() {
     globalWebSocketManager.on("player-disconnected", handlePlayerDisconnected);
     globalWebSocketManager.on("error", handleError);
     globalWebSocketManager.on("disconnect", handleDisconnect);
+    globalWebSocketManager.on("max-reconnects-reached", handleMaxReconnectsReached);
 
     isWebSocketInitialized.current = true;
 
@@ -833,9 +854,17 @@ export default function GameInterface() {
       globalWebSocketManager.off("player-disconnected", handlePlayerDisconnected);
       globalWebSocketManager.off("error", handleError);
       globalWebSocketManager.off("disconnect", handleDisconnect);
+      globalWebSocketManager.off("max-reconnects-reached", handleMaxReconnectsReached);
       isWebSocketInitialized.current = false;
     };
-  }, [handleGameUpdated, handleFullState, handlePlayerDisconnected, handleError, handleDisconnect]);
+  }, [
+    handleGameUpdated,
+    handleFullState,
+    handlePlayerDisconnected,
+    handleError,
+    handleDisconnect,
+    handleMaxReconnectsReached,
+  ]);
 
   // Handle action selection from card actions
   const handleActionSelect = useCallback(
@@ -941,8 +970,10 @@ export default function GameInterface() {
   // Confirm leave game - disconnects but keeps session for reconnect
   const handleConfirmLeaveGame = useCallback(() => {
     globalWebSocketManager.disconnect();
-    // Don't clear session - allow reconnecting from landing page
-    navigate("/", { replace: true });
+    // Small delay ensures WebSocket close is processed before navigation
+    setTimeout(() => {
+      navigate("/", { replace: true });
+    }, 100);
   }, [navigate]);
 
   // Tab conflict handlers
@@ -990,38 +1021,16 @@ export default function GameInterface() {
     navigate("/", { replace: true });
   };
 
-  useEffect(() => {
-    const initializeGame = async () => {
-      // Check if we have real game state from routing
-      const routeState = location.state as {
-        game?: GameDto;
-        playerId?: string;
-        playerName?: string;
-        isReconnection?: boolean;
-      } | null;
+  const handlePlayerSelected = useCallback(
+    async (selectedPlayerId: string, playerName: string) => {
+      if (!gameForSelection) return;
 
-      if (!routeState?.game || !routeState?.playerId || !routeState?.playerName) {
-        // No route state, check if we should attempt reconnection
-        const savedGameData = getGameSession();
-        if (savedGameData) {
-          // Start in-place reconnection instead of redirecting
-          setIsReconnecting(true);
-          void attemptReconnection();
-          return;
-        }
+      setLoadingPhase("connecting");
 
-        // No saved data, return to main menu
-        clearGameSession();
-        navigate("/", { replace: true });
-        return;
-      }
-
-      // We have route state, try to claim the tab for this game session
       const tabManager = getTabManager();
-      const canClaim = await tabManager.claimTab(routeState.game.id, routeState.playerName);
+      const canClaim = await tabManager.claimTab(gameForSelection.id, playerName);
 
       if (!canClaim) {
-        // Another tab has this game open, show conflict overlay
         const activeTabInfo = tabManager.getActiveTabInfo();
         if (activeTabInfo) {
           setConflictingTabInfo(activeTabInfo);
@@ -1030,42 +1039,164 @@ export default function GameInterface() {
         }
       }
 
-      // Successfully claimed tab or no conflict, initialize game
-      setGame(routeState.game);
-      setIsConnected(true);
-
-      // Store game data for reconnection
       saveGameSession({
-        gameId: routeState.game.id,
-        playerId: routeState.playerId,
-        playerName: routeState.playerName,
+        gameId: gameForSelection.id,
+        playerId: selectedPlayerId,
+        playerName: playerName,
         timestamp: Date.now(),
       });
 
-      // Set current player from game data
-      const player = routeState.game.currentPlayer;
-      setCurrentPlayer(player || null);
+      currentPlayerIdRef.current = selectedPlayerId;
+      setPlayerId(selectedPlayerId);
+      globalWebSocketManager.setCurrentPlayerId(selectedPlayerId);
 
-      // Store player ID for WebSocket handlers and component state
-      currentPlayerIdRef.current = routeState.playerId;
-      setPlayerId(routeState.playerId);
+      await globalWebSocketManager.playerTakeover(selectedPlayerId, gameForSelection.id);
 
-      // CRITICAL FIX: Ensure globalWebSocketManager knows the current player ID
-      // This is essential for reconnection scenarios where the player ID must be preserved
-      globalWebSocketManager.setCurrentPlayerId(routeState.playerId);
+      setLoadingPhase("ready");
+    },
+    [gameForSelection],
+  );
 
-      // CRITICAL FIX: Send the player-connect WebSocket message to complete reconnection
-      // This is necessary after page refresh when we have the game state from route
-      // but need to re-establish the WebSocket connection with the backend
-      void globalWebSocketManager.playerConnect(
-        routeState.playerName,
-        routeState.game.id,
-        routeState.playerId,
-      );
+  const handlePlayerSelectionCancel = useCallback(() => {
+    navigate("/", { replace: true });
+  }, [navigate]);
+
+  useEffect(() => {
+    const initializeGame = async () => {
+      setLoadingPhase("checking");
+
+      const routeState = location.state as {
+        game?: GameDto;
+        playerId?: string;
+        playerName?: string;
+        isReconnection?: boolean;
+      } | null;
+
+      // 1. Determine game ID source (priority order)
+      const gameId = urlGameId || routeState?.game?.id || getGameSession()?.gameId;
+
+      if (!gameId) {
+        navigate("/", { replace: true });
+        return;
+      }
+
+      // 2. Validate game exists
+      let fetchedGame: GameDto | null = null;
+      try {
+        fetchedGame = await apiService.getGame(gameId);
+      } catch {
+        navigate("/", { replace: true, state: { error: "Could not find game" } });
+        return;
+      }
+
+      if (!fetchedGame) {
+        clearGameSession();
+        navigate("/", { replace: true, state: { error: "Could not find game" } });
+        return;
+      }
+
+      // 3. Check cached session
+      const savedSession = getGameSession();
+      const cachedForThisGame = savedSession && savedSession.gameId === gameId;
+
+      if (cachedForThisGame && savedSession.playerId) {
+        // Check if cached player exists in game
+        const allPlayers = [fetchedGame.currentPlayer, ...(fetchedGame.otherPlayers || [])].filter(
+          Boolean,
+        );
+
+        const cachedPlayer = allPlayers.find((p) => p?.id === savedSession.playerId);
+
+        if (cachedPlayer) {
+          // Player exists in game
+          if (!cachedPlayer.isConnected) {
+            // Player is disconnected, auto-reconnect
+            setLoadingPhase("connecting");
+
+            const tabManager = getTabManager();
+            const canClaim = await tabManager.claimTab(fetchedGame.id, savedSession.playerName);
+
+            if (!canClaim) {
+              const activeTabInfo = tabManager.getActiveTabInfo();
+              if (activeTabInfo) {
+                setConflictingTabInfo(activeTabInfo);
+                setShowTabConflict(true);
+                return;
+              }
+            }
+
+            currentPlayerIdRef.current = savedSession.playerId;
+            setPlayerId(savedSession.playerId);
+            globalWebSocketManager.setCurrentPlayerId(savedSession.playerId);
+
+            await globalWebSocketManager.playerTakeover(savedSession.playerId, fetchedGame.id);
+
+            setLoadingPhase("ready");
+            return;
+          }
+          // Player is connected from somewhere else - show selection
+        }
+      }
+
+      // 4. If we have full route state with player info, use that directly
+      if (routeState?.game && routeState?.playerId && routeState?.playerName) {
+        const tabManager = getTabManager();
+        const canClaim = await tabManager.claimTab(routeState.game.id, routeState.playerName);
+
+        if (!canClaim) {
+          const activeTabInfo = tabManager.getActiveTabInfo();
+          if (activeTabInfo) {
+            setConflictingTabInfo(activeTabInfo);
+            setShowTabConflict(true);
+            return;
+          }
+        }
+
+        setGame(routeState.game);
+        setIsConnected(true);
+
+        saveGameSession({
+          gameId: routeState.game.id,
+          playerId: routeState.playerId,
+          playerName: routeState.playerName,
+          timestamp: Date.now(),
+        });
+
+        const player = routeState.game.currentPlayer;
+        setCurrentPlayer(player || null);
+
+        currentPlayerIdRef.current = routeState.playerId;
+        setPlayerId(routeState.playerId);
+
+        globalWebSocketManager.setCurrentPlayerId(routeState.playerId);
+
+        void globalWebSocketManager.playerConnect(
+          routeState.playerName,
+          routeState.game.id,
+          routeState.playerId,
+        );
+
+        setLoadingPhase("ready");
+        return;
+      }
+
+      // 5. Check if this is a join link
+      const urlParams = new URLSearchParams(window.location.search);
+      const isJoinLink = urlParams.get("type") === "join";
+
+      if (isJoinLink) {
+        setGameForSelection(fetchedGame);
+        setLoadingPhase("joining");
+        return;
+      }
+
+      // 6. Show player selection
+      setGameForSelection(fetchedGame);
+      setLoadingPhase("selecting");
     };
 
     void initializeGame();
-  }, [location.state, navigate]);
+  }, [location.state, navigate, urlGameId]);
 
   // Register event listeners when component mounts, unregister on unmount
   useEffect(() => {
@@ -1171,6 +1302,8 @@ export default function GameInterface() {
   }, [showDebugDropdown]);
 
   const loadingMessage = (() => {
+    if (loadingPhase === "checking") return "Loading game...";
+    if (loadingPhase === "connecting") return "Connecting...";
     if (isReconnecting && reconnectionStep) {
       if (reconnectionStep === "game") return "Reconnecting to game...";
       if (reconnectionStep === "environment") return "Loading 3D environment...";
@@ -1362,7 +1495,10 @@ export default function GameInterface() {
         changedPaths={changedPaths}
       />
 
-      {(transitionPhase === "lobby" || transitionPhase === "fadeOutLobby") && (
+      {(transitionPhase === "lobby" ||
+        transitionPhase === "fadeOutLobby" ||
+        loadingPhase === "selecting" ||
+        loadingPhase === "joining") && (
         <div
           className={
             transitionPhase === "fadeOutLobby" ? "animate-[fadeOut_1500ms_ease-out_forwards]" : ""
@@ -1387,6 +1523,18 @@ export default function GameInterface() {
           onTakeOver={handleTabTakeOver}
           onCancel={handleTabCancel}
         />
+      )}
+
+      {loadingPhase === "selecting" && gameForSelection && (
+        <PlayerSelectionOverlay
+          game={gameForSelection}
+          onSelectPlayer={(playerId, playerName) => void handlePlayerSelected(playerId, playerName)}
+          onCancel={handlePlayerSelectionCancel}
+        />
+      )}
+
+      {loadingPhase === "joining" && gameForSelection && (
+        <JoinGameOverlay game={gameForSelection} onCancel={handlePlayerSelectionCancel} />
       )}
 
       {/* Leave game confirmation dialog */}
