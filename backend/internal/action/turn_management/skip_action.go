@@ -44,26 +44,31 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 		return err
 	}
 
-	players := g.GetAllPlayers()
+	turnOrder := g.TurnOrder()
 
-	var currentPlayer *playerPkg.Player
+	currentPlayer, err := g.GetPlayer(playerID)
+	if err != nil {
+		log.Error("Current player not found in game")
+		return fmt.Errorf("player not found in game")
+	}
+
 	currentPlayerIndex := -1
-	for i, p := range players {
-		if p.ID() == playerID {
-			currentPlayer = p
+	for i, id := range turnOrder {
+		if id == playerID {
 			currentPlayerIndex = i
 			break
 		}
 	}
 
-	if currentPlayer == nil {
-		log.Error("Current player not found in game")
-		return fmt.Errorf("player not found in game")
+	if currentPlayerIndex == -1 {
+		log.Error("Current player not found in turn order")
+		return fmt.Errorf("player not found in turn order")
 	}
 
 	activePlayerCount := 0
-	for _, p := range players {
-		if !p.HasPassed() {
+	for _, id := range turnOrder {
+		p, _ := g.GetPlayer(id)
+		if p != nil && !p.HasPassed() {
 			activePlayerCount++
 		}
 	}
@@ -74,7 +79,7 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 		return fmt.Errorf("no current turn set")
 	}
 	availableActions := currentTurn.ActionsRemaining()
-	isPassing := availableActions == 2 || availableActions == -1 || len(players) == 1
+	isPassing := availableActions == 2 || availableActions == -1 || len(turnOrder) == 1
 	if isPassing {
 		currentPlayer.SetPassed(true)
 
@@ -83,8 +88,9 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 			zap.Int("available_actions", availableActions))
 
 		if activePlayerCount == 2 {
-			for _, p := range players {
-				if !p.HasPassed() && p.ID() != playerID {
+			for _, id := range turnOrder {
+				p, _ := g.GetPlayer(id)
+				if p != nil && !p.HasPassed() && p.ID() != playerID {
 					if err := g.SetCurrentTurn(ctx, p.ID(), -1); err != nil {
 						log.Error("Failed to grant unlimited actions to last player", zap.Error(err))
 						return fmt.Errorf("failed to grant unlimited actions: %w", err)
@@ -95,30 +101,26 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 			}
 		}
 	} else {
+		// SKIP: Player is done with their turn but not passing for the generation
+		// Don't consume action - just advance to next player
 		log.Debug("Player SKIPPED (turn advanced, not passed)",
 			zap.String("player_id", playerID),
 			zap.Int("available_actions", availableActions))
-
-		consumed := a.ConsumePlayerAction(g, log)
-		if !consumed {
-			log.Warn("⚠️ Could not consume action during skip (unlimited actions or already at 0)")
-		}
 	}
 
-	players = g.GetAllPlayers()
-
 	passedCount := 0
-	for _, p := range players {
-		if p.HasPassed() {
+	for _, id := range turnOrder {
+		p, _ := g.GetPlayer(id)
+		if p != nil && p.HasPassed() {
 			passedCount++
 		}
 	}
 
-	allPlayersFinished := passedCount == len(players)
+	allPlayersFinished := passedCount == len(turnOrder)
 
 	log.Debug("Checking generation end condition",
 		zap.Int("passed_count", passedCount),
-		zap.Int("total_players", len(players)),
+		zap.Int("total_players", len(turnOrder)),
 		zap.Bool("all_players_finished", allPlayersFinished))
 
 	if allPlayersFinished {
@@ -142,7 +144,7 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 			zap.Int("generation", g.Generation()),
 			zap.Int("passed_players", passedCount))
 
-		err = a.executeProductionPhase(ctx, g, players)
+		err = a.executeProductionPhase(ctx, g, g.GetAllPlayers())
 		if err != nil {
 			log.Error("Failed to execute production phase", zap.Error(err))
 			return fmt.Errorf("failed to execute production phase: %w", err)
@@ -152,20 +154,29 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 		return nil
 	}
 
-	nextPlayerIndex := (currentPlayerIndex + 1) % len(players)
-	for i := 0; i < len(players); i++ {
-		nextPlayer := players[nextPlayerIndex]
-		if !nextPlayer.HasPassed() {
+	nextPlayerIndex := (currentPlayerIndex + 1) % len(turnOrder)
+	for i := 0; i < len(turnOrder); i++ {
+		nextPlayer, _ := g.GetPlayer(turnOrder[nextPlayerIndex])
+		if nextPlayer != nil && !nextPlayer.HasPassed() {
 			break
 		}
-		nextPlayerIndex = (nextPlayerIndex + 1) % len(players)
+		nextPlayerIndex = (nextPlayerIndex + 1) % len(turnOrder)
 	}
 
-	nextPlayerID := players[nextPlayerIndex].ID()
+	nextPlayerID := turnOrder[nextPlayerIndex]
 	nextActions := 2
 
-	if nextPlayerID == playerID && !isPassing {
-		nextActions = currentTurn.ActionsRemaining()
+	nonPassedCount := 0
+	for _, id := range turnOrder {
+		p, _ := g.GetPlayer(id)
+		if p != nil && !p.HasPassed() {
+			nonPassedCount++
+		}
+	}
+	if nonPassedCount == 1 {
+		nextActions = -1
+		log.Info("🏃 Next player is the last non-passed player, granting unlimited actions",
+			zap.String("player_id", nextPlayerID))
 	}
 
 	err = g.SetCurrentTurn(ctx, nextPlayerID, nextActions)
@@ -256,10 +267,22 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameInsta
 	}
 	newGeneration := gameInstance.Generation()
 
-	if len(players) > 0 {
-		firstPlayerID := players[0].ID()
+	// Rotate turn order for new generation (starting player rotates each generation)
+	turnOrder := gameInstance.TurnOrder()
+	if len(turnOrder) > 1 {
+		rotatedOrder := append(turnOrder[1:], turnOrder[0])
+		if err := gameInstance.SetTurnOrder(ctx, rotatedOrder); err != nil {
+			return fmt.Errorf("failed to rotate turn order: %w", err)
+		}
+		turnOrder = rotatedOrder
+		log.Info("🔄 Turn order rotated for new generation",
+			zap.Strings("new_turn_order", turnOrder))
+	}
+
+	if len(turnOrder) > 0 {
+		firstPlayerID := turnOrder[0]
 		actionsForNewGeneration := 2
-		if len(players) == 1 {
+		if len(turnOrder) == 1 {
 			actionsForNewGeneration = -1
 		}
 		if err := gameInstance.SetCurrentTurn(ctx, firstPlayerID, actionsForNewGeneration); err != nil {

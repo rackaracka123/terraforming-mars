@@ -11,13 +11,13 @@ interface InfoTooltipProps {
 
 const sizeConfig = {
   small: {
-    icon: "text-sm w-[16px] h-[16px]",
+    icon: "text-[10px] w-[14px] h-[14px]",
     tooltip: "w-[260px] text-[12px]",
     shadow:
       "shadow-[0_0_8px_rgba(30,60,150,0.2)] group-hover:shadow-[0_0_12px_rgba(30,60,150,0.4)]",
   },
   medium: {
-    icon: "text-base w-[18px] h-[18px]",
+    icon: "text-[11px] w-[16px] h-[16px]",
     tooltip: "w-[280px] text-[13px]",
     shadow:
       "shadow-[0_0_10px_rgba(30,60,150,0.2)] group-hover:shadow-[0_0_15px_rgba(30,60,150,0.4)]",
@@ -32,7 +32,7 @@ const InfoTooltip: FC<InfoTooltipProps> = ({ children, size = "medium" }) => {
       <span
         className={`text-space-blue-solid cursor-help flex items-center justify-center rounded-full bg-space-blue-100 border border-space-blue-400 transition-all duration-200 group-hover:bg-space-blue-200 ${config.icon} ${config.shadow}`}
       >
-        i
+        <span className="font-serif italic">i</span>
       </span>
       <div
         className={`invisible opacity-0 bg-space-black/[0.98] text-white text-left rounded-lg p-3 absolute z-[1000] bottom-[125%] right-0 leading-normal border border-space-blue-400 shadow-glow transition-all duration-300 group-hover:visible group-hover:opacity-100 after:content-[''] after:absolute after:top-full after:right-3 after:border-8 after:border-solid after:border-t-space-black/[0.98] after:border-r-transparent after:border-b-transparent after:border-l-transparent ${config.tooltip}`}

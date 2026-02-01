@@ -41,6 +41,29 @@ func (a *PlayerDisconnectedAction) Execute(ctx context.Context, gameID string, p
 		return fmt.Errorf("game not found: %s", gameID)
 	}
 
+	if g.Status() == game.GameStatusLobby {
+		wasHost := g.HostPlayerID() == playerID
+
+		if err := g.RemovePlayer(ctx, playerID); err != nil {
+			log.Error("Failed to remove player from lobby", zap.Error(err))
+			return fmt.Errorf("failed to remove player: %w", err)
+		}
+
+		if wasHost {
+			remaining := g.GetAllPlayers()
+			if len(remaining) > 0 {
+				if err := g.SetHostPlayerID(ctx, remaining[0].ID()); err != nil {
+					log.Error("Failed to reassign host", zap.Error(err))
+					return fmt.Errorf("failed to reassign host: %w", err)
+				}
+				log.Info("👑 Host reassigned", zap.String("new_host", remaining[0].ID()))
+			}
+		}
+
+		log.Info("✅ Player removed from lobby")
+		return nil
+	}
+
 	player, err := g.GetPlayer(playerID)
 	if err != nil {
 		log.Error("Player not found in game", zap.Error(err))

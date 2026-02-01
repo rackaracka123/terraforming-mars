@@ -12,6 +12,7 @@ interface MarsSphereProps {
   onHexClick?: (hex: string) => void;
   tileHighlightMode?: TileHighlightMode;
   vpIndicators?: TileVPIndicator[];
+  animateHexEntrance?: boolean;
 }
 
 export default function MarsSphere({
@@ -19,6 +20,7 @@ export default function MarsSphere({
   onHexClick,
   tileHighlightMode,
   vpIndicators = [],
+  animateHexEntrance = false,
 }: MarsSphereProps) {
   const { marsGroupRef } = useMarsRotation();
 
@@ -103,6 +105,7 @@ export default function MarsSphere({
         onHexClick={onHexClick}
         tileHighlightMode={tileHighlightMode}
         vpIndicators={vpIndicators}
+        animateHexEntrance={animateHexEntrance}
       />
     </group>
   );

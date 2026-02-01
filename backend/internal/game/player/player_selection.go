@@ -83,11 +83,13 @@ type PendingCardSelection struct {
 
 // PendingCardDrawSelection represents a pending card draw/peek/take/buy action
 type PendingCardDrawSelection struct {
-	AvailableCards []string
-	FreeTakeCount  int
-	MaxBuyCount    int
-	CardBuyCost    int
-	Source         string
+	AvailableCards      []string
+	FreeTakeCount       int
+	MaxBuyCount         int
+	CardBuyCost         int
+	Source              string
+	SourceCardID        string // Card that triggered this selection (for card actions)
+	SourceBehaviorIndex int    // Behavior index of the card action
 }
 
 // SelectStartingCardsPhase represents the starting cards selection phase state

@@ -1,13 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
-import {
-  PlayerDto,
-  OtherPlayerDto,
-  TriggeredEffectDto,
-  ResourceType,
-  ResourceTypeCredit,
-} from "@/types/generated/api-types.ts";
+import { PlayerDto, OtherPlayerDto, TriggeredEffectDto } from "@/types/generated/api-types.ts";
 import GameIcon from "../display/GameIcon.tsx";
+import BehaviorSection from "./BehaviorSection";
 
 interface EffectNotification {
   id: string;
@@ -94,16 +89,6 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
     }, 3000);
   }, [triggeredEffects, player.id]);
 
-  // Helper to check if a resource type is credits or credit-production
-  const isCreditsType = (type: string): boolean => {
-    return (
-      type === ResourceTypeCredit ||
-      type === "credits" ||
-      type === "credit-production" ||
-      type === "credits-production"
-    );
-  };
-
   // Ref for positioning notifications relative to the card
   const cardRef = useRef<HTMLDivElement>(null);
   const [cardRect, setCardRect] = useState<DOMRect | null>(null);
@@ -163,10 +148,15 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
             {player.terraformRating}
           </span>
         </div>
-        {isCurrentPlayer && isCurrentTurn && isActionPhase && !hasPendingTilePlacement && (
+        {isCurrentPlayer && isCurrentTurn && isActionPhase && (
           <button
-            className="absolute right-3 top-1/2 -translate-y-1/2 bg-[linear-gradient(135deg,#00d4ff,#0099cc)] text-white border border-[rgba(0,212,255,0.8)] py-1.5 px-2.5 rounded cursor-pointer text-[10px] font-semibold uppercase tracking-[0.4px] transition-all duration-200 shadow-[0_6px_20px_rgba(0,212,255,0.4),0_0_16px_rgba(0,212,255,0.3),inset_0_1px_0_rgba(255,255,255,0.3)] [text-shadow:0_0_8px_rgba(0,212,255,0.8),0_2px_4px_rgba(0,0,0,0.6)] hover:bg-[linear-gradient(135deg,#00b8e6,#0088bb)] hover:-translate-y-[calc(50%+3px)] hover:shadow-[0_8px_28px_rgba(0,212,255,0.6),0_0_24px_rgba(0,212,255,0.5),inset_0_1px_0_rgba(255,255,255,0.4)] hover:[text-shadow:0_0_12px_rgba(0,212,255,1),0_2px_6px_rgba(0,0,0,0.7)]"
-            onClick={onSkipAction}
+            className={`absolute right-3 top-1/2 -translate-y-1/2 py-1.5 px-2.5 rounded text-[10px] font-semibold uppercase tracking-[0.4px] transition-all duration-200 ${
+              hasPendingTilePlacement
+                ? "bg-[linear-gradient(135deg,#4a5568,#2d3748)] text-gray-400 border border-[rgba(100,116,139,0.4)] cursor-not-allowed opacity-50"
+                : "bg-[linear-gradient(135deg,#00d4ff,#0099cc)] text-white border border-[rgba(0,212,255,0.8)] cursor-pointer hover:shadow-[0_8px_28px_rgba(0,212,255,0.6),0_0_24px_rgba(0,212,255,0.5),inset_0_1px_0_rgba(255,255,255,0.4)] hover:[text-shadow:0_0_12px_rgba(0,212,255,1),0_2px_6px_rgba(0,0,0,0.7)]"
+            }`}
+            onClick={hasPendingTilePlacement ? undefined : onSkipAction}
+            disabled={hasPendingTilePlacement}
           >
             {buttonText}
           </button>
@@ -206,6 +196,18 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                 transform: translateX(-50px);
               }
             }
+            .notification-content img {
+              min-width: 32px !important;
+              min-height: 32px !important;
+            }
+            .notification-content div {
+              flex-wrap: nowrap !important;
+            }
+            .notification-content > div > div {
+              background: none !important;
+              border-color: transparent !important;
+              box-shadow: none !important;
+            }
           `}</style>
             {/* Group notifications by card name */}
             {(() => {
@@ -236,41 +238,15 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               return Array.from(grouped.entries()).map(([cardName, { ids, outputs, visible }]) => (
                 <div
                   key={ids.join("-")}
-                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-[rgba(20,30,50,0.95)] border border-[rgba(100,150,255,0.3)] shadow-lg whitespace-nowrap"
+                  className="notification-content flex flex-col items-center gap-1 px-3 py-2 rounded-lg bg-[rgba(20,30,50,0.95)] border border-[rgba(100,150,255,0.3)] shadow-lg"
                   style={{
                     animation: visible
                       ? "notificationEnter 0.3s ease-out forwards"
                       : "notificationExit 0.3s ease-in forwards",
                   }}
                 >
-                  {/* Card name */}
                   <span className="text-white text-xs font-medium">{cardName}</span>
-
-                  {/* Output icons */}
-                  <div className="flex items-center gap-2">
-                    {outputs.map((output, i) => (
-                      <div key={i} className="flex items-center">
-                        {isCreditsType(output.type) ? (
-                          // Credits: embed amount inside icon
-                          <GameIcon
-                            iconType={output.type as ResourceType}
-                            amount={Math.abs(output.amount)}
-                            size="small"
-                          />
-                        ) : (
-                          // Other resources: show icon with amount on right
-                          <>
-                            <GameIcon iconType={output.type as ResourceType} size="small" />
-                            {output.amount !== 0 && (
-                              <span className="text-white text-xs font-bold ml-0.5">
-                                {output.amount > 0 ? `+${output.amount}` : output.amount}
-                              </span>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                  <BehaviorSection behaviors={[{ outputs }]} />
                 </div>
               ));
             })()}

@@ -14,6 +14,7 @@ class GlobalWebSocketManager implements WebSocketConnection {
   private initializationPromise: Promise<void> | null = null;
   private currentPlayerId: string | null = null;
   private eventCallbacks: { [event: string]: ((data: any) => void)[] } = {};
+  private isIntentionalDisconnect = false;
 
   async initialize() {
     if (this.isInitialized) {
@@ -24,6 +25,7 @@ class GlobalWebSocketManager implements WebSocketConnection {
       return this.initializationPromise;
     }
 
+    this.isIntentionalDisconnect = false;
     this.initializationPromise = this._doInitialize();
 
     try {
@@ -100,6 +102,10 @@ class GlobalWebSocketManager implements WebSocketConnection {
 
     webSocketService.on("connect", () => {
       this.emit("connect");
+    });
+
+    webSocketService.on("max-reconnects-reached", () => {
+      this.emit("max-reconnects-reached");
     });
   }
 
@@ -247,6 +253,11 @@ class GlobalWebSocketManager implements WebSocketConnection {
     return webSocketService.send(MessageTypeAdminCommand, adminRequest);
   }
 
+  async playerTakeover(targetPlayerId: string, gameId: string): Promise<void> {
+    await this.ensureConnected();
+    return webSocketService.playerTakeover(targetPlayerId, gameId);
+  }
+
   get connected() {
     return webSocketService.connected;
   }
@@ -260,9 +271,14 @@ class GlobalWebSocketManager implements WebSocketConnection {
   }
 
   disconnect() {
+    this.isIntentionalDisconnect = true;
     webSocketService.disconnect();
     this.isInitialized = false;
     this.currentPlayerId = null;
+  }
+
+  isGracefulDisconnect(): boolean {
+    return this.isIntentionalDisconnect;
   }
 }
 

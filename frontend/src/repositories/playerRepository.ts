@@ -8,7 +8,6 @@ interface Player {
   passed: boolean;
   corporation: string;
   terraformRating: number;
-  victoryPoints: number;
 }
 
 // Mock data storage - in a real app this would be API calls, database queries, etc.
@@ -20,7 +19,6 @@ const mockPlayersData: Player[] = [
     passed: true,
     corporation: "mars-direct",
     terraformRating: 35,
-    victoryPoints: 76,
   },
   {
     id: "2",
@@ -29,7 +27,6 @@ const mockPlayersData: Player[] = [
     passed: true,
     corporation: "habitat-marte",
     terraformRating: 34,
-    victoryPoints: 76,
   },
   {
     id: "3",
@@ -38,7 +35,6 @@ const mockPlayersData: Player[] = [
     passed: false,
     corporation: "aurorai",
     terraformRating: 28,
-    victoryPoints: 28,
   },
   {
     id: "4",
@@ -47,7 +43,6 @@ const mockPlayersData: Player[] = [
     passed: false,
     corporation: "bio-sol",
     terraformRating: 24,
-    victoryPoints: 24,
   },
   {
     id: "5",
@@ -56,7 +51,6 @@ const mockPlayersData: Player[] = [
     passed: false,
     corporation: "chimera",
     terraformRating: 27,
-    victoryPoints: 27,
   },
   {
     id: "6",
@@ -65,7 +59,6 @@ const mockPlayersData: Player[] = [
     passed: true,
     corporation: "odyssey",
     terraformRating: 19,
-    victoryPoints: 19,
   },
 ];
 

@@ -323,6 +323,11 @@ export class WebSocketService {
     return this.send(MessageTypeActionFundAward, { awardType });
   }
 
+  playerTakeover(targetPlayerId: string, gameId: string): void {
+    this.send("player-takeover" as MessageType, { targetPlayerId, gameId }, gameId);
+    this.currentGameId = gameId;
+  }
+
   on(event: string, callback: EventCallback) {
     if (!this.listeners[event]) {
       this.listeners[event] = [];

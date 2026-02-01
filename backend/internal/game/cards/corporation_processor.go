@@ -3,7 +3,6 @@ package cards
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"go.uber.org/zap"
 
@@ -351,25 +350,10 @@ func (p *CorporationProcessor) subscribeForcedActionCompletion(
 		}
 
 		// Queue is empty - forced action is complete!
-		log.Info("✅ Forced first action completed, consuming player action",
+		// Note: Forced first actions are FREE - they don't consume player actions
+		log.Info("✅ Forced first action completed (free action)",
 			zap.String("action_type", forcedAction.ActionType),
 			zap.String("corporation_id", forcedAction.CorporationID))
-
-		// Consume player action
-		currentTurn := g.CurrentTurn()
-		if currentTurn != nil && currentTurn.PlayerID() == playerID {
-			consumed := currentTurn.ConsumeAction()
-			if consumed {
-				log.Info("✅ Action consumed for forced first action completion",
-					zap.Int("remaining_actions", currentTurn.ActionsRemaining()))
-
-				// Publish GameStateChangedEvent to trigger broadcast
-				events.Publish(eventBus, events.GameStateChangedEvent{
-					GameID:    g.ID(),
-					Timestamp: time.Now(),
-				})
-			}
-		}
 
 		// Clear forced first action
 		if err := g.SetForcedFirstAction(ctx, playerID, nil); err != nil {

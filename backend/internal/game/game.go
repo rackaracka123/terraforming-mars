@@ -17,6 +17,64 @@ import (
 	"terraforming-mars-backend/internal/logger"
 )
 
+type VPCardInfo struct {
+	CardID       string
+	CardName     string
+	Description  string
+	VPConditions []player.VPCondition
+	Tags         []shared.CardTag
+}
+
+type VPCardLookup interface {
+	LookupVPCard(cardID string) (*VPCardInfo, error)
+}
+
+type gameVPRecalculationContext struct {
+	game *Game
+}
+
+func (ctx *gameVPRecalculationContext) GetCardStorage(playerID string, cardID string) int {
+	p, err := ctx.game.GetPlayer(playerID)
+	if err != nil {
+		return 0
+	}
+	return p.Resources().GetCardStorage(cardID)
+}
+
+func (ctx *gameVPRecalculationContext) CountPlayerTagsByType(playerID string, tagType shared.CardTag) int {
+	p, err := ctx.game.GetPlayer(playerID)
+	if err != nil {
+		return 0
+	}
+	count := 0
+	if ctx.game.vpCardLookup == nil {
+		return 0
+	}
+	for _, cardID := range p.PlayedCards().Cards() {
+		cardInfo, err := ctx.game.vpCardLookup.LookupVPCard(cardID)
+		if err != nil {
+			continue
+		}
+		for _, tag := range cardInfo.Tags {
+			if tag == tagType {
+				count++
+			}
+		}
+	}
+	return count
+}
+
+func (ctx *gameVPRecalculationContext) CountAllTilesOfType(tileType shared.ResourceType) int {
+	tiles := ctx.game.board.Tiles()
+	count := 0
+	for _, tile := range tiles {
+		if tile.OccupiedBy != nil && tile.OccupiedBy.Type == tileType {
+			count++
+		}
+	}
+	return count
+}
+
 // Game represents a unified game entity containing all game state
 // All fields are private with public methods for access and mutation
 type Game struct {
@@ -43,6 +101,8 @@ type Game struct {
 	finalScores []FinalScore
 	winnerID    string
 	isTie       bool
+
+	vpCardLookup VPCardLookup
 
 	triggeredEffects []TriggeredEffect
 
@@ -946,6 +1006,103 @@ func (g *Game) ClearTriggeredEffects() {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.triggeredEffects = nil
+}
+
+func (g *Game) SetVPCardLookup(lookup VPCardLookup) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.vpCardLookup = lookup
+	g.subscribeToVPEvents()
+}
+
+func (g *Game) recalculatePlayerVP(p *player.Player) {
+	if g.vpCardLookup == nil {
+		return
+	}
+	ctx := &gameVPRecalculationContext{game: g}
+	p.VPGranters().RecalculateAll(ctx)
+}
+
+func (g *Game) recalculateAllPlayersVP() {
+	for _, p := range g.GetAllPlayers() {
+		g.recalculatePlayerVP(p)
+	}
+}
+
+func (g *Game) subscribeToVPEvents() {
+	events.Subscribe(g.eventBus, func(e events.CardPlayedEvent) {
+		if g.vpCardLookup == nil {
+			return
+		}
+		cardInfo, err := g.vpCardLookup.LookupVPCard(e.CardID)
+		if err != nil {
+			return
+		}
+		if len(cardInfo.VPConditions) == 0 {
+			return
+		}
+
+		p, err := g.GetPlayer(e.PlayerID)
+		if err != nil {
+			return
+		}
+
+		granter := player.VPGranter{
+			CardID:       cardInfo.CardID,
+			CardName:     cardInfo.CardName,
+			Description:  cardInfo.Description,
+			VPConditions: cardInfo.VPConditions,
+		}
+		p.VPGranters().Add(granter)
+		g.recalculatePlayerVP(p)
+	})
+
+	events.Subscribe(g.eventBus, func(e events.ResourceStorageChangedEvent) {
+		p, err := g.GetPlayer(e.PlayerID)
+		if err != nil {
+			return
+		}
+		g.recalculatePlayerVP(p)
+	})
+
+	events.Subscribe(g.eventBus, func(e events.TagPlayedEvent) {
+		p, err := g.GetPlayer(e.PlayerID)
+		if err != nil {
+			return
+		}
+		g.recalculatePlayerVP(p)
+	})
+
+	events.Subscribe(g.eventBus, func(e events.TilePlacedEvent) {
+		g.recalculateAllPlayersVP()
+	})
+
+	events.Subscribe(g.eventBus, func(e events.CorporationSelectedEvent) {
+		if g.vpCardLookup == nil {
+			return
+		}
+		cardInfo, err := g.vpCardLookup.LookupVPCard(e.CorporationID)
+		if err != nil {
+			return
+		}
+		if len(cardInfo.VPConditions) == 0 {
+			return
+		}
+
+		p, err := g.GetPlayer(e.PlayerID)
+		if err != nil {
+			return
+		}
+
+		granter := player.VPGranter{
+			CardID:       cardInfo.CardID,
+			CardName:     cardInfo.CardName,
+			Description:  cardInfo.Description,
+			VPConditions: cardInfo.VPConditions,
+		}
+		p.VPGranters().Prepend(granter)
+		g.recalculatePlayerVP(p)
+	})
 }
 
 func (g *Game) subscribeToGenerationalEvents() {

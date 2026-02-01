@@ -45,4 +45,6 @@ const (
 	MessageTypeActionCardDrawConfirmed      MessageType = "action.card.card-draw-confirmed"
 
 	MessageTypeAdminCommand MessageType = "admin-command"
+
+	MessageTypePlayerTakeover MessageType = "player-takeover"
 )

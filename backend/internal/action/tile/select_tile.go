@@ -223,6 +223,8 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		log.Warn("Failed to handle completion callback", zap.Error(err))
 	}
 
+	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+
 	log.Info("✅ Tile selected and placed successfully",
 		zap.String("tile_type", tileType),
 		zap.String("position", selectedHex))

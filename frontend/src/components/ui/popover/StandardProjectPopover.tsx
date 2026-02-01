@@ -10,6 +10,7 @@ import { StandardProject, STANDARD_PROJECTS } from "@/types/cards.tsx";
 import GameIcon from "../display/GameIcon.tsx";
 import { canPerformActions } from "@/utils/actionUtils.ts";
 import { GamePopover, GamePopoverItem } from "../GamePopover";
+import { FormattedDescription } from "../display/FormattedDescription";
 
 interface StandardProjectsPopoverProps {
   isVisible: boolean;
@@ -83,7 +84,6 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
       }}
       width={500}
       maxHeight="calc(100vh - 80px)"
-      zIndex={3000}
       animation="slideDown"
     >
       <div className="p-2">
@@ -190,7 +190,7 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
                 </div>
 
                 <p className="text-white/70 text-xs leading-relaxed m-0 text-left">
-                  {staticInfo?.description ?? ""}
+                  <FormattedDescription text={staticInfo?.description ?? ""} />
                 </p>
               </div>
             </GamePopoverItem>

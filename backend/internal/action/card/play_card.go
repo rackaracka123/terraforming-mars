@@ -52,6 +52,7 @@ func (a *PlayCardAction) Execute(
 	cardID string,
 	payment PaymentRequest,
 	choiceIndex *int,
+	cardStorageTarget *string,
 ) error {
 	log := a.InitLogger(gameID, playerID).With(
 		zap.String("card_id", cardID),
@@ -59,6 +60,9 @@ func (a *PlayCardAction) Execute(
 	)
 	if choiceIndex != nil {
 		log = log.With(zap.Int("choice_index", *choiceIndex))
+	}
+	if cardStorageTarget != nil {
+		log = log.With(zap.String("card_storage_target", *cardStorageTarget))
 	}
 	log.Info("🃏 Player attempting to play card")
 
@@ -72,6 +76,10 @@ func (a *PlayCardAction) Execute(
 	}
 
 	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
+		return err
+	}
+
+	if err := baseaction.ValidateActionsRemaining(g, playerID, log); err != nil {
 		return err
 	}
 
@@ -192,11 +200,13 @@ func (a *PlayCardAction) Execute(
 		zap.Int("titanium", adjustedPayment.Titanium),
 		zap.Any("substitutes", adjustedPayment.Substitutes))
 
-	calculatedOutputs, err := a.applyCardBehaviors(ctx, g, card, player, choiceIndex, log)
+	calculatedOutputs, err := a.applyCardBehaviors(ctx, g, card, player, choiceIndex, cardStorageTarget, log)
 	if err != nil {
 		log.Error("Failed to apply card behaviors", zap.Error(err))
 		return fmt.Errorf("failed to apply card behaviors: %w", err)
 	}
+
+	a.ConsumePlayerAction(g, log)
 
 	description := fmt.Sprintf("Played %s for %d credits", card.Name, totalValue)
 	displayData := baseaction.BuildCardDisplayData(card, game.SourceTypeCardPlay)
@@ -343,6 +353,7 @@ func (a *PlayCardAction) applyCardBehaviors(
 	card *gamecards.Card,
 	p *player.Player,
 	choiceIndex *int,
+	cardStorageTarget *string,
 	log *zap.Logger,
 ) ([]game.CalculatedOutput, error) {
 	if len(card.Behaviors) == 0 {
@@ -373,6 +384,9 @@ func (a *PlayCardAction) applyCardBehaviors(
 			applier := gamecards.NewBehaviorApplier(p, g, card.Name, log).
 				WithSourceCardID(card.ID).
 				WithCardRegistry(a.CardRegistry())
+			if cardStorageTarget != nil {
+				applier = applier.WithTargetCardID(*cardStorageTarget)
+			}
 			calculatedOutputs, err := applier.ApplyOutputsAndGetCalculated(ctx, outputs)
 			if err != nil {
 				return nil, fmt.Errorf("failed to apply auto behavior %d outputs: %w", behaviorIndex, err)

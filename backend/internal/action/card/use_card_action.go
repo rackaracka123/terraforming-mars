@@ -68,6 +68,10 @@ func (a *UseCardActionAction) Execute(
 		return err
 	}
 
+	if err := baseaction.ValidateActionsRemaining(g, playerID, log); err != nil {
+		return err
+	}
+
 	p, err := a.GetPlayerFromGame(g, playerID, log)
 	if err != nil {
 		return err
@@ -90,7 +94,8 @@ func (a *UseCardActionAction) Execute(
 
 	applier := gamecards.NewBehaviorApplier(p, g, cardAction.CardName, log).
 		WithSourceCardID(cardID).
-		WithCardRegistry(a.CardRegistry())
+		WithCardRegistry(a.CardRegistry()).
+		WithSourceBehaviorIndex(behaviorIndex)
 	if cardStorageTarget != nil {
 		applier = applier.WithTargetCardID(*cardStorageTarget)
 	}
@@ -107,6 +112,19 @@ func (a *UseCardActionAction) Execute(
 	if err := applier.ApplyInputs(ctx, inputs); err != nil {
 		log.Error("Failed to apply inputs", zap.Error(err))
 		return err
+	}
+
+	// Check for card draw outputs (card-peek/take/buy) - these create pending selection
+	hasPending, err := applier.ApplyCardDrawOutputs(ctx, outputs)
+	if err != nil {
+		log.Error("Failed to apply card draw outputs", zap.Error(err))
+		return err
+	}
+	if hasPending {
+		// Pending selection created - action completion deferred to confirmation
+		// Don't increment usage counts or consume action here - that happens in ConfirmCardDraw
+		log.Info("🃏 Card draw selection pending, awaiting player choice")
+		return nil
 	}
 
 	calculatedOutputs, err := applier.ApplyOutputsAndGetCalculated(ctx, outputs)

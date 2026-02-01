@@ -5,21 +5,21 @@ import { getSoundSettings, saveSoundSettings, SoundSettings } from "../utils/sou
 interface SoundContextType {
   enabled: boolean;
   volume: number;
+  musicVolume: number;
   toggleMute: () => void;
   setVolume: (volume: number) => void;
+  setMusicVolume: (volume: number) => void;
 }
 
 const SoundContext = createContext<SoundContextType | undefined>(undefined);
 
-/**
- * SoundProvider - Manages global sound settings and syncs with audioService
- */
 export function SoundProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<SoundSettings>(() => getSoundSettings());
 
   useEffect(() => {
     audioService.setEnabled(settings.enabled);
     audioService.setVolume(settings.volume);
+    audioService.setMusicVolume(settings.musicVolume);
     saveSoundSettings(settings);
   }, [settings]);
 
@@ -37,19 +37,25 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const setMusicVolume = useCallback((volume: number) => {
+    setSettings((prev) => ({
+      ...prev,
+      musicVolume: Math.max(0, Math.min(1, volume)),
+    }));
+  }, []);
+
   const contextValue: SoundContextType = {
     enabled: settings.enabled,
     volume: settings.volume,
+    musicVolume: settings.musicVolume,
     toggleMute,
     setVolume,
+    setMusicVolume,
   };
 
   return <SoundContext.Provider value={contextValue}>{children}</SoundContext.Provider>;
 }
 
-/**
- * Hook to access sound settings and controls
- */
 export function useSound() {
   const context = useContext(SoundContext);
   if (context === undefined) {

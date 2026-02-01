@@ -3,7 +3,10 @@ package cards
 import (
 	"fmt"
 
+	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
+	"terraforming-mars-backend/internal/game/player"
+	"terraforming-mars-backend/internal/game/shared"
 )
 
 // CardRegistry provides lookup functionality for card data
@@ -79,4 +82,58 @@ func GetCardIDsByPacks(registry CardRegistry, packs []string) (projectCards, cor
 	}
 
 	return projectCards, corps, preludes
+}
+
+type VPCardLookupAdapter struct {
+	registry CardRegistry
+}
+
+func NewVPCardLookupAdapter(registry CardRegistry) *VPCardLookupAdapter {
+	return &VPCardLookupAdapter{registry: registry}
+}
+
+func (a *VPCardLookupAdapter) LookupVPCard(cardID string) (*game.VPCardInfo, error) {
+	card, err := a.registry.GetByID(cardID)
+	if err != nil {
+		return nil, err
+	}
+
+	vpConditions := make([]player.VPCondition, len(card.VPConditions))
+	for i, vc := range card.VPConditions {
+		vpConditions[i] = convertVPCondition(vc)
+	}
+
+	tags := make([]shared.CardTag, len(card.Tags))
+	copy(tags, card.Tags)
+
+	return &game.VPCardInfo{
+		CardID:       card.ID,
+		CardName:     card.Name,
+		Description:  card.Description,
+		VPConditions: vpConditions,
+		Tags:         tags,
+	}, nil
+}
+
+func convertVPCondition(vc gamecards.VictoryPointCondition) player.VPCondition {
+	cond := player.VPCondition{
+		Amount:     vc.Amount,
+		Condition:  player.VPConditionType(vc.Condition),
+		MaxTrigger: vc.MaxTrigger,
+	}
+
+	if vc.Per != nil {
+		perCond := &player.VPPerCondition{
+			ResourceType: shared.ResourceType(vc.Per.Type),
+			Amount:       vc.Per.Amount,
+			Tag:          vc.Per.Tag,
+		}
+		if vc.Per.Target != nil {
+			target := string(*vc.Per.Target)
+			perCond.Target = &target
+		}
+		cond.Per = perCond
+	}
+
+	return cond
 }

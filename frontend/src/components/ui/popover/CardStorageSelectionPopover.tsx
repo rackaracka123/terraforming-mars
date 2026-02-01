@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { CardDto, ResourceType } from "@/types/generated/api-types.ts";
 import GameIcon from "../display/GameIcon.tsx";
+import { Z_INDEX } from "@/constants/zIndex";
 
 interface CardStorageSelectionPopoverProps {
   resourceType: ResourceType;
@@ -105,7 +106,10 @@ const CardStorageSelectionPopover: React.FC<CardStorageSelectionPopoverProps> = 
   const hasNoStorage = validCards.length === 0;
 
   return (
-    <div className="fixed top-0 left-0 right-0 bottom-0 z-[10002] flex items-center justify-center pointer-events-auto overflow-hidden">
+    <div
+      className="fixed top-0 left-0 right-0 bottom-0 flex items-center justify-center pointer-events-auto overflow-hidden"
+      style={{ zIndex: Z_INDEX.SELECTION_POPOVER }}
+    >
       <div
         className={`
           min-w-[240px] w-fit max-w-[90vw] max-h-[500px]

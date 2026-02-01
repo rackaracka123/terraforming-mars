@@ -555,7 +555,6 @@ type PlayerDto struct {
 	PlayedCards      []CardDto                  `json:"playedCards" ts:"CardDto[]"` // Full card details for all played cards
 	Passed           bool                       `json:"passed" ts:"boolean"`
 	AvailableActions int                        `json:"availableActions" ts:"number"`
-	VictoryPoints    int                        `json:"victoryPoints" ts:"number"`
 	IsConnected      bool                       `json:"isConnected" ts:"boolean"`
 	Effects          []PlayerEffectDto          `json:"effects" ts:"PlayerEffectDto[]"`                   // Active ongoing effects (discounts, special abilities, etc.)
 	Actions          []PlayerActionDto          `json:"actions" ts:"PlayerActionDto[]"`                   // Available actions from played cards with manual triggers
@@ -573,6 +572,7 @@ type PlayerDto struct {
 	ResourceStorage          map[string]int                    `json:"resourceStorage" ts:"Record<string, number>"`
 	PaymentSubstitutes       []PaymentSubstituteDto            `json:"paymentSubstitutes" ts:"PaymentSubstituteDto[]"`
 	GenerationalEvents       []PlayerGenerationalEventEntryDto `json:"generationalEvents" ts:"PlayerGenerationalEventEntryDto[]"`
+	VPGranters               []VPGranterDto                    `json:"vpGranters" ts:"VPGranterDto[]"`
 }
 
 // OtherPlayerDto represents another player from the viewing player's perspective (limited data)
@@ -588,7 +588,6 @@ type OtherPlayerDto struct {
 	PlayedCards      []CardDto         `json:"playedCards" ts:"CardDto[]"` // Played cards are public - full card details
 	Passed           bool              `json:"passed" ts:"boolean"`
 	AvailableActions int               `json:"availableActions" ts:"number"`
-	VictoryPoints    int               `json:"victoryPoints" ts:"number"`
 	IsConnected      bool              `json:"isConnected" ts:"boolean"`
 	Effects          []PlayerEffectDto `json:"effects" ts:"PlayerEffectDto[]"`
 	Actions          []PlayerActionDto `json:"actions" ts:"PlayerActionDto[]"`
@@ -704,6 +703,26 @@ type PlayerAwardDto struct {
 	FundedBy    *string         `json:"fundedBy" ts:"string | null"`
 	Available   bool            `json:"available" ts:"boolean"`      // Can this player fund this award?
 	Errors      []StateErrorDto `json:"errors" ts:"StateErrorDto[]"` // Reasons why not available
+}
+
+// VPGranterConditionDto represents a single VP condition's computed breakdown for client consumption
+type VPGranterConditionDto struct {
+	Amount        int     `json:"amount" ts:"number"`
+	ConditionType string  `json:"conditionType" ts:"string"`
+	PerType       *string `json:"perType,omitempty" ts:"string | undefined"`
+	PerAmount     *int    `json:"perAmount,omitempty" ts:"number | undefined"`
+	Count         int     `json:"count" ts:"number"`
+	ComputedVP    int     `json:"computedVP" ts:"number"`
+	Explanation   string  `json:"explanation" ts:"string"`
+}
+
+// VPGranterDto represents a VP source from a played card or corporation for client consumption
+type VPGranterDto struct {
+	CardID        string                  `json:"cardId" ts:"string"`
+	CardName      string                  `json:"cardName" ts:"string"`
+	Description   string                  `json:"description" ts:"string"`
+	ComputedValue int                     `json:"computedValue" ts:"number"`
+	Conditions    []VPGranterConditionDto `json:"conditions" ts:"VPGranterConditionDto[]"`
 }
 
 // CardVPConditionDetailDto represents the detailed calculation of a single VP condition

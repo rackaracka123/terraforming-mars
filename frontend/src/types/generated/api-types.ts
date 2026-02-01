@@ -846,7 +846,6 @@ export interface PlayerDto {
   playedCards: CardDto[]; // Full card details for all played cards
   passed: boolean;
   availableActions: number /* int */;
-  victoryPoints: number /* int */;
   isConnected: boolean;
   effects: PlayerEffectDto[]; // Active ongoing effects (discounts, special abilities, etc.)
   actions: PlayerActionDto[]; // Available actions from played cards with manual triggers
@@ -863,6 +862,7 @@ export interface PlayerDto {
   resourceStorage: { [key: string]: number /* int */};
   paymentSubstitutes: PaymentSubstituteDto[];
   generationalEvents: PlayerGenerationalEventEntryDto[];
+  vpGranters: VPGranterDto[];
 }
 /**
  * OtherPlayerDto represents another player from the viewing player's perspective (limited data)
@@ -879,7 +879,6 @@ export interface OtherPlayerDto {
   playedCards: CardDto[]; // Played cards are public - full card details
   passed: boolean;
   availableActions: number /* int */;
-  victoryPoints: number /* int */;
   isConnected: boolean;
   effects: PlayerEffectDto[];
   actions: PlayerActionDto[];
@@ -1002,6 +1001,28 @@ export interface PlayerAwardDto {
   fundedBy?: string;
   available: boolean; // Can this player fund this award?
   errors: StateErrorDto[]; // Reasons why not available
+}
+/**
+ * VPGranterConditionDto represents a single VP condition's computed breakdown for client consumption
+ */
+export interface VPGranterConditionDto {
+  amount: number /* int */;
+  conditionType: string;
+  perType?: string;
+  perAmount?: number /* int */;
+  count: number /* int */;
+  computedVP: number /* int */;
+  explanation: string;
+}
+/**
+ * VPGranterDto represents a VP source from a played card or corporation for client consumption
+ */
+export interface VPGranterDto {
+  cardId: string;
+  cardName: string;
+  description: string;
+  computedValue: number /* int */;
+  conditions: VPGranterConditionDto[];
 }
 /**
  * CardVPConditionDetailDto represents the detailed calculation of a single VP condition
@@ -1217,6 +1238,7 @@ export const MessageTypeActionSelectCards: MessageType = "action.card.select-car
 export const MessageTypeActionConfirmProductionCards: MessageType = "action.card.confirm-production-cards";
 export const MessageTypeActionCardDrawConfirmed: MessageType = "action.card.card-draw-confirmed";
 export const MessageTypeAdminCommand: MessageType = "admin-command";
+export const MessageTypePlayerTakeover: MessageType = "player-takeover";
 
 //////////
 // source: state_diff_dto.go
@@ -1424,4 +1446,11 @@ export interface LogUpdatePayload {
 export interface ConfirmStartingCardSelectionMessage {
   gameId: string;
   playerId: string;
+}
+/**
+ * PlayerTakeoverPayload contains data for player takeover requests
+ */
+export interface PlayerTakeoverPayload {
+  gameId: string;
+  targetPlayerId: string;
 }

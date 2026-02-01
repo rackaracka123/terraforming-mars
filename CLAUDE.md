@@ -51,7 +51,7 @@ make clean        # Clean build artifacts
 
 ## Adding New Game Features
 
-**CRITICAL**: Always check `TERRAFORMING_MARS_RULES.md` first for any task involving game mechanics, rules, or card effects.
+**CRITICAL**: Always check `docs/TERRAFORMING_MARS_RULES.md` first for any task involving game mechanics, rules, or card effects.
 
 1. **Define domain types** in `backend/internal/game/` with `json:` and `ts:` tags
 2. **Create action** in `backend/internal/action/` extending BaseAction

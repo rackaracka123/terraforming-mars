@@ -25,6 +25,7 @@ func CalculatePlayerCardState(
 	metadata := make(map[string]interface{})
 
 	errors = append(errors, validatePhase(g)...)
+	errors = append(errors, validateActionsRemaining(p, g)...)
 	errors = append(errors, validateNoActiveTileSelection(p, g)...)
 
 	costMap, discounts := calculateEffectiveCost(card, p, cardRegistry)
@@ -64,6 +65,7 @@ func CalculatePlayerCardActionState(
 		})
 	}
 
+	errors = append(errors, validateActionsRemaining(p, g)...)
 	errors = append(errors, validateNoActiveTileSelection(p, g)...)
 
 	resources := p.Resources().Get()
@@ -100,6 +102,7 @@ func CalculatePlayerStandardProjectState(
 	var errors []player.StateError
 	metadata := make(map[string]interface{})
 
+	errors = append(errors, validateActionsRemaining(p, g)...)
 	errors = append(errors, validateNoActiveTileSelection(p, g)...)
 
 	baseCosts := getStandardProjectBaseCosts(projectType)
@@ -196,6 +199,26 @@ func CalculatePlayerStandardProjectState(
 		Metadata:       metadata,
 		LastCalculated: time.Now(),
 	}
+}
+
+// validateActionsRemaining checks if the player has actions remaining in their turn.
+func validateActionsRemaining(p *player.Player, g *game.Game) []player.StateError {
+	currentTurn := g.CurrentTurn()
+	if currentTurn == nil {
+		return nil
+	}
+	if currentTurn.PlayerID() != p.ID() {
+		return nil
+	}
+	remaining := currentTurn.ActionsRemaining()
+	if remaining == 0 {
+		return []player.StateError{{
+			Code:     player.ErrorCodeNoActionsRemaining,
+			Category: player.ErrorCategoryTurn,
+			Message:  "No actions remaining",
+		}}
+	}
+	return nil
 }
 
 // validatePhase checks if action is allowed in current phase.
@@ -930,19 +953,56 @@ func getProductionAmount(production shared.Production, resourceType shared.Resou
 	}
 }
 
-// formatInsufficientResourceMessage returns "Not enough {resource}" using the ResourceType directly.
+// resourceDisplayNames maps ResourceType values to human-readable names for error messages
+var resourceDisplayNames = map[shared.ResourceType]string{
+	// Base resources
+	shared.ResourceCredit:   "credit",
+	shared.ResourceSteel:    "steel",
+	shared.ResourceTitanium: "titanium",
+	shared.ResourcePlant:    "plant",
+	shared.ResourceEnergy:   "energy",
+	shared.ResourceHeat:     "heat",
+	shared.ResourceMicrobe:  "microbe",
+	shared.ResourceAnimal:   "animal",
+	shared.ResourceFloater:  "floater",
+	shared.ResourceScience:  "science",
+	shared.ResourceAsteroid: "asteroid",
+	shared.ResourceDisease:  "disease",
+
+	// Production types (map to base resource name)
+	shared.ResourceCreditProduction:   "credit",
+	shared.ResourceSteelProduction:    "steel",
+	shared.ResourceTitaniumProduction: "titanium",
+	shared.ResourcePlantProduction:    "plant",
+	shared.ResourceEnergyProduction:   "energy",
+	shared.ResourceHeatProduction:     "heat",
+
+	// Global parameters
+	shared.ResourceTemperature: "temperature",
+	shared.ResourceOxygen:      "oxygen",
+	shared.ResourceOcean:       "ocean",
+	shared.ResourceVenus:       "venus",
+	shared.ResourceTR:          "terraform rating",
+}
+
+// getResourceDisplayName returns human-readable name for a ResourceType, falling back to the raw value
+func getResourceDisplayName(resourceType shared.ResourceType) string {
+	if name, ok := resourceDisplayNames[resourceType]; ok {
+		return name
+	}
+	return string(resourceType)
+}
+
 func formatInsufficientResourceMessage(resourceType shared.ResourceType) string {
-	return fmt.Sprintf("Not enough %s", resourceType)
+	return fmt.Sprintf("Not enough %s", getResourceDisplayName(resourceType))
 }
 
-// formatTooMuchResourceMessage returns "Too much {resource}" using the ResourceType directly.
 func formatTooMuchResourceMessage(resourceType shared.ResourceType) string {
-	return fmt.Sprintf("Too much %s", resourceType)
+	return fmt.Sprintf("Too much %s", getResourceDisplayName(resourceType))
 }
 
-// formatInsufficientProductionMessage returns "Not enough {resource} production" using the ResourceType directly.
 func formatInsufficientProductionMessage(resourceType shared.ResourceType) string {
-	return fmt.Sprintf("Not enough %s production", resourceType)
+	return fmt.Sprintf("Not enough %s production", getResourceDisplayName(resourceType))
 }
 
 // formatInsufficientTagsMessage returns "Not enough {tag} tags" with the tag name lowercased.
@@ -983,6 +1043,7 @@ func CalculateMilestoneState(
 
 	milestones := g.Milestones()
 
+	errors = append(errors, validateActionsRemaining(p, g)...)
 	errors = append(errors, validateNoActiveTileSelection(p, g)...)
 
 	if milestones.IsClaimed(milestoneType) {
@@ -1059,6 +1120,7 @@ func CalculateAwardState(
 
 	awards := g.Awards()
 
+	errors = append(errors, validateActionsRemaining(p, g)...)
 	errors = append(errors, validateNoActiveTileSelection(p, g)...)
 
 	if awards.IsFunded(awardType) {

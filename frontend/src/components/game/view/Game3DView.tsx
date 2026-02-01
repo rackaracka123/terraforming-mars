@@ -1,38 +1,53 @@
 import { Suspense, useEffect, useState, useRef, useCallback } from "react";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import * as THREE from "three";
 import { PanControls } from "../controls/PanControls.tsx";
 import MarsSphere from "../board/MarsSphere.tsx";
 import { TileHighlightMode } from "../board/ProjectedHexTile.tsx";
 import { TileVPIndicator } from "../../ui/overlay/EndGameOverlay.tsx";
 import SkyboxLoader from "./SkyboxLoader.tsx";
-import LoadingSpinner from "./LoadingSpinner.tsx";
 import GameIcon from "../../ui/display/GameIcon.tsx";
 import { GameDto } from "@/types/generated/api-types.ts";
 import { MarsRotationProvider } from "../../../contexts/MarsRotationContext.tsx";
-import { skyboxCache, SkyboxLoadingState } from "../../../services/SkyboxCache.ts";
 import { webSocketService } from "../../../services/webSocketService.ts";
+
+function SkyboxRotation() {
+  const { scene } = useThree();
+
+  useFrame((_, delta) => {
+    const skybox = scene.children.find(
+      (child) =>
+        child instanceof THREE.Mesh &&
+        child.geometry instanceof THREE.SphereGeometry &&
+        (child.material as THREE.MeshBasicMaterial).side === THREE.BackSide,
+    );
+    if (skybox) {
+      skybox.rotation.y += delta * 0.002;
+    }
+  });
+
+  return null;
+}
 
 interface Game3DViewProps {
   gameState: GameDto;
   tileHighlightMode?: TileHighlightMode;
   vpIndicators?: TileVPIndicator[];
+  animateHexEntrance?: boolean;
+  onSkyboxReady?: () => void;
 }
 
 export default function Game3DView({
   gameState,
   tileHighlightMode,
   vpIndicators = [],
+  animateHexEntrance = false,
+  onSkyboxReady,
 }: Game3DViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [cameraConfig, setCameraConfig] = useState({
     position: [0, 0, 8] as [number, number, number],
     fov: 50,
-  });
-  const [skyboxLoadingState, setSkyboxLoadingState] = useState<SkyboxLoadingState>({
-    isLoading: false,
-    isLoaded: false,
-    error: null,
-    texture: null,
   });
 
   const updateCameraConfig = useCallback(() => {
@@ -57,15 +72,6 @@ export default function Game3DView({
 
     return () => window.removeEventListener("resize", updateCameraConfig);
   }, [updateCameraConfig]);
-
-  // Subscribe to skybox loading state
-  useEffect(() => {
-    const unsubscribe = skyboxCache.subscribe((state) => {
-      setSkyboxLoadingState(state);
-    });
-
-    return unsubscribe;
-  }, []);
 
   const handleHexClick = useCallback(
     (hexCoordinate: string) => {
@@ -156,7 +162,8 @@ export default function Game3DView({
         <MarsRotationProvider>
           <Suspense fallback={null}>
             {/* EXR Skybox - now uses cached texture */}
-            <SkyboxLoader />
+            <SkyboxLoader onReady={onSkyboxReady} />
+            <SkyboxRotation />
 
             {/* Realistic Lighting Setup */}
             {/* Very low ambient light for deep shadows */}
@@ -188,6 +195,7 @@ export default function Game3DView({
               onHexClick={handleHexClick}
               tileHighlightMode={tileHighlightMode}
               vpIndicators={vpIndicators}
+              animateHexEntrance={animateHexEntrance}
             />
 
             {/* Orbital camera controls */}
@@ -195,9 +203,6 @@ export default function Game3DView({
           </Suspense>
         </MarsRotationProvider>
       </Canvas>
-
-      {/* Show loading spinner when skybox is loading */}
-      {skyboxLoadingState.isLoading && <LoadingSpinner message="Loading 3D environment..." />}
     </div>
   );
 }

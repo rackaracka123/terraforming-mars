@@ -1,6 +1,8 @@
 package dto
 
 import (
+	"fmt"
+
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/board"
@@ -27,6 +29,7 @@ func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string) G
 	}
 
 	if viewingPlayer == nil && len(players) > 0 {
+		otherPlayers = make([]OtherPlayerDto, 0)
 		currentPlayer = ToPlayerDto(players[0], g, cardRegistry)
 		for i := 1; i < len(players); i++ {
 			otherPlayers = append(otherPlayers, ToOtherPlayerDto(players[i], g, cardRegistry))
@@ -311,6 +314,58 @@ func ToFinalScoreDto(playerID, playerName string, breakdown game.VPBreakdown, is
 		IsWinner:    isWinner,
 		Placement:   placement,
 	}
+}
+
+// toVPGranterDtos converts a slice of VPGranter to VPGranterDto slice with per-condition breakdown
+func toVPGranterDtos(granters []player.VPGranter) []VPGranterDto {
+	if len(granters) == 0 {
+		return []VPGranterDto{}
+	}
+
+	dtos := make([]VPGranterDto, len(granters))
+	for i, g := range granters {
+		conditions := make([]VPGranterConditionDto, len(g.VPConditions))
+		for j, cond := range g.VPConditions {
+			conditions[j] = toVPGranterConditionDto(cond)
+		}
+		dtos[i] = VPGranterDto{
+			CardID:        g.CardID,
+			CardName:      g.CardName,
+			Description:   g.Description,
+			ComputedValue: g.ComputedValue,
+			Conditions:    conditions,
+		}
+	}
+	return dtos
+}
+
+func toVPGranterConditionDto(cond player.VPCondition) VPGranterConditionDto {
+	dto := VPGranterConditionDto{
+		Amount:        cond.Amount,
+		ConditionType: string(cond.Condition),
+	}
+
+	switch cond.Condition {
+	case player.VPConditionFixed, player.VPConditionOnce:
+		dto.ComputedVP = cond.Amount
+		dto.Explanation = fmt.Sprintf("%d VP", cond.Amount)
+
+	case player.VPConditionPer:
+		if cond.Per != nil {
+			perType := string(cond.Per.ResourceType)
+			if cond.Per.Tag != nil {
+				perType = string(*cond.Per.Tag)
+			}
+			if cond.Per.Target != nil && *cond.Per.Target == "self-card" {
+				perType = string(cond.Per.ResourceType)
+			}
+			dto.PerType = &perType
+			dto.PerAmount = &cond.Per.Amount
+			dto.Explanation = fmt.Sprintf("%d VP per %d %s", cond.Amount, cond.Per.Amount, perType)
+		}
+	}
+
+	return dto
 }
 
 // ToTriggeredEffectDto converts a triggered effect to DTO

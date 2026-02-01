@@ -14,13 +14,14 @@ import (
 // BehaviorApplier handles applying card behavior inputs and outputs
 // This is the single source of truth for all input/output application
 type BehaviorApplier struct {
-	player       *player.Player        // Player affected by the behavior (may be nil for game-only effects)
-	game         *game.Game            // Game context for global params/tiles (may be nil for player-only effects)
-	source       string                // Source identifier for logging (card name, action name, etc.)
-	sourceCardID string                // Card ID for self-card targeting (optional)
-	targetCardID string                // Card ID for any-card targeting (optional, set by caller)
-	cardRegistry CardRegistryInterface // Card registry for tag counting (optional)
-	logger       *zap.Logger
+	player            *player.Player        // Player affected by the behavior (may be nil for game-only effects)
+	game              *game.Game            // Game context for global params/tiles (may be nil for player-only effects)
+	source            string                // Source identifier for logging (card name, action name, etc.)
+	sourceCardID      string                // Card ID for self-card targeting (optional)
+	targetCardID      string                // Card ID for any-card targeting (optional, set by caller)
+	cardRegistry      CardRegistryInterface // Card registry for tag counting (optional)
+	sourceBehaviorIdx int                   // Behavior index for card draw selection tracking
+	logger            *zap.Logger
 }
 
 // NewBehaviorApplier creates a new behavior applier
@@ -54,6 +55,12 @@ func (a *BehaviorApplier) WithTargetCardID(cardID string) *BehaviorApplier {
 // WithCardRegistry sets the card registry for tag counting in scaled outputs
 func (a *BehaviorApplier) WithCardRegistry(registry CardRegistryInterface) *BehaviorApplier {
 	a.cardRegistry = registry
+	return a
+}
+
+// WithSourceBehaviorIndex sets the source behavior index for card draw selection tracking
+func (a *BehaviorApplier) WithSourceBehaviorIndex(behaviorIndex int) *BehaviorApplier {
+	a.sourceBehaviorIdx = behaviorIndex
 	return a
 }
 
@@ -279,6 +286,79 @@ func (a *BehaviorApplier) countPerCondition(per *shared.PerCondition) int {
 	}
 
 	return 0
+}
+
+// ApplyCardDrawOutputs processes card-peek/take/buy outputs together
+// Returns true if a pending selection was created (caller should defer action consumption)
+func (a *BehaviorApplier) ApplyCardDrawOutputs(
+	ctx context.Context,
+	outputs []shared.ResourceCondition,
+) (bool, error) {
+	log := a.logger.With(
+		zap.String("source", a.source),
+		zap.String("method", "ApplyCardDrawOutputs"),
+	)
+
+	// Scan outputs for card-peek, card-take, card-buy
+	var peekAmount, takeAmount, buyAmount int
+	for _, output := range outputs {
+		switch output.ResourceType {
+		case shared.ResourceCardPeek:
+			peekAmount += output.Amount
+		case shared.ResourceCardTake:
+			takeAmount += output.Amount
+		case shared.ResourceCardBuy:
+			buyAmount += output.Amount
+		}
+	}
+
+	// If no card-peek found, nothing to do
+	if peekAmount == 0 {
+		return false, nil
+	}
+
+	if a.player == nil {
+		return false, fmt.Errorf("cannot apply card draw outputs: no player context")
+	}
+	if a.game == nil {
+		return false, fmt.Errorf("cannot apply card draw outputs: no game context")
+	}
+
+	// Draw cards from deck
+	drawnCards, err := a.game.Deck().DrawProjectCards(ctx, peekAmount)
+	if err != nil {
+		return false, fmt.Errorf("failed to draw cards: %w", err)
+	}
+
+	log.Info("🃏 Drew cards for peek selection",
+		zap.Int("peek_amount", peekAmount),
+		zap.Int("take_amount", takeAmount),
+		zap.Int("buy_amount", buyAmount),
+		zap.Strings("drawn_cards", drawnCards))
+
+	// Create pending card draw selection
+	selection := &player.PendingCardDrawSelection{
+		AvailableCards:      drawnCards,
+		FreeTakeCount:       takeAmount,
+		MaxBuyCount:         buyAmount,
+		CardBuyCost:         3, // Standard card cost
+		Source:              a.source,
+		SourceCardID:        a.sourceCardID,
+		SourceBehaviorIndex: a.sourceBehaviorIdx,
+	}
+
+	// Set on player
+	a.player.Selection().SetPendingCardDrawSelection(selection)
+
+	log.Info("🃏 Created pending card draw selection",
+		zap.String("source", a.source),
+		zap.String("source_card_id", a.sourceCardID),
+		zap.Int("source_behavior_index", a.sourceBehaviorIdx),
+		zap.Int("available_cards", len(drawnCards)),
+		zap.Int("free_take", takeAmount),
+		zap.Int("max_buy", buyAmount))
+
+	return true, nil
 }
 
 // applyOutput applies a single output
@@ -542,6 +622,12 @@ func (a *BehaviorApplier) applyOutput(
 					zap.String("resource_type", string(output.ResourceType)))
 			}
 		}
+
+	case shared.ResourceCardPeek, shared.ResourceCardTake, shared.ResourceCardBuy:
+		// Handled by ApplyCardDrawOutputs - skip here
+		log.Debug("🃏 Skipping card draw output (handled by ApplyCardDrawOutputs)",
+			zap.String("type", string(output.ResourceType)),
+			zap.Int("amount", output.Amount))
 
 	default:
 		log.Warn("⚠️ Unhandled output type",

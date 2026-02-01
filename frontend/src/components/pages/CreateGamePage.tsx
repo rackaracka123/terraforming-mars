@@ -4,20 +4,24 @@ import { apiService } from "../../services/apiService";
 import { globalWebSocketManager } from "../../services/globalWebSocketManager";
 import { GameSettingsDto } from "../../types/generated/api-types.ts";
 import { skyboxCache } from "../../services/SkyboxCache.ts";
-import LoadingOverlay from "../ui/overlay/LoadingOverlay";
+import { saveGameSession } from "../../utils/sessionStorage.ts";
+import LoadingOverlay from "../game/view/LoadingOverlay.tsx";
 import GameIcon from "../ui/display/GameIcon.tsx";
 import InfoTooltip from "../ui/display/InfoTooltip.tsx";
+import { useNotifications } from "../../contexts/NotificationContext.tsx";
 
 const CreateGamePage: React.FC = () => {
   const navigate = useNavigate();
+  const { showNotification } = useNotifications();
   const [playerName, setPlayerName] = useState("");
   const [developmentMode, setDevelopmentMode] = useState(true);
   const [selectedPacks, setSelectedPacks] = useState<string[]>(["base-game"]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState<"game" | "environment" | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [skyboxReady, setSkyboxReady] = useState(false);
   const [isFadedIn, setIsFadedIn] = useState(false);
+  const [showMore, setShowMore] = useState(false);
+  const [isCreatingDemo, setIsCreatingDemo] = useState(false);
 
   // Check if skybox is already loaded on component mount
   useEffect(() => {
@@ -34,17 +38,16 @@ const CreateGamePage: React.FC = () => {
     e.preventDefault();
 
     if (!playerName.trim()) {
-      setError("Please enter your name");
+      showNotification({ message: "Please enter your name", type: "error" });
       return;
     }
 
     if (playerName.trim().length < 2) {
-      setError("Name must be at least 2 characters long");
+      showNotification({ message: "Name must be at least 2 characters long", type: "error" });
       return;
     }
 
     setIsLoading(true);
-    setError(null);
     setLoadingStep("game");
 
     try {
@@ -107,7 +110,10 @@ const CreateGamePage: React.FC = () => {
       // Step 5: Connect player to the game via WebSocket (non-blocking)
       globalWebSocketManager.playerConnect(playerName.trim(), game.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create game");
+      showNotification({
+        message: err instanceof Error ? err.message : "Failed to create game",
+        type: "error",
+      });
     } finally {
       setIsLoading(false);
       setLoadingStep(null);
@@ -116,7 +122,6 @@ const CreateGamePage: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPlayerName(e.target.value);
-    if (error) setError(null); // Clear error when user starts typing
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -132,7 +137,6 @@ const CreateGamePage: React.FC = () => {
   const handlePackToggle = (pack: string) => {
     setSelectedPacks((prev) => {
       if (prev.includes(pack)) {
-        // Don't allow deselecting if it's the only pack selected
         if (prev.length === 1) {
           return prev;
         }
@@ -141,6 +145,42 @@ const CreateGamePage: React.FC = () => {
         return [...prev, pack];
       }
     });
+  };
+
+  const handleDemoGame = async () => {
+    if (isCreatingDemo) return;
+
+    setIsCreatingDemo(true);
+
+    try {
+      const result = await apiService.createDemoLobby({
+        playerCount: 5,
+        playerName: "You",
+      });
+
+      saveGameSession({
+        gameId: result.game.id,
+        playerId: result.playerId,
+        playerName: "You",
+      });
+
+      await globalWebSocketManager.initialize();
+      await globalWebSocketManager.playerConnect("You", result.game.id, result.playerId);
+
+      navigate("/game", {
+        state: {
+          game: result.game,
+          playerId: result.playerId,
+          playerName: "You",
+        },
+      });
+    } catch (err) {
+      showNotification({
+        message: err instanceof Error ? err.message : "Failed to create demo game",
+        type: "error",
+      });
+      setIsCreatingDemo(false);
+    }
   };
 
   const getLoadingMessage = () => {
@@ -156,9 +196,9 @@ const CreateGamePage: React.FC = () => {
       <div className="relative z-[1] flex items-center justify-center w-full min-h-screen">
         <button
           onClick={handleBackToHome}
-          className="fixed top-[30px] left-[30px] bg-space-black-darker/80 border-2 border-space-blue-400 rounded-lg py-3 px-5 text-white cursor-pointer transition-all duration-300 text-sm backdrop-blur-space z-[100] hover:bg-space-black-darker/90 hover:border-space-blue-800 hover:shadow-glow hover:-translate-y-0.5"
+          className="fixed top-[30px] left-[30px] bg-space-black-darker/80 border border-white/20 rounded-lg py-2.5 px-4 text-white text-sm cursor-pointer hover:bg-white/20 transition-colors backdrop-blur-space z-[100]"
         >
-          ← Back to Home
+          ← Back
         </button>
         <div className="max-w-[600px] w-full px-5 py-10">
           <div className="text-center">
@@ -166,8 +206,8 @@ const CreateGamePage: React.FC = () => {
               Create a new game
             </h1>
 
-            <form onSubmit={handleSubmit} className="max-w-[400px] mx-auto">
-              <div className="relative flex items-center bg-space-black-darker/95 border-2 border-space-blue-400 rounded-xl p-0 transition-all duration-200 backdrop-blur-space shadow-[0_0_20px_rgba(30,60,150,0.2)] focus-within:border-space-blue-600 focus-within:shadow-[0_0_30px_rgba(30,60,150,0.4)] overflow-hidden">
+            <form onSubmit={handleSubmit} className="relative max-w-[400px] mx-auto">
+              <div className="relative flex items-center bg-space-black-darker/95 border border-white/20 rounded-xl p-0 transition-all duration-200 backdrop-blur-space focus-within:border-white/60 focus-within:shadow-[0_0_20px_rgba(255,255,255,0.1)] overflow-hidden">
                 <input
                   type="text"
                   value={playerName}
@@ -175,6 +215,9 @@ const CreateGamePage: React.FC = () => {
                   onKeyDown={handleKeyDown}
                   placeholder="Enter your name"
                   disabled={isLoading}
+                  spellCheck={false}
+                  autoComplete="off"
+                  autoCorrect="off"
                   className="flex-1 bg-transparent border-none py-5 px-6 text-white text-lg outline-none placeholder:text-white/50 disabled:opacity-60"
                   autoFocus
                   maxLength={50}
@@ -192,85 +235,101 @@ const CreateGamePage: React.FC = () => {
                 </button>
               </div>
 
-              <div className="mt-5 text-center flex justify-center">
-                <label className="flex items-center gap-3 cursor-pointer py-2 transition-all duration-200">
-                  <input
-                    type="checkbox"
-                    checked={developmentMode}
-                    onChange={(e) => setDevelopmentMode(e.target.checked)}
-                    disabled={isLoading}
-                    className="w-[18px] h-[18px] accent-space-blue-solid cursor-pointer m-0 disabled:opacity-60 disabled:cursor-not-allowed"
-                  />
-                  <span className="text-white text-base font-medium leading-none m-0 flex items-center gap-2">
-                    Development Mode
-                    <InfoTooltip size="medium">
-                      Enable admin commands for debugging and testing. Allows you to give cards to
-                      players, modify resources/production, change game phases, and adjust global
-                      parameters through the debug panel.
-                    </InfoTooltip>
-                  </span>
-                </label>
+              <div className="flex items-center justify-center gap-6 mt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowMore(!showMore)}
+                  className="text-white/50 text-sm py-1 px-3 cursor-pointer hover:text-white/70 transition-colors bg-transparent border-none"
+                >
+                  Settings
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDemoGame()}
+                  disabled={isCreatingDemo}
+                  className="text-white/50 text-sm py-1 px-3 cursor-pointer hover:text-white/70 transition-colors bg-transparent border-none disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isCreatingDemo ? "Creating..." : "Demo game"}
+                </button>
               </div>
 
-              {/* Card Pack Selection */}
-              <div className="mt-6 bg-space-black-darker/95 border-2 border-space-blue-400 rounded-xl p-4 backdrop-blur-space shadow-[0_0_20px_rgba(30,60,150,0.2)]">
-                <h3 className="text-white text-sm font-semibold mb-3 text-center">Card Packs</h3>
-                <div className="flex flex-col gap-2">
-                  <label className="flex items-center gap-3 cursor-pointer py-2 px-2 rounded hover:bg-space-blue-400/10 transition-all duration-200">
+              <div
+                className={`absolute left-0 right-0 top-full mt-1 z-10 bg-space-black-darker/95 border border-white/20 rounded-xl p-4 transition-all duration-300 ${showMore ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none"}`}
+              >
+                <div className="mb-4">
+                  <h3 className="text-white text-sm font-semibold mb-3 text-center">Settings</h3>
+                  <label className="flex items-center gap-3 cursor-pointer py-2 px-2 rounded hover:bg-white/5 transition-all duration-200">
                     <input
                       type="checkbox"
-                      checked={selectedPacks.includes("base-game")}
-                      onChange={() => handlePackToggle("base-game")}
-                      disabled={
-                        isLoading ||
-                        (selectedPacks.includes("base-game") && selectedPacks.length === 1)
-                      }
+                      checked={developmentMode}
+                      onChange={(e) => setDevelopmentMode(e.target.checked)}
+                      disabled={isLoading}
                       className="w-[18px] h-[18px] accent-space-blue-solid cursor-pointer m-0 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
-                    <span className="text-white text-sm font-medium leading-none m-0 flex items-center gap-2 flex-1">
-                      Base Game
-                      <span className="text-white/50 text-xs">(22 cards)</span>
-                      <InfoTooltip size="small">
-                        Includes tested cards with comprehensive test coverage. All cards have
-                        verified implementations.
-                      </InfoTooltip>
-                    </span>
-                  </label>
-
-                  <label className="flex items-center gap-3 cursor-pointer py-2 px-2 rounded hover:bg-space-blue-400/10 transition-all duration-200">
-                    <input
-                      type="checkbox"
-                      checked={selectedPacks.includes("future")}
-                      onChange={() => handlePackToggle("future")}
-                      disabled={
-                        isLoading ||
-                        (selectedPacks.includes("future") && selectedPacks.length === 1)
-                      }
-                      className="w-[18px] h-[18px] accent-space-blue-solid cursor-pointer m-0 disabled:opacity-60 disabled:cursor-not-allowed"
-                    />
-                    <span className="text-white text-sm font-medium leading-none m-0 flex items-center gap-2 flex-1">
-                      Future Content
-                      <span className="text-white/50 text-xs">(431 cards)</span>
-                      <InfoTooltip size="small">
-                        Includes complex and untested cards for future implementation. May have
-                        incomplete effects or bugs.
+                    <span className="text-white text-sm font-medium leading-none m-0 flex items-center gap-2">
+                      Development Mode
+                      <InfoTooltip size="medium">
+                        Enable admin commands for debugging and testing. Allows you to give cards to
+                        players, modify resources/production, change game phases, and adjust global
+                        parameters through the debug panel.
                       </InfoTooltip>
                     </span>
                   </label>
                 </div>
-              </div>
 
-              {error && (
-                <div className="text-error-red mt-4 p-3 bg-error-red/10 border border-error-red/30 rounded-lg text-sm">
-                  {error}
+                <div>
+                  <h3 className="text-white text-sm font-semibold mb-3 text-center">Card Packs</h3>
+                  <div className="flex flex-col gap-2">
+                    <label className="flex items-center gap-3 cursor-pointer py-2 px-2 rounded hover:bg-white/5 transition-all duration-200">
+                      <input
+                        type="checkbox"
+                        checked={selectedPacks.includes("base-game")}
+                        onChange={() => handlePackToggle("base-game")}
+                        disabled={
+                          isLoading ||
+                          (selectedPacks.includes("base-game") && selectedPacks.length === 1)
+                        }
+                        className="w-[18px] h-[18px] accent-space-blue-solid cursor-pointer m-0 disabled:opacity-60 disabled:cursor-not-allowed"
+                      />
+                      <span className="text-white text-sm font-medium leading-none m-0 flex items-center gap-2 flex-1">
+                        Base Game
+                        <span className="text-white/50 text-xs">(22 cards)</span>
+                        <InfoTooltip size="small">
+                          Includes tested cards with comprehensive test coverage. All cards have
+                          verified implementations.
+                        </InfoTooltip>
+                      </span>
+                    </label>
+
+                    <label className="flex items-center gap-3 cursor-pointer py-2 px-2 rounded hover:bg-white/5 transition-all duration-200">
+                      <input
+                        type="checkbox"
+                        checked={selectedPacks.includes("future")}
+                        onChange={() => handlePackToggle("future")}
+                        disabled={
+                          isLoading ||
+                          (selectedPacks.includes("future") && selectedPacks.length === 1)
+                        }
+                        className="w-[18px] h-[18px] accent-space-blue-solid cursor-pointer m-0 disabled:opacity-60 disabled:cursor-not-allowed"
+                      />
+                      <span className="text-white text-sm font-medium leading-none m-0 flex items-center gap-2 flex-1">
+                        Future Content
+                        <span className="text-white/50 text-xs">(431 cards)</span>
+                        <InfoTooltip size="small">
+                          Includes complex and untested cards for future implementation. May have
+                          incomplete effects or bugs.
+                        </InfoTooltip>
+                      </span>
+                    </label>
+                  </div>
                 </div>
-              )}
+              </div>
             </form>
           </div>
         </div>
       </div>
 
-      <LoadingOverlay isLoading={isLoading} message={getLoadingMessage()} />
+      {isLoading && <LoadingOverlay isLoaded={false} message={getLoadingMessage()} />}
     </div>
   );
 };

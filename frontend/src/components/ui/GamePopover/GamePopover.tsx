@@ -1,7 +1,9 @@
 import React, { useRef, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { GamePopoverProps } from "./types";
 import { getThemeStyles } from "./themes";
 import { usePopover } from "./usePopover";
+import { Z_INDEX } from "@/constants/zIndex";
 
 const GamePopover: React.FC<GamePopoverProps> = ({
   isVisible,
@@ -12,7 +14,7 @@ const GamePopover: React.FC<GamePopoverProps> = ({
   arrow,
   width = 320,
   maxHeight = 400,
-  zIndex = 10001,
+  zIndex = Z_INDEX.POPOVER,
   animation = "slideUp",
   children,
   className = "",
@@ -41,6 +43,7 @@ const GamePopover: React.FC<GamePopoverProps> = ({
     if (position.type === "anchor" && position.anchorRef.current) {
       const rect = position.anchorRef.current.getBoundingClientRect();
       const padding = 30;
+      const popoverWidth = typeof width === "number" ? width : 320;
 
       if (position.placement === "above") {
         const bottom = window.innerHeight - rect.top + 15;
@@ -48,8 +51,15 @@ const GamePopover: React.FC<GamePopoverProps> = ({
         setComputedPosition({ bottom, right });
       } else {
         const top = rect.bottom + 15;
-        const left = Math.max(padding, rect.left);
-        setComputedPosition({ top, left });
+        const wouldOverflowRight = rect.left + popoverWidth > window.innerWidth - padding;
+
+        if (wouldOverflowRight) {
+          const right = Math.max(padding, window.innerWidth - rect.right);
+          setComputedPosition({ top, right });
+        } else {
+          const left = Math.max(padding, rect.left);
+          setComputedPosition({ top, left });
+        }
       }
     } else if (position.type === "fixed") {
       setComputedPosition({
@@ -59,7 +69,7 @@ const GamePopover: React.FC<GamePopoverProps> = ({
         bottom: position.bottom,
       });
     }
-  }, [isVisible, position]);
+  }, [isVisible, position, width]);
 
   if (!isVisible) return null;
 
@@ -86,7 +96,7 @@ const GamePopover: React.FC<GamePopoverProps> = ({
     }
   };
 
-  return (
+  return createPortal(
     <div
       ref={popoverRef}
       className={`fixed bg-space-black-darker/95 border-2 border-[var(--popover-accent)] rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.8),0_0_20px_rgba(var(--popover-accent-rgb),0.5)] backdrop-blur-space ${animationClass} flex flex-col overflow-hidden isolate pointer-events-auto max-[768px]:w-[280px] ${className}`}
@@ -134,7 +144,8 @@ const GamePopover: React.FC<GamePopoverProps> = ({
       <div className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:var(--popover-accent)_rgba(30,60,150,0.3)] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[rgba(30,60,150,0.3)] [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-[var(--popover-accent)]/70 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-[var(--popover-accent)]">
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 
