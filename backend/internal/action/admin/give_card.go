@@ -11,7 +11,6 @@ import (
 )
 
 // GiveCardAction handles the admin action to give a card to a player
-// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 // NOTE: Card validation is skipped (admin action with trusted input)
 type GiveCardAction struct {
 	gameRepo     game.GameRepository

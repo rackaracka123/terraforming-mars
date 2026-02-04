@@ -12,7 +12,6 @@ import (
 
 // SellPatentsAction handles the business logic for initiating sell patents standard project
 // This is Phase 1: creates pending card selection for player to choose which cards to sell
-// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type SellPatentsAction struct {
 	baseaction.BaseAction
 }

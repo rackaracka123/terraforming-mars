@@ -17,7 +17,6 @@ const (
 )
 
 // BuildCityAction handles the business logic for building a city standard project
-// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type BuildCityAction struct {
 	baseaction.BaseAction
 }

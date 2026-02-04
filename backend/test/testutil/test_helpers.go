@@ -28,10 +28,8 @@ func TestLogger() *zap.Logger {
 	return logger.Get()
 }
 
-// MockBroadcaster is a placeholder for backward compatibility with test code
-// Deprecated: No longer used in tests as broadcasting is now handled explicitly
+// MockBroadcaster records broadcast calls for test assertions.
 type MockBroadcaster struct {
-	// Deprecated: No longer tracked with automatic broadcasting removed
 	BroadcastCalls []BroadcastCall
 }
 
@@ -790,6 +788,13 @@ func CreateTestGameWithPlayers(t *testing.T, numPlayers int, broadcaster *MockBr
 		err := testGame.AddPlayer(ctx, newPlayer)
 		if err != nil {
 			t.Fatalf("Failed to add player %d: %v", i, err)
+		}
+	}
+
+	// Set first player as host (like JoinGameAction does)
+	if numPlayers > 0 {
+		if err := testGame.SetHostPlayerID(ctx, "player-1"); err != nil {
+			t.Fatalf("Failed to set host player: %v", err)
 		}
 	}
 

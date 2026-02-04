@@ -15,7 +15,6 @@ import (
 )
 
 // ConfirmCardDrawAction handles the business logic for confirming card draw selection
-// MIGRATION: Uses new architecture (GameRepository only, automatic broadcasting via EventBus)
 type ConfirmCardDrawAction struct {
 	baseaction.BaseAction
 }

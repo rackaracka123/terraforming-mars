@@ -17,7 +17,6 @@ const (
 )
 
 // PlantGreeneryAction handles the business logic for the plant greenery standard project
-// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type PlantGreeneryAction struct {
 	baseaction.BaseAction
 }

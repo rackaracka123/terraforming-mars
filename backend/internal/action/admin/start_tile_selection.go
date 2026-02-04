@@ -10,7 +10,6 @@ import (
 )
 
 // StartTileSelectionAction handles the admin action to start tile selection for a player
-// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type StartTileSelectionAction struct {
 	gameRepo game.GameRepository
 	logger   *zap.Logger

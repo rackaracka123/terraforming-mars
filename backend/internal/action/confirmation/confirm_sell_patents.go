@@ -12,7 +12,6 @@ import (
 
 // ConfirmSellPatentsAction handles the business logic for confirming sell patents card selection
 // This is Phase 2: processes the selected cards and awards credits
-// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type ConfirmSellPatentsAction struct {
 	baseaction.BaseAction
 }

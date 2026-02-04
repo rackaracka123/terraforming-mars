@@ -9,7 +9,6 @@ import (
 )
 
 // SetCurrentTurnAction handles the admin action to set the current turn
-// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type SetCurrentTurnAction struct {
 	gameRepo game.GameRepository
 	logger   *zap.Logger

@@ -16,7 +16,6 @@ type SetGlobalParametersRequest struct {
 }
 
 // SetGlobalParametersAction handles the admin action to set global parameters
-// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type SetGlobalParametersAction struct {
 	gameRepo game.GameRepository
 	logger   *zap.Logger
