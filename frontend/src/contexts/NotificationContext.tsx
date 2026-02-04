@@ -1,12 +1,13 @@
 import React, { createContext, useCallback, useContext, useState } from "react";
 
-type NotificationSeverity = "error" | "warning";
+type NotificationSeverity = "error" | "warning" | "info";
 
 interface Notification {
   id: string;
   message: string;
   type: NotificationSeverity;
   duration: number;
+  isExiting: boolean;
 }
 
 interface ShowNotificationOptions {
@@ -35,13 +36,17 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       message: options.message,
       type: options.type,
       duration,
+      isExiting: false,
     };
 
     setNotifications((prev) => [...prev, notification]);
 
     if (duration > 0) {
       setTimeout(() => {
-        setNotifications((prev) => prev.filter((n) => n.id !== id));
+        setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isExiting: true } : n)));
+        setTimeout(() => {
+          setNotifications((prev) => prev.filter((n) => n.id !== id));
+        }, 200);
       }, duration);
     }
 
@@ -49,7 +54,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const dismissNotification = useCallback((id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isExiting: true } : n)));
+    setTimeout(() => {
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    }, 200);
   }, []);
 
   const contextValue: NotificationContextType = {
