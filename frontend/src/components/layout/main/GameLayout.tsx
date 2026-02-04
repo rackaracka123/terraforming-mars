@@ -104,6 +104,8 @@ const GameLayout: React.FC<GameLayoutProps> = ({
             vpIndicators={vpIndicators}
             animateHexEntrance={animateHexEntrance}
             onSkyboxReady={onSkyboxReady}
+            showUI={showUI}
+            uiAnimationClass={uiAnimationClass}
           />
         </div>
       )}

@@ -85,6 +85,8 @@ function AppWithBackground() {
   useEffect(() => {
     if (!showSpaceBackground) {
       setOverlayVisible(false);
+    } else if (!skyboxCache.isReady()) {
+      setOverlayVisible(true);
     }
   }, [showSpaceBackground]);
 

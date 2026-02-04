@@ -35,6 +35,8 @@ interface Game3DViewProps {
   vpIndicators?: TileVPIndicator[];
   animateHexEntrance?: boolean;
   onSkyboxReady?: () => void;
+  showUI?: boolean;
+  uiAnimationClass?: string;
 }
 
 export default function Game3DView({
@@ -43,6 +45,8 @@ export default function Game3DView({
   vpIndicators = [],
   animateHexEntrance = false,
   onSkyboxReady,
+  showUI = true,
+  uiAnimationClass = "",
 }: Game3DViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [cameraConfig, setCameraConfig] = useState({
@@ -130,11 +134,11 @@ export default function Game3DView({
       }}
     >
       {/* Tile Selection Banner */}
-      {pendingTileSelection && (
+      {showUI && pendingTileSelection && (
         <div
-          className="absolute top-[66px] left-1/2 transform -translate-x-1/2 z-50
+          className={`absolute top-[66px] left-1/2 transform -translate-x-1/2 z-50
                      bg-space-black/90 backdrop-blur-space border border-space-blue-500
-                     rounded-lg px-6 py-3 shadow-glow-lg"
+                     rounded-lg px-6 py-3 shadow-glow-lg ${uiAnimationClass}`}
         >
           <div className="flex items-center gap-2">
             <span className="font-orbitron text-lg text-white tracking-wider-2xl">Place</span>

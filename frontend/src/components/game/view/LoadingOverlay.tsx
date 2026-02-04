@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+
 interface LoadingOverlayProps {
   message?: string;
   isLoaded: boolean;
@@ -9,6 +11,16 @@ export default function LoadingOverlay({
   isLoaded,
   onTransitionEnd,
 }: LoadingOverlayProps) {
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      setHasMounted(true);
+    });
+  }, []);
+
+  const showLoaded = hasMounted && isLoaded;
+
   return (
     <div
       style={{
@@ -19,9 +31,9 @@ export default function LoadingOverlay({
         height: "100vh",
         backgroundColor: "#000000",
         zIndex: 9999,
-        opacity: isLoaded ? 0 : 1,
+        opacity: showLoaded ? 0 : 1,
         transition: "opacity 0.8s ease-out",
-        pointerEvents: isLoaded ? "none" : "auto",
+        pointerEvents: showLoaded ? "none" : "auto",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -30,7 +42,7 @@ export default function LoadingOverlay({
         fontSize: "18px",
       }}
       onTransitionEnd={(e) => {
-        if (e.propertyName === "opacity" && isLoaded) {
+        if (e.propertyName === "opacity" && showLoaded) {
           onTransitionEnd?.();
         }
       }}

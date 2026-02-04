@@ -10,6 +10,8 @@ interface MainContentDisplayProps {
   vpIndicators?: TileVPIndicator[];
   animateHexEntrance?: boolean;
   onSkyboxReady?: () => void;
+  showUI?: boolean;
+  uiAnimationClass?: string;
 }
 
 const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
@@ -18,6 +20,8 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
   vpIndicators = [],
   animateHexEntrance = false,
   onSkyboxReady,
+  showUI = true,
+  uiAnimationClass = "",
 }) => {
   return (
     <Game3DView
@@ -26,6 +30,8 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
       vpIndicators={vpIndicators}
       animateHexEntrance={animateHexEntrance}
       onSkyboxReady={onSkyboxReady}
+      showUI={showUI}
+      uiAnimationClass={uiAnimationClass}
     />
   );
 };
