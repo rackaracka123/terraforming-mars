@@ -4,9 +4,11 @@ import { getSoundSettings, saveSoundSettings, SoundSettings } from "../utils/sou
 
 interface SoundContextType {
   enabled: boolean;
+  musicEnabled: boolean;
   volume: number;
   musicVolume: number;
   toggleMute: () => void;
+  toggleMusicMute: () => void;
   setVolume: (volume: number) => void;
   setMusicVolume: (volume: number) => void;
 }
@@ -18,6 +20,7 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     audioService.setEnabled(settings.enabled);
+    audioService.setMusicEnabled(settings.musicEnabled);
     audioService.setVolume(settings.volume);
     audioService.setMusicVolume(settings.musicVolume);
     saveSoundSettings(settings);
@@ -27,6 +30,13 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
     setSettings((prev) => ({
       ...prev,
       enabled: !prev.enabled,
+    }));
+  }, []);
+
+  const toggleMusicMute = useCallback(() => {
+    setSettings((prev) => ({
+      ...prev,
+      musicEnabled: !prev.musicEnabled,
     }));
   }, []);
 
@@ -46,9 +56,11 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
 
   const contextValue: SoundContextType = {
     enabled: settings.enabled,
+    musicEnabled: settings.musicEnabled,
     volume: settings.volume,
     musicVolume: settings.musicVolume,
     toggleMute,
+    toggleMusicMute,
     setVolume,
     setMusicVolume,
   };

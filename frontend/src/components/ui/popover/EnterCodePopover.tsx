@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GamePopover } from "../GamePopover";
+import GameMenuButton from "../buttons/GameMenuButton.tsx";
 import { apiService } from "@/services/apiService";
 import { GameDto } from "@/types/generated/api-types";
 import { useNotifications } from "@/contexts/NotificationContext";
@@ -113,7 +114,7 @@ const EnterCodePopover: React.FC<EnterCodePopoverProps> = ({
       maxHeight="none"
       animation="slideDown"
     >
-      <div className="flex flex-row gap-3 items-center px-4 py-4">
+      <div className="flex flex-row gap-3 items-center px-4 py-4 min-w-0 overflow-hidden">
         <input
           type="text"
           value={gameId}
@@ -126,15 +127,17 @@ const EnterCodePopover: React.FC<EnterCodePopoverProps> = ({
           autoCorrect="off"
           autoCapitalize="off"
           autoFocus
-          className="flex-1 bg-black/50 border border-white/20 rounded-lg py-3 px-4 text-white text-base outline-none placeholder:text-white/50 focus:border-white/60 focus:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-200 disabled:opacity-60"
+          className="flex-1 min-w-0 bg-black/50 border border-white/20 rounded-lg py-3 px-4 text-white text-base outline-none placeholder:text-white/50 focus:border-white/60 focus:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-200 disabled:opacity-60"
         />
-        <button
+        <GameMenuButton
+          variant="action"
+          size="md"
           onClick={() => void handleConnect()}
           disabled={isLoading || !gameId.trim()}
-          className="bg-space-blue-600 border border-space-blue-500 rounded-lg py-3 px-6 text-white text-sm font-medium hover:bg-space-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="shrink-0"
         >
           {isLoading ? "..." : "Connect"}
-        </button>
+        </GameMenuButton>
       </div>
     </GamePopover>
   );

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
+import GameMenuButton from "../ui/buttons/GameMenuButton.tsx";
 import { apiService } from "../../services/apiService";
 import { globalWebSocketManager } from "../../services/globalWebSocketManager.ts";
 import { useSpaceBackground } from "../../contexts/SpaceBackgroundContext.tsx";
@@ -165,21 +166,27 @@ const GameLandingPage: React.FC = () => {
           </h1>
 
           <div className="flex gap-5 justify-center">
-            <Link
+            <GameMenuButton
+              as="link"
               to="/create"
-              onClick={handleCreateGame}
-              className="bg-space-black-darker/90 border-2 border-space-blue-500 rounded-xl px-10 py-5 cursor-pointer transition-all duration-300 backdrop-blur-space text-white text-lg font-semibold font-orbitron tracking-wide hover:border-space-blue-900 hover:shadow-glow hover:shadow-glow-lg hover:-translate-y-1 no-underline inline-block"
+              variant="primary"
+              size="lg"
+              linkOnClick={handleCreateGame}
+              className="px-10 py-5"
             >
               New Game
-            </Link>
+            </GameMenuButton>
 
-            <Link
+            <GameMenuButton
+              as="link"
               to="/join"
-              onClick={handleJoinGame}
-              className="bg-space-black-darker/90 border-2 border-space-blue-500 rounded-xl px-10 py-5 cursor-pointer transition-all duration-300 backdrop-blur-space text-white text-lg font-semibold font-orbitron tracking-wide hover:border-space-blue-900 hover:shadow-glow hover:shadow-glow-lg hover:-translate-y-1 no-underline inline-block"
+              variant="primary"
+              size="lg"
+              linkOnClick={handleJoinGame}
+              className="px-10 py-5"
             >
               Browse
-            </Link>
+            </GameMenuButton>
           </div>
         </div>
 
@@ -210,38 +217,66 @@ const GameLandingPage: React.FC = () => {
                   </svg>
                 </button>
 
-                <div className="mb-6 flex justify-center">
-                  {savedGameData.game.currentPlayer?.corporation ? (
-                    getCorporationLogo(
-                      savedGameData.game.currentPlayer.corporation.name.toLowerCase(),
-                    )
-                  ) : (
-                    <div className="text-white/60 text-sm italic">No Corporation</div>
-                  )}
-                </div>
+                {(() => {
+                  const isLobby = savedGameData.game.currentPhase === "waiting_for_game_start";
+                  const playerCount =
+                    (savedGameData.game.currentPlayer ? 1 : 0) +
+                    (savedGameData.game.otherPlayers?.length || 0);
 
-                <div className="flex justify-center gap-6 mb-4 text-white/90 text-base">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">
-                      {savedGameData.game.turnOrder?.length || 1}
-                    </span>
-                    <span className="text-white/70">
-                      {(savedGameData.game.turnOrder?.length || 1) === 1 ? "Player" : "Players"}
-                    </span>
-                  </div>
-                  <div className="text-white/40">•</div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-white/70">Generation</span>
-                    <span className="font-semibold">{savedGameData.game.generation}</span>
-                  </div>
-                </div>
+                  return (
+                    <>
+                      {!isLobby && (
+                        <div className="mb-6 flex justify-center">
+                          {savedGameData.game.currentPlayer?.corporation ? (
+                            getCorporationLogo(
+                              savedGameData.game.currentPlayer.corporation.name.toLowerCase(),
+                            )
+                          ) : (
+                            <div className="text-white/60 text-sm italic">No Corporation</div>
+                          )}
+                        </div>
+                      )}
 
-                <button
-                  onClick={() => void handleReconnect()}
-                  className="w-full bg-space-blue-600 border-2 border-space-blue-500 rounded-lg py-4 px-6 cursor-pointer transition-all duration-300 text-white text-lg font-bold font-orbitron tracking-wide hover:bg-space-blue-500 hover:border-space-blue-900 hover:shadow-glow hover:shadow-glow-lg"
-                >
-                  RECONNECT
-                </button>
+                      <div className="flex justify-center gap-6 mb-4 text-white/90 text-base">
+                        <div className="flex items-center gap-2">
+                          {isLobby ? (
+                            <>
+                              <span className="font-semibold">
+                                {playerCount}/{savedGameData.game.settings.maxPlayers}
+                              </span>
+                              <span className="text-white/70">Players</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="font-semibold">{playerCount}</span>
+                              <span className="text-white/70">
+                                {playerCount === 1 ? "Player" : "Players"}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        {!isLobby && (
+                          <>
+                            <div className="text-white/40">•</div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-white/70">Generation</span>
+                              <span className="font-semibold">{savedGameData.game.generation}</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      <GameMenuButton
+                        variant="action"
+                        size="lg"
+                        onClick={() => void handleReconnect()}
+                        className="w-full"
+                      >
+                        {isLobby ? "RETURN TO LOBBY" : "RECONNECT"}
+                      </GameMenuButton>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           )}

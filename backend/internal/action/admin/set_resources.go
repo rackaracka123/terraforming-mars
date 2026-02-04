@@ -10,7 +10,6 @@ import (
 )
 
 // SetResourcesAction handles the admin action to set player resources
-// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type SetResourcesAction struct {
 	gameRepo game.GameRepository
 	logger   *zap.Logger

@@ -10,7 +10,6 @@ import (
 )
 
 // SetProductionAction handles the admin action to set player production
-// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type SetProductionAction struct {
 	gameRepo game.GameRepository
 	logger   *zap.Logger

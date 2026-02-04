@@ -6,12 +6,14 @@ const STORAGE_KEY = "terraforming-mars-sound";
 
 export interface SoundSettings {
   enabled: boolean;
+  musicEnabled: boolean;
   volume: number;
   musicVolume: number;
 }
 
 const DEFAULT_SETTINGS: SoundSettings = {
   enabled: true,
+  musicEnabled: true,
   volume: 0.5,
   musicVolume: 0.5,
 };
@@ -30,6 +32,10 @@ export function getSoundSettings(): SoundSettings {
 
     return {
       enabled: typeof parsed.enabled === "boolean" ? parsed.enabled : DEFAULT_SETTINGS.enabled,
+      musicEnabled:
+        typeof parsed.musicEnabled === "boolean"
+          ? parsed.musicEnabled
+          : DEFAULT_SETTINGS.musicEnabled,
       volume: typeof parsed.volume === "number" ? parsed.volume : DEFAULT_SETTINGS.volume,
       musicVolume:
         typeof parsed.musicVolume === "number" ? parsed.musicVolume : DEFAULT_SETTINGS.musicVolume,

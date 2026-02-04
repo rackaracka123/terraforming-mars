@@ -16,7 +16,6 @@ const (
 )
 
 // LaunchAsteroidAction handles the business logic for the launch asteroid standard project
-// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type LaunchAsteroidAction struct {
 	baseaction.BaseAction
 }

@@ -1270,6 +1270,8 @@ export const MessageTypeActionConfirmProductionCards: MessageType =
 export const MessageTypeActionCardDrawConfirmed: MessageType = "action.card.card-draw-confirmed";
 export const MessageTypeAdminCommand: MessageType = "admin-command";
 export const MessageTypePlayerTakeover: MessageType = "player-takeover";
+export const MessageTypeKickPlayer: MessageType = "kick-player";
+export const MessageTypePlayerKicked: MessageType = "player-kicked";
 
 //////////
 // source: state_diff_dto.go

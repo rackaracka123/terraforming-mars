@@ -145,6 +145,40 @@ Use Playwright MCP tools for live debugging:
 - **Tailwind CSS only**: No CSS Modules
 - **Type safety**: Always use generated types from backend
 
+### Menu and Modal Components
+
+**CRITICAL**: Reuse existing components for main menu and game modals.
+
+**GameMenuButton** - All buttons in main menu and game modals:
+
+```tsx
+import GameMenuButton from "../buttons/GameMenuButton.tsx";
+
+<GameMenuButton variant="primary" size="lg" onClick={handleClick}>START GAME</GameMenuButton>
+<GameMenuButton variant="secondary" size="sm">Cancel</GameMenuButton>
+<GameMenuButton variant="action" size="sm">Confirm</GameMenuButton>
+<GameMenuButton variant="text" size="sm">Icon-only button</GameMenuButton>
+```
+
+Variants: `primary`, `secondary`, `action`, `text`, `toolbar`, `error`. Sizes: `sm`, `md`, `lg`.
+
+**GameMenuModal** - All main menu modals and overlays:
+
+```tsx
+import GameMenuModal from "./GameMenuModal.tsx";
+
+<GameMenuModal
+  title="Modal Title"
+  subtitle="Optional subtitle"
+  onBack={() => navigate("/")}
+  visible={isVisible}
+>
+  {/* Modal content */}
+</GameMenuModal>
+```
+
+Provides consistent styling, animations, Back button (top-left), and Settings button (top-right).
+
 ## Related Documentation
 
 - **Root CLAUDE.md**: Project overview and commands

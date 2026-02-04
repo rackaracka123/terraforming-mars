@@ -55,17 +55,27 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	gameID := vars["gameId"]
+	playerID := r.URL.Query().Get("playerId")
 
 	log.Info("📡 HTTP GET /api/v1/games/:gameId", zap.String("game_id", gameID))
 
 	game, err := h.getGameAction.Execute(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
+		log.Warn("Failed to get game", zap.Error(err))
 		http.Error(w, "Game not found", http.StatusNotFound)
 		return
 	}
 
-	gameDto := dto.ToGameDto(game, h.cardRegistry, "")
+	// If playerId provided, verify player is in the game
+	if playerID != "" {
+		if _, err := game.GetPlayer(playerID); err != nil {
+			log.Warn("Player not in game", zap.String("player_id", playerID))
+			http.Error(w, "Player not in game", http.StatusNotFound)
+			return
+		}
+	}
+
+	gameDto := dto.ToGameDto(game, h.cardRegistry, playerID)
 
 	response := dto.GetGameResponse{
 		Game: gameDto,

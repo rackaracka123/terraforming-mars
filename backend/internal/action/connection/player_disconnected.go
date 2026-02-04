@@ -9,7 +9,6 @@ import (
 )
 
 // PlayerDisconnectedAction handles the business logic for player disconnection
-// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type PlayerDisconnectedAction struct {
 	gameRepo game.GameRepository
 	logger   *zap.Logger
@@ -49,15 +48,22 @@ func (a *PlayerDisconnectedAction) Execute(ctx context.Context, gameID string, p
 			return fmt.Errorf("failed to remove player: %w", err)
 		}
 
-		if wasHost {
-			remaining := g.GetAllPlayers()
-			if len(remaining) > 0 {
-				if err := g.SetHostPlayerID(ctx, remaining[0].ID()); err != nil {
-					log.Error("Failed to reassign host", zap.Error(err))
-					return fmt.Errorf("failed to reassign host: %w", err)
-				}
-				log.Info("👑 Host reassigned", zap.String("new_host", remaining[0].ID()))
+		remaining := g.GetAllPlayers()
+		if len(remaining) == 0 {
+			if err := a.gameRepo.Delete(ctx, gameID); err != nil {
+				log.Error("Failed to delete empty game", zap.Error(err))
+				return fmt.Errorf("failed to delete empty game: %w", err)
 			}
+			log.Info("🗑️ Game deleted (no players remaining)")
+			return nil
+		}
+
+		if wasHost {
+			if err := g.SetHostPlayerID(ctx, remaining[0].ID()); err != nil {
+				log.Error("Failed to reassign host", zap.Error(err))
+				return fmt.Errorf("failed to reassign host: %w", err)
+			}
+			log.Info("👑 Host reassigned", zap.String("new_host", remaining[0].ID()))
 		}
 
 		log.Info("✅ Player removed from lobby")

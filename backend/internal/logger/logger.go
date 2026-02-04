@@ -42,7 +42,7 @@ func Init(logLevel *string) error {
 		config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
 	}
 
-	globalLogger, err = config.Build()
+	globalLogger, err = config.Build(zap.AddStacktrace(zap.ErrorLevel))
 	if err != nil {
 		return err
 	}

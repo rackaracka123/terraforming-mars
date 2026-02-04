@@ -9,7 +9,6 @@ import (
 )
 
 // PlayerReconnectedAction handles the business logic for player reconnection
-// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type PlayerReconnectedAction struct {
 	gameRepo game.GameRepository
 	logger   *zap.Logger

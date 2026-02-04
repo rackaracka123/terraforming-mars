@@ -102,14 +102,13 @@ type ConnectionRegisteredEvent struct {
 }
 
 // ResourcesChangedEvent is published when a player's resources change
-// Supports both single resource changes (legacy) and batched changes
 type ResourcesChangedEvent struct {
 	GameID       string
 	PlayerID     string
-	ResourceType string         // DEPRECATED: Use Changes map instead (kept for backward compat)
-	OldAmount    int            // DEPRECATED: Use Changes map instead
-	NewAmount    int            // DEPRECATED: Use Changes map instead
-	Changes      map[string]int // Map of resource type to delta (e.g., {"credits": +5, "steel": -2})
+	ResourceType string
+	OldAmount    int
+	NewAmount    int
+	Changes      map[string]int
 	Timestamp    time.Time
 }
 

@@ -133,6 +133,7 @@ func toResourceTriggerConditionDto(cond shared.ResourceTriggerCondition) Resourc
 		Location:          ptrCast(cond.Location, func(l string) CardApplyLocation { return CardApplyLocation(l) }),
 		AffectedTags:      mapSlice(cond.AffectedTags, func(t shared.CardTag) CardTag { return CardTag(t) }),
 		AffectedResources: cond.AffectedResources,
+		AffectedCardTypes: mapSlice(cond.AffectedCardTypes, func(ct string) CardType { return CardType(ct) }),
 		Target:            ptrCast(cond.Target, func(t string) TargetType { return TargetType(t) }),
 	}
 }

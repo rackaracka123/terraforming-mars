@@ -3,6 +3,7 @@ import CorporationCard from "../cards/CorporationCard.tsx";
 import { CardBehaviorDto } from "@/types/generated/api-types.ts";
 import { getCorporationBorderColor } from "@/utils/corporationColors.ts";
 import { GameModal, GameModalContent, GameModalFooter } from "../GameModal";
+import GameMenuButton from "../buttons/GameMenuButton.tsx";
 
 interface Corporation {
   id: string;
@@ -94,17 +95,15 @@ const CorporationSelectionModal: React.FC<CorporationSelectionModalProps> = ({
       </GameModalContent>
 
       <GameModalFooter className="!px-[30px] !pt-5 !pb-[30px] text-center !border-t !border-[rgba(100,150,255,0.3)]">
-        <button
-          className={`bg-gradient-to-br from-[#4a90e2] to-[#5ba0f2] text-white border-none rounded-lg px-[30px] py-3 text-base font-bold cursor-pointer transition-all duration-200 ease-in-out relative overflow-hidden ${
-            !selectedCorporation
-              ? "bg-[rgba(100,100,100,0.5)] text-[rgba(255,255,255,0.5)] cursor-not-allowed transform-none"
-              : "animate-[buttonPulse_2.5s_ease-in-out_infinite] hover:bg-gradient-to-br hover:from-[#357abd] hover:to-[#4a90e2] hover:-translate-y-px"
-          }`}
+        <GameMenuButton
+          variant="primary"
+          size="lg"
           disabled={!selectedCorporation}
           onClick={handleConfirmSelection}
+          className="whitespace-nowrap max-[768px]:w-full max-[768px]:py-3 max-[768px]:px-6 max-[768px]:text-lg"
         >
           Confirm Selection
-        </button>
+        </GameMenuButton>
       </GameModalFooter>
     </GameModal>
   );

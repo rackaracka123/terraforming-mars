@@ -15,6 +15,7 @@ class GlobalWebSocketManager implements WebSocketConnection {
   private currentPlayerId: string | null = null;
   private eventCallbacks: { [event: string]: ((data: any) => void)[] } = {};
   private isIntentionalDisconnect = false;
+  private handlersSetUp = false;
 
   async initialize() {
     if (this.isInitialized) {
@@ -71,6 +72,11 @@ class GlobalWebSocketManager implements WebSocketConnection {
   }
 
   private setupGlobalEventHandlers() {
+    if (this.handlersSetUp) {
+      return;
+    }
+    this.handlersSetUp = true;
+
     webSocketService.on("game-updated", (updatedGame: GameDto) => {
       this.emit("game-updated", updatedGame);
     });
@@ -81,6 +87,10 @@ class GlobalWebSocketManager implements WebSocketConnection {
 
     webSocketService.on("player-disconnected", (payload: PlayerDisconnectedPayload) => {
       this.emit("player-disconnected", payload);
+    });
+
+    webSocketService.on("player-kicked", (payload: any) => {
+      this.emit("player-kicked", payload);
     });
 
     webSocketService.on("log-update", (logs: StateDiffDto[]) => {
@@ -272,6 +282,11 @@ class GlobalWebSocketManager implements WebSocketConnection {
   async playerTakeover(targetPlayerId: string, gameId: string): Promise<void> {
     await this.ensureConnected();
     return webSocketService.playerTakeover(targetPlayerId, gameId);
+  }
+
+  async kickPlayer(targetPlayerId: string): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.kickPlayer(targetPlayerId);
   }
 
   get connected() {

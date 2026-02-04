@@ -14,11 +14,10 @@ import {
   OVERLAY_FOOTER_CLASS,
   OVERLAY_FOOTER_LEFT_CLASS,
   OVERLAY_FOOTER_RIGHT_CLASS,
-  PRIMARY_BUTTON_CLASS,
-  SECONDARY_BUTTON_CLASS,
   RESOURCE_LABEL_CLASS,
   RESOURCE_DISPLAY_CLASS,
 } from "./overlayStyles.ts";
+import GameMenuButton from "../buttons/GameMenuButton.tsx";
 
 interface ProductionCardSelectionOverlayProps {
   isOpen: boolean;
@@ -123,16 +122,18 @@ const ProductionCardSelectionOverlay: React.FC<ProductionCardSelectionOverlayPro
               )}
             </div>
             <div className="flex gap-3 items-center">
-              <button className={SECONDARY_BUTTON_CLASS} onClick={onReturn}>
+              <GameMenuButton variant="text" size="md" onClick={onReturn}>
                 Hide
-              </button>
-              <button
-                className={PRIMARY_BUTTON_CLASS}
+              </GameMenuButton>
+              <GameMenuButton
+                variant="primary"
+                size="lg"
                 onClick={() => handleConfirm(onSelectCards)}
                 disabled={!isValidSelection}
+                className="whitespace-nowrap max-[768px]:w-full max-[768px]:py-3 max-[768px]:px-6 max-[768px]:text-lg"
               >
                 {showConfirmation ? "Confirm Skip" : "Buy Cards"}
-              </button>
+              </GameMenuButton>
             </div>
           </div>
         </div>

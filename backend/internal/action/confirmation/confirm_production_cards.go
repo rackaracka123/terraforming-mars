@@ -12,7 +12,6 @@ import (
 )
 
 // ConfirmProductionCardsAction handles the business logic for confirming production card selection
-// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type ConfirmProductionCardsAction struct {
 	baseaction.BaseAction
 }

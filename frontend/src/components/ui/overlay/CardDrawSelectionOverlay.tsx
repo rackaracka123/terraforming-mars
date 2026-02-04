@@ -14,9 +14,9 @@ import {
   OVERLAY_CARDS_CONTAINER_CLASS,
   OVERLAY_CARDS_INNER_CLASS,
   OVERLAY_FOOTER_CLASS,
-  PRIMARY_BUTTON_CLASS,
   RESOURCE_LABEL_CLASS,
 } from "./overlayStyles.ts";
+import GameMenuButton from "../buttons/GameMenuButton.tsx";
 
 interface CardDrawSelectionOverlayProps {
   isOpen: boolean;
@@ -267,13 +267,15 @@ const CardDrawSelectionOverlay: React.FC<CardDrawSelectionOverlayProps> = ({
               )}
             </div>
             <div className="flex gap-3 items-center">
-              <button
-                className={PRIMARY_BUTTON_CLASS}
+              <GameMenuButton
+                variant="primary"
+                size="lg"
                 onClick={handleConfirm}
                 disabled={!isValidSelection || totalBuyCost > playerCredits}
+                className="whitespace-nowrap max-[768px]:w-full max-[768px]:py-3 max-[768px]:px-6 max-[768px]:text-lg"
               >
                 {getButtonText()}
-              </button>
+              </GameMenuButton>
             </div>
           </div>
         </div>

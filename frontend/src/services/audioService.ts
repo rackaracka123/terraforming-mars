@@ -10,6 +10,7 @@ class AudioService {
   private audioCache: Map<string, HTMLAudioElement> = new Map();
   private ambientAudio: HTMLAudioElement | null = null;
   private isEnabled: boolean = true;
+  private isMusicEnabled: boolean = true;
   private volume: number = 0.5;
   private musicVolume: number = 0.5;
   private volumeMultipliers: Map<string, number> = new Map();
@@ -19,6 +20,7 @@ class AudioService {
   constructor() {
     const settings = getSoundSettings();
     this.isEnabled = settings.enabled;
+    this.isMusicEnabled = settings.musicEnabled;
     this.volume = settings.volume;
     this.musicVolume = settings.musicVolume;
 
@@ -106,7 +108,7 @@ class AudioService {
     }
     this.ambientAudio.volume = this.musicVolume * this.ambientVolumeMultiplier;
 
-    if (this.isEnabled) {
+    if (this.isMusicEnabled) {
       void this.ambientAudio.play().catch(() => {});
     }
   }
@@ -170,9 +172,21 @@ class AudioService {
     }
   }
 
+  public setMusicEnabled(enabled: boolean): void {
+    this.isMusicEnabled = enabled;
+    if (this.ambientAudio) {
+      if (enabled) {
+        void this.ambientAudio.play().catch(() => {});
+      } else {
+        this.fadeOut(this.ambientAudio);
+      }
+    }
+  }
+
   public getSettings() {
     return {
       enabled: this.isEnabled,
+      musicEnabled: this.isMusicEnabled,
       volume: this.volume,
       musicVolume: this.musicVolume,
     };

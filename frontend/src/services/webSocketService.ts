@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import { getWebSocketUrl } from "../config";
 import {
   CardPaymentDto,
   ConfirmDemoSetupRequest,
@@ -14,6 +15,7 @@ import {
   MessageTypePlayerConnect,
   MessageTypePlayerConnected,
   MessageTypePlayerDisconnected,
+  MessageTypePlayerKicked,
   // New message types
   MessageTypeActionSellPatents,
   MessageTypeActionLaunchAsteroid,
@@ -35,6 +37,7 @@ import {
   MessageTypeActionConfirmDemoSetup,
   MessageTypeActionClaimMilestone,
   MessageTypeActionFundAward,
+  MessageTypeKickPlayer,
   // Payload types
   PlayerConnectedPayload,
   PlayerDisconnectedPayload,
@@ -57,14 +60,7 @@ export class WebSocketService {
   private shouldReconnect = true;
 
   constructor(url?: string) {
-    if (url) {
-      this.url = url;
-    } else if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      this.url = `${protocol}//${window.location.host}/ws`;
-    } else {
-      this.url = "ws://localhost:3001/ws";
-    }
+    this.url = url || getWebSocketUrl();
   }
 
   connect(): Promise<void> {
@@ -173,6 +169,10 @@ export class WebSocketService {
       case MessageTypeLogUpdate: {
         const logPayload = message.payload as LogUpdatePayload;
         this.emit("log-update", logPayload.logs);
+        break;
+      }
+      case MessageTypePlayerKicked: {
+        this.emit("player-kicked", message.payload);
         break;
       }
       default:
@@ -332,6 +332,10 @@ export class WebSocketService {
   playerTakeover(targetPlayerId: string, gameId: string): void {
     this.send("player-takeover" as MessageType, { targetPlayerId, gameId }, gameId);
     this.currentGameId = gameId;
+  }
+
+  kickPlayer(targetPlayerId: string): string {
+    return this.send(MessageTypeKickPlayer, { targetPlayerId });
   }
 
   on(event: string, callback: EventCallback) {

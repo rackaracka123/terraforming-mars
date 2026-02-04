@@ -17,7 +17,6 @@ import (
 )
 
 // SelectStartingCardsAction handles the business logic for selecting starting cards and corporation
-// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type SelectStartingCardsAction struct {
 	gameRepo     game.GameRepository
 	cardRegistry cards.CardRegistry

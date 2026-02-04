@@ -14,7 +14,6 @@ import (
 )
 
 // SetCorporationAction handles the admin action to set a player's corporation
-// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type SetCorporationAction struct {
 	gameRepo     game.GameRepository
 	cardRegistry cards.CardRegistry

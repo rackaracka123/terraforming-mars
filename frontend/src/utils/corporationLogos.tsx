@@ -120,6 +120,7 @@ export const corporationLogos: Record<string, React.ReactNode> = {
         className="INTERPLANETARY CINEMATICS"
         style={{
           fontSize: "17px",
+          color: "white",
         }}
       >
         INTERPLANETARY

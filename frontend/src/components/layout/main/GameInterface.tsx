@@ -19,6 +19,8 @@ import CardDrawSelectionOverlay from "../../ui/overlay/CardDrawSelectionOverlay.
 import CardFanOverlay from "../../ui/overlay/CardFanOverlay.tsx";
 import LoadingOverlay from "../../game/view/LoadingOverlay.tsx";
 import MainMenuSettingsButton from "../../ui/buttons/MainMenuSettingsButton.tsx";
+import GameMenuButton from "../../ui/buttons/GameMenuButton.tsx";
+import GameMenuModal from "../../ui/overlay/GameMenuModal.tsx";
 import SpaceBackground from "../../3d/SpaceBackground.tsx";
 import HexagonalShieldOverlay from "../../ui/overlay/HexagonalShieldOverlay.tsx";
 import EndGameOverlay, { TileVPIndicator } from "../../ui/overlay/EndGameOverlay.tsx";
@@ -31,6 +33,8 @@ import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import { apiService } from "@/services/apiService.ts";
 import { getTabManager } from "@/utils/tabManager.ts";
 import { useSoundEffects } from "@/hooks/useSoundEffects.ts";
+import { useSpaceBackground } from "@/contexts/SpaceBackgroundContext.tsx";
+import { useNotifications } from "@/contexts/NotificationContext.tsx";
 import { skyboxCache } from "@/services/SkyboxCache.ts";
 import { audioService } from "@/services/audioService.ts";
 import { clearGameSession, getGameSession, saveGameSession } from "@/utils/sessionStorage.ts";
@@ -66,6 +70,7 @@ export default function GameInterface() {
   const { gameId: urlGameId } = useParams<{ gameId?: string }>();
   const { playProductionSound, playTemperatureSound, playWaterPlacementSound, playOxygenSound } =
     useSoundEffects();
+  const { showNotification } = useNotifications();
   const [game, setGame] = useState<GameDto | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [transitionPhase, setTransitionPhase] = useState<TransitionPhase>("idle");
@@ -211,12 +216,12 @@ export default function GameInterface() {
   // Skybox readiness tracking for smooth loading overlay
   const [isSkyboxReady, setIsSkyboxReady] = useState(() => skyboxCache.isReady());
   const [overlayVisible, setOverlayVisible] = useState(true);
-
+  const { isLoaded: isSpaceBgLoaded } = useSpaceBackground();
   const handleSkyboxReady = useCallback(() => setIsSkyboxReady(true), []);
 
   const isFullyLoaded =
-    loadingPhase === "selecting" ||
-    loadingPhase === "joining" ||
+    (loadingPhase === "selecting" && isSpaceBgLoaded) ||
+    (loadingPhase === "joining" && isSpaceBgLoaded) ||
     (isConnected && !!game && !isReconnecting && (isSkyboxReady || transitionPhase === "lobby"));
 
   // WebSocket stability
@@ -309,6 +314,13 @@ export default function GameInterface() {
   const handleError = useCallback(() => {
     // Could show error modal
   }, []);
+
+  const handlePlayerKicked = useCallback(() => {
+    clearGameSession();
+    globalWebSocketManager.disconnect();
+    navigate("/", { replace: true });
+    showNotification({ message: "You were kicked from the game", type: "info" });
+  }, [navigate, showNotification]);
 
   const handleDisconnect = useCallback(() => {
     // Skip disconnect handling if this was an intentional leave
@@ -1182,6 +1194,7 @@ export default function GameInterface() {
     globalWebSocketManager.on("game-updated", handleGameUpdated);
     globalWebSocketManager.on("full-state", handleFullState);
     globalWebSocketManager.on("player-disconnected", handlePlayerDisconnected);
+    globalWebSocketManager.on("player-kicked", handlePlayerKicked);
     globalWebSocketManager.on("error", handleError);
     globalWebSocketManager.on("disconnect", handleDisconnect);
     globalWebSocketManager.on("max-reconnects-reached", handleMaxReconnectsReached);
@@ -1192,6 +1205,7 @@ export default function GameInterface() {
       globalWebSocketManager.off("game-updated", handleGameUpdated);
       globalWebSocketManager.off("full-state", handleFullState);
       globalWebSocketManager.off("player-disconnected", handlePlayerDisconnected);
+      globalWebSocketManager.off("player-kicked", handlePlayerKicked);
       globalWebSocketManager.off("error", handleError);
       globalWebSocketManager.off("disconnect", handleDisconnect);
       globalWebSocketManager.off("max-reconnects-reached", handleMaxReconnectsReached);
@@ -1201,6 +1215,7 @@ export default function GameInterface() {
     handleGameUpdated,
     handleFullState,
     handlePlayerDisconnected,
+    handlePlayerKicked,
     handleError,
     handleDisconnect,
     handleMaxReconnectsReached,
@@ -1356,8 +1371,9 @@ export default function GameInterface() {
     setShowLeaveGameConfirm(true);
   }, []);
 
-  // Confirm leave game - disconnects but keeps session for reconnect
+  // Confirm leave game - clears session and disconnects
   const handleConfirmLeaveGame = useCallback(() => {
+    clearGameSession();
     globalWebSocketManager.disconnect();
     // Small delay ensures WebSocket close is processed before navigation
     setTimeout(() => {
@@ -1451,6 +1467,8 @@ export default function GameInterface() {
   }, [navigate]);
 
   useEffect(() => {
+    let aborted = false;
+
     const initializeGame = async () => {
       setLoadingPhase("checking");
 
@@ -1461,22 +1479,25 @@ export default function GameInterface() {
         isReconnection?: boolean;
       } | null;
 
-      // 1. Determine game ID source (priority order)
-      const gameId = urlGameId || routeState?.game?.id || getGameSession()?.gameId;
+      // 1. Determine game ID and player ID sources (priority order)
+      const savedSession = getGameSession();
+      const gameId = urlGameId || routeState?.game?.id || savedSession?.gameId;
 
       if (!gameId) {
         navigate("/", { replace: true });
         return;
       }
 
-      // 2. Validate game exists
+      // 2. Validate game exists (and player is still in game if we have a saved session)
       let fetchedGame: GameDto | null = null;
       try {
-        fetchedGame = await apiService.getGame(gameId);
+        fetchedGame = await apiService.getGame(gameId, savedSession?.playerId);
       } catch {
         navigate("/", { replace: true, state: { error: "Could not find game" } });
         return;
       }
+
+      if (aborted) return;
 
       if (!fetchedGame) {
         clearGameSession();
@@ -1485,7 +1506,6 @@ export default function GameInterface() {
       }
 
       // 3. Check cached session
-      const savedSession = getGameSession();
       const cachedForThisGame = savedSession && savedSession.gameId === gameId;
 
       if (cachedForThisGame && savedSession.playerId) {
@@ -1504,6 +1524,7 @@ export default function GameInterface() {
 
             const tabManager = getTabManager();
             const canClaim = await tabManager.claimTab(fetchedGame.id, savedSession.playerName);
+            if (aborted) return;
 
             if (!canClaim) {
               const activeTabInfo = tabManager.getActiveTabInfo();
@@ -1519,6 +1540,7 @@ export default function GameInterface() {
             globalWebSocketManager.setCurrentPlayerId(savedSession.playerId);
 
             await globalWebSocketManager.playerTakeover(savedSession.playerId, fetchedGame.id);
+            if (aborted) return;
 
             setLoadingPhase("ready");
             return;
@@ -1531,6 +1553,7 @@ export default function GameInterface() {
       if (routeState?.game && routeState?.playerId && routeState?.playerName) {
         const tabManager = getTabManager();
         const canClaim = await tabManager.claimTab(routeState.game.id, routeState.playerName);
+        if (aborted) return;
 
         if (!canClaim) {
           const activeTabInfo = tabManager.getActiveTabInfo();
@@ -1569,6 +1592,8 @@ export default function GameInterface() {
         return;
       }
 
+      if (aborted) return;
+
       // 5. Check if this is a join link
       const urlParams = new URLSearchParams(window.location.search);
       const isJoinLink = urlParams.get("type") === "join";
@@ -1585,6 +1610,9 @@ export default function GameInterface() {
     };
 
     void initializeGame();
+    return () => {
+      aborted = true;
+    };
   }, [location.state, navigate, urlGameId]);
 
   // Register event listeners when component mounts, unregister on unmount
@@ -1691,6 +1719,10 @@ export default function GameInterface() {
   }, [showDebugDropdown]);
 
   const loadingMessage = (() => {
+    if (loadingPhase === "selecting" || loadingPhase === "joining") {
+      if (!isSpaceBgLoaded) return "Loading 3D environment...";
+      return "Loading game...";
+    }
     if (loadingPhase === "checking") return "Loading game...";
     if (loadingPhase === "connecting") return "Connecting...";
     if (isReconnecting && reconnectionStep) {
@@ -1716,19 +1748,10 @@ export default function GameInterface() {
     !game?.currentPlayer?.selectStartingCardsPhase &&
     !!currentPlayer?.corporation;
 
-  // Lobby exit animation state
-  const [isLobbyExiting, setIsLobbyExiting] = useState(false);
+  const [lobbyMounted, setLobbyMounted] = useState(false);
 
-  // Handle lobby exit animation when game starts (lobby → card selection)
   useEffect(() => {
-    if (!isLobbyPhase && wasInLobby.current && !isLobbyExiting) {
-      setIsLobbyExiting(true);
-      const timer = setTimeout(() => {
-        setIsLobbyExiting(false);
-      }, 800);
-      return () => clearTimeout(timer);
-    }
-    return undefined;
+    if (isLobbyPhase) setLobbyMounted(true);
   }, [isLobbyPhase]);
 
   // Transition state machine: lobby → fadeOutLobby → animateUI → complete
@@ -1782,15 +1805,6 @@ export default function GameInterface() {
 
   return (
     <>
-      {/* Loading overlay with fade-out transition */}
-      {overlayVisible && (
-        <LoadingOverlay
-          isLoaded={isFullyLoaded}
-          message={loadingMessage}
-          onTransitionEnd={() => setOverlayVisible(false)}
-        />
-      )}
-
       {/* Dev Mode Chip - Always visible in dev mode */}
       {game?.settings?.developmentMode && <DevModeChip />}
 
@@ -1818,7 +1832,7 @@ export default function GameInterface() {
         }
       `}</style>
 
-      {game && (
+      {game && loadingPhase !== "selecting" && loadingPhase !== "joining" && (
         <GameLayout
           gameState={game}
           currentPlayer={currentPlayer}
@@ -1897,8 +1911,13 @@ export default function GameInterface() {
         </div>
       )}
 
-      {(isLobbyPhase || isLobbyExiting) && game && playerId && (
-        <WaitingRoomOverlay game={game} playerId={playerId} isExiting={isLobbyExiting} />
+      {lobbyMounted && game && playerId && (
+        <WaitingRoomOverlay
+          game={game}
+          playerId={playerId}
+          visible={isLobbyPhase}
+          onExited={() => setLobbyMounted(false)}
+        />
       )}
 
       {/* Demo setup overlay - shown after start game in demo mode */}
@@ -1928,44 +1947,24 @@ export default function GameInterface() {
 
       {/* Leave game confirmation dialog */}
       {showLeaveGameConfirm && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center animate-[dialogBackdropFadeIn_0.2s_ease-out]">
-          <div className="bg-space-black-darker border-2 border-space-blue-500 rounded-xl p-8 max-w-md text-center shadow-glow animate-[dialogSlideIn_0.2s_ease-out]">
-            <h2 className="text-2xl font-bold text-white mb-4 font-orbitron">Leave game?</h2>
-            <p className="text-white/80 mb-8">
-              You can reconnect to the game again without losing any progress.
-            </p>
-            <div className="flex gap-4 justify-center">
-              <button
-                onClick={() => setShowLeaveGameConfirm(false)}
-                className="px-6 py-3 bg-white/10 border border-white/20 rounded-lg text-white font-semibold hover:bg-white/20 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmLeaveGame}
-                className="px-6 py-3 bg-red-600 border border-red-500 rounded-lg text-white font-semibold hover:bg-red-500 transition-colors"
-              >
-                Leave
-              </button>
-            </div>
+        <GameMenuModal
+          title="Leave game?"
+          showBackdrop={true}
+          onClose={() => setShowLeaveGameConfirm(false)}
+          zIndex={10000}
+        >
+          <p className="text-white/80 text-center mb-6">
+            You can reconnect to the game again without losing any progress.
+          </p>
+          <div className="flex gap-4 justify-center">
+            <GameMenuButton variant="secondary" onClick={() => setShowLeaveGameConfirm(false)}>
+              Cancel
+            </GameMenuButton>
+            <GameMenuButton variant="error" onClick={handleConfirmLeaveGame}>
+              Leave
+            </GameMenuButton>
           </div>
-          <style>{`
-            @keyframes dialogBackdropFadeIn {
-              from { opacity: 0; }
-              to { opacity: 1; }
-            }
-            @keyframes dialogSlideIn {
-              from {
-                opacity: 0;
-                transform: scale(0.95) translateY(-10px);
-              }
-              to {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-              }
-            }
-          `}</style>
-        </div>
+        </GameMenuModal>
       )}
 
       {/* Starting card selection overlay */}
@@ -2312,17 +2311,26 @@ export default function GameInterface() {
         />
       )}
 
-      {/* Return to Production Modal button */}
       {showProductionPhaseModal && isProductionModalHidden && (
-        <button
-          className="fixed top-[80px] left-[70%] bg-space-black-darker/95 border-2 border-space-blue-400 rounded-xl text-white text-base font-semibold py-3.5 px-7 cursor-pointer transition-all duration-300 text-shadow-glow shadow-[0_4px_15px_rgba(0,0,0,0.5),0_0_20px_rgba(30,60,150,0.4)] backdrop-blur-space z-[1000] whitespace-nowrap hover:bg-space-black-darker hover:border-space-blue-500 hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(0,0,0,0.6),0_0_35px_rgba(30,60,150,0.6)] active:translate-y-0 active:shadow-[0_2px_10px_rgba(0,0,0,0.4),0_0_20px_rgba(30,60,150,0.4)]"
+        <GameMenuButton
+          variant="primary"
+          className="fixed top-[80px] left-[70%] !py-3.5 !px-7 !text-base !border-space-blue-400 text-shadow-glow shadow-[0_4px_15px_rgba(0,0,0,0.5),0_0_20px_rgba(30,60,150,0.4)] z-[1000] whitespace-nowrap hover:!border-space-blue-500 hover:shadow-[0_6px_20px_rgba(0,0,0,0.6),0_0_35px_rgba(30,60,150,0.6)] active:shadow-[0_2px_10px_rgba(0,0,0,0.4),0_0_20px_rgba(30,60,150,0.4)]"
           onClick={() => {
             setIsProductionModalHidden(false);
             setOpenProductionToCardSelection(true);
           }}
         >
           Return to Production
-        </button>
+        </GameMenuButton>
+      )}
+
+      {/* Loading overlay rendered LAST to ensure it covers all UI elements */}
+      {overlayVisible && (
+        <LoadingOverlay
+          isLoaded={isFullyLoaded}
+          message={loadingMessage}
+          onTransitionEnd={() => setOverlayVisible(false)}
+        />
       )}
     </>
   );

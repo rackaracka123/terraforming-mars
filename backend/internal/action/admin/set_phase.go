@@ -9,7 +9,6 @@ import (
 )
 
 // SetPhaseAction handles the admin action to set the game phase
-// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type SetPhaseAction struct {
 	gameRepo game.GameRepository
 	logger   *zap.Logger

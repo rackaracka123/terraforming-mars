@@ -31,12 +31,6 @@ export const OVERLAY_FOOTER_LEFT_CLASS =
 export const OVERLAY_FOOTER_RIGHT_CLASS =
   "flex items-center gap-6 max-[768px]:w-full max-[768px]:flex-col max-[768px]:gap-3";
 
-export const PRIMARY_BUTTON_CLASS =
-  "py-4 px-8 bg-space-black-darker/90 border-2 border-space-blue-800 rounded-xl text-xl font-bold text-white cursor-pointer transition-all duration-300 text-shadow-dark shadow-[0_4px_20px_rgba(30,60,150,0.3)] whitespace-nowrap hover:enabled:bg-space-black-darker/95 hover:enabled:border-space-blue-600 hover:enabled:-translate-y-0.5 hover:enabled:shadow-glow active:enabled:translate-y-0 disabled:bg-gray-700/50 disabled:border-gray-500/30 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none disabled:opacity-60 max-[768px]:w-full max-[768px]:py-3 max-[768px]:px-6 max-[768px]:text-lg";
-
-export const SECONDARY_BUTTON_CLASS =
-  "py-3 px-6 bg-space-black-darker/60 border-2 border-space-blue-800/60 rounded-lg text-white font-medium cursor-pointer transition-all duration-200 whitespace-nowrap hover:-translate-y-px hover:bg-space-black-darker/80 hover:border-space-blue-600 active:translate-y-0";
-
 export const RESOURCE_LABEL_CLASS = "text-sm text-white/60 uppercase tracking-[0.5px]";
 
 export const RESOURCE_DISPLAY_CLASS = "flex items-center gap-3";

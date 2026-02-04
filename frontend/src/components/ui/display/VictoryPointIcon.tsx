@@ -2,8 +2,8 @@ import React from "react";
 import { getIconPath } from "@/utils/iconStore.ts";
 
 interface VictoryPointIconProps {
-  value?: number | string; // Deprecated: for backward compatibility
-  vpConditions?: any[]; // New: VP conditions array
+  value?: number | string;
+  vpConditions?: any[];
   size?: "small" | "medium" | "large";
 }
 
@@ -187,7 +187,6 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
     return null; // No valid conditions
   }
 
-  // Fallback to old system for backward compatibility
   if (value === 0 || !value) {
     return null;
   }

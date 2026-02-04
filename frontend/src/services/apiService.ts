@@ -10,18 +10,12 @@ import {
   ListCardsResponse,
   StateDiffDto,
 } from "../types/generated/api-types.ts";
-
-function getDefaultApiUrl(): string {
-  if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
-    return "/api/v1";
-  }
-  return "http://localhost:3001/api/v1";
-}
+import { config } from "../config";
 
 export class ApiService {
   private baseUrl: string;
 
-  constructor(baseUrl: string = getDefaultApiUrl()) {
+  constructor(baseUrl: string = config.apiUrl) {
     this.baseUrl = baseUrl;
   }
 

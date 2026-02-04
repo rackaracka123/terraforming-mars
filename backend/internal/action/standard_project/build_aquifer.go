@@ -17,7 +17,6 @@ const (
 )
 
 // BuildAquiferAction handles the business logic for the build aquifer standard project
-// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type BuildAquiferAction struct {
 	baseaction.BaseAction
 }
