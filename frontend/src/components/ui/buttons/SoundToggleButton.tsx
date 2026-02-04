@@ -60,26 +60,57 @@ const SpeakerIcon: React.FC<{ enabled: boolean; volume: number }> = ({ enabled, 
   );
 };
 
-const MusicNoteIcon: React.FC = () => (
-  <svg
-    className="w-[18px] h-[18px]"
-    width="18"
-    height="18"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M9 18V5l12-2v13" />
-    <circle cx="6" cy="18" r="3" />
-    <circle cx="18" cy="16" r="3" />
-  </svg>
-);
+const MusicNoteIcon: React.FC<{ enabled: boolean }> = ({ enabled }) => {
+  if (!enabled) {
+    return (
+      <svg
+        className="w-[18px] h-[18px]"
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M9 18V5l12-2v13" />
+        <circle cx="6" cy="18" r="3" />
+        <circle cx="18" cy="16" r="3" />
+        <line x1="2" y1="2" x2="22" y2="22" />
+      </svg>
+    );
+  }
+  return (
+    <svg
+      className="w-[18px] h-[18px]"
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 18V5l12-2v13" />
+      <circle cx="6" cy="18" r="3" />
+      <circle cx="18" cy="16" r="3" />
+    </svg>
+  );
+};
 
 const SoundToggleButton: React.FC = () => {
-  const { enabled, volume, musicVolume, toggleMute, setVolume, setMusicVolume } = useSound();
+  const {
+    enabled,
+    musicEnabled,
+    volume,
+    musicVolume,
+    toggleMute,
+    toggleMusicMute,
+    setVolume,
+    setMusicVolume,
+  } = useSound();
 
   const handleSfxVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setVolume(parseFloat(e.target.value));
@@ -111,15 +142,19 @@ const SoundToggleButton: React.FC = () => {
         />
       </div>
       <div className="flex items-center gap-3">
-        <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
-          <MusicNoteIcon />
-        </span>
+        <button
+          onClick={toggleMusicMute}
+          className="flex-shrink-0 w-5 h-5 flex items-center justify-center hover:text-space-blue-400 transition-colors cursor-pointer"
+          aria-label={musicEnabled ? "Mute music" : "Unmute music"}
+        >
+          <MusicNoteIcon enabled={musicEnabled} />
+        </button>
         <input
           type="range"
           min="0"
           max="1"
           step="0.05"
-          value={enabled ? musicVolume : 0}
+          value={musicEnabled ? musicVolume : 0}
           onChange={handleMusicVolumeChange}
           className={sliderClassName}
           aria-label="Music Volume"
