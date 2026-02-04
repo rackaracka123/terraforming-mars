@@ -58,6 +58,7 @@ func RegisterHandlers(
 	playerReconnectedAction *connAction.PlayerReconnectedAction,
 	playerDisconnectedAction *connAction.PlayerDisconnectedAction,
 	playerTakeoverAction *connAction.PlayerTakeoverAction,
+	kickPlayerAction *connAction.KickPlayerAction,
 	claimMilestoneAction *milestoneAction.ClaimMilestoneAction,
 	fundAwardAction *awardAction.FundAwardAction,
 	adminSetPhaseAction *adminAction.SetPhaseAction,
@@ -77,8 +78,8 @@ func RegisterHandlers(
 	hub.RegisterHandler(dto.MessageTypeCreateGame, createGameHandler)
 
 	joinGameHandler := game.NewJoinGameHandler(joinGameAction, broadcaster)
-	hub.RegisterHandler(dto.MessageTypePlayerConnect, joinGameHandler) // Primary handler
-	hub.RegisterHandler(dto.MessageTypeJoinGame, joinGameHandler)      // Alternative for backwards compatibility
+	hub.RegisterHandler(dto.MessageTypePlayerConnect, joinGameHandler)
+	hub.RegisterHandler(dto.MessageTypeJoinGame, joinGameHandler)
 
 	confirmDemoSetupHandler := game.NewConfirmDemoSetupHandler(confirmDemoSetupAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionConfirmDemoSetup, confirmDemoSetupHandler)
@@ -147,6 +148,9 @@ func RegisterHandlers(
 	playerTakeoverHandler := connection.NewPlayerTakeoverHandler(playerTakeoverAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypePlayerTakeover, playerTakeoverHandler)
 
+	kickPlayerHandler := connection.NewKickPlayerHandler(kickPlayerAction, broadcaster, hub)
+	hub.RegisterHandler(dto.MessageTypeKickPlayer, kickPlayerHandler)
+
 	claimMilestoneHandler := milestone.NewClaimMilestoneHandler(claimMilestoneAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionClaimMilestone, claimMilestoneHandler)
 
@@ -175,10 +179,10 @@ func RegisterHandlers(
 	log.Info("   ✅ Tile Selection (1): SelectTile")
 	log.Info("   ✅ Turn Management (3): StartGame, SkipAction, SelectStartingCards")
 	log.Info("   ✅ Confirmations (3): ConfirmSellPatents, ConfirmProductionCards, ConfirmCardDraw")
-	log.Info("   ✅ Connection (2): PlayerDisconnected, PlayerTakeover")
+	log.Info("   ✅ Connection (3): PlayerDisconnected, PlayerTakeover, KickPlayer")
 	log.Info("   ✅ Milestones & Awards (2): ClaimMilestone, FundAward")
 	log.Info("   ✅ Admin (1): AdminCommand (routes to 9 sub-commands)")
-	log.Info("   📌 Total: 25 handlers registered")
+	log.Info("   📌 Total: 26 handlers registered")
 }
 
 // MigrateSingleHandler migrates a specific message type from old to new handler
