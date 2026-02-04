@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import GameMenuButton from "./GameMenuButton.tsx";
 
 interface CopyLinkButtonProps {
   textToCopy: string;
@@ -38,10 +39,12 @@ const CopyLinkButton: React.FC<CopyLinkButtonProps> = ({
   };
 
   return (
-    <button
-      className={`bg-space-black-darker/90 border-2 border-space-blue-500 rounded-xl py-3 px-5 text-white cursor-pointer transition-all duration-300 text-sm font-semibold font-orbitron tracking-wide backdrop-blur-space min-w-[120px] hover:border-space-blue-900 hover:shadow-glow hover:shadow-glow-lg hover:-translate-y-1 disabled:cursor-default disabled:transform-none ${className}`}
+    <GameMenuButton
+      variant="primary"
+      size="md"
       onClick={handleCopy}
       disabled={isCopied}
+      className={`min-w-[120px] ${className}`}
     >
       <span
         className={`inline-flex items-center gap-2 transition-opacity duration-300 ${isCopied ? "opacity-70" : "opacity-100"}`}
@@ -49,7 +52,7 @@ const CopyLinkButton: React.FC<CopyLinkButtonProps> = ({
         {isCopied ? copiedText : defaultText}
         {icon && !isCopied && icon}
       </span>
-    </button>
+    </GameMenuButton>
   );
 };
 

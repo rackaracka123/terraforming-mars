@@ -11,11 +11,10 @@ import {
   OVERLAY_TITLE_CLASS,
   OVERLAY_DESCRIPTION_CLASS,
   OVERLAY_FOOTER_CLASS,
-  PRIMARY_BUTTON_CLASS,
-  SECONDARY_BUTTON_CLASS,
   RESOURCE_LABEL_CLASS,
   RESOURCE_DISPLAY_CLASS,
 } from "./overlayStyles.ts";
+import GameMenuButton from "../buttons/GameMenuButton.tsx";
 
 interface StartingCardSelectionOverlayProps {
   isOpen: boolean;
@@ -186,13 +185,15 @@ const StartingCardSelectionOverlay: React.FC<StartingCardSelectionOverlayProps> 
               <div className="text-sm text-white/70">
                 {selectedCorporationId ? "Corporation selected" : "Please select a corporation"}
               </div>
-              <button
-                className={PRIMARY_BUTTON_CLASS}
+              <GameMenuButton
+                variant="primary"
+                size="lg"
                 onClick={handleNextToCards}
                 disabled={!selectedCorporationId}
+                className="whitespace-nowrap max-[768px]:w-full max-[768px]:py-3 max-[768px]:px-6 max-[768px]:text-lg"
               >
                 Next: Select Cards →
-              </button>
+              </GameMenuButton>
             </>
           )}
 
@@ -207,7 +208,13 @@ const StartingCardSelectionOverlay: React.FC<StartingCardSelectionOverlayProps> 
                 <div className={RESOURCE_DISPLAY_CLASS}>
                   <span className={RESOURCE_LABEL_CLASS}>Total Cost:</span>
                   {totalCost > 0 ? (
-                    <GameIcon iconType={ResourceTypeCredit} amount={totalCost} size="large" />
+                    <>
+                      <GameIcon iconType={ResourceTypeCredit} amount={totalCost} size="large" />
+                      <span className="text-white/70 text-sm">
+                        ({selectedCardIds.length} card
+                        {selectedCardIds.length !== 1 ? "s" : ""} selected)
+                      </span>
+                    </>
                   ) : (
                     <span className="!text-[#4caf50] font-bold tracking-[1px]">FREE</span>
                   )}
@@ -215,34 +222,27 @@ const StartingCardSelectionOverlay: React.FC<StartingCardSelectionOverlayProps> 
               </div>
 
               <div className="flex items-center gap-4 max-[768px]:w-full max-[768px]:flex-col max-[768px]:gap-3">
-                <button className={SECONDARY_BUTTON_CLASS} onClick={handleNextToCorporation}>
+                <GameMenuButton variant="text" size="md" onClick={handleNextToCorporation}>
                   ← Back
-                </button>
+                </GameMenuButton>
 
-                <div className="text-sm">
-                  {selectedCardIds.length === 0 ? (
-                    showConfirmation ? (
-                      <span className="text-[#ff9800]">
-                        Are you sure you don't want to select any cards?
-                      </span>
-                    ) : (
-                      <span className="text-white/70">No cards selected</span>
-                    )
-                  ) : (
-                    <span className="text-white/70">
-                      {selectedCardIds.length} card
-                      {selectedCardIds.length !== 1 ? "s" : ""} selected
+                {showConfirmation && (
+                  <div className="text-sm">
+                    <span className="text-[#ff9800]">
+                      Are you sure you don't want to select any cards?
                     </span>
-                  )}
-                </div>
+                  </div>
+                )}
 
-                <button
-                  className={PRIMARY_BUTTON_CLASS}
+                <GameMenuButton
+                  variant="primary"
+                  size="lg"
                   onClick={handleConfirm}
                   disabled={!isValidSelection}
+                  className="whitespace-nowrap max-[768px]:w-full max-[768px]:py-3 max-[768px]:px-6 max-[768px]:text-lg"
                 >
                   {showConfirmation ? "Confirm Skip" : "Confirm Selection"}
-                </button>
+                </GameMenuButton>
               </div>
             </>
           )}

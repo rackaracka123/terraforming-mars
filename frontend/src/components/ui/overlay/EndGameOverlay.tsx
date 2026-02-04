@@ -11,7 +11,7 @@ import PlayerVPCard, { TileHoverType } from "../endgame/PlayerVPCard";
 import MilestoneCompact from "../endgame/MilestoneCompact";
 import AwardCompact from "../endgame/AwardCompact";
 import CardVPHoverModal from "../endgame/CardVPHoverModal";
-import { PRIMARY_BUTTON_CLASS } from "./overlayStyles";
+import GameMenuButton from "../buttons/GameMenuButton.tsx";
 
 /** VP indicator to show floating above a tile */
 export interface TileVPIndicator {
@@ -505,9 +505,14 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
       <div className="fixed right-0 top-0 bottom-0 w-80 z-[1000] bg-black/90 backdrop-blur-md flex items-center justify-center">
         <div className="text-center p-4">
           <h2 className="font-orbitron text-lg text-red-400 mb-4">No scores available</h2>
-          <button onClick={onReturnToMenu} className={PRIMARY_BUTTON_CLASS}>
+          <GameMenuButton
+            variant="primary"
+            size="lg"
+            onClick={onReturnToMenu}
+            className="whitespace-nowrap max-[768px]:w-full max-[768px]:py-3 max-[768px]:px-6 max-[768px]:text-lg"
+          >
             Return to Menu
-          </button>
+          </GameMenuButton>
         </div>
       </div>
     );
@@ -692,9 +697,14 @@ const EndGameOverlay: FC<EndGameOverlayProps> = ({
           {/* Return to Menu - in complete phase */}
           {currentPhase === "complete" && (
             <div className="pt-4 border-t border-white/10">
-              <button onClick={onReturnToMenu} className={`${PRIMARY_BUTTON_CLASS} w-full`}>
+              <GameMenuButton
+                variant="primary"
+                size="lg"
+                onClick={onReturnToMenu}
+                className="w-full whitespace-nowrap max-[768px]:w-full max-[768px]:py-3 max-[768px]:px-6 max-[768px]:text-lg"
+              >
                 Return to Menu
-              </button>
+              </GameMenuButton>
             </div>
           )}
         </div>

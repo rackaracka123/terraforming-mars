@@ -24,8 +24,8 @@ import {
   OVERLAY_TITLE_CLASS,
   OVERLAY_DESCRIPTION_CLASS,
   OVERLAY_FOOTER_CLASS,
-  PRIMARY_BUTTON_CLASS,
 } from "./overlayStyles.ts";
+import GameMenuButton from "../buttons/GameMenuButton.tsx";
 
 interface DemoSetupOverlayProps {
   game: GameDto;
@@ -567,13 +567,15 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
               <span className="ml-4">Cards: {selectedCardIds.length}</span>
             )}
           </div>
-          <button
-            className={PRIMARY_BUTTON_CLASS}
+          <GameMenuButton
+            variant="primary"
+            size="lg"
             onClick={() => void handleConfirm()}
             disabled={isSubmitting}
+            className="whitespace-nowrap max-[768px]:w-full max-[768px]:py-3 max-[768px]:px-6 max-[768px]:text-lg"
           >
             {isSubmitting ? "Confirming..." : "Confirm Setup"}
-          </button>
+          </GameMenuButton>
         </div>
       </div>
     </div>

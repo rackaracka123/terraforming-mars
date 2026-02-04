@@ -6,6 +6,7 @@ import StandardProjectPopover from "../../ui/popover/StandardProjectPopover.tsx"
 import MilestonePopover from "../../ui/popover/MilestonePopover.tsx";
 import AwardPopover from "../../ui/popover/AwardPopover.tsx";
 import { GamePopover } from "../../ui/GamePopover";
+import GameMenuButton from "../../ui/buttons/GameMenuButton.tsx";
 
 interface TopMenuBarProps {
   gameState: GameDto;
@@ -108,10 +109,11 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
       <div className="flex justify-between items-center px-5 h-[60px] max-lg:px-[15px] max-lg:h-[50px] max-md:px-2.5 max-md:flex-wrap max-sm:px-2.5 max-sm:flex-wrap">
         <div className="flex gap-3 max-md:order-2 max-md:flex-[0_0_100%] max-md:mt-2.5">
           {menuItems.map((item) => (
-            <button
+            <GameMenuButton
               key={item.id}
               ref={getButtonRef(item.id)}
-              className={`pointer-events-auto bg-black border-2 text-white text-sm font-bold font-orbitron py-2.5 px-5 cursor-pointer rounded-xl transition-all duration-200 hover:bg-white/10 max-lg:text-xs max-lg:py-2 max-lg:px-[15px] max-md:py-2 max-md:px-[15px] max-md:text-xs max-sm:py-1.5 max-sm:px-3 max-sm:text-[11px] ${isPopoverOpen(item.id) ? `border-[${item.color}]` : "border-white/20"}`}
+              variant="toolbar"
+              size="sm"
               onClick={() => handleTabClick(item.id)}
               style={{ "--item-color": item.color } as React.CSSProperties}
               onMouseEnter={(e) => (e.currentTarget.style.borderColor = item.color)}
@@ -120,17 +122,19 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
                   e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
                 }
               }}
+              className="pointer-events-auto max-lg:text-xs max-lg:py-2 max-lg:px-[15px] max-md:py-2 max-md:px-[15px] max-md:text-xs max-sm:py-1.5 max-sm:px-3 max-sm:text-[11px]"
             >
               {item.label}
-            </button>
+            </GameMenuButton>
           ))}
         </div>
 
-        <button
+        <GameMenuButton
           ref={hamburgerButtonRef}
+          variant="toolbar"
           onClick={() => setMenuOpen(!menuOpen)}
-          className="pointer-events-auto bg-black border-2 border-white/20 text-white p-2 rounded-xl cursor-pointer hover:bg-white/20 transition-colors"
           aria-label="Menu"
+          className="pointer-events-auto !p-2"
         >
           <svg
             width="20"
@@ -145,7 +149,7 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
             <line x1="3" y1="12" x2="21" y2="12" />
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
-        </button>
+        </GameMenuButton>
 
         <GamePopover
           isVisible={menuOpen}
