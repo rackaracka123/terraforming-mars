@@ -19,6 +19,7 @@ type ResourceTriggerCondition struct {
 	Location          *string        `json:"location,omitempty"`
 	AffectedTags      []CardTag      `json:"affectedTags,omitempty"`
 	AffectedResources []string       `json:"affectedResources,omitempty"`
+	AffectedCardTypes []string       `json:"affectedCardTypes,omitempty"`
 	Target            *string        `json:"target,omitempty"`
 }
 
