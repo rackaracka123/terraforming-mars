@@ -32,7 +32,7 @@ func (a *GetGameAction) Execute(ctx context.Context, gameID string) (*game.Game,
 
 	game, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
+		log.Warn("Failed to get game", zap.Error(err))
 		return nil, err
 	}
 
