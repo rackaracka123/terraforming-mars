@@ -81,3 +81,6 @@ terraforming-mars.iml
 # Python bytecode
 __pycache__/
 *.py[cod]
+
+# Playwright
+.playwright-cli
