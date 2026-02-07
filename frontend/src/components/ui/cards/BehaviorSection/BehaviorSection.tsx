@@ -13,6 +13,7 @@ import ImmediateResourceLayout from "./components/ImmediateResourceLayout.tsx";
 import DiscountLayout from "./components/DiscountLayout.tsx";
 import PaymentSubstituteLayout from "./components/PaymentSubstituteLayout.tsx";
 import ValueModifierLayout from "./components/ValueModifierLayout.tsx";
+import DefenseLayout from "./components/DefenseLayout.tsx";
 import BehaviorIcon from "./components/BehaviorIcon.tsx";
 
 const BehaviorSection: React.FC<BehaviorSectionProps> = ({
@@ -135,6 +136,10 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
       case "value-modifier":
         content = <ValueModifierLayout behavior={behavior} />;
+        break;
+
+      case "defense":
+        content = <DefenseLayout behavior={behavior} />;
         break;
     }
 

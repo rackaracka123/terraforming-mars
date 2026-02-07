@@ -68,6 +68,26 @@ const renderTriggerIcon = (trigger: any, triggerIndex: number): React.ReactNode 
     );
   }
 
+  // Check if trigger is ocean-placed condition (e.g., Arctic Algae)
+  const isOceanPlaced = trigger.condition?.type === "ocean-placed";
+
+  if (isOceanPlaced) {
+    const target = trigger.condition?.target || "self-player";
+    const isAnyPlayer = target === "any-player";
+
+    const redGlowClass = isAnyPlayer
+      ? "[filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))_drop-shadow(0_0_2px_rgba(244,67,54,0.9))_drop-shadow(0_0_4px_rgba(244,67,54,0.7))]"
+      : "";
+
+    return (
+      <div key={triggerIndex} className="flex gap-[2px] items-center justify-center">
+        <div className={`flex items-center justify-center ${redGlowClass}`}>
+          <GameIcon iconType="ocean-tile" size="small" />
+        </div>
+      </div>
+    );
+  }
+
   if (hasAffectedTags) {
     const target = trigger.condition?.target || "self-player";
     const isAnyPlayer = target === "any-player";
@@ -122,6 +142,28 @@ const renderTriggerIcon = (trigger: any, triggerIndex: number): React.ReactNode 
     );
   }
 
+  // Check if trigger has requiredOriginalCost condition (e.g., CrediCor "pay 20+ get 4")
+  const hasRequiredOriginalCost = trigger.condition?.requiredOriginalCost !== undefined;
+
+  if (hasRequiredOriginalCost) {
+    const costReq = trigger.condition.requiredOriginalCost;
+    const hasMin = costReq.min !== undefined;
+    const hasMax = costReq.max !== undefined;
+    const value = hasMin ? costReq.min : costReq.max;
+    const isMax = hasMax && !hasMin;
+
+    return (
+      <div key={triggerIndex} className="flex gap-[3px] items-center">
+        {isMax && (
+          <span className="text-xs font-semibold text-[#e0e0e0] [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)] max-md:text-[11px]">
+            Max
+          </span>
+        )}
+        <GameIcon iconType="credit" amount={-value} size="small" />
+      </div>
+    );
+  }
+
   // Fallback to text display for other trigger types
   return (
     <span
@@ -150,86 +192,114 @@ const renderBehaviorRow = (
     behavior.outputs?.some((output: any) => output.type === "global-parameter-lenience") ?? false;
 
   return (
-    <div key={`behavior-row-${rowIndex}`} className="flex gap-[3px] items-center justify-center">
-      {/* Trigger conditions - hide for global-parameter-lenience */}
-      {!isGlobalParameterLenience && behavior.triggers && behavior.triggers.length > 0 && (
-        <>
-          <div className="flex gap-[3px] items-center">
-            {(() => {
-              // Check if any trigger has requiredOriginalCost
-              const triggersWithCost = behavior.triggers.filter(
-                (trigger: any) => trigger.condition?.requiredOriginalCost !== undefined,
-              );
-
-              // If we have cost-based triggers, deduplicate and show once
-              if (triggersWithCost.length > 0) {
-                // Get unique cost requirements
-                const uniqueCosts: string[] = Array.from(
-                  new Set(
-                    triggersWithCost.map((trigger: any) => {
-                      const costReq = trigger.condition.requiredOriginalCost;
-                      const hasMin = costReq.min !== undefined;
-                      const hasMax = costReq.max !== undefined;
-                      const value = hasMin ? costReq.min : costReq.max;
-                      const prefix = hasMax && !hasMin ? "Max-" : "";
-                      return `${prefix}${value}`;
-                    }),
-                  ),
+    <React.Fragment key={`behavior-${rowIndex}`}>
+      <div className="flex gap-[3px] items-center justify-center">
+        {/* Trigger conditions - hide for global-parameter-lenience */}
+        {!isGlobalParameterLenience && behavior.triggers && behavior.triggers.length > 0 && (
+          <>
+            <div className="flex gap-[3px] items-center">
+              {(() => {
+                // Check if any trigger has requiredOriginalCost
+                const triggersWithCost = behavior.triggers.filter(
+                  (trigger: any) => trigger.condition?.requiredOriginalCost !== undefined,
                 );
 
-                // Render unique cost requirements
-                return uniqueCosts.map((costKey: string, idx: number) => {
-                  const isMax = costKey.startsWith("Max-");
-                  const value = parseInt(costKey.replace("Max-", ""), 10);
-
-                  return (
-                    <div key={`cost-${idx}`} className="flex gap-[3px] items-center">
-                      {isMax && (
-                        <span className="text-xs font-semibold text-[#e0e0e0] [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)] max-md:text-[11px]">
-                          Max
-                        </span>
-                      )}
-                      <GameIcon iconType="credit" amount={-value} size="small" />
-                    </div>
+                // If we have cost-based triggers, deduplicate and show once
+                if (triggersWithCost.length > 0) {
+                  // Get unique cost requirements
+                  const uniqueCosts: string[] = Array.from(
+                    new Set(
+                      triggersWithCost.map((trigger: any) => {
+                        const costReq = trigger.condition.requiredOriginalCost;
+                        const hasMin = costReq.min !== undefined;
+                        const hasMax = costReq.max !== undefined;
+                        const value = hasMin ? costReq.min : costReq.max;
+                        const prefix = hasMax && !hasMin ? "Max-" : "";
+                        return `${prefix}${value}`;
+                      }),
+                    ),
                   );
-                });
-              }
 
-              // Otherwise, render other trigger types normally
-              return behavior.triggers.map((trigger: any, triggerIndex: number) =>
-                renderTriggerIcon(trigger, triggerIndex),
-              );
-            })()}
-          </div>
-          <span className="flex items-center justify-center text-white text-base font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] min-w-[20px] z-[1]">
-            :
-          </span>
-        </>
-      )}
+                  // Render unique cost requirements
+                  return uniqueCosts.map((costKey: string, idx: number) => {
+                    const isMax = costKey.startsWith("Max-");
+                    const value = parseInt(costKey.replace("Max-", ""), 10);
 
-      {/* Outputs in same row if they fit */}
-      {behavior.outputs &&
-        behavior.outputs.map((output: any, index: number) => {
-          const displayInfo = analyzeResourceDisplayWithConstraints(output, 6, false);
-          return (
-            <React.Fragment key={`triggered-output-${rowIndex}-${index}`}>
-              <ResourceDisplay
-                displayInfo={displayInfo}
-                isInput={false}
-                resource={output}
-                isGroupedWithOtherNegatives={false}
-                context="default"
-                isAffordable={isResourceAffordable(output, false)}
-                tileScaleInfo={tileScaleInfo}
-              />
+                    return (
+                      <div key={`cost-${idx}`} className="flex gap-[3px] items-center">
+                        {isMax && (
+                          <span className="text-xs font-semibold text-[#e0e0e0] [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)] max-md:text-[11px]">
+                            Max
+                          </span>
+                        )}
+                        <GameIcon iconType="credit" amount={-value} size="small" />
+                      </div>
+                    );
+                  });
+                }
+
+                // Otherwise, render other trigger types normally
+                return behavior.triggers.map((trigger: any, triggerIndex: number) =>
+                  renderTriggerIcon(trigger, triggerIndex),
+                );
+              })()}
+            </div>
+            <span className="flex items-center justify-center text-white text-base font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] min-w-[20px] z-[1]">
+              :
+            </span>
+          </>
+        )}
+
+        {/* Outputs in same row if they fit */}
+        {behavior.outputs &&
+          behavior.outputs.map((output: any, index: number) => {
+            const displayInfo = analyzeResourceDisplayWithConstraints(output, 6, false);
+            return (
+              <React.Fragment key={`triggered-output-${rowIndex}-${index}`}>
+                <ResourceDisplay
+                  displayInfo={displayInfo}
+                  isInput={false}
+                  resource={output}
+                  isGroupedWithOtherNegatives={false}
+                  context="default"
+                  isAffordable={isResourceAffordable(output, false)}
+                  tileScaleInfo={tileScaleInfo}
+                />
+              </React.Fragment>
+            );
+          })}
+
+        {behavior.generationalEventRequirements?.length > 0 && (
+          <span className="text-white font-bold text-sm ml-1">*</span>
+        )}
+      </div>
+
+      {/* All choices on Row 2 - self-player plain, any-card with card background */}
+      {behavior.choices && behavior.choices.length > 0 && (
+        <div className="flex gap-[6px] items-center justify-center">
+          {behavior.choices.map((choice: any, idx: number) => (
+            <React.Fragment key={`choice-${rowIndex}-${idx}`}>
+              {idx > 0 && <span className="text-[#e0e0e0] text-xs font-bold mx-[2px]">/</span>}
+              {choice.outputs?.map((output: any, outputIndex: number) => {
+                const displayInfo = analyzeResourceDisplayWithConstraints(output, 6, false);
+                return (
+                  <ResourceDisplay
+                    key={`choice-${rowIndex}-${idx}-output-${outputIndex}`}
+                    displayInfo={displayInfo}
+                    isInput={false}
+                    resource={output}
+                    isGroupedWithOtherNegatives={false}
+                    context="default"
+                    isAffordable={isResourceAffordable(output, false)}
+                    tileScaleInfo={tileScaleInfo}
+                  />
+                );
+              })}
             </React.Fragment>
-          );
-        })}
-
-      {behavior.generationalEventRequirements?.length > 0 && (
-        <span className="text-white font-bold text-sm ml-1">*</span>
+          ))}
+        </div>
       )}
-    </div>
+    </React.Fragment>
   );
 };
 
