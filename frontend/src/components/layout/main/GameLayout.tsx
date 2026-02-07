@@ -154,6 +154,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
               playedCards={playedCards}
               changedPaths={changedPaths}
               callbacks={bottomBarCallbacks}
+              gameId={gameState?.id}
             />
           </div>
 

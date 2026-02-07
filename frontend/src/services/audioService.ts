@@ -24,6 +24,18 @@ class AudioService {
     this.volume = settings.volume;
     this.musicVolume = settings.musicVolume;
 
+    // Empty functions (not null) intercept media keys without triggering playback
+    if (navigator.mediaSession) {
+      const noop = () => {};
+      navigator.mediaSession.setActionHandler("play", noop);
+      navigator.mediaSession.setActionHandler("pause", noop);
+      navigator.mediaSession.setActionHandler("stop", noop);
+      navigator.mediaSession.setActionHandler("seekbackward", noop);
+      navigator.mediaSession.setActionHandler("seekforward", noop);
+      navigator.mediaSession.setActionHandler("previoustrack", noop);
+      navigator.mediaSession.setActionHandler("nexttrack", noop);
+    }
+
     this.preloadAudioFiles();
   }
 

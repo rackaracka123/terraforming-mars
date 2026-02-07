@@ -201,8 +201,9 @@ type ResourceSet struct {
 
 // TileRestrictionsDto represents tile placement restrictions for client consumption
 type TileRestrictionsDto struct {
-	BoardTags []string `json:"boardTags,omitempty" ts:"string[] | undefined"`
-	Adjacency string   `json:"adjacency,omitempty" ts:"string | undefined"` // "none" = no adjacent occupied tiles
+	BoardTags  []string `json:"boardTags,omitempty" ts:"string[] | undefined"`
+	Adjacency  string   `json:"adjacency,omitempty" ts:"string | undefined"`  // "none" = no adjacent occupied tiles
+	OnTileType string   `json:"onTileType,omitempty" ts:"string | undefined"` // "ocean" = only on ocean spaces
 }
 
 // ResourceConditionDto represents a resource condition for client consumption
@@ -668,6 +669,7 @@ type TileDto struct {
 	Bonuses     []TileBonusDto   `json:"bonuses" ts:"TileBonusDto[]"`
 	OccupiedBy  *TileOccupantDto `json:"occupiedBy,omitempty" ts:"TileOccupantDto|null"`
 	OwnerID     *string          `json:"ownerId,omitempty" ts:"string|null"`
+	ReservedBy  *string          `json:"reservedBy,omitempty" ts:"string|null"`
 }
 
 // BoardDto represents the game board containing all tiles

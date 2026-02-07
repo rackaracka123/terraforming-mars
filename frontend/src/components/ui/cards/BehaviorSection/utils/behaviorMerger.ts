@@ -1,23 +1,26 @@
 import { ClassifiedBehavior } from "../types.ts";
 
 /**
- * Gets the condition type from a behavior's triggers.
- * Used to group triggered effects that share the same condition type.
+ * Gets a unique key for a behavior's trigger condition.
+ * Combines condition type, target, and location to ensure effects with different
+ * targets/locations are displayed separately (e.g., Tharsis Republic's two city effects).
  */
-const getConditionType = (behavior: any): string | null => {
+const getConditionKey = (behavior: any): string | null => {
   if (!behavior.triggers) return null;
   for (const trigger of behavior.triggers) {
     if (trigger.condition?.type) {
-      return trigger.condition.type;
+      const type = trigger.condition.type;
+      const target = trigger.condition.target || "any";
+      const location = trigger.condition.location || "any";
+      return `${type}:${target}:${location}`;
     }
   }
   return null;
 };
 
 /**
- * Merges triggered effects that share the same condition type into a single container.
- * For example, Tharsis Republic has two city-placed effects (self and any player)
- * that should display in one visual container.
+ * Merges triggered effects that share the exact same condition (type + target + location).
+ * Effects with different targets or locations are kept separate to display as distinct boxes.
  *
  * @param classifiedBehaviors - Array of behaviors to potentially merge
  * @returns Array with merged triggered effects where applicable
@@ -37,16 +40,16 @@ export const mergeTriggeredEffects = (
     }
   });
 
-  // Group triggered effects by condition type
+  // Group triggered effects by condition key (type + target + location)
   const groupedByCondition: Map<string, ClassifiedBehavior[]> = new Map();
   const ungroupedEffects: ClassifiedBehavior[] = [];
 
   triggeredEffects.forEach((effect) => {
-    const conditionType = getConditionType(effect.behavior);
-    if (conditionType) {
-      const existing = groupedByCondition.get(conditionType) || [];
+    const conditionKey = getConditionKey(effect.behavior);
+    if (conditionKey) {
+      const existing = groupedByCondition.get(conditionKey) || [];
       existing.push(effect);
-      groupedByCondition.set(conditionType, existing);
+      groupedByCondition.set(conditionKey, existing);
     } else {
       ungroupedEffects.push(effect);
     }

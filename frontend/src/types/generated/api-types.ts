@@ -491,6 +491,7 @@ export interface ResourceSet {
 export interface TileRestrictionsDto {
   boardTags?: string[];
   adjacency?: string; // "none" = no adjacent occupied tiles
+  onTileType?: string; // "ocean" = only on ocean spaces
 }
 /**
  * ResourceConditionDto represents a resource condition for client consumption
@@ -961,6 +962,7 @@ export interface TileDto {
   bonuses: TileBonusDto[];
   occupiedBy?: TileOccupantDto;
   ownerId?: string;
+  reservedBy?: string;
 }
 /**
  * BoardDto represents the game board containing all tiles

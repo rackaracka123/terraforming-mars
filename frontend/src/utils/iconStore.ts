@@ -62,6 +62,7 @@ export const TILE_ICONS: { [key: string]: string } = {
   "city-placement": "/assets/tiles/city.png",
   "ocean-placement": "/assets/tiles/ocean.png",
   "greenery-placement": "/assets/tiles/greenery_no_O2.png",
+  "land-claim": "/assets/tiles/special.png",
   "city-tile": "/assets/tiles/city.png",
   "ocean-tile": "/assets/tiles/ocean.png",
   "greenery-tile": "/assets/tiles/greenery_no_O2.png",

@@ -54,7 +54,8 @@ const BehaviorIcon: React.FC<BehaviorIconProps> = ({
   const isPlacement =
     cleanType === "city-placement" ||
     cleanType === "greenery-placement" ||
-    cleanType === "ocean-placement";
+    cleanType === "ocean-placement" ||
+    cleanType === "land-claim";
   const isTR = cleanType === "tr";
   const isCard =
     cleanType === "card-draw" ||

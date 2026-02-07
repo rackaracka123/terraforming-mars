@@ -71,7 +71,11 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
             <img
               src={perIcon}
               alt={hasPer.tag || hasPer.type}
-              className="w-[26px] h-[26px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[22px] max-md:h-[22px]"
+              className={`w-[26px] h-[26px] object-contain max-md:w-[22px] max-md:h-[22px] ${
+                hasPer.target === "any-player"
+                  ? "[filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))_drop-shadow(0_0_1px_rgba(244,67,54,0.9))_drop-shadow(0_0_2px_rgba(244,67,54,0.7))] animate-[attackPulse_2s_ease-in-out_infinite]"
+                  : "[filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]"
+              }`}
             />
           </div>
         );
@@ -92,7 +96,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
             <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
               <div className="flex items-center gap-px relative">
                 {amount > 1 && (
-                  <span className="text-lg font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] leading-none flex items-center ml-0.5 max-md:text-xs">
+                  <span className="text-[20px] font-black font-[Prototype,Arial_Black,Arial,sans-serif] text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-none flex items-center ml-0.5 max-md:text-xs">
                     {amount}
                   </span>
                 )}
@@ -104,13 +108,47 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
               <img
                 src={perIcon}
                 alt={hasPer.tag || hasPer.type}
-                className="w-[26px] h-[26px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[22px] max-md:h-[22px]"
+                className={`w-[26px] h-[26px] object-contain max-md:w-[22px] max-md:h-[22px] ${
+                  hasPer.target === "any-player"
+                    ? "[filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))_drop-shadow(0_0_1px_rgba(244,67,54,0.9))_drop-shadow(0_0_2px_rgba(244,67,54,0.7))] animate-[attackPulse_2s_ease-in-out_infinite]"
+                    : "[filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]"
+                }`}
               />
             </div>
           );
         }
       }
     }
+  }
+
+  // Handle production WITHOUT per condition in ACTION context only (e.g., energy-production input in Equatorial Magnetizer)
+  // Other contexts (standalone, production) already have parent components that wrap in brown boxes
+  if (isProduction && !hasPer && context === "action") {
+    const baseResourceType = resourceType.replace("-production", "");
+
+    const itemClasses = !isAffordable
+      ? "flex items-center gap-px relative opacity-40 [filter:grayscale(0.7)_drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]"
+      : "flex items-center gap-px relative";
+
+    return (
+      <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.7)_0%,rgba(139,89,42,0.65)_100%)] border border-[rgba(160,110,60,0.7)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
+        <div className={itemClasses}>
+          {amount > 1 && (
+            <span className="text-[13px] font-black font-[Prototype,Arial_Black,Arial,sans-serif] text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
+              {amount}
+            </span>
+          )}
+          <BehaviorIcon
+            resourceType={baseResourceType}
+            isProduction={false}
+            isAttack={isAttack}
+            context="production"
+            isAffordable={isAffordable}
+            tileScaleInfo={tileScaleInfo}
+          />
+        </div>
+      </div>
+    );
   }
 
   // Handle regular resources with per condition (e.g., 1 floater per jovian tag)
@@ -140,7 +178,11 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
             <img
               src={perIcon}
               alt={hasPer.tag || hasPer.type}
-              className="w-[26px] h-[26px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[22px] max-md:h-[22px]"
+              className={`w-[26px] h-[26px] object-contain max-md:w-[22px] max-md:h-[22px] ${
+                hasPer.target === "any-player"
+                  ? "[filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))_drop-shadow(0_0_1px_rgba(244,67,54,0.9))_drop-shadow(0_0_2px_rgba(244,67,54,0.7))] animate-[attackPulse_2s_ease-in-out_infinite]"
+                  : "[filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]"
+              }`}
             />
           </div>
         );
@@ -162,7 +204,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
             <div className="flex items-center gap-[3px]">
               <div className="flex items-center gap-px relative">
                 {amount > 1 && (
-                  <span className="text-lg font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] leading-none flex items-center ml-0.5 max-md:text-xs">
+                  <span className="text-[20px] font-black font-[Prototype,Arial_Black,Arial,sans-serif] text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-none flex items-center ml-0.5 max-md:text-xs">
                     {amount}
                   </span>
                 )}
@@ -174,7 +216,11 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
               <img
                 src={perIcon}
                 alt={hasPer.tag || hasPer.type}
-                className="w-[26px] h-[26px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[22px] max-md:h-[22px]"
+                className={`w-[26px] h-[26px] object-contain max-md:w-[22px] max-md:h-[22px] ${
+                  hasPer.target === "any-player"
+                    ? "[filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))_drop-shadow(0_0_1px_rgba(244,67,54,0.9))_drop-shadow(0_0_2px_rgba(244,67,54,0.7))] animate-[attackPulse_2s_ease-in-out_infinite]"
+                    : "[filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]"
+                }`}
               />
             </div>
           );
@@ -261,7 +307,21 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
     iconContext = "production";
   }
 
-  const iconElement = (
+  // Check if this is a tile placement with restrictions (show asterisk)
+  const isTilePlacement =
+    resourceType === "city-placement" ||
+    resourceType === "greenery-placement" ||
+    resourceType === "ocean-placement" ||
+    resourceType === "land-claim";
+
+  const hasTileRestrictions =
+    isTilePlacement &&
+    resource?.tileRestrictions &&
+    (resource.tileRestrictions.adjacency ||
+      resource.tileRestrictions.onTileType ||
+      (resource.tileRestrictions.boardTags?.length ?? 0) > 0);
+
+  const baseIconElement = (
     <BehaviorIcon
       resourceType={resourceType}
       isProduction={false}
@@ -271,7 +331,8 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
       tileScaleInfo={tileScaleInfo}
     />
   );
-  if (!iconElement) {
+
+  if (!baseIconElement) {
     return (
       <span className="text-xs font-semibold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)] max-md:text-[11px]">
         {isInput && "-"}
@@ -285,27 +346,37 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
     return (
       <div className="flex items-center gap-px relative">
         {(isInput || amount < 0) && !isGroupedWithOtherNegatives && context !== "action" && (
-          <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+          <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[24px] flex items-center justify-center leading-none [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
             -
           </span>
         )}
         {Array.from({ length: absoluteAmount }, (_, i) => (
-          <React.Fragment key={i}>{iconElement}</React.Fragment>
+          <React.Fragment key={i}>{baseIconElement}</React.Fragment>
         ))}
+        {hasTileRestrictions && (
+          <span className="text-white font-bold text-sm ml-0.5 [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
+            *
+          </span>
+        )}
       </div>
     );
   } else {
     return (
       <div className="flex items-center gap-0.5 relative">
         {isInput && !isGroupedWithOtherNegatives && context !== "action" && (
-          <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+          <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[24px] flex items-center justify-center leading-none [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
             -
           </span>
         )}
-        <span className="text-[11px] font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] mr-px">
+        <span className="text-[13px] font-black font-[Prototype,Arial_Black,Arial,sans-serif] text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] w-[20px] flex items-center justify-center">
           {isGroupedWithOtherNegatives ? Math.abs(amount) : amount}
         </span>
-        {iconElement}
+        {baseIconElement}
+        {hasTileRestrictions && (
+          <span className="text-white font-bold text-sm ml-0.5 [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
+            *
+          </span>
+        )}
       </div>
     );
   }

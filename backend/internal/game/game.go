@@ -947,6 +947,11 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string, 
 		return false
 	}
 
+	// Helper to check if tile is reserved by another player
+	isReservedByOther := func(tile board.Tile) bool {
+		return tile.ReservedBy != nil && *tile.ReservedBy != playerID
+	}
+
 	for _, tile := range tiles {
 		// Skip tiles that are already occupied
 		if tile.OccupiedBy != nil {
@@ -954,6 +959,21 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string, 
 		}
 
 		switch tileType {
+		case "land-claim":
+			// Land claim can only be placed on unoccupied, unreserved land tiles
+			if tile.Type != shared.ResourceLandTile {
+				continue
+			}
+			// Exclude reserved areas (tagged tiles like Noctis City)
+			if tileHasAnyTag(tile) {
+				continue
+			}
+			// Exclude tiles already reserved by anyone
+			if tile.ReservedBy != nil {
+				continue
+			}
+			availableHexes = append(availableHexes, tile.Coordinates.String())
+
 		case "city":
 			if tile.Type != shared.ResourceLandTile {
 				continue
@@ -967,6 +987,11 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string, 
 						zap.String("tile", tile.Coordinates.String()),
 						zap.Strings("board_tags", boardTags))
 				}
+				continue
+			}
+
+			// Skip tiles reserved by other players (current player can use their own reserved tiles)
+			if isReservedByOther(tile) {
 				continue
 			}
 
@@ -1034,6 +1059,19 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string, 
 			}
 
 		case "greenery":
+			// Check if restricted to ocean tiles (Mangrove card)
+			if tileRestrictions != nil && tileRestrictions.OnTileType == "ocean" {
+				if tile.Type == shared.ResourceOceanSpace {
+					availableHexes = append(availableHexes, tile.Coordinates.String())
+				}
+				continue
+			}
+
+			// Skip tiles reserved by other players (current player can use their own reserved tiles)
+			if isReservedByOther(tile) {
+				continue
+			}
+
 			// Exclude reserved areas from normal greenery placement
 			if len(boardTags) == 0 && tileHasAnyTag(tile) {
 				continue
@@ -1048,6 +1086,10 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string, 
 			}
 
 		default:
+			// Skip tiles reserved by other players (current player can use their own reserved tiles)
+			if isReservedByOther(tile) {
+				continue
+			}
 			// Exclude reserved areas from normal placement
 			if len(boardTags) == 0 && tileHasAnyTag(tile) {
 				continue
