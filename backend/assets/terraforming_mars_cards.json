@@ -354,7 +354,7 @@
     "name": "Asteroid",
     "type": "event",
     "cost": 14,
-    "description": "Raise temperature 1 step and gain 2 titanium. Remove up to 3 plants from any player.",
+    "description": "Raise temperature 1 step and gain 2 titanium. Remove up to 3 plants **from any player**.",
     "pack": "base-game",
     "tags": [
       "space"
@@ -373,7 +373,7 @@
             "target": "any-player"
           }
         ],
-        "description": "Raise temperature 1 step and gain 2 titanium. Remove up to 3 plants from any player."
+        "description": "Raise temperature 1 step and gain 2 titanium. Remove up to 3 plants **from any player**."
       },
       {
         "triggers": [
@@ -401,7 +401,7 @@
     "name": "Comet",
     "type": "event",
     "cost": 21,
-    "description": "Raise temperature 1 step and place an ocean tile. Remove up to 3 plants from any player.",
+    "description": "Raise temperature 1 step and place an ocean tile. Remove up to 3 plants **from any player**.",
     "pack": "base-game",
     "tags": [
       "space"
@@ -425,7 +425,7 @@
             "target": "none"
           }
         ],
-        "description": "Raise temperature 1 step and place an ocean tile. Remove up to 3 plants from any player."
+        "description": "Raise temperature 1 step and place an ocean tile. Remove up to 3 plants **from any player**."
       },
       {
         "triggers": [
@@ -448,7 +448,7 @@
     "name": "Big Asteroid",
     "type": "event",
     "cost": 27,
-    "description": "Raise temperature 2 steps and gain 4 titanium. Remove up to 4 plants from any player.",
+    "description": "Raise temperature 2 steps and gain 4 titanium. Remove up to 4 plants **from any player**.",
     "pack": "base-game",
     "tags": [
       "space"
@@ -467,7 +467,7 @@
             "target": "any-player"
           }
         ],
-        "description": "Raise temperature 2 steps and gain 4 titanium. Remove up to 4 plants from any player."
+        "description": "Raise temperature 2 steps and gain 4 titanium. Remove up to 4 plants **from any player**."
       },
       {
         "triggers": [
@@ -756,7 +756,9 @@
             "amount": 1,
             "target": "none",
             "tileRestrictions": {
-              "boardTags": ["noctis-city"]
+              "boardTags": [
+                "noctis-city"
+              ]
             }
           }
         ],
@@ -990,7 +992,7 @@
     "name": "Arctic Algae",
     "type": "active",
     "cost": 12,
-    "description": "Effect: When anyone places an ocean tile, gain 2 plants. It must be -12°C or colder to play. Gain 1 plant.",
+    "description": "Effect: When anyone places an ocean tile, gain 2 plants. It must be -12\u00b0C or colder to play. Gain 1 plant.",
     "pack": "base-game",
     "tags": [
       "plant"
@@ -1015,7 +1017,7 @@
             "target": "self-player"
           }
         ],
-        "description": "When anyone places an ocean tile, gain 2 plants. It must be -12°C or colder to play. Gain 1 plant."
+        "description": "When anyone places an ocean tile, gain 2 plants. It must be -12\u00b0C or colder to play. Gain 1 plant."
       },
       {
         "triggers": [
@@ -1043,7 +1045,7 @@
     "name": "Predators",
     "type": "active",
     "cost": 14,
-    "description": "Action: Remove 1 animal from any card and add it to this card. Requires 11% oxygen. 1 VP per animal on this card.",
+    "description": "Action: Remove 1 animal **from any card** and add it to this card. Requires 11% oxygen. 1 VP per animal on this card.",
     "pack": "base-game",
     "tags": [
       "animal"
@@ -1068,7 +1070,7 @@
             "target": "steal-from-any-card"
           }
         ],
-        "description": "Remove 1 animal from any card and add it to this card. Requires 11% oxygen. 1 VP per animal on this card."
+        "description": "Remove 1 animal **from any card** and add it to this card. Requires 11% oxygen. 1 VP per animal on this card."
       }
     ],
     "resourceStorage": {
@@ -1131,7 +1133,7 @@
     "name": "Eos Chasma National Park",
     "type": "automated",
     "cost": 16,
-    "description": "Requires -12°C  or warmer. Add 1 animal **to any animal card**. Gain 3 plants. Increase your M€ production 2 steps.",
+    "description": "Requires -12\u00b0C  or warmer. Add 1 animal **to any animal card**. Gain 3 plants. Increase your M€ production 2 steps.",
     "pack": "base-game",
     "tags": [
       "building",
@@ -1167,7 +1169,7 @@
             "target": "any-card"
           }
         ],
-        "description": "Requires -12°C  or warmer. Add 1 animal **to any animal card**. Gain 3 plants. Increase your M€ production 2 steps."
+        "description": "Requires -12\u00b0C  or warmer. Add 1 animal **to any animal card**. Gain 3 plants. Increase your M€ production 2 steps."
       }
     ],
     "vpConditions": [
@@ -1523,7 +1525,7 @@
     "name": "Ants",
     "type": "active",
     "cost": 9,
-    "description": "Action: Remove 1 microbe from any card to add 1 to this card. Requires 4% oxygen. 1 VP per 2 microbes on this card.",
+    "description": "Action: Remove 1 microbe **from any card** to add 1 to this card. Requires 4% oxygen. 1 VP per 2 microbes on this card.",
     "pack": "base-game",
     "tags": [
       "microbe"
@@ -1548,7 +1550,7 @@
             "target": "steal-from-any-card"
           }
         ],
-        "description": "Remove 1 microbe from any card to add 1 to this card. Requires 4% oxygen. 1 VP per 2 microbes on this card."
+        "description": "Remove 1 microbe **from any card** to add 1 to this card. Requires 4% oxygen. 1 VP per 2 microbes on this card."
       }
     ],
     "resourceStorage": {
@@ -1691,7 +1693,7 @@
     "name": "Deimos Down",
     "type": "event",
     "cost": 31,
-    "description": "Raise temperature 3 steps and gain 4 steel. Remove up to 8 plants from any player.",
+    "description": "Raise temperature 3 steps and gain 4 steel. Remove up to 8 plants **from any player**.",
     "pack": "base-game",
     "tags": [
       "space"
@@ -1710,7 +1712,7 @@
             "target": "any-player"
           }
         ],
-        "description": "Raise temperature 3 steps and gain 4 steel. Remove up to 8 plants from any player."
+        "description": "Raise temperature 3 steps and gain 4 steel. Remove up to 8 plants **from any player**."
       },
       {
         "triggers": [
@@ -1812,7 +1814,7 @@
     "name": "Archaebacteria",
     "type": "automated",
     "cost": 6,
-    "description": "It must be -18°C or colder. Increase your plant production 1 step.",
+    "description": "It must be -18\u00b0C or colder. Increase your plant production 1 step.",
     "pack": "base-game",
     "tags": [
       "microbe"
@@ -1837,7 +1839,7 @@
             "target": "self-player"
           }
         ],
-        "description": "It must be -18°C or colder. Increase your plant production 1 step."
+        "description": "It must be -18\u00b0C or colder. Increase your plant production 1 step."
       }
     ]
   },
@@ -2112,7 +2114,7 @@
     "name": "Virus",
     "type": "event",
     "cost": 1,
-    "description": "Remove up to 2 animals or 5 plants from any player.",
+    "description": "Remove up to 2 animals or 5 plants **from any player**.",
     "pack": "corporate-era",
     "tags": [
       "microbe"
@@ -2144,7 +2146,7 @@
             ]
           }
         ],
-        "description": "Remove up to 2 animals or 5 plants from any player."
+        "description": "Remove up to 2 animals or 5 plants **from any player**."
       }
     ]
   },
@@ -2195,7 +2197,7 @@
     "name": "Fish",
     "type": "active",
     "cost": 9,
-    "description": "Action: Add 1 animal to this card. Requires 2°C or warmer. Decrease any plant production 1 step. 1 VP for each animal on this card.",
+    "description": "Action: Add 1 animal to this card. Requires 2\u00b0C or warmer. Decrease any plant production 1 step. 1 VP for each animal on this card.",
     "pack": "base-game",
     "tags": [
       "animal"
@@ -2234,7 +2236,7 @@
             "target": "self-card"
           }
         ],
-        "description": "Add 1 animal to this card. Requires 2°C or warmer. Decrease any plant production 1 step. 1 VP for each animal on this card."
+        "description": "Add 1 animal to this card. Requires 2\u00b0C or warmer. Decrease any plant production 1 step. 1 VP for each animal on this card."
       }
     ],
     "resourceStorage": {
@@ -2260,7 +2262,7 @@
     "name": "Lake Marineris",
     "type": "automated",
     "cost": 18,
-    "description": "Requires 0°C or warmer. Place 2 ocean tiles.",
+    "description": "Requires 0\u00b0C or warmer. Place 2 ocean tiles.",
     "pack": "base-game",
     "requirements": [
       {
@@ -2282,7 +2284,7 @@
             "target": "none"
           }
         ],
-        "description": "Requires 0°C or warmer. Place 2 ocean tiles."
+        "description": "Requires 0\u00b0C or warmer. Place 2 ocean tiles."
       }
     ],
     "vpConditions": [
@@ -2523,7 +2525,7 @@
     "name": "Mangrove",
     "type": "automated",
     "cost": 12,
-    "description": "Requires +4°C or warmer. Place a Greenery tile **on an area reserved for ocean** and raise oxygen 1 step. Disregard normal placement restrictions for this.",
+    "description": "Requires +4\u00b0C or warmer. Place a Greenery tile **on an area reserved for ocean** and raise oxygen 1 step. Disregard normal placement restrictions for this.",
     "pack": "base-game",
     "tags": [
       "plant"
@@ -2551,7 +2553,7 @@
             }
           }
         ],
-        "description": "Requires +4°C or warmer. Place a Greenery tile **on an area reserved for ocean** and raise oxygen 1 step. Disregard normal placement restrictions for this."
+        "description": "Requires +4\u00b0C or warmer. Place a Greenery tile **on an area reserved for ocean** and raise oxygen 1 step. Disregard normal placement restrictions for this."
       }
     ],
     "vpConditions": [
@@ -2566,7 +2568,7 @@
     "name": "Trees",
     "type": "automated",
     "cost": 13,
-    "description": "Requires -4°C or warmer. Increase your plant production 3 steps. Gain 1 plant.",
+    "description": "Requires -4\u00b0C or warmer. Increase your plant production 3 steps. Gain 1 plant.",
     "pack": "base-game",
     "tags": [
       "plant"
@@ -2596,7 +2598,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires -4°C or warmer. Increase your plant production 3 steps. Gain 1 plant."
+        "description": "Requires -4\u00b0C or warmer. Increase your plant production 3 steps. Gain 1 plant."
       }
     ],
     "vpConditions": [
@@ -2682,7 +2684,7 @@
     "name": "Mining Expedition",
     "type": "event",
     "cost": 12,
-    "description": "Raise oxygen 1 step. Remove 2 plants from any player. Gain 2 steel.",
+    "description": "Raise oxygen 1 step. Remove 2 plants **from any player**. Gain 2 steel.",
     "pack": "base-game",
     "behaviors": [
       {
@@ -2698,7 +2700,7 @@
             "target": "any-player"
           }
         ],
-        "description": "Raise oxygen 1 step. Remove 2 plants from any player. Gain 2 steel."
+        "description": "Raise oxygen 1 step. Remove 2 plants **from any player**. Gain 2 steel."
       },
       {
         "triggers": [
@@ -3247,7 +3249,7 @@
     "name": "Space Mirrors",
     "type": "active",
     "cost": 3,
-    "description": "Action: Spend 7 M€ to increase your energy production 1 step.",
+    "description": "Action: Spend 7\u00a0M€ to increase your energy production 1 step.",
     "pack": "base-game",
     "tags": [
       "power",
@@ -3274,7 +3276,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Spend 7 M€ to increase your energy production 1 step."
+        "description": "Spend 7\u00a0M€ to increase your energy production 1 step."
       }
     ]
   },
@@ -3399,7 +3401,7 @@
     "name": "Giant Ice Asteroid",
     "type": "event",
     "cost": 36,
-    "description": "Raise temperature 2 steps and place 2 ocean tiles. Remove up to 6 plants from any player.",
+    "description": "Raise temperature 2 steps and place 2 ocean tiles. Remove up to 6 plants **from any player**.",
     "pack": "base-game",
     "tags": [
       "space"
@@ -3423,7 +3425,7 @@
             "target": "none"
           }
         ],
-        "description": "Raise temperature 2 steps and place 2 ocean tiles. Remove up to 6 plants from any player."
+        "description": "Raise temperature 2 steps and place 2 ocean tiles. Remove up to 6 plants **from any player**."
       },
       {
         "triggers": [
@@ -3466,7 +3468,9 @@
             "amount": 1,
             "target": "none",
             "tileRestrictions": {
-              "boardTags": ["ganymede-colony"]
+              "boardTags": [
+                "ganymede-colony"
+              ]
             }
           }
         ],
@@ -3630,7 +3634,7 @@
     "name": "Grass",
     "type": "automated",
     "cost": 11,
-    "description": "Requires -16°C or warmer. Increase your plant production 1 step. Gain 3 plants.",
+    "description": "Requires -16\u00b0C or warmer. Increase your plant production 1 step. Gain 3 plants.",
     "pack": "base-game",
     "tags": [
       "plant"
@@ -3660,7 +3664,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires -16°C or warmer. Increase your plant production 1 step. Gain 3 plants."
+        "description": "Requires -16\u00b0C or warmer. Increase your plant production 1 step. Gain 3 plants."
       }
     ]
   },
@@ -3669,7 +3673,7 @@
     "name": "Heather",
     "type": "automated",
     "cost": 6,
-    "description": "Requires -14°C or warmer. Increase your plant production 1 step. Gain 1 plant.",
+    "description": "Requires -14\u00b0C or warmer. Increase your plant production 1 step. Gain 1 plant.",
     "pack": "base-game",
     "tags": [
       "plant"
@@ -3699,7 +3703,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires -14°C or warmer. Increase your plant production 1 step. Gain 1 plant."
+        "description": "Requires -14\u00b0C or warmer. Increase your plant production 1 step. Gain 1 plant."
       }
     ]
   },
@@ -3865,7 +3869,7 @@
     "name": "Bushes",
     "type": "automated",
     "cost": 10,
-    "description": "Requires -10°C or warmer. Increase your plant production 2 steps. Gain 2 plants.",
+    "description": "Requires -10\u00b0C or warmer. Increase your plant production 2 steps. Gain 2 plants.",
     "pack": "base-game",
     "tags": [
       "plant"
@@ -3895,7 +3899,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires -10°C or warmer. Increase your plant production 2 steps. Gain 2 plants."
+        "description": "Requires -10\u00b0C or warmer. Increase your plant production 2 steps. Gain 2 plants."
       }
     ]
   },
@@ -4719,7 +4723,7 @@
     "name": "Artificial Lake",
     "type": "automated",
     "cost": 15,
-    "description": "Requires -6°C or warmer. Place 1 ocean tile **on an area not reserved for ocean**.",
+    "description": "Requires -6\u00b0C or warmer. Place 1 ocean tile **on an area not reserved for ocean**.",
     "pack": "base-game",
     "tags": [
       "building"
@@ -4744,7 +4748,7 @@
             "target": "none"
           }
         ],
-        "description": "Requires -6°C or warmer. Place 1 ocean tile **on an area not reserved for ocean**."
+        "description": "Requires -6\u00b0C or warmer. Place 1 ocean tile **on an area not reserved for ocean**."
       }
     ],
     "vpConditions": [
@@ -4788,7 +4792,7 @@
     "name": "Farming",
     "type": "automated",
     "cost": 16,
-    "description": "Requires +4°C or warmer. Increase your M€ production 2 steps and your plant production 2 steps. Gain 2 plants.",
+    "description": "Requires +4\u00b0C or warmer. Increase your M€ production 2 steps and your plant production 2 steps. Gain 2 plants.",
     "pack": "base-game",
     "tags": [
       "plant"
@@ -4823,7 +4827,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires +4°C or warmer. Increase your M€ production 2 steps and your plant production 2 steps. Gain 2 plants."
+        "description": "Requires +4\u00b0C or warmer. Increase your M€ production 2 steps and your plant production 2 steps. Gain 2 plants."
       }
     ],
     "vpConditions": [
@@ -4897,7 +4901,7 @@
     "name": "Sabotage",
     "type": "event",
     "cost": 1,
-    "description": "Remove up to 3 titanium from any player, or 4 steel, or 7 M€.",
+    "description": "Remove up to 3 titanium **from any player**, or 4 steel, or 7 M€.",
     "pack": "corporate-era",
     "behaviors": [
       {
@@ -4935,7 +4939,7 @@
             ]
           }
         ],
-        "description": "Remove up to 3 titanium from any player, or 4 steel, or 7 M€."
+        "description": "Remove up to 3 titanium **from any player**, or 4 steel, or 7 M€."
       }
     ]
   },
@@ -5018,7 +5022,7 @@
     "name": "Hired Raiders",
     "type": "event",
     "cost": 1,
-    "description": "Steal up to 2 steel, or 3 M€ from any player.",
+    "description": "Steal up to 2 steel, or 3 M€ **from any player**.",
     "pack": "corporate-era",
     "behaviors": [
       {
@@ -5047,7 +5051,7 @@
             ]
           }
         ],
-        "description": "Steal up to 2 steel, or 3 M€ from any player."
+        "description": "Steal up to 2 steel, or 3 M€ **from any player**."
       }
     ]
   },
@@ -5406,7 +5410,7 @@
     "name": "Symbiotic Fungus",
     "type": "active",
     "cost": 4,
-    "description": "Action: Add a microbe to **another** card. Requires -14°C or warmer.",
+    "description": "Action: Add a microbe to **another** card. Requires -14\u00b0C or warmer.",
     "pack": "base-game",
     "tags": [
       "microbe"
@@ -5431,7 +5435,7 @@
             "target": "any-card"
           }
         ],
-        "description": "Add a microbe to **another** card. Requires -14°C or warmer."
+        "description": "Add a microbe to **another** card. Requires -14\u00b0C or warmer."
       }
     ]
   },
@@ -5440,7 +5444,7 @@
     "name": "Extreme-Cold Fungus",
     "type": "active",
     "cost": 13,
-    "description": "Action: Gain 1 plant or add 2 microbes to **another** card. It must be -10°C or colder.",
+    "description": "Action: Gain 1 plant or add 2 microbes to **another** card. It must be -10\u00b0C or colder.",
     "pack": "base-game",
     "tags": [
       "microbe"
@@ -5478,7 +5482,7 @@
             ]
           }
         ],
-        "description": "Gain 1 plant or add 2 microbes to **another** card. It must be -10°C or colder."
+        "description": "Gain 1 plant or add 2 microbes to **another** card. It must be -10\u00b0C or colder."
       }
     ]
   },
@@ -5495,9 +5499,21 @@
       "plant"
     ],
     "requirements": [
-      {"type": "tags", "min": 1, "tag": "plant"},
-      {"type": "tags", "min": 1, "tag": "microbe"},
-      {"type": "tags", "min": 1, "tag": "animal"}
+      {
+        "type": "tags",
+        "min": 1,
+        "tag": "plant"
+      },
+      {
+        "type": "tags",
+        "min": 1,
+        "tag": "microbe"
+      },
+      {
+        "type": "tags",
+        "min": 1,
+        "tag": "animal"
+      }
     ],
     "vpConditions": [
       {
@@ -6189,7 +6205,7 @@
     "name": "Caretaker Contract",
     "type": "active",
     "cost": 3,
-    "description": "Action: Spend 8 heat to increase your terraform rating 1 step. Requires 0°C or warmer.",
+    "description": "Action: Spend 8 heat to increase your terraform rating 1 step. Requires 0\u00b0C or warmer.",
     "pack": "corporate-era",
     "requirements": [
       {
@@ -6218,7 +6234,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Spend 8 heat to increase your terraform rating 1 step. Requires 0°C or warmer."
+        "description": "Spend 8 heat to increase your terraform rating 1 step. Requires 0\u00b0C or warmer."
       }
     ]
   },
@@ -6227,7 +6243,7 @@
     "name": "Designed Microorganisms",
     "type": "automated",
     "cost": 16,
-    "description": "It must be -14°C or colder. Increase your plant production 2 steps.",
+    "description": "It must be -14\u00b0C or colder. Increase your plant production 2 steps.",
     "pack": "base-game",
     "tags": [
       "microbe",
@@ -6253,7 +6269,7 @@
             "target": "self-player"
           }
         ],
-        "description": "It must be -14°C or colder. Increase your plant production 2 steps."
+        "description": "It must be -14\u00b0C or colder. Increase your plant production 2 steps."
       }
     ]
   },
@@ -6390,7 +6406,7 @@
     "name": "Lichen",
     "type": "automated",
     "cost": 7,
-    "description": "Requires -24°C or warmer. Increase your plant production 1 step.",
+    "description": "Requires -24\u00b0C or warmer. Increase your plant production 1 step.",
     "pack": "base-game",
     "tags": [
       "plant"
@@ -6415,7 +6431,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires -24°C or warmer. Increase your plant production 1 step."
+        "description": "Requires -24\u00b0C or warmer. Increase your plant production 1 step."
       }
     ]
   },
@@ -6779,7 +6795,7 @@
     "name": "Tundra Farming",
     "type": "automated",
     "cost": 16,
-    "description": "Requires -6°C or warmer. Increase your plant production 1 step and your M€ production 2 steps. Gain 1 plant.",
+    "description": "Requires -6\u00b0C or warmer. Increase your plant production 1 step and your M€ production 2 steps. Gain 1 plant.",
     "pack": "base-game",
     "tags": [
       "plant"
@@ -6814,7 +6830,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires -6°C or warmer. Increase your plant production 1 step and your M€ production 2 steps. Gain 1 plant."
+        "description": "Requires -6\u00b0C or warmer. Increase your plant production 1 step and your M€ production 2 steps. Gain 1 plant."
       }
     ],
     "vpConditions": [
@@ -7086,7 +7102,7 @@
     "name": "Noctis Farming",
     "type": "automated",
     "cost": 10,
-    "description": "Requires -20°C or warmer. Increase your M€ production 1 step and gain 2 plants.",
+    "description": "Requires -20\u00b0C or warmer. Increase your M€ production 1 step and gain 2 plants.",
     "pack": "base-game",
     "tags": [
       "building",
@@ -7117,7 +7133,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires -20°C or warmer. Increase your M€ production 1 step and gain 2 plants."
+        "description": "Requires -20\u00b0C or warmer. Increase your M€ production 1 step and gain 2 plants."
       }
     ],
     "vpConditions": [
@@ -7293,7 +7309,7 @@
     "name": "Ice Cap Melting",
     "type": "event",
     "cost": 5,
-    "description": "Requires +2°C or warmer. Place 1 ocean tile.",
+    "description": "Requires +2\u00b0C or warmer. Place 1 ocean tile.",
     "pack": "base-game",
     "requirements": [
       {
@@ -7315,7 +7331,7 @@
             "target": "none"
           }
         ],
-        "description": "Requires +2°C or warmer. Place 1 ocean tile."
+        "description": "Requires +2\u00b0C or warmer. Place 1 ocean tile."
       }
     ]
   },
@@ -7731,7 +7747,7 @@
     "name": "Permafrost Extraction",
     "type": "event",
     "cost": 8,
-    "description": "Requires -8°C or warmer. Place 1 ocean tile.",
+    "description": "Requires -8\u00b0C or warmer. Place 1 ocean tile.",
     "pack": "base-game",
     "requirements": [
       {
@@ -7753,7 +7769,7 @@
             "target": "none"
           }
         ],
-        "description": "Requires -8°C or warmer. Place 1 ocean tile."
+        "description": "Requires -8\u00b0C or warmer. Place 1 ocean tile."
       }
     ]
   },
@@ -8337,7 +8353,7 @@
     "name": "Small Asteroid",
     "type": "event",
     "cost": 10,
-    "description": "Increase temperature 1 step. Remove up to 2 plants from any player.",
+    "description": "Increase temperature 1 step. Remove up to 2 plants **from any player**.",
     "pack": "promo",
     "tags": [
       "space"
@@ -8356,7 +8372,7 @@
             "target": "any-player"
           }
         ],
-        "description": "Increase temperature 1 step. Remove up to 2 plants from any player."
+        "description": "Increase temperature 1 step. Remove up to 2 plants **from any player**."
       },
       {
         "triggers": [
@@ -10128,7 +10144,7 @@
     "name": "Stratospheric Birds",
     "type": "active",
     "cost": 12,
-    "description": "Action: Add 1 animal to this card. Requires Venus 12%, and that you spend 1 floater from any card. 1 VP for each animal on this card.",
+    "description": "Action: Add 1 animal to this card. Requires Venus 12%, and that you spend 1 floater **from any card**. 1 VP for each animal on this card.",
     "pack": "venus-next",
     "tags": [
       "animal",
@@ -10168,7 +10184,7 @@
             "target": "self-card"
           }
         ],
-        "description": "Add 1 animal to this card. Requires Venus 12%, and that you spend 1 floater from any card. 1 VP for each animal on this card."
+        "description": "Add 1 animal to this card. Requires Venus 12%, and that you spend 1 floater **from any card**. 1 VP for each animal on this card."
       }
     ],
     "resourceStorage": {
@@ -11306,7 +11322,9 @@
             "type": "auto",
             "condition": {
               "type": "tag-played",
-              "affectedTags": ["jovian"],
+              "affectedTags": [
+                "jovian"
+              ],
               "target": "any-player"
             }
           }
@@ -11415,7 +11433,7 @@
     "name": "Air Raid",
     "type": "event",
     "cost": 0,
-    "description": "Requires that you lose 1 floater. Steal 5 M€ from any player.",
+    "description": "Requires that you lose 1 floater. Steal 5 M€ **from any player**.",
     "pack": "colonies",
     "behaviors": [
       {
@@ -11431,7 +11449,7 @@
             "target": "steal-any-player"
           }
         ],
-        "description": "Requires that you lose 1 floater. Steal 5 M€ from any player."
+        "description": "Requires that you lose 1 floater. Steal 5 M€ **from any player**."
       },
       {
         "triggers": [
@@ -11923,7 +11941,7 @@
     "name": "Impactor Swarm",
     "type": "event",
     "cost": 11,
-    "description": "Requries 2 Jovian tags. Gain 12 heat. Remove up to 2 plants from any player.",
+    "description": "Requries 2 Jovian tags. Gain 12 heat. Remove up to 2 plants **from any player**.",
     "pack": "colonies",
     "tags": [
       "space"
@@ -11949,7 +11967,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requries 2 Jovian tags. Gain 12 heat. Remove up to 2 plants from any player."
+        "description": "Requries 2 Jovian tags. Gain 12 heat. Remove up to 2 plants **from any player**."
       },
       {
         "triggers": [
@@ -12866,7 +12884,7 @@
     "name": "Sub-Zero Salt Fish",
     "type": "active",
     "cost": 5,
-    "description": "Action: Add 1 animal to this card. Requires -6°C or warmer. Decrease any plant production 1 step. 1 VP per 2 animals on this card.",
+    "description": "Action: Add 1 animal to this card. Requires -6\u00b0C or warmer. Decrease any plant production 1 step. 1 VP per 2 animals on this card.",
     "pack": "colonies",
     "tags": [
       "animal"
@@ -12905,7 +12923,7 @@
             "target": "self-card"
           }
         ],
-        "description": "Add 1 animal to this card. Requires -6°C or warmer. Decrease any plant production 1 step. 1 VP per 2 animals on this card."
+        "description": "Add 1 animal to this card. Requires -6\u00b0C or warmer. Decrease any plant production 1 step. 1 VP per 2 animals on this card."
       }
     ],
     "resourceStorage": {
@@ -14723,7 +14741,7 @@
     "name": "Psychrophiles",
     "type": "active",
     "cost": 2,
-    "description": "Action: Add a microbe to this card. / Effect: When paying for a plant card, microbes here may be used as 2 M€ each. Requires temperature -20°C or colder.",
+    "description": "Action: Add a microbe to this card. / Effect: When paying for a plant card, microbes here may be used as 2 M€ each. Requires temperature -20\u00b0C or colder.",
     "pack": "prelude",
     "tags": [
       "microbe"
@@ -14748,7 +14766,7 @@
             "target": "self-card"
           }
         ],
-        "description": "When paying for a plant card, microbes here may be used as 2 M€ each. Requires temperature -20°C or colder."
+        "description": "When paying for a plant card, microbes here may be used as 2 M€ each. Requires temperature -20\u00b0C or colder."
       },
       {
         "triggers": [
@@ -15156,7 +15174,7 @@
     "name": "Aerial Lenses",
     "type": "automated",
     "cost": 2,
-    "description": "Requires that Kelvinists are ruling or that you have 2 delegates there. Remove up to 2 plants from any player. Increase your heat production 2 steps.",
+    "description": "Requires that Kelvinists are ruling or that you have 2 delegates there. Remove up to 2 plants **from any player**. Increase your heat production 2 steps.",
     "pack": "turmoil",
     "behaviors": [
       {
@@ -15172,7 +15190,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires that Kelvinists are ruling or that you have 2 delegates there. Remove up to 2 plants from any player. Increase your heat production 2 steps."
+        "description": "Requires that Kelvinists are ruling or that you have 2 delegates there. Remove up to 2 plants **from any player**. Increase your heat production 2 steps."
       },
       {
         "triggers": [
@@ -17381,7 +17399,7 @@
     "name": "Deimos Down*",
     "type": "event",
     "cost": 31,
-    "description": "Raise temperature 3 steps. Place this tile **adjacent to no city tile**. Gain 4 steel. Remove up to 6 plants from any player.",
+    "description": "Raise temperature 3 steps. Place this tile **adjacent to no city tile**. Gain 4 steel. Remove up to 6 plants **from any player**.",
     "pack": "promo",
     "tags": [
       "space"
@@ -17400,7 +17418,7 @@
             "target": "any-player"
           }
         ],
-        "description": "Raise temperature 3 steps. Place this tile **adjacent to no city tile**. Gain 4 steel. Remove up to 6 plants from any player."
+        "description": "Raise temperature 3 steps. Place this tile **adjacent to no city tile**. Gain 4 steel. Remove up to 6 plants **from any player**."
       },
       {
         "triggers": [
