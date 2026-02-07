@@ -1636,7 +1636,7 @@
           {
             "outputs": [
               {
-                "type": "plant-production",
+                "type": "plant",
                 "amount": 4,
                 "target": "self-player"
               }
@@ -2545,7 +2545,10 @@
           {
             "type": "greenery-placement",
             "amount": 1,
-            "target": "none"
+            "target": "none",
+            "tileRestrictions": {
+              "onTileType": "ocean"
+            }
           }
         ],
         "description": "Requires +4°C or warmer. Place a Greenery tile **on an area reserved for ocean** and raise oxygen 1 step. Disregard normal placement restrictions for this."
@@ -2798,7 +2801,23 @@
     "type": "event",
     "cost": 1,
     "description": "Place your marker on a non-reserved area. Only you may place a tile here",
-    "pack": "corporate-era"
+    "pack": "corporate-era",
+    "behaviors": [
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "land-claim",
+            "amount": 1,
+            "target": "none"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "067",
@@ -3165,7 +3184,16 @@
           {
             "outputs": [
               {
-                "type": "credit",
+                "type": "microbe",
+                "amount": 1,
+                "target": "any-card"
+              }
+            ]
+          },
+          {
+            "outputs": [
+              {
+                "type": "animal",
                 "amount": 1,
                 "target": "any-card"
               }
@@ -3424,6 +3452,26 @@
       "city",
       "jovian",
       "space"
+    ],
+    "behaviors": [
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "city-placement",
+            "amount": 1,
+            "target": "none",
+            "tileRestrictions": {
+              "boardTags": ["ganymede-colony"]
+            }
+          }
+        ],
+        "description": "Place a city tile **on the reserved area**."
+      }
     ],
     "vpConditions": [
       {
@@ -4350,6 +4398,29 @@
     "pack": "corporate-era",
     "tags": [
       "earth"
+    ],
+    "behaviors": [
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "credit",
+            "amount": 1,
+            "target": "self-player",
+            "per": {
+              "type": "tag",
+              "amount": 1,
+              "location": "anywhere",
+              "target": "any-player",
+              "tag": "event"
+            }
+          }
+        ]
+      }
     ]
   },
   {
@@ -5422,6 +5493,11 @@
       "animal",
       "microbe",
       "plant"
+    ],
+    "requirements": [
+      {"type": "tags", "min": 1, "tag": "plant"},
+      {"type": "tags", "min": 1, "tag": "microbe"},
+      {"type": "tags", "min": 1, "tag": "animal"}
     ],
     "vpConditions": [
       {
@@ -7819,6 +7895,30 @@
       {
         "amount": 2,
         "condition": "fixed"
+      }
+    ],
+    "behaviors": [
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "tr",
+            "amount": 1,
+            "target": "self-player",
+            "per": {
+              "type": "tag",
+              "amount": 1,
+              "location": "anywhere",
+              "target": "self-player",
+              "tag": "jovian"
+            }
+          }
+        ],
+        "description": "Raise your TR 1 step for each Jovian tag you have, including this."
       }
     ]
   },
@@ -11022,7 +11122,7 @@
             "target": "self-player"
           }
         ],
-        "description": "When any city tile is placed **on mars**, increase your M€ production 1 step. When you place a city tile, gain 3 M€. You start with 40 M€. As your first action in the game, place a city tile."
+        "description": "When you place a city tile, gain 3 M€."
       },
       {
         "triggers": [
@@ -11041,7 +11141,8 @@
             "amount": 1,
             "target": "self-player"
           }
-        ]
+        ],
+        "description": "When any city tile is placed on mars, increase your M€ production 1 step."
       }
     ]
   },
