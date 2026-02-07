@@ -716,6 +716,28 @@ func (a *BehaviorApplier) applyOutput(
 		}
 		log.Info("🌡️ Increased temperature", zap.Int("steps", actualSteps))
 
+	case shared.ResourceLandClaim:
+		if a.game == nil {
+			return fmt.Errorf("cannot apply land claim: no game context")
+		}
+		if a.player == nil {
+			return fmt.Errorf("cannot apply land claim: no player context")
+		}
+
+		// Build array of land-claim tile types to append (for multiple placements)
+		tileTypes := make([]string, output.Amount)
+		for i := 0; i < output.Amount; i++ {
+			tileTypes[i] = "land-claim"
+		}
+
+		// Atomically append to queue (thread-safe)
+		if err := a.game.AppendToPendingTileSelectionQueue(ctx, a.player.ID(), tileTypes, a.source, nil); err != nil {
+			return fmt.Errorf("failed to append land claim to pending tile selection queue: %w", err)
+		}
+
+		log.Info("🏴 Added land claim tile selection to queue",
+			zap.Int("count", output.Amount))
+
 	case shared.ResourceCityPlacement, shared.ResourceGreeneryPlacement, shared.ResourceOceanPlacement:
 		if a.game == nil {
 			return fmt.Errorf("cannot apply tile placement: no game context")
@@ -745,8 +767,9 @@ func (a *BehaviorApplier) applyOutput(
 		var tileRestrictions *shared.TileRestrictions
 		if output.TileRestrictions != nil {
 			tileRestrictions = &shared.TileRestrictions{
-				BoardTags: output.TileRestrictions.BoardTags,
-				Adjacency: output.TileRestrictions.Adjacency,
+				BoardTags:  output.TileRestrictions.BoardTags,
+				Adjacency:  output.TileRestrictions.Adjacency,
+				OnTileType: output.TileRestrictions.OnTileType,
 			}
 		}
 

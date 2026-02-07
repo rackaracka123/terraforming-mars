@@ -12,21 +12,29 @@ const (
 	TriggerTypeManual = "manual" // Manual trigger (blue card action, activated by player)
 )
 
+// MinMaxValue represents a min/max value constraint
+type MinMaxValue struct {
+	Min *int `json:"min,omitempty"`
+	Max *int `json:"max,omitempty"`
+}
+
 // ResourceTriggerCondition represents what triggers an automatic resource exchange
 type ResourceTriggerCondition struct {
-	Type              string         `json:"type"`
-	ResourceTypes     []ResourceType `json:"resourceTypes,omitempty"`
-	Location          *string        `json:"location,omitempty"`
-	AffectedTags      []CardTag      `json:"affectedTags,omitempty"`
-	AffectedResources []string       `json:"affectedResources,omitempty"`
-	AffectedCardTypes []string       `json:"affectedCardTypes,omitempty"`
-	Target            *string        `json:"target,omitempty"`
+	Type                 string         `json:"type"`
+	ResourceTypes        []ResourceType `json:"resourceTypes,omitempty"`
+	Location             *string        `json:"location,omitempty"`
+	AffectedTags         []CardTag      `json:"affectedTags,omitempty"`
+	AffectedResources    []string       `json:"affectedResources,omitempty"`
+	AffectedCardTypes    []string       `json:"affectedCardTypes,omitempty"`
+	Target               *string        `json:"target,omitempty"`
+	RequiredOriginalCost *MinMaxValue   `json:"requiredOriginalCost,omitempty"`
 }
 
 // TileRestrictions represents restrictions for tile placement
 type TileRestrictions struct {
-	BoardTags []string `json:"boardTags,omitempty" ts:"string[]"`
-	Adjacency string   `json:"adjacency,omitempty" ts:"string"` // "none" = no adjacent occupied tiles
+	BoardTags  []string `json:"boardTags,omitempty" ts:"string[]"`
+	Adjacency  string   `json:"adjacency,omitempty" ts:"string"`  // "none" = no adjacent occupied tiles
+	OnTileType string   `json:"onTileType,omitempty" ts:"string"` // "ocean" = only on ocean spaces
 }
 
 // ResourceCondition represents a resource amount (input or output)

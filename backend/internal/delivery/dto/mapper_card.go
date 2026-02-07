@@ -129,19 +129,28 @@ func toTriggerDto(trigger shared.Trigger) TriggerDto {
 
 func toResourceTriggerConditionDto(cond shared.ResourceTriggerCondition) ResourceTriggerConditionDto {
 	return ResourceTriggerConditionDto{
-		Type:              TriggerType(cond.Type),
-		Location:          ptrCast(cond.Location, func(l string) CardApplyLocation { return CardApplyLocation(l) }),
-		AffectedTags:      mapSlice(cond.AffectedTags, func(t shared.CardTag) CardTag { return CardTag(t) }),
-		AffectedResources: cond.AffectedResources,
-		AffectedCardTypes: mapSlice(cond.AffectedCardTypes, func(ct string) CardType { return CardType(ct) }),
-		Target:            ptrCast(cond.Target, func(t string) TargetType { return TargetType(t) }),
+		Type:                 TriggerType(cond.Type),
+		Location:             ptrCast(cond.Location, func(l string) CardApplyLocation { return CardApplyLocation(l) }),
+		AffectedTags:         mapSlice(cond.AffectedTags, func(t shared.CardTag) CardTag { return CardTag(t) }),
+		AffectedResources:    cond.AffectedResources,
+		AffectedCardTypes:    mapSlice(cond.AffectedCardTypes, func(ct string) CardType { return CardType(ct) }),
+		Target:               ptrCast(cond.Target, func(t string) TargetType { return TargetType(t) }),
+		RequiredOriginalCost: ptrCast(cond.RequiredOriginalCost, toMinMaxValueDto),
+	}
+}
+
+func toMinMaxValueDto(v shared.MinMaxValue) MinMaxValueDto {
+	return MinMaxValueDto{
+		Min: v.Min,
+		Max: v.Max,
 	}
 }
 
 func toTileRestrictionsDto(tr shared.TileRestrictions) TileRestrictionsDto {
 	return TileRestrictionsDto{
-		BoardTags: tr.BoardTags,
-		Adjacency: tr.Adjacency,
+		BoardTags:  tr.BoardTags,
+		Adjacency:  tr.Adjacency,
+		OnTileType: tr.OnTileType,
 	}
 }
 

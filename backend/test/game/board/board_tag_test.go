@@ -65,9 +65,9 @@ func TestGenerateMarsBoard_UntaggedTilesHaveNoTags(t *testing.T) {
 		}
 	}
 
-	// Only Noctis City should be tagged
-	if taggedCount != 1 {
-		t.Errorf("expected exactly 1 tagged tile (Noctis City), got %d", taggedCount)
+	// Noctis City and Ganymede Colony should be tagged
+	if taggedCount != 2 {
+		t.Errorf("expected exactly 2 tagged tiles (Noctis City, Ganymede Colony), got %d", taggedCount)
 	}
 
 	// All other tiles should have empty tags
