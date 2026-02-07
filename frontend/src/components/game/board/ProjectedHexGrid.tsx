@@ -188,6 +188,7 @@ export default function ProjectedHexGrid({
             tileData={tile}
             tileType={tileData.type}
             ownerId={tileData.ownerId}
+            reservedById={tile.backendTile?.reservedBy || null}
             displayName={tile.backendTile?.displayName}
             onClick={() => {
               onHexClick?.(hexKey);

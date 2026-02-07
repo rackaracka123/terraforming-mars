@@ -22,6 +22,7 @@ interface ProjectedHexTileProps {
   tileData: ProjectedHexTileData;
   tileType: "empty" | "ocean" | "greenery" | "city" | "special";
   ownerId?: string | null;
+  reservedById?: string | null;
   displayName?: string;
   onClick: () => void;
   isAvailableForPlacement?: boolean;
@@ -41,6 +42,7 @@ export default function ProjectedHexTile({
   tileData,
   tileType,
   ownerId,
+  reservedById,
   displayName,
   onClick,
   isAvailableForPlacement = false,
@@ -407,29 +409,68 @@ export default function ProjectedHexTile({
     return tileColor.clone().multiplyScalar(0.25);
   }, [tileColor, hovered]);
 
-  // Bonus icons data - create individual icons for each bonus count
-  const bonusIcons = useMemo(() => {
+  // Bonus icon group structure for proper spacing
+  interface BonusIconGroup {
+    type: string;
+    iconPath: string;
+    count: number;
+    isCredits: boolean;
+  }
+
+  // Bonus icons data - grouped by resource type
+  const bonusIconGroups = useMemo((): BonusIconGroup[] => {
     const entries = Object.entries(tileData.bonuses);
     if (entries.length === 0) return [];
 
-    const icons: string[] = [];
-    entries.forEach(([key, value]) => {
-      const iconPaths: { [key: string]: string } = {
-        steel: "/assets/resources/steel.png",
-        titanium: "/assets/resources/titanium.png",
-        plants: "/assets/resources/plant.png",
-        cards: "/assets/resources/card.png",
-      };
-      const iconPath = iconPaths[key] || "/assets/resources/megacredit.png";
+    const iconPaths: { [key: string]: string } = {
+      steel: "/assets/resources/steel.png",
+      titanium: "/assets/resources/titanium.png",
+      plants: "/assets/resources/plant.png",
+      plant: "/assets/resources/plant.png",
+      cards: "/assets/resources/card.png",
+      "card-draw": "/assets/resources/card.png",
+      credit: "/assets/resources/megacredit.png",
+    };
 
-      // Add the icon multiple times based on value
-      for (let i = 0; i < value; i++) {
-        icons.push(iconPath);
+    return entries.map(([key, value]) => ({
+      type: key,
+      iconPath: iconPaths[key] || "/assets/resources/megacredit.png",
+      count: value,
+      isCredits: key === "credit",
+    }));
+  }, [tileData.bonuses]);
+
+  // Calculate icon positions with proper spacing between same-type and different-type icons
+  const calculateIconPositions = (groups: BonusIconGroup[]) => {
+    const ICON_GAP = 0.005; // Gap between same-type icons
+    const GROUP_GAP = 0.01; // Gap between different resource groups
+    const ICON_SIZE = 0.05;
+
+    const positions: { x: number; group: BonusIconGroup; indexInGroup: number }[] = [];
+
+    // Calculate total width (credits show 1 icon with count as text)
+    let totalWidth = 0;
+    groups.forEach((group, groupIndex) => {
+      if (groupIndex > 0) totalWidth += GROUP_GAP;
+      const iconCount = group.isCredits ? 1 : group.count;
+      totalWidth += iconCount * ICON_SIZE + Math.max(0, iconCount - 1) * ICON_GAP;
+    });
+
+    // Calculate centered positions
+    let currentX = -totalWidth / 2;
+    groups.forEach((group, groupIndex) => {
+      if (groupIndex > 0) currentX += GROUP_GAP;
+
+      const iconCount = group.isCredits ? 1 : group.count;
+      for (let i = 0; i < iconCount; i++) {
+        if (i > 0) currentX += ICON_GAP;
+        positions.push({ x: currentX + ICON_SIZE / 2, group, indexInGroup: i });
+        currentX += ICON_SIZE;
       }
     });
 
-    return icons;
-  }, [tileData.bonuses]);
+    return positions;
+  };
 
   return (
     <group
@@ -521,51 +562,71 @@ export default function ProjectedHexTile({
       {/* Display name and bonus icons layout */}
       {tileType !== "greenery" && (
         <>
-          {displayName && bonusIcons.length > 0 ? (
+          {displayName && bonusIconGroups.length > 0 ? (
             // Two-row layout when both displayName and bonuses exist
             <>
               {/* Display name in upper row */}
               <Text
                 position={[0, 0.03, 0.01]}
                 fontSize={0.035}
+                font="/assets/Prototype.ttf"
                 color="white"
+                outlineWidth={0.003}
+                outlineColor="black"
                 anchorX="center"
                 anchorY="middle"
+                textAlign="center"
                 maxWidth={0.25}
               >
                 {displayName}
               </Text>
 
               {/* Bonus icons in lower row */}
-              {bonusIcons.map((iconPath, index) => (
-                <BonusIcon
-                  key={index}
-                  iconPath={iconPath}
-                  position={[index * 0.05 - (bonusIcons.length - 1) * 0.025, -0.03, 0.01]}
-                />
-              ))}
+              {(() => {
+                const positions = calculateIconPositions(bonusIconGroups);
+                return positions.map((pos) => (
+                  <BonusIcon
+                    key={`${pos.group.type}-${pos.indexInGroup}`}
+                    iconPath={pos.group.iconPath}
+                    position={[pos.x, -0.03, 0.01]}
+                    isCredits={pos.group.isCredits}
+                    creditAmount={pos.group.isCredits ? pos.group.count : undefined}
+                    lightIntensity={entranceScale}
+                  />
+                ));
+              })()}
             </>
           ) : displayName ? (
             // Display name centered when no bonuses
             <Text
               position={[0, 0, 0.01]}
               fontSize={0.04}
+              font="/assets/Prototype.ttf"
               color="white"
+              outlineWidth={0.003}
+              outlineColor="black"
               anchorX="center"
               anchorY="middle"
+              textAlign="center"
               maxWidth={0.25}
             >
               {displayName}
             </Text>
           ) : (
             // Only bonus icons when no display name
-            bonusIcons.map((iconPath, index) => (
-              <BonusIcon
-                key={index}
-                iconPath={iconPath}
-                position={[index * 0.05 - (bonusIcons.length - 1) * 0.025, 0, 0.01]}
-              />
-            ))
+            (() => {
+              const positions = calculateIconPositions(bonusIconGroups);
+              return positions.map((pos) => (
+                <BonusIcon
+                  key={`${pos.group.type}-${pos.indexInGroup}`}
+                  iconPath={pos.group.iconPath}
+                  position={[pos.x, 0, 0.01]}
+                  isCredits={pos.group.isCredits}
+                  creditAmount={pos.group.isCredits ? pos.group.count : undefined}
+                  lightIntensity={entranceScale}
+                />
+              ));
+            })()
           )}
         </>
       )}
@@ -576,6 +637,24 @@ export default function ProjectedHexTile({
           <circleGeometry args={[0.02, 16]} />
           <meshBasicMaterial color={`hsl(${(ownerId.charCodeAt(0) * 137.5) % 360}, 70%, 50%)`} />
         </mesh>
+      )}
+
+      {/* Reserved tile marker (land claim) - small flag icon at corner */}
+      {reservedById && !ownerId && (
+        <group position={[0, 0, 0.01]}>
+          {/* Flag pole */}
+          <mesh position={[0.08, 0.05, 0]}>
+            <boxGeometry args={[0.004, 0.06, 0.004]} />
+            <meshBasicMaterial color="#333333" />
+          </mesh>
+          {/* Flag (triangular marker) */}
+          <mesh position={[0.1, 0.07, 0]}>
+            <circleGeometry args={[0.025, 3]} />
+            <meshBasicMaterial
+              color={`hsl(${(reservedById.charCodeAt(0) * 137.5) % 360}, 70%, 50%)`}
+            />
+          </mesh>
+        </group>
       )}
 
       {/* Floating VP indicator text */}
@@ -687,9 +766,18 @@ function TileModel({ tileType, position }: TileModelProps) {
 interface BonusIconProps {
   iconPath: string;
   position: [number, number, number];
+  isCredits?: boolean;
+  creditAmount?: number;
+  lightIntensity?: number;
 }
 
-function BonusIcon({ iconPath, position }: BonusIconProps) {
+function BonusIcon({
+  iconPath,
+  position,
+  isCredits,
+  creditAmount,
+  lightIntensity = 1,
+}: BonusIconProps) {
   const texture = useLoader(THREE.TextureLoader, iconPath);
 
   // Calculate proper dimensions maintaining aspect ratio
@@ -708,61 +796,26 @@ function BonusIcon({ iconPath, position }: BonusIconProps) {
     }
   }, [texture]);
 
-  // Create shadow gradient geometry (larger for more pronounced effect)
-  const shadowDimensions = useMemo(
-    (): [number, number] => [dimensions[0] * 1.5, dimensions[1] * 1.5],
-    [dimensions],
-  );
-
-  // Create shadow gradient material
-  const shadowMaterial = useMemo(() => {
-    return new THREE.ShaderMaterial({
-      vertexShader: `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        varying vec2 vUv;
-
-        void main() {
-          // Convert UV to centered coordinates (-0.5 to 0.5)
-          vec2 center = vUv - 0.5;
-
-          // Calculate square distance (max of x and y distances for square shape)
-          float distFromCenter = max(abs(center.x), abs(center.y));
-
-          // Create border gradient - only show shadow outside the icon area
-          // Inner radius (icon size) to outer radius (shadow extent)
-          float innerRadius = 0.33; // Approximate icon boundary
-          float outerRadius = 0.5;   // Shadow extent
-
-          // Only show gradient in the border area (between inner and outer radius)
-          float borderGradient = 1.0 - smoothstep(innerRadius, outerRadius, distFromCenter);
-
-          // Mask out the center (where icon will be)
-          float centerMask = step(innerRadius, distFromCenter);
-
-          vec3 shadowColor = vec3(0.0, 0.0, 0.0); // Black shadow
-          float alpha = borderGradient * centerMask * 0.3; // Much lighter shadow
-
-          gl_FragColor = vec4(shadowColor, alpha);
-        }
-      `,
-      transparent: true,
-      depthWrite: false, // Don't write to depth buffer for shadows
-    });
-  }, []);
+  // Determine light color based on resource type
+  const lightColor = useMemo(() => {
+    if (iconPath.includes("steel")) return "#8b7355";
+    if (iconPath.includes("titanium")) return "#c9a227";
+    if (iconPath.includes("plant")) return "#4a7c3f";
+    if (iconPath.includes("megacredit")) return "#c9a227";
+    if (iconPath.includes("card")) return "#6699cc";
+    return "#a89070";
+  }, [iconPath]);
 
   return (
     <group position={position}>
-      {/* Shadow layer behind icon */}
-      <mesh position={[0, 0, -0.001]}>
-        <planeGeometry args={shadowDimensions} />
-        <primitive object={shadowMaterial} attach="material" />
-      </mesh>
+      {/* Ambient light emission matching resource color */}
+      <pointLight
+        position={[0, 0, 0.015]}
+        intensity={0.07 * lightIntensity}
+        distance={0.12}
+        color={lightColor}
+        decay={2}
+      />
 
       {/* Main icon */}
       <mesh>
@@ -771,11 +824,24 @@ function BonusIcon({ iconPath, position }: BonusIconProps) {
           transparent
           alphaTest={0.1}
           map={texture}
-          // Darker filter applied
           toneMapped={false}
-          color={new THREE.Color(0.7, 0.7, 0.7)} // Darken the texture
+          color={new THREE.Color(0.7, 0.7, 0.7)}
         />
       </mesh>
+
+      {/* Credit amount overlay */}
+      {isCredits && creditAmount !== undefined && (
+        <Text
+          position={[0, 0, 0.002]}
+          fontSize={0.025}
+          font="/assets/Prototype.ttf"
+          color="black"
+          anchorX="center"
+          anchorY="middle"
+        >
+          {creditAmount}
+        </Text>
+      )}
     </group>
   );
 }
