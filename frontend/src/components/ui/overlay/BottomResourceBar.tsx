@@ -353,10 +353,10 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       </div>
 
       {/* Action Buttons Section */}
-      <div className="flex-1 flex items-center justify-end gap-3 -translate-y-[30px] pointer-events-auto relative">
+      <div className="flex-1 flex items-center justify-end gap-[15px] -translate-y-[30px] pointer-events-auto relative">
         <button
           ref={actionsButtonRef}
-          className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#ff6464] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
+          className="flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 border-[#ff6464] rounded-xl p-2 cursor-pointer transition-all duration-200 w-[70px] hover:-translate-y-0.5"
           style={{ boxShadow: "0 0 10px #ff646440" }}
           onMouseEnter={(e) => {
             e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #ff6464";
@@ -386,7 +386,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
 
         <button
           ref={effectsButtonRef}
-          className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#ff96ff] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
+          className="flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 border-[#ff96ff] rounded-xl p-2 cursor-pointer transition-all duration-200 w-[70px] hover:-translate-y-0.5"
           style={{ boxShadow: "0 0 10px #ff96ff40" }}
           onMouseEnter={(e) => {
             e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #ff96ff";
@@ -418,7 +418,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
 
         <button
           ref={tagsButtonRef}
-          className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#64ff96] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
+          className="flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 border-[#64ff96] rounded-xl p-2 cursor-pointer transition-all duration-200 w-[70px] hover:-translate-y-0.5"
           style={{ boxShadow: "0 0 10px #64ff9640" }}
           onMouseEnter={(e) => {
             e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #64ff96";
@@ -451,7 +451,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
 
         <button
           ref={storagesButtonRef}
-          className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#6496c8] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
+          className="flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 border-[#6496c8] rounded-xl p-2 cursor-pointer transition-all duration-200 w-[70px] hover:-translate-y-0.5"
           style={{ boxShadow: "0 0 10px #6496c840" }}
           onMouseEnter={(e) => {
             e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #6496c8";
@@ -483,7 +483,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         </button>
 
         <button
-          className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#9664ff] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
+          className="flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 border-[#9664ff] rounded-xl p-2 cursor-pointer transition-all duration-200 w-[70px] hover:-translate-y-0.5"
           style={{ boxShadow: "0 0 10px #9664ff40" }}
           onMouseEnter={(e) => {
             e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #9664ff";
@@ -511,7 +511,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
 
         <button
           ref={vpButtonRef}
-          className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#ffc864] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
+          className="flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 border-[#ffc864] rounded-xl p-2 cursor-pointer transition-all duration-200 w-[70px] hover:-translate-y-0.5"
           style={{ boxShadow: "0 0 10px #ffc86440" }}
           onMouseEnter={(e) => {
             e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #ffc864";
@@ -547,7 +547,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         {gameId && (
           <button
             ref={logButtonRef}
-            className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#64c8ff] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
+            className="flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 border-[#64c8ff] rounded-xl p-2 cursor-pointer transition-all duration-200 w-[70px] hover:-translate-y-0.5"
             style={{ boxShadow: "0 0 10px #64c8ff40" }}
             onMouseEnter={(e) => {
               e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #64c8ff";
@@ -562,6 +562,9 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
               style={{ color: "#64c8ff" }}
             >
               ☰
+            </div>
+            <div className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none invisible">
+              0
             </div>
             <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
               Log
