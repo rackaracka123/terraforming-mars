@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { PlayerDto, OtherPlayerDto, TriggeredEffectDto } from "@/types/generated/api-types.ts";
-import GameIcon from "../display/GameIcon.tsx";
 import BehaviorSection from "./BehaviorSection";
 
 interface EffectNotification {
@@ -17,7 +16,6 @@ interface PlayerCardProps {
   isCurrentTurn: boolean;
   isActionPhase: boolean;
   onSkipAction?: () => void;
-  totalPlayers?: number;
   hasPendingTilePlacement?: boolean;
   triggeredEffects?: TriggeredEffectDto[];
 }
@@ -29,7 +27,6 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   isCurrentTurn,
   isActionPhase,
   onSkipAction,
-  totalPlayers = 1,
   hasPendingTilePlacement = false,
   triggeredEffects = [],
 }) => {
@@ -107,53 +104,43 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
     >
       {/* Main player card with angled edge */}
       <div
-        className={`relative h-full bg-[linear-gradient(180deg,rgba(15,35,60,0.2)_0%,rgba(10,25,45,0.2)_50%,rgba(5,15,35,0.3)_100%)] backdrop-blur-[2px] border-l-[6px] pl-2 pr-2 transition-all duration-300 flex items-center [clip-path:polygon(0_0,calc(100%-8px)_0,100%_100%,0_100%)] max-w-[220px] z-[2] opacity-100 shadow-[0_2px_8px_rgba(0,0,0,0.3),-2px_0_6px_var(--player-color),-1px_0_4px_var(--player-color),0_1px_8px_rgba(100,200,255,0.05),inset_0_1px_0_rgba(255,255,255,0.05)] ${isDisconnected ? "opacity-20" : ""} ${!isCurrentTurn ? "opacity-70" : ""} ${isCurrentTurn ? "border-l-8 bg-[linear-gradient(180deg,rgba(20,45,70,0.4)_0%,rgba(15,35,55,0.4)_50%,rgba(10,25,45,0.5)_100%)] shadow-[0_6px_24px_rgba(0,0,0,0.5),-6px_0_20px_var(--player-color),-3px_0_12px_var(--player-color),0_2px_20px_rgba(0,212,255,0.2),inset_0_2px_0_rgba(255,255,255,0.2)] animate-[activePlayerGlow_2s_ease-in-out_infinite_alternate] before:content-[''] before:absolute before:-top-[2px] before:-left-[2px] before:-right-[2px] before:-bottom-[2px] before:bg-[linear-gradient(135deg,rgba(0,212,255,0.3),rgba(0,150,255,0.2))] before:[clip-path:polygon(0_0,calc(100%-10px)_0,100%_100%,0_100%)] before:z-[-1] before:rounded-[inherit] before:animate-[activePlayerGlowBg_2s_ease-in-out_infinite_alternate]" : ""}`}
+        className={`relative h-full bg-[rgba(10,10,15,0.95)] border-l-[6px] border-t border-t-[rgba(60,60,70,0.7)] pl-2 pr-2 transition-all duration-300 flex items-center [clip-path:polygon(0_0,calc(100%-8px)_0,100%_100%,0_100%)] max-w-[270px] z-[2] shadow-[0_2px_8px_rgba(0,0,0,0.5),-2px_0_6px_var(--player-color)] ${isDisconnected ? "opacity-20" : ""} ${!isCurrentTurn ? "opacity-60" : ""} ${isCurrentTurn ? "border-l-8 shadow-[0_4px_16px_rgba(0,0,0,0.6),-4px_0_12px_var(--player-color)]" : ""}`}
         style={{ "--player-color": playerColor } as React.CSSProperties}
       >
         <div className="flex flex-col items-start justify-center w-full gap-1">
           <div className="flex gap-1 flex-wrap justify-start items-center relative z-[2]">
             {isCurrentPlayer && (
-              <span className="px-1.5 py-px rounded-lg text-[8px] font-semibold uppercase tracking-[0.3px] shadow-[0_1px_2px_rgba(0,0,0,0.2)] bg-[linear-gradient(135deg,#00d4ff,#0099cc)] text-white border-2 border-[rgba(0,212,255,0.8)] [text-shadow:0_0_12px_rgba(0,212,255,0.8),0_2px_4px_rgba(0,0,0,0.6)] shadow-[0_0_16px_rgba(0,212,255,0.4),inset_0_1px_0_rgba(255,255,255,0.3)]">
+              <span className="px-1.5 py-0.5 text-[8px] font-bold font-orbitron uppercase tracking-[0.5px] bg-[rgba(60,100,150,0.8)] text-white border border-[rgba(80,130,180,0.7)] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
                 YOU
               </span>
             )}
             {isPassed && (
-              <span className="px-1.5 py-px rounded-lg text-[8px] font-semibold uppercase tracking-[0.3px] shadow-[0_1px_2px_rgba(0,0,0,0.2)] bg-[linear-gradient(135deg,#95a5a6,#7f8c8d)] text-white border border-[rgba(149,165,166,0.5)]">
+              <span className="px-1.5 py-0.5 text-[8px] font-bold font-orbitron uppercase tracking-[0.5px] bg-[rgba(80,80,90,0.6)] text-[rgb(140,140,150)] border border-[rgba(60,60,70,0.7)] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
                 PASSED
               </span>
             )}
             {isDisconnected && (
-              <span className="px-1.5 py-px rounded-lg text-[8px] font-semibold uppercase tracking-[0.3px] shadow-[0_1px_2px_rgba(0,0,0,0.2)] bg-[linear-gradient(135deg,#e74c3c,#c0392b)] text-white border border-[rgba(231,76,60,0.5)] opacity-100 relative z-[3]">
+              <span className="px-1.5 py-0.5 text-[8px] font-bold font-orbitron uppercase tracking-[0.5px] bg-[rgba(180,60,60,0.4)] text-[rgb(220,140,140)] border border-[rgba(180,60,60,0.5)] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] relative z-[3]">
                 DISCONNECTED
               </span>
             )}
-            {isCurrentTurn && isActionPhase && (
-              <span className="px-1.5 py-px rounded-lg text-[8px] font-semibold uppercase tracking-[0.3px] shadow-[0_1px_2px_rgba(0,0,0,0.2)] bg-[linear-gradient(135deg,rgba(0,212,255,0.3),rgba(0,150,200,0.4))] text-[#00d4ff] border border-[rgba(0,212,255,0.6)] text-[9px] [text-shadow:0_0_10px_rgba(0,212,255,0.6),0_1px_2px_rgba(0,0,0,0.5)] shadow-[0_0_8px_rgba(0,212,255,0.2)]">
-                {hasUnlimitedActions
-                  ? totalPlayers === 1
-                    ? "Solo"
-                    : "Last player"
-                  : `${actionsRemaining} ${actionsRemaining === 1 ? "action" : "actions"} left`}
-              </span>
-            )}
           </div>
-          <span className="text-sm font-semibold text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.8),0_0_8px_rgba(100,200,255,0.3)] tracking-[0.4px] shrink-0">
+          <span className="text-sm font-bold font-orbitron text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] tracking-[0.3px] shrink-0">
             {player.name}
           </span>
         </div>
-        {/* TR Display - always visible */}
-        <div className="absolute right-16 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-[linear-gradient(135deg,rgba(20,45,70,0.6),rgba(15,35,55,0.6))] border border-[rgba(100,200,255,0.3)] rounded px-1.5 py-1 shadow-[0_2px_8px_rgba(0,0,0,0.4)]">
-          <GameIcon iconType="tr" size="small" />
-          <span className="text-xs font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] min-w-[16px] text-center">
+        {/* TR Display - score only */}
+        <div className="absolute right-24 top-1/2 -translate-y-1/2 flex items-center bg-[rgba(30,50,80,0.9)] border border-[rgba(60,100,150,0.6)] px-2.5 py-1">
+          <span className="text-sm font-bold font-orbitron text-[rgb(180,210,255)] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
             {player.terraformRating}
           </span>
         </div>
         {isCurrentPlayer && isCurrentTurn && isActionPhase && (
           <button
-            className={`absolute right-3 top-1/2 -translate-y-1/2 py-1.5 px-2.5 rounded text-[10px] font-semibold uppercase tracking-[0.4px] transition-all duration-200 ${
+            className={`absolute right-5 top-1/2 -translate-y-1/2 py-1.5 px-3 text-[9px] font-bold font-orbitron uppercase tracking-[0.5px] transition-all duration-200 ${
               hasPendingTilePlacement
-                ? "bg-[linear-gradient(135deg,#4a5568,#2d3748)] text-gray-400 border border-[rgba(100,116,139,0.4)] cursor-not-allowed opacity-50"
-                : "bg-[linear-gradient(135deg,#00d4ff,#0099cc)] text-white border border-[rgba(0,212,255,0.8)] cursor-pointer hover:shadow-[0_8px_28px_rgba(0,212,255,0.6),0_0_24px_rgba(0,212,255,0.5),inset_0_1px_0_rgba(255,255,255,0.4)] hover:[text-shadow:0_0_12px_rgba(0,212,255,1),0_2px_6px_rgba(0,0,0,0.7)]"
+                ? "bg-[rgba(40,40,45,0.9)] text-[rgb(100,100,110)] border border-[rgba(60,60,70,0.5)] cursor-not-allowed"
+                : "bg-[rgba(50,100,160,0.95)] text-white border border-[rgba(80,140,200,0.8)] cursor-pointer hover:bg-[rgba(60,120,180,1)] hover:border-[rgba(100,160,220,0.9)]"
             }`}
             onClick={hasPendingTilePlacement ? undefined : onSkipAction}
             disabled={hasPendingTilePlacement}
@@ -238,14 +225,16 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               return Array.from(grouped.entries()).map(([cardName, { ids, outputs, visible }]) => (
                 <div
                   key={ids.join("-")}
-                  className="notification-content flex flex-col items-center gap-1 px-3 py-2 rounded-lg bg-[rgba(20,30,50,0.95)] border border-[rgba(100,150,255,0.3)] shadow-lg"
+                  className="notification-content flex flex-col items-center gap-1 px-3 py-2 bg-[rgba(10,10,15,0.95)] border border-[rgba(60,60,70,0.7)] shadow-lg"
                   style={{
                     animation: visible
                       ? "notificationEnter 0.3s ease-out forwards"
                       : "notificationExit 0.3s ease-in forwards",
                   }}
                 >
-                  <span className="text-white text-xs font-medium">{cardName}</span>
+                  <span className="text-white text-xs font-bold font-orbitron [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
+                    {cardName}
+                  </span>
                   <BehaviorSection behaviors={[{ outputs }]} />
                 </div>
               ));

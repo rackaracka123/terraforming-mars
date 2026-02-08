@@ -59,7 +59,6 @@ const PlayerList: React.FC<PlayerListProps> = ({
           isCurrentTurn={player.id === turnPlayerId}
           isActionPhase={isActionPhase}
           onSkipAction={handleSkipAction}
-          totalPlayers={players.length}
           hasPendingTilePlacement={hasPendingTilePlacement}
           triggeredEffects={triggeredEffects}
         />
