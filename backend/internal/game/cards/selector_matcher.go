@@ -1,0 +1,132 @@
+package cards
+
+import (
+	"slices"
+
+	"terraforming-mars-backend/internal/game/shared"
+)
+
+// MatchesSelector checks if a card matches a single selector.
+// Tags: ALL must be present (AND logic)
+// CardTypes: ANY can match (OR logic - card has one type)
+// RequiredOriginalCost: card cost must satisfy min/max constraints
+// A selector must have at least Tags, CardTypes, or RequiredOriginalCost to match a card.
+func MatchesSelector(card *Card, selector shared.Selector) bool {
+	// Selectors without card-relevant criteria cannot match cards
+	if len(selector.Tags) == 0 && len(selector.CardTypes) == 0 && selector.RequiredOriginalCost == nil {
+		return false
+	}
+
+	if len(selector.Tags) > 0 {
+		for _, requiredTag := range selector.Tags {
+			if !slices.Contains(card.Tags, requiredTag) {
+				return false
+			}
+		}
+	}
+
+	if len(selector.CardTypes) > 0 {
+		if !slices.Contains(selector.CardTypes, string(card.Type)) {
+			return false
+		}
+	}
+
+	if selector.RequiredOriginalCost != nil {
+		if selector.RequiredOriginalCost.Min != nil && card.Cost < *selector.RequiredOriginalCost.Min {
+			return false
+		}
+		if selector.RequiredOriginalCost.Max != nil && card.Cost > *selector.RequiredOriginalCost.Max {
+			return false
+		}
+	}
+
+	return true
+}
+
+// MatchesAnySelector checks if a card matches any selector (OR between selectors)
+func MatchesAnySelector(card *Card, selectors []shared.Selector) bool {
+	if len(selectors) == 0 {
+		return false
+	}
+	for _, sel := range selectors {
+		if MatchesSelector(card, sel) {
+			return true
+		}
+	}
+	return false
+}
+
+// MatchesStandardProjectSelector checks if a project matches a selector
+func MatchesStandardProjectSelector(project shared.StandardProject, selector shared.Selector) bool {
+	return slices.Contains(selector.StandardProjects, project)
+}
+
+// MatchesAnyStandardProjectSelector checks OR between selectors for projects
+func MatchesAnyStandardProjectSelector(project shared.StandardProject, selectors []shared.Selector) bool {
+	for _, sel := range selectors {
+		if MatchesStandardProjectSelector(project, sel) {
+			return true
+		}
+	}
+	return false
+}
+
+// HasCardSelectors returns true if any selector targets cards
+func HasCardSelectors(selectors []shared.Selector) bool {
+	for _, sel := range selectors {
+		if len(sel.Tags) > 0 || len(sel.CardTypes) > 0 || sel.RequiredOriginalCost != nil {
+			return true
+		}
+	}
+	return false
+}
+
+// HasStandardProjectSelectors returns true if any selector targets standard projects
+func HasStandardProjectSelectors(selectors []shared.Selector) bool {
+	for _, sel := range selectors {
+		if len(sel.StandardProjects) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// HasResourceSelectors returns true if any selector targets resources
+func HasResourceSelectors(selectors []shared.Selector) bool {
+	for _, sel := range selectors {
+		if len(sel.Resources) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// GetResourcesFromSelectors collects all resources from selectors into a single slice
+func GetResourcesFromSelectors(selectors []shared.Selector) []string {
+	var resources []string
+	seen := make(map[string]bool)
+	for _, sel := range selectors {
+		for _, r := range sel.Resources {
+			if !seen[r] {
+				seen[r] = true
+				resources = append(resources, r)
+			}
+		}
+	}
+	return resources
+}
+
+// MatchesResourceSelector checks if a resource type matches a selector
+func MatchesResourceSelector(resourceType string, selector shared.Selector) bool {
+	return slices.Contains(selector.Resources, resourceType)
+}
+
+// MatchesAnyResourceSelector checks OR between selectors for resources
+func MatchesAnyResourceSelector(resourceType string, selectors []shared.Selector) bool {
+	for _, sel := range selectors {
+		if MatchesResourceSelector(resourceType, sel) {
+			return true
+		}
+	}
+	return false
+}

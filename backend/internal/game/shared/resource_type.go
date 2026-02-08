@@ -60,4 +60,6 @@ const (
 	ResourceValueModifier           ResourceType = "value-modifier"
 	ResourcePaymentSubstitute       ResourceType = "payment-substitute"
 	ResourceOceanAdjacencyBonus     ResourceType = "ocean-adjacency-bonus"
+
+	ResourceLandClaim ResourceType = "land-claim"
 )

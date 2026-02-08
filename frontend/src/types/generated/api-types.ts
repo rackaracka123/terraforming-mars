@@ -491,6 +491,19 @@ export interface ResourceSet {
 export interface TileRestrictionsDto {
   boardTags?: string[];
   adjacency?: string; // "none" = no adjacent occupied tiles
+  onTileType?: string; // "ocean" = only on ocean spaces
+}
+/**
+ * SelectorDto represents matching criteria for cards, resources, or projects.
+ * Multiple fields within a Selector use AND logic (all must match).
+ * Multiple Selectors in a slice use OR logic (any match is sufficient).
+ */
+export interface SelectorDto {
+  tags?: CardTag[];
+  cardTypes?: CardType[];
+  resources?: string[];
+  standardProjects?: StandardProject[];
+  requiredOriginalCost?: MinMaxValueDto;
 }
 /**
  * ResourceConditionDto represents a resource condition for client consumption
@@ -499,10 +512,7 @@ export interface ResourceConditionDto {
   type: ResourceType;
   amount: number /* int */;
   target: TargetType;
-  affectedResources?: string[];
-  affectedTags?: CardTag[];
-  affectedCardTypes?: CardType[];
-  affectedStandardProjects?: StandardProject[];
+  selectors?: SelectorDto[];
   maxTrigger?: number /* int */;
   per?: PerConditionDto;
   tileRestrictions?: TileRestrictionsDto;
@@ -544,9 +554,7 @@ export interface MinMaxValueDto {
 export interface ResourceTriggerConditionDto {
   type: TriggerType;
   location?: CardApplyLocation;
-  affectedTags?: CardTag[];
-  affectedResources?: string[]; // Resource types that trigger this effect (for placement-bonus-gained)
-  affectedCardTypes?: CardType[]; // Card types that trigger this effect (for card-played)
+  selectors?: SelectorDto[];
   target?: TargetType;
   requiredOriginalCost?: MinMaxValueDto;
   requiredResourceChange?: { [key: ResourceType]: MinMaxValueDto };
@@ -961,6 +969,7 @@ export interface TileDto {
   bonuses: TileBonusDto[];
   occupiedBy?: TileOccupantDto;
   ownerId?: string;
+  reservedBy?: string;
 }
 /**
  * BoardDto represents the game board containing all tiles

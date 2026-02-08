@@ -656,13 +656,30 @@ func checkRequirement(
 			}
 		}
 
-		// Count tags across all played cards (including corporation)
 		tagCount := 0
 		for _, playedCardID := range p.PlayedCards().Cards() {
-			// TODO: Get card from registry and check if it has the tag
-			// This requires fully integrating with CardRegistry
-			// For now, skip tag validation (same as PlayCardAction line 260)
-			_ = playedCardID
+			if cardRegistry == nil {
+				continue
+			}
+			card, err := cardRegistry.GetByID(playedCardID)
+			if err != nil {
+				continue
+			}
+			for _, tag := range card.Tags {
+				if tag == *req.Tag {
+					tagCount++
+				}
+			}
+		}
+
+		if corpID := p.CorporationID(); corpID != "" && cardRegistry != nil {
+			if corp, err := cardRegistry.GetByID(corpID); err == nil {
+				for _, tag := range corp.Tags {
+					if tag == *req.Tag {
+						tagCount++
+					}
+				}
+			}
 		}
 
 		if req.Min != nil && tagCount < *req.Min {

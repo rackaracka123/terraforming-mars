@@ -150,6 +150,15 @@ type CardPlayedEvent struct {
 	Timestamp time.Time
 }
 
+// StandardProjectPlayedEvent is published when a standard project is executed
+type StandardProjectPlayedEvent struct {
+	GameID      string
+	PlayerID    string
+	ProjectType string
+	ProjectCost int
+	Timestamp   time.Time
+}
+
 // TagPlayedEvent is published when a tag is played (once per tag on a card)
 type TagPlayedEvent struct {
 	GameID    string

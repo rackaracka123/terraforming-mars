@@ -103,24 +103,9 @@ func (cb CardBehavior) ExtractInputsOutputs(choiceIndex *int) (inputs []Resource
 func deepCopyResourceCondition(rc ResourceCondition) ResourceCondition {
 	result := rc
 
-	if rc.AffectedResources != nil {
-		result.AffectedResources = make([]string, len(rc.AffectedResources))
-		copy(result.AffectedResources, rc.AffectedResources)
-	}
-
-	if rc.AffectedTags != nil {
-		result.AffectedTags = make([]CardTag, len(rc.AffectedTags))
-		copy(result.AffectedTags, rc.AffectedTags)
-	}
-
-	if rc.AffectedCardTypes != nil {
-		result.AffectedCardTypes = make([]string, len(rc.AffectedCardTypes))
-		copy(result.AffectedCardTypes, rc.AffectedCardTypes)
-	}
-
-	if rc.AffectedStandardProjects != nil {
-		result.AffectedStandardProjects = make([]StandardProject, len(rc.AffectedStandardProjects))
-		copy(result.AffectedStandardProjects, rc.AffectedStandardProjects)
+	if rc.Selectors != nil {
+		result.Selectors = make([]Selector, len(rc.Selectors))
+		copy(result.Selectors, rc.Selectors)
 	}
 
 	if rc.Per != nil {

@@ -716,6 +716,28 @@ func (a *BehaviorApplier) applyOutput(
 		}
 		log.Info("🌡️ Increased temperature", zap.Int("steps", actualSteps))
 
+	case shared.ResourceLandClaim:
+		if a.game == nil {
+			return fmt.Errorf("cannot apply land claim: no game context")
+		}
+		if a.player == nil {
+			return fmt.Errorf("cannot apply land claim: no player context")
+		}
+
+		// Build array of land-claim tile types to append (for multiple placements)
+		tileTypes := make([]string, output.Amount)
+		for i := 0; i < output.Amount; i++ {
+			tileTypes[i] = "land-claim"
+		}
+
+		// Atomically append to queue (thread-safe)
+		if err := a.game.AppendToPendingTileSelectionQueue(ctx, a.player.ID(), tileTypes, a.source, nil); err != nil {
+			return fmt.Errorf("failed to append land claim to pending tile selection queue: %w", err)
+		}
+
+		log.Info("🏴 Added land claim tile selection to queue",
+			zap.Int("count", output.Amount))
+
 	case shared.ResourceCityPlacement, shared.ResourceGreeneryPlacement, shared.ResourceOceanPlacement:
 		if a.game == nil {
 			return fmt.Errorf("cannot apply tile placement: no game context")
@@ -745,8 +767,9 @@ func (a *BehaviorApplier) applyOutput(
 		var tileRestrictions *shared.TileRestrictions
 		if output.TileRestrictions != nil {
 			tileRestrictions = &shared.TileRestrictions{
-				BoardTags: output.TileRestrictions.BoardTags,
-				Adjacency: output.TileRestrictions.Adjacency,
+				BoardTags:  output.TileRestrictions.BoardTags,
+				Adjacency:  output.TileRestrictions.Adjacency,
+				OnTileType: output.TileRestrictions.OnTileType,
 			}
 		}
 
@@ -764,15 +787,16 @@ func (a *BehaviorApplier) applyOutput(
 		if a.player == nil {
 			return fmt.Errorf("cannot apply payment substitute: no player context")
 		}
-		// Extract resource type from affectedResources (e.g., "heat" for Helion)
-		if len(output.AffectedResources) > 0 {
-			resourceType := shared.ResourceType(output.AffectedResources[0])
+		// Extract resource type from selectors (e.g., "heat" for Helion)
+		resources := GetResourcesFromSelectors(output.Selectors)
+		if len(resources) > 0 {
+			resourceType := shared.ResourceType(resources[0])
 			a.player.Resources().AddPaymentSubstitute(resourceType, output.Amount)
 			log.Info("💰 Added payment substitute",
 				zap.String("resource_type", string(resourceType)),
 				zap.Int("conversion_rate", output.Amount))
 		} else {
-			log.Warn("⚠️ payment-substitute output missing affectedResources")
+			log.Warn("⚠️ payment-substitute output missing selectors with resources")
 		}
 
 	case shared.ResourceDiscount:
@@ -781,15 +805,14 @@ func (a *BehaviorApplier) applyOutput(
 		// The calculator then computes the actual modifiers from all effects
 		log.Info("🏷️ Discount effect registered",
 			zap.Int("amount", output.Amount),
-			zap.Any("affected_tags", output.AffectedTags),
-			zap.Any("affected_standard_projects", output.AffectedStandardProjects))
+			zap.Any("selectors", output.Selectors))
 
 	case shared.ResourceValueModifier:
 		if a.player == nil {
 			return fmt.Errorf("cannot apply value modifier: no player context")
 		}
 		// Apply value modifier to each affected resource (e.g., titanium +1, steel +1)
-		for _, resourceStr := range output.AffectedResources {
+		for _, resourceStr := range GetResourcesFromSelectors(output.Selectors) {
 			resourceType := shared.ResourceType(resourceStr)
 			a.player.Resources().AddValueModifier(resourceType, output.Amount)
 			log.Info("💎 Added resource value modifier",

@@ -354,7 +354,7 @@
     "name": "Asteroid",
     "type": "event",
     "cost": 14,
-    "description": "Raise temperature 1 step and gain 2 titanium. Remove up to 3 plants from any player.",
+    "description": "Raise temperature 1 step and gain 2 titanium. Remove up to 3 plants **from any player**.",
     "pack": "base-game",
     "tags": [
       "space"
@@ -373,7 +373,7 @@
             "target": "any-player"
           }
         ],
-        "description": "Raise temperature 1 step and gain 2 titanium. Remove up to 3 plants from any player."
+        "description": "Raise temperature 1 step and gain 2 titanium. Remove up to 3 plants **from any player**."
       },
       {
         "triggers": [
@@ -401,7 +401,7 @@
     "name": "Comet",
     "type": "event",
     "cost": 21,
-    "description": "Raise temperature 1 step and place an ocean tile. Remove up to 3 plants from any player.",
+    "description": "Raise temperature 1 step and place an ocean tile. Remove up to 3 plants **from any player**.",
     "pack": "base-game",
     "tags": [
       "space"
@@ -425,7 +425,7 @@
             "target": "none"
           }
         ],
-        "description": "Raise temperature 1 step and place an ocean tile. Remove up to 3 plants from any player."
+        "description": "Raise temperature 1 step and place an ocean tile. Remove up to 3 plants **from any player**."
       },
       {
         "triggers": [
@@ -448,7 +448,7 @@
     "name": "Big Asteroid",
     "type": "event",
     "cost": 27,
-    "description": "Raise temperature 2 steps and gain 4 titanium. Remove up to 4 plants from any player.",
+    "description": "Raise temperature 2 steps and gain 4 titanium. Remove up to 4 plants **from any player**.",
     "pack": "base-game",
     "tags": [
       "space"
@@ -467,7 +467,7 @@
             "target": "any-player"
           }
         ],
-        "description": "Raise temperature 2 steps and gain 4 titanium. Remove up to 4 plants from any player."
+        "description": "Raise temperature 2 steps and gain 4 titanium. Remove up to 4 plants **from any player**."
       },
       {
         "triggers": [
@@ -756,7 +756,9 @@
             "amount": 1,
             "target": "none",
             "tileRestrictions": {
-              "boardTags": ["noctis-city"]
+              "boardTags": [
+                "noctis-city"
+              ]
             }
           }
         ],
@@ -1043,7 +1045,7 @@
     "name": "Predators",
     "type": "active",
     "cost": 14,
-    "description": "Action: Remove 1 animal from any card and add it to this card. Requires 11% oxygen. 1 VP per animal on this card.",
+    "description": "Action: Remove 1 animal **from any card** and add it to this card. Requires 11% oxygen. 1 VP per animal on this card.",
     "pack": "base-game",
     "tags": [
       "animal"
@@ -1068,7 +1070,7 @@
             "target": "steal-from-any-card"
           }
         ],
-        "description": "Remove 1 animal from any card and add it to this card. Requires 11% oxygen. 1 VP per animal on this card."
+        "description": "Remove 1 animal **from any card** and add it to this card. Requires 11% oxygen. 1 VP per animal on this card."
       }
     ],
     "resourceStorage": {
@@ -1111,8 +1113,8 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "space"
+            "selectors": [
+              {"tags": ["space"]}
             ]
           }
         ],
@@ -1348,7 +1350,17 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto",
+            "condition": {
+              "type": "card-played",
+              "target": "self-player",
+              "selectors": [
+                {
+                  "tags": ["space"],
+                  "cardTypes": ["event"]
+                }
+              ]
+            }
           }
         ],
         "outputs": [
@@ -1523,7 +1535,7 @@
     "name": "Ants",
     "type": "active",
     "cost": 9,
-    "description": "Action: Remove 1 microbe from any card to add 1 to this card. Requires 4% oxygen. 1 VP per 2 microbes on this card.",
+    "description": "Action: Remove 1 microbe **from any card** to add 1 to this card. Requires 4% oxygen. 1 VP per 2 microbes on this card.",
     "pack": "base-game",
     "tags": [
       "microbe"
@@ -1548,7 +1560,7 @@
             "target": "steal-from-any-card"
           }
         ],
-        "description": "Remove 1 microbe from any card to add 1 to this card. Requires 4% oxygen. 1 VP per 2 microbes on this card."
+        "description": "Remove 1 microbe **from any card** to add 1 to this card. Requires 4% oxygen. 1 VP per 2 microbes on this card."
       }
     ],
     "resourceStorage": {
@@ -1636,7 +1648,7 @@
           {
             "outputs": [
               {
-                "type": "plant-production",
+                "type": "plant",
                 "amount": 4,
                 "target": "self-player"
               }
@@ -1691,7 +1703,7 @@
     "name": "Deimos Down",
     "type": "event",
     "cost": 31,
-    "description": "Raise temperature 3 steps and gain 4 steel. Remove up to 8 plants from any player.",
+    "description": "Raise temperature 3 steps and gain 4 steel. Remove up to 8 plants **from any player**.",
     "pack": "base-game",
     "tags": [
       "space"
@@ -1710,7 +1722,7 @@
             "target": "any-player"
           }
         ],
-        "description": "Raise temperature 3 steps and gain 4 steel. Remove up to 8 plants from any player."
+        "description": "Raise temperature 3 steps and gain 4 steel. Remove up to 8 plants **from any player**."
       },
       {
         "triggers": [
@@ -2112,7 +2124,7 @@
     "name": "Virus",
     "type": "event",
     "cost": 1,
-    "description": "Remove up to 2 animals or 5 plants from any player.",
+    "description": "Remove up to 2 animals or 5 plants **from any player**.",
     "pack": "corporate-era",
     "tags": [
       "microbe"
@@ -2144,7 +2156,7 @@
             ]
           }
         ],
-        "description": "Remove up to 2 animals or 5 plants from any player."
+        "description": "Remove up to 2 animals or 5 plants **from any player**."
       }
     ]
   },
@@ -2545,7 +2557,10 @@
           {
             "type": "greenery-placement",
             "amount": 1,
-            "target": "none"
+            "target": "none",
+            "tileRestrictions": {
+              "onTileType": "ocean"
+            }
           }
         ],
         "description": "Requires +4°C or warmer. Place a Greenery tile **on an area reserved for ocean** and raise oxygen 1 step. Disregard normal placement restrictions for this."
@@ -2679,7 +2694,7 @@
     "name": "Mining Expedition",
     "type": "event",
     "cost": 12,
-    "description": "Raise oxygen 1 step. Remove 2 plants from any player. Gain 2 steel.",
+    "description": "Raise oxygen 1 step. Remove 2 plants **from any player**. Gain 2 steel.",
     "pack": "base-game",
     "behaviors": [
       {
@@ -2695,7 +2710,7 @@
             "target": "any-player"
           }
         ],
-        "description": "Raise oxygen 1 step. Remove 2 plants from any player. Gain 2 steel."
+        "description": "Raise oxygen 1 step. Remove 2 plants **from any player**. Gain 2 steel."
       },
       {
         "triggers": [
@@ -2798,7 +2813,23 @@
     "type": "event",
     "cost": 1,
     "description": "Place your marker on a non-reserved area. Only you may place a tile here",
-    "pack": "corporate-era"
+    "pack": "corporate-era",
+    "behaviors": [
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "land-claim",
+            "amount": 1,
+            "target": "none"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "067",
@@ -2999,8 +3030,8 @@
             "type": "value-modifier",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "steel"
+            "selectors": [
+              {"resources": ["steel"]}
             ]
           }
         ],
@@ -3017,8 +3048,8 @@
             "type": "value-modifier",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "titanium"
+            "selectors": [
+              {"resources": ["titanium"]}
             ]
           }
         ]
@@ -3143,10 +3174,10 @@
             "type": "auto",
             "condition": {
               "type": "card-played",
-              "affectedTags": [
-                "plant",
-                "microbe",
-                "animal"
+              "selectors": [
+                {"tags": ["plant"]},
+                {"tags": ["microbe"]},
+                {"tags": ["animal"]}
               ],
               "target": "self-player"
             }
@@ -3165,7 +3196,16 @@
           {
             "outputs": [
               {
-                "type": "credit",
+                "type": "microbe",
+                "amount": 1,
+                "target": "any-card"
+              }
+            ]
+          },
+          {
+            "outputs": [
+              {
+                "type": "animal",
                 "amount": 1,
                 "target": "any-card"
               }
@@ -3219,7 +3259,7 @@
     "name": "Space Mirrors",
     "type": "active",
     "cost": 3,
-    "description": "Action: Spend 7 M€ to increase your energy production 1 step.",
+    "description": "Action: Spend 7 M€ to increase your energy production 1 step.",
     "pack": "base-game",
     "tags": [
       "power",
@@ -3246,7 +3286,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Spend 7 M€ to increase your energy production 1 step."
+        "description": "Spend 7 M€ to increase your energy production 1 step."
       }
     ]
   },
@@ -3343,8 +3383,8 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "space"
+            "selectors": [
+              {"tags": ["space"]}
             ]
           }
         ],
@@ -3371,7 +3411,7 @@
     "name": "Giant Ice Asteroid",
     "type": "event",
     "cost": 36,
-    "description": "Raise temperature 2 steps and place 2 ocean tiles. Remove up to 6 plants from any player.",
+    "description": "Raise temperature 2 steps and place 2 ocean tiles. Remove up to 6 plants **from any player**.",
     "pack": "base-game",
     "tags": [
       "space"
@@ -3395,7 +3435,7 @@
             "target": "none"
           }
         ],
-        "description": "Raise temperature 2 steps and place 2 ocean tiles. Remove up to 6 plants from any player."
+        "description": "Raise temperature 2 steps and place 2 ocean tiles. Remove up to 6 plants **from any player**."
       },
       {
         "triggers": [
@@ -3424,6 +3464,28 @@
       "city",
       "jovian",
       "space"
+    ],
+    "behaviors": [
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "city-placement",
+            "amount": 1,
+            "target": "none",
+            "tileRestrictions": {
+              "boardTags": [
+                "ganymede-colony"
+              ]
+            }
+          }
+        ],
+        "description": "Place a city tile **on the reserved area**."
+      }
     ],
     "vpConditions": [
       {
@@ -3881,8 +3943,8 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "space"
+            "selectors": [
+              {"tags": ["space"]}
             ]
           }
         ],
@@ -4304,8 +4366,8 @@
             "type": "discount",
             "amount": 3,
             "target": "self-player",
-            "affectedTags": [
-              "earth"
+            "selectors": [
+              {"tags": ["earth"]}
             ]
           }
         ],
@@ -4350,6 +4412,29 @@
     "pack": "corporate-era",
     "tags": [
       "earth"
+    ],
+    "behaviors": [
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "credit",
+            "amount": 1,
+            "target": "self-player",
+            "per": {
+              "type": "tag",
+              "amount": 1,
+              "location": "anywhere",
+              "target": "any-player",
+              "tag": "event"
+            }
+          }
+        ]
+      }
     ]
   },
   {
@@ -4826,7 +4911,7 @@
     "name": "Sabotage",
     "type": "event",
     "cost": 1,
-    "description": "Remove up to 3 titanium from any player, or 4 steel, or 7 M€.",
+    "description": "Remove up to 3 titanium **from any player**, or 4 steel, or 7 M€.",
     "pack": "corporate-era",
     "behaviors": [
       {
@@ -4864,7 +4949,7 @@
             ]
           }
         ],
-        "description": "Remove up to 3 titanium from any player, or 4 steel, or 7 M€."
+        "description": "Remove up to 3 titanium **from any player**, or 4 steel, or 7 M€."
       }
     ]
   },
@@ -4947,7 +5032,7 @@
     "name": "Hired Raiders",
     "type": "event",
     "cost": 1,
-    "description": "Steal up to 2 steel, or 3 M€ from any player.",
+    "description": "Steal up to 2 steel, or 3 M€ **from any player**.",
     "pack": "corporate-era",
     "behaviors": [
       {
@@ -4976,7 +5061,7 @@
             ]
           }
         ],
-        "description": "Steal up to 2 steel, or 3 M€ from any player."
+        "description": "Steal up to 2 steel, or 3 M€ **from any player**."
       }
     ]
   },
@@ -5115,9 +5200,9 @@
             "type": "auto",
             "condition": {
               "type": "card-played",
-              "affectedTags": [
-                "plant",
-                "animal"
+              "selectors": [
+                {"tags": ["plant"]},
+                {"tags": ["animal"]}
               ],
               "target": "self-player"
             }
@@ -5256,10 +5341,10 @@
             "type": "auto",
             "condition": {
               "type": "card-played",
-              "affectedTags": [
-                "plant",
-                "microbe",
-                "animal"
+              "selectors": [
+                {"tags": ["plant"]},
+                {"tags": ["microbe"]},
+                {"tags": ["animal"]}
               ],
               "target": "self-player"
             }
@@ -5422,6 +5507,23 @@
       "animal",
       "microbe",
       "plant"
+    ],
+    "requirements": [
+      {
+        "type": "tags",
+        "min": 1,
+        "tag": "plant"
+      },
+      {
+        "type": "tags",
+        "min": 1,
+        "tag": "microbe"
+      },
+      {
+        "type": "tags",
+        "min": 1,
+        "tag": "animal"
+      }
     ],
     "vpConditions": [
       {
@@ -6614,8 +6716,8 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "space"
+            "selectors": [
+              {"tags": ["space"]}
             ]
           }
         ]
@@ -6881,8 +6983,8 @@
             "type": "defense",
             "amount": 1,
             "target": "self-card",
-            "affectedResources": [
-              "animal"
+            "selectors": [
+              {"resources": ["animal"]}
             ]
           }
         ]
@@ -6925,10 +7027,10 @@
             "type": "defense",
             "amount": 1,
             "target": "self-card",
-            "affectedResources": [
-              "plant",
-              "microbe",
-              "animal"
+            "selectors": [
+              {"resources": ["plant"]},
+              {"resources": ["microbe"]},
+              {"resources": ["animal"]}
             ]
           }
         ],
@@ -6963,7 +7065,10 @@
           {
             "type": "greenery-placement",
             "amount": 1,
-            "target": "none"
+            "target": "none",
+            "tileRestrictions": {
+              "onTileType": "ocean"
+            }
           }
         ],
         "description": "Increase your M€ production 2 steps. Place a greenery tile **on an area reserved for ocean**, disregarding normal placement restrictions, and increase oxygen 1 step."
@@ -7420,8 +7525,8 @@
             "type": "auto",
             "condition": {
               "type": "tag-played",
-              "affectedTags": [
-                "science"
+              "selectors": [
+                {"tags": ["science"]}
               ]
             }
           }
@@ -7819,6 +7924,30 @@
       {
         "amount": 2,
         "condition": "fixed"
+      }
+    ],
+    "behaviors": [
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "tr",
+            "amount": 1,
+            "target": "self-player",
+            "per": {
+              "type": "tag",
+              "amount": 1,
+              "location": "anywhere",
+              "target": "self-player",
+              "tag": "jovian"
+            }
+          }
+        ],
+        "description": "Raise your TR 1 step for each Jovian tag you have, including this."
       }
     ]
   },
@@ -8237,7 +8366,7 @@
     "name": "Small Asteroid",
     "type": "event",
     "cost": 10,
-    "description": "Increase temperature 1 step. Remove up to 2 plants from any player.",
+    "description": "Increase temperature 1 step. Remove up to 2 plants **from any player**.",
     "pack": "promo",
     "tags": [
       "space"
@@ -8256,7 +8385,7 @@
             "target": "any-player"
           }
         ],
-        "description": "Increase temperature 1 step. Remove up to 2 plants from any player."
+        "description": "Increase temperature 1 step. Remove up to 2 plants **from any player**."
       },
       {
         "triggers": [
@@ -8539,8 +8668,8 @@
             "type": "floater",
             "amount": 3,
             "target": "any-card",
-            "affectedTags": [
-              "venus"
+            "selectors": [
+              {"tags": ["venus"]}
             ]
           }
         ],
@@ -8707,8 +8836,8 @@
             "type": "credit",
             "amount": 1,
             "target": "any-card",
-            "affectedTags": [
-              "venus"
+            "selectors": [
+              {"tags": ["venus"]}
             ]
           }
         ],
@@ -9144,8 +9273,8 @@
                 "type": "animal",
                 "amount": 2,
                 "target": "any-card",
-                "affectedTags": [
-                  "venus"
+                "selectors": [
+                  {"tags": ["venus"]}
                 ]
               }
             ]
@@ -9156,8 +9285,8 @@
                 "type": "microbe",
                 "amount": 2,
                 "target": "any-card",
-                "affectedTags": [
-                  "venus"
+                "selectors": [
+                  {"tags": ["venus"]}
                 ]
               }
             ]
@@ -9282,8 +9411,8 @@
             "type": "floater",
             "amount": 1,
             "target": "any-card",
-            "affectedTags": [
-              "venus"
+            "selectors": [
+              {"tags": ["venus"]}
             ],
             "per": {
               "type": "tag",
@@ -9608,8 +9737,8 @@
             "type": "credit",
             "amount": 1,
             "target": "any-card",
-            "affectedTags": [
-              "venus"
+            "selectors": [
+              {"tags": ["venus"]}
             ]
           }
         ],
@@ -9997,8 +10126,8 @@
             "type": "floater",
             "amount": 2,
             "target": "any-card",
-            "affectedTags": [
-              "venus"
+            "selectors": [
+              {"tags": ["venus"]}
             ]
           }
         ],
@@ -10028,7 +10157,7 @@
     "name": "Stratospheric Birds",
     "type": "active",
     "cost": 12,
-    "description": "Action: Add 1 animal to this card. Requires Venus 12%, and that you spend 1 floater from any card. 1 VP for each animal on this card.",
+    "description": "Action: Add 1 animal to this card. Requires Venus 12%, and that you spend 1 floater **from any card**. 1 VP for each animal on this card.",
     "pack": "venus-next",
     "tags": [
       "animal",
@@ -10068,7 +10197,7 @@
             "target": "self-card"
           }
         ],
-        "description": "Add 1 animal to this card. Requires Venus 12%, and that you spend 1 floater from any card. 1 VP for each animal on this card."
+        "description": "Add 1 animal to this card. Requires Venus 12%, and that you spend 1 floater **from any card**. 1 VP for each animal on this card."
       }
     ],
     "resourceStorage": {
@@ -10223,8 +10352,8 @@
                 "type": "microbe",
                 "amount": 1,
                 "target": "any-card",
-                "affectedTags": [
-                  "venus"
+                "selectors": [
+                  {"tags": ["venus"]}
                 ]
               }
             ]
@@ -10391,8 +10520,8 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "venus"
+            "selectors": [
+              {"tags": ["venus"]}
             ]
           }
         ],
@@ -10549,8 +10678,8 @@
                 "type": "animal",
                 "amount": 1,
                 "target": "any-card",
-                "affectedTags": [
-                  "venus"
+                "selectors": [
+                  {"tags": ["venus"]}
                 ]
               }
             ]
@@ -10561,8 +10690,8 @@
                 "type": "microbe",
                 "amount": 1,
                 "target": "any-card",
-                "affectedTags": [
-                  "venus"
+                "selectors": [
+                  {"tags": ["venus"]}
                 ]
               }
             ]
@@ -10607,9 +10736,7 @@
             "condition": {
               "type": "card-played",
               "target": "self-player",
-              "requiredOriginalCost": {
-                "min": 20
-              }
+              "selectors": [{ "requiredOriginalCost": { "min": 20 } }]
             }
           },
           {
@@ -10617,9 +10744,7 @@
             "condition": {
               "type": "standard-project-played",
               "target": "self-player",
-              "requiredOriginalCost": {
-                "min": 20
-              }
+              "selectors": [{ "requiredOriginalCost": { "min": 20 } }]
             }
           }
         ],
@@ -10680,11 +10805,8 @@
             "type": "discount",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "plant"
-            ],
-            "affectedStandardProjects": [
-              "convert-plants-to-greenery"
+            "selectors": [
+              {"standardProjects": ["convert-plants-to-greenery"], "resources": ["plant"]}
             ]
           }
         ],
@@ -10733,8 +10855,8 @@
             "type": "payment-substitute",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "heat"
+            "selectors": [
+              {"resources": ["heat"]}
             ]
           }
         ],
@@ -10777,8 +10899,8 @@
           {
             "type": "auto",
             "condition": {
-              "affectedCardTypes": [
-                "event"
+              "selectors": [
+                {"cardTypes": ["event"]}
               ],
               "type": "card-played"
             }
@@ -10896,9 +11018,8 @@
             "type": "auto",
             "condition": {
               "type": "placement-bonus-gained",
-              "affectedResources": [
-                "steel",
-                "titanium"
+              "selectors": [
+                {"resources": ["steel", "titanium"]}
               ],
               "target": "self-player"
             }
@@ -10956,8 +11077,8 @@
             "type": "value-modifier",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "titanium"
+            "selectors": [
+              {"resources": ["titanium"]}
             ]
           }
         ],
@@ -11022,7 +11143,7 @@
             "target": "self-player"
           }
         ],
-        "description": "When any city tile is placed **on mars**, increase your M€ production 1 step. When you place a city tile, gain 3 M€. You start with 40 M€. As your first action in the game, place a city tile."
+        "description": "When you place a city tile, gain 3 M€."
       },
       {
         "triggers": [
@@ -11041,7 +11162,8 @@
             "amount": 1,
             "target": "self-player"
           }
-        ]
+        ],
+        "description": "When any city tile is placed on mars, increase your M€ production 1 step."
       }
     ]
   },
@@ -11086,29 +11208,13 @@
             "type": "discount",
             "amount": 3,
             "target": "self-player",
-            "affectedTags": [
-              "power"
+            "selectors": [
+              {"tags": ["power"]},
+              {"standardProjects": ["power-plant"]}
             ]
           }
         ],
         "description": "When playing a power card **or the standard project power plant**, you pay 3 M€ less for it. You start with 1 energy production and 48 M€."
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "discount",
-            "amount": 3,
-            "target": "self-player",
-            "affectedStandardProjects": [
-              "power-plant"
-            ]
-          }
-        ]
       }
     ]
   },
@@ -11205,7 +11311,9 @@
             "type": "auto",
             "condition": {
               "type": "tag-played",
-              "affectedTags": ["jovian"],
+              "selectors": [
+                {"tags": ["jovian"]}
+              ],
               "target": "any-player"
             }
           }
@@ -11257,8 +11365,8 @@
             "type": "discount",
             "amount": 3,
             "target": "self-player",
-            "affectedTags": [
-              "earth"
+            "selectors": [
+              {"tags": ["earth"]}
             ]
           }
         ],
@@ -11314,7 +11422,7 @@
     "name": "Air Raid",
     "type": "event",
     "cost": 0,
-    "description": "Requires that you lose 1 floater. Steal 5 M€ from any player.",
+    "description": "Requires that you lose 1 floater. Steal 5 M€ **from any player**.",
     "pack": "colonies",
     "behaviors": [
       {
@@ -11330,7 +11438,7 @@
             "target": "steal-any-player"
           }
         ],
-        "description": "Requires that you lose 1 floater. Steal 5 M€ from any player."
+        "description": "Requires that you lose 1 floater. Steal 5 M€ **from any player**."
       },
       {
         "triggers": [
@@ -11822,7 +11930,7 @@
     "name": "Impactor Swarm",
     "type": "event",
     "cost": 11,
-    "description": "Requries 2 Jovian tags. Gain 12 heat. Remove up to 2 plants from any player.",
+    "description": "Requries 2 Jovian tags. Gain 12 heat. Remove up to 2 plants **from any player**.",
     "pack": "colonies",
     "tags": [
       "space"
@@ -11848,7 +11956,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requries 2 Jovian tags. Gain 12 heat. Remove up to 2 plants from any player."
+        "description": "Requries 2 Jovian tags. Gain 12 heat. Remove up to 2 plants **from any player**."
       },
       {
         "triggers": [
@@ -11987,8 +12095,8 @@
                 "type": "floater",
                 "amount": 1,
                 "target": "any-card",
-                "affectedTags": [
-                  "jovian"
+                "selectors": [
+                  {"tags": ["jovian"]}
                 ]
               }
             ]
@@ -12305,8 +12413,8 @@
             "type": "floater",
             "amount": 2,
             "target": "any-card",
-            "affectedTags": [
-              "jovian"
+            "selectors": [
+              {"tags": ["jovian"]}
             ]
           },
           {
@@ -12912,8 +13020,8 @@
             "type": "floater",
             "amount": 2,
             "target": "any-card",
-            "affectedTags": [
-              "jovian"
+            "selectors": [
+              {"tags": ["jovian"]}
             ]
           }
         ]
@@ -12931,8 +13039,8 @@
                 "type": "floater",
                 "amount": 1,
                 "target": "any-card",
-                "affectedTags": [
-                  "jovian"
+                "selectors": [
+                  {"tags": ["jovian"]}
                 ]
               }
             ]
@@ -12986,8 +13094,8 @@
                 "type": "floater",
                 "amount": 2,
                 "target": "any-card",
-                "affectedTags": [
-                  "jovian"
+                "selectors": [
+                  {"tags": ["jovian"]}
                 ]
               }
             ]
@@ -13097,8 +13205,8 @@
             "type": "discount",
             "amount": 4,
             "target": "self-player",
-            "affectedTags": [
-              "space"
+            "selectors": [
+              {"tags": ["space"]}
             ]
           }
         ],
@@ -13168,9 +13276,9 @@
             "type": "auto-corporation-start",
             "condition": {
               "type": "card-played",
-              "affectedTags": [
-                "plant",
-                "animal"
+              "selectors": [
+                {"tags": ["plant"]},
+                {"tags": ["animal"]}
               ],
               "target": "self-player"
             }
@@ -14792,8 +14900,8 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "building"
+            "selectors": [
+              {"tags": ["building"]}
             ]
           }
         ],
@@ -14980,8 +15088,8 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "science"
+            "selectors": [
+              {"tags": ["science"]}
             ]
           }
         ],
@@ -15055,7 +15163,7 @@
     "name": "Aerial Lenses",
     "type": "automated",
     "cost": 2,
-    "description": "Requires that Kelvinists are ruling or that you have 2 delegates there. Remove up to 2 plants from any player. Increase your heat production 2 steps.",
+    "description": "Requires that Kelvinists are ruling or that you have 2 delegates there. Remove up to 2 plants **from any player**. Increase your heat production 2 steps.",
     "pack": "turmoil",
     "behaviors": [
       {
@@ -15071,7 +15179,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires that Kelvinists are ruling or that you have 2 delegates there. Remove up to 2 plants from any player. Increase your heat production 2 steps."
+        "description": "Requires that Kelvinists are ruling or that you have 2 delegates there. Remove up to 2 plants **from any player**. Increase your heat production 2 steps."
       },
       {
         "triggers": [
@@ -15206,10 +15314,10 @@
             "type": "auto",
             "condition": {
               "type": "card-played",
-              "affectedTags": [
-                "plant",
-                "microbe",
-                "animal"
+              "selectors": [
+                {"tags": ["plant"]},
+                {"tags": ["microbe"]},
+                {"tags": ["animal"]}
               ],
               "target": "self-player"
             }
@@ -16310,8 +16418,8 @@
             "type": "value-modifier",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "titanium"
+            "selectors": [
+              {"resources": ["titanium"]}
             ]
           }
         ],
@@ -16422,8 +16530,8 @@
             "type": "value-modifier",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "steel"
+            "selectors": [
+              {"resources": ["steel"]}
             ]
           }
         ],
@@ -16571,10 +16679,10 @@
             "type": "defense",
             "amount": 1,
             "target": "self-card",
-            "affectedResources": [
-              "plant",
-              "microbe",
-              "animal"
+            "selectors": [
+              {"resources": ["plant"]},
+              {"resources": ["microbe"]},
+              {"resources": ["animal"]}
             ]
           }
         ]
@@ -17280,7 +17388,7 @@
     "name": "Deimos Down*",
     "type": "event",
     "cost": 31,
-    "description": "Raise temperature 3 steps. Place this tile **adjacent to no city tile**. Gain 4 steel. Remove up to 6 plants from any player.",
+    "description": "Raise temperature 3 steps. Place this tile **adjacent to no city tile**. Gain 4 steel. Remove up to 6 plants **from any player**.",
     "pack": "promo",
     "tags": [
       "space"
@@ -17299,7 +17407,7 @@
             "target": "any-player"
           }
         ],
-        "description": "Raise temperature 3 steps. Place this tile **adjacent to no city tile**. Gain 4 steel. Remove up to 6 plants from any player."
+        "description": "Raise temperature 3 steps. Place this tile **adjacent to no city tile**. Gain 4 steel. Remove up to 6 plants **from any player**."
       },
       {
         "triggers": [

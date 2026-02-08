@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"terraforming-mars-backend/internal/game/shared"
+	"time"
 
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/game/shared"
 )
 
 // Tile type string constants for placement operations
@@ -20,7 +21,8 @@ const (
 type BoardTag = string
 
 const (
-	BoardTagNoctisCity BoardTag = "noctis-city"
+	BoardTagNoctisCity     BoardTag = "noctis-city"
+	BoardTagGanymedeColony BoardTag = "ganymede-colony"
 )
 
 // TileLocation represents the celestial body where tiles are located
@@ -53,6 +55,7 @@ type Tile struct {
 	Bonuses     []TileBonus         `json:"bonuses"`
 	OccupiedBy  *TileOccupant       `json:"occupiedBy,omitempty"`
 	OwnerID     *string             `json:"ownerId,omitempty"`
+	ReservedBy  *string             `json:"reservedBy,omitempty" ts:"reservedBy"`
 }
 
 // Board represents the complete game board state with encapsulated tiles
@@ -109,6 +112,7 @@ func GenerateMarsBoard() []Tile {
 		{Q: 0, R: 2, S: -2}:  {Type: shared.ResourcePlant, Amount: 2},
 		{Q: 1, R: -3, S: 2}:  {Type: shared.ResourceCardDraw, Amount: 2},
 		{Q: 2, R: -3, S: 1}:  {Type: shared.ResourceCardDraw, Amount: 2},
+		{Q: -1, R: -1, S: 2}: {Type: shared.ResourceCredit, Amount: 3},
 	}
 
 	type taggedTileInfo struct {
@@ -116,7 +120,8 @@ func GenerateMarsBoard() []Tile {
 		DisplayName string
 	}
 	taggedTiles := map[shared.HexPosition]taggedTileInfo{
-		{Q: -4, R: 2, S: 2}: {Tags: []string{BoardTagNoctisCity}, DisplayName: "Noctis City"},
+		{Q: -4, R: 2, S: 2}:  {Tags: []string{BoardTagNoctisCity}, DisplayName: "Noctis City"},
+		{Q: 4, R: -2, S: -2}: {Tags: []string{BoardTagGanymedeColony}, DisplayName: "Ganymede Colony"},
 	}
 
 	radius := 4
@@ -236,6 +241,7 @@ func (b *Board) UpdateTileOccupancy(ctx context.Context, coords shared.HexPositi
 		if b.tiles[i].Coordinates == coords {
 			b.tiles[i].OccupiedBy = &occupant
 			b.tiles[i].OwnerID = &ownerID
+			b.tiles[i].ReservedBy = nil // Clear reservation when tile is occupied
 			found = true
 			break
 		}
@@ -254,6 +260,46 @@ func (b *Board) UpdateTileOccupancy(ctx context.Context, coords shared.HexPositi
 			Q:        coords.Q,
 			R:        coords.R,
 			S:        coords.S,
+		})
+	}
+
+	return nil
+}
+
+// ReserveTile reserves a tile for exclusive future placement by a player
+func (b *Board) ReserveTile(ctx context.Context, coords shared.HexPosition, playerID string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	var found bool
+
+	b.mu.Lock()
+	for i := range b.tiles {
+		if b.tiles[i].Coordinates == coords {
+			if b.tiles[i].OccupiedBy != nil {
+				b.mu.Unlock()
+				return fmt.Errorf("cannot reserve tile at %v: already occupied", coords)
+			}
+			if b.tiles[i].ReservedBy != nil {
+				b.mu.Unlock()
+				return fmt.Errorf("cannot reserve tile at %v: already reserved by another player", coords)
+			}
+			b.tiles[i].ReservedBy = &playerID
+			found = true
+			break
+		}
+	}
+	b.mu.Unlock()
+
+	if !found {
+		return fmt.Errorf("tile not found at coordinates %v", coords)
+	}
+
+	if b.eventBus != nil {
+		events.Publish(b.eventBus, events.GameStateChangedEvent{
+			GameID:    b.gameID,
+			Timestamp: time.Now(),
 		})
 	}
 
@@ -294,6 +340,11 @@ func (b *Board) deepCopyTile(tile *Tile) *Tile {
 	if tile.OwnerID != nil {
 		ownerIDCopy := *tile.OwnerID
 		tileCopy.OwnerID = &ownerIDCopy
+	}
+
+	if tile.ReservedBy != nil {
+		reservedByCopy := *tile.ReservedBy
+		tileCopy.ReservedBy = &reservedByCopy
 	}
 
 	return &tileCopy

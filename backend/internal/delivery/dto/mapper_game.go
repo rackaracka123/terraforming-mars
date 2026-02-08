@@ -68,6 +68,7 @@ func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string) G
 			Bonuses:     convertTileBonuses(tile.Bonuses),
 			Location:    string(tile.Location),
 			DisplayName: tile.DisplayName,
+			ReservedBy:  tile.ReservedBy,
 		}
 		if tile.OccupiedBy != nil {
 			occupant := &TileOccupantDto{

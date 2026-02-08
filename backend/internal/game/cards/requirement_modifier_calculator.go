@@ -40,62 +40,50 @@ func (c *RequirementModifierCalculator) Calculate(p *player.Player) []shared.Req
 				continue
 			}
 
-			// Case 1: Standard project discount (e.g., Ecoline's plant discount)
-			if len(output.AffectedStandardProjects) > 0 {
-				for _, project := range output.AffectedStandardProjects {
-					projectCopy := project
-					modifier := shared.RequirementModifier{
-						Amount:                output.Amount,
-						AffectedResources:     c.convertAffectedResources(output.AffectedResources),
-						StandardProjectTarget: &projectCopy,
-					}
-					modifiers = append(modifiers, modifier)
-				}
-				continue
-			}
+			// Check selectors for discount targeting
+			if len(output.Selectors) > 0 {
+				hasCardSelectors := HasCardSelectors(output.Selectors)
+				hasStandardProjectSelectors := HasStandardProjectSelectors(output.Selectors)
 
-			if len(output.AffectedTags) > 0 {
-				for _, cardID := range handCardIDs {
-					card, err := c.cardLookup.GetByID(cardID)
-					if err != nil {
-						continue
-					}
-
-					if c.cardHasMatchingTag(card, output.AffectedTags) {
-						cardIDCopy := cardID
-						modifier := shared.RequirementModifier{
-							Amount:            output.Amount,
-							AffectedResources: []shared.ResourceType{shared.ResourceCredit},
-							CardTarget:        &cardIDCopy,
+				// Case 1: Standard project discount
+				if hasStandardProjectSelectors {
+					for _, selector := range output.Selectors {
+						for _, project := range selector.StandardProjects {
+							projectCopy := project
+							affectedResources := c.convertAffectedResources(GetResourcesFromSelectors(output.Selectors))
+							modifier := shared.RequirementModifier{
+								Amount:                output.Amount,
+								AffectedResources:     affectedResources,
+								StandardProjectTarget: &projectCopy,
+							}
+							modifiers = append(modifiers, modifier)
 						}
-						modifiers = append(modifiers, modifier)
 					}
 				}
-				continue
-			}
 
-			// Case 3: Card type discount
-			if len(output.AffectedCardTypes) > 0 {
-				for _, cardID := range handCardIDs {
-					card, err := c.cardLookup.GetByID(cardID)
-					if err != nil {
-						continue
-					}
-
-					if c.cardHasMatchingType(card, output.AffectedCardTypes) {
-						cardIDCopy := cardID
-						modifier := shared.RequirementModifier{
-							Amount:            output.Amount,
-							AffectedResources: []shared.ResourceType{shared.ResourceCredit},
-							CardTarget:        &cardIDCopy,
+				// Case 2: Card discount (tag or type based)
+				if hasCardSelectors {
+					for _, cardID := range handCardIDs {
+						card, err := c.cardLookup.GetByID(cardID)
+						if err != nil {
+							continue
 						}
-						modifiers = append(modifiers, modifier)
+
+						if MatchesAnySelector(card, output.Selectors) {
+							cardIDCopy := cardID
+							modifier := shared.RequirementModifier{
+								Amount:            output.Amount,
+								AffectedResources: []shared.ResourceType{shared.ResourceCredit},
+								CardTarget:        &cardIDCopy,
+							}
+							modifiers = append(modifiers, modifier)
+						}
 					}
 				}
 				continue
 			}
 
-			// Case 4: Global discount (applies to all cards in hand)
+			// Global discount (no selectors - applies to all cards in hand)
 			for _, cardID := range handCardIDs {
 				cardIDCopy := cardID
 				modifier := shared.RequirementModifier{
@@ -121,29 +109,6 @@ func (c *RequirementModifierCalculator) convertAffectedResources(resources []str
 		result[i] = shared.ResourceType(r)
 	}
 	return result
-}
-
-// cardHasMatchingTag checks if a card has any of the specified tags
-func (c *RequirementModifierCalculator) cardHasMatchingTag(card *Card, tags []shared.CardTag) bool {
-	for _, cardTag := range card.Tags {
-		for _, targetTag := range tags {
-			if cardTag == targetTag {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// cardHasMatchingType checks if a card matches any of the specified types
-func (c *RequirementModifierCalculator) cardHasMatchingType(card *Card, types []string) bool {
-	cardType := string(card.Type)
-	for _, t := range types {
-		if cardType == t {
-			return true
-		}
-	}
-	return false
 }
 
 // mergeModifiers combines modifiers targeting the same card/project by summing amounts
@@ -198,27 +163,27 @@ func (c *RequirementModifierCalculator) CalculateCardDiscounts(p *player.Player,
 				continue
 			}
 
-			hasCardTargets := len(output.AffectedTags) > 0 || len(output.AffectedCardTypes) > 0
-			hasOnlyStandardProjectTargets := len(output.AffectedStandardProjects) > 0 && !hasCardTargets
+			// Check selectors first (new system with AND logic within selector, OR between selectors)
+			if len(output.Selectors) > 0 {
+				hasCardSelectors := HasCardSelectors(output.Selectors)
+				hasOnlyStandardProjectSelectors := HasStandardProjectSelectors(output.Selectors) && !hasCardSelectors
 
-			// Skip discounts that only target standard projects (not cards)
-			if hasOnlyStandardProjectTargets {
-				continue
-			}
-
-			// Check card-specific targeting (OR logic: tag match OR card type match)
-			if hasCardTargets {
-				// Check if card matches any of the targeting criteria
-				matchesTags := len(output.AffectedTags) > 0 && c.cardHasMatchingTag(card, output.AffectedTags)
-				matchesCardType := len(output.AffectedCardTypes) > 0 && c.cardHasMatchingType(card, output.AffectedCardTypes)
-
-				if matchesTags || matchesCardType {
-					totalDiscount += output.Amount
+				if hasOnlyStandardProjectSelectors {
+					continue
 				}
+
+				if hasCardSelectors {
+					if MatchesAnySelector(card, output.Selectors) {
+						totalDiscount += output.Amount
+					}
+					continue
+				}
+
+				totalDiscount += output.Amount
 				continue
 			}
 
-			// Global discount (no specific targets - applies to all cards)
+			// Global discount (no selectors - applies to all cards)
 			totalDiscount += output.Amount
 		}
 	}
@@ -247,23 +212,14 @@ func (c *RequirementModifierCalculator) CalculateStandardProjectDiscounts(
 				continue
 			}
 
-			// Only process if this discount affects this standard project
-			projectMatches := false
-			for _, proj := range output.AffectedStandardProjects {
-				if proj == projectType {
-					projectMatches = true
-					break
+			// Check selectors for standard project discount
+			if len(output.Selectors) > 0 {
+				if MatchesAnyStandardProjectSelector(projectType, output.Selectors) {
+					affectedResources := c.convertAffectedResources(GetResourcesFromSelectors(output.Selectors))
+					for _, resourceType := range affectedResources {
+						discounts[resourceType] += output.Amount
+					}
 				}
-			}
-
-			if !projectMatches {
-				continue
-			}
-
-			// Determine which resources are discounted
-			affectedResources := c.convertAffectedResources(output.AffectedResources)
-			for _, resourceType := range affectedResources {
-				discounts[resourceType] += output.Amount
 			}
 		}
 	}

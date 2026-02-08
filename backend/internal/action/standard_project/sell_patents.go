@@ -3,11 +3,15 @@ package standard_project
 import (
 	"context"
 	"fmt"
+	"time"
+
 	baseaction "terraforming-mars-backend/internal/action"
 
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	playerPkg "terraforming-mars-backend/internal/game/player"
+	"terraforming-mars-backend/internal/game/shared"
 )
 
 // SellPatentsAction handles the business logic for initiating sell patents standard project
@@ -69,6 +73,14 @@ func (a *SellPatentsAction) Execute(ctx context.Context, gameID string, playerID
 	}
 
 	player.Selection().SetPendingCardSelection(pendingSelection)
+
+	events.Publish(g.EventBus(), events.StandardProjectPlayedEvent{
+		GameID:      g.ID(),
+		PlayerID:    playerID,
+		ProjectType: string(shared.StandardProjectSellPatents),
+		ProjectCost: 0,
+		Timestamp:   time.Now(),
+	})
 
 	log.Info("📋 Created pending card selection for sell patents",
 		zap.Int("available_cards", len(playerCards)))

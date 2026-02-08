@@ -176,7 +176,7 @@ export default function Game3DView({
             <directionalLight
               position={[8, 6, 15]}
               intensity={2.6}
-              color="#fff8e1"
+              color="#ffdcb8"
               castShadow
               shadow-mapSize-width={2048}
               shadow-mapSize-height={2048}

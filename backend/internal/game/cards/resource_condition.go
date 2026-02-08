@@ -24,16 +24,12 @@ type TileRestrictions struct {
 
 // ResourceCondition represents a resource amount (input or output)
 type ResourceCondition struct {
-	Type                     shared.ResourceType      `json:"type"`
-	Amount                   int                      `json:"amount"`
-	Target                   TargetType               `json:"target"`
-	AffectedResources        []string                 `json:"affectedResources,omitempty"`
-	AffectedTags             []shared.CardTag         `json:"affectedTags,omitempty"`
-	AffectedCardTypes        []CardType               `json:"affectedCardTypes,omitempty"`
-	AffectedStandardProjects []shared.StandardProject `json:"affectedStandardProjects,omitempty"`
-	MaxTrigger               *int                     `json:"maxTrigger,omitempty"`
-	Per                      *PerCondition            `json:"per,omitempty"`
-	TileRestrictions         *TileRestrictions        `json:"tileRestrictions,omitempty"`
+	Type             shared.ResourceType `json:"type"`
+	Amount           int                 `json:"amount"`
+	Target           TargetType          `json:"target"`
+	MaxTrigger       *int                `json:"maxTrigger,omitempty"`
+	Per              *PerCondition       `json:"per,omitempty"`
+	TileRestrictions *TileRestrictions   `json:"tileRestrictions,omitempty"`
 }
 
 // PerCondition represents what to count for conditional resource gains

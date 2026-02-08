@@ -18,7 +18,8 @@ export interface ClassifiedBehavior {
     | "auto-no-background"
     | "discount"
     | "payment-substitute"
-    | "value-modifier";
+    | "value-modifier"
+    | "defense";
   // For merged triggered effects that share the same condition type
   mergedBehaviors?: CardBehaviorDto[];
 }

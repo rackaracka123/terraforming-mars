@@ -64,7 +64,8 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
       type === "ocean-tile" ||
       type === "ocean-placement" ||
       type === "greenery-tile" ||
-      type === "greenery-placement"
+      type === "greenery-placement" ||
+      type === "land-claim"
     );
   };
 
@@ -99,7 +100,7 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
       >
         {negative.length > 0 && (
           <div className="flex gap-[3px] items-center justify-start">
-            <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+            <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[24px] flex items-center justify-center leading-none [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] -translate-y-px">
               -
             </span>
             {negative.map((output: any, index: number) => {
@@ -146,7 +147,7 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
             ) : (
               <div className="flex gap-[3px] items-center justify-start">
                 {negative.length > 0 && (
-                  <span className="text-xl font-bold text-[#c8e6c9] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                  <span className="text-xl font-bold text-[#c8e6c9] w-[20px] h-[24px] flex items-center justify-center leading-none [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] -translate-y-px">
                     +
                   </span>
                 )}
@@ -182,7 +183,7 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
         {negative.length > 0 && (
           <div className="flex gap-[3px] items-center justify-start">
             {negative.length > 1 && (
-              <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+              <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[24px] flex items-center justify-center leading-none [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] -translate-y-px">
                 -
               </span>
             )}
@@ -231,7 +232,7 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
             ) : (
               <div className="flex gap-[3px] items-center justify-start">
                 {negative.length > 0 && (
-                  <span className="text-xl font-bold text-[#c8e6c9] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                  <span className="text-xl font-bold text-[#c8e6c9] w-[20px] h-[24px] flex items-center justify-center leading-none [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] -translate-y-px">
                     +
                   </span>
                 )}
@@ -352,44 +353,86 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
     behavior.outputs &&
     behavior.outputs.length > 0
   ) {
+    // Calculate total icons across all OR choices
+    const totalChoiceIcons = behavior.choices.reduce((sum: number, choice: any) => {
+      const choiceIcons = (choice.outputs || []).reduce((choiceSum: number, output: any) => {
+        return choiceSum + Math.abs(output.amount || 1);
+      }, 0);
+      return sum + choiceIcons;
+    }, 0);
+
+    const MAX_OR_CHOICE_ICONS = 5;
+    const forceNumberMode = totalChoiceIcons > MAX_OR_CHOICE_ICONS;
+
     return (
       <div className="flex flex-col gap-[6px] items-center justify-start w-full py-1">
-        <div className="flex flex-wrap gap-1 items-center justify-center">
-          {behavior.choices.map((choice: any, choiceIndex: number) => (
-            <React.Fragment key={`choice-compact-${choiceIndex}`}>
-              {choiceIndex > 0 && (
-                <span className="text-white font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
-                  /
-                </span>
-              )}
-              {choice.outputs &&
-                choice.outputs.map((output: any, outputIndex: number) => {
-                  const amount = output.amount || 1;
-                  const resourceType = output.resourceType || output.type;
-                  const isAffordable = isResourceAffordable(output, false);
+        <div className="flex gap-2 items-center justify-center flex-nowrap">
+          {behavior.choices.map((choice: any, choiceIndex: number) => {
+            const choiceOutputs = choice.outputs || [];
+            const allChoiceOutputsAreProduction =
+              choiceOutputs.length > 0 &&
+              choiceOutputs.every(
+                (output: any) =>
+                  output.type?.includes("production") ||
+                  output.resourceType?.includes("production"),
+              );
 
-                  return (
-                    <React.Fragment key={`choice-${choiceIndex}-output-${outputIndex}`}>
-                      <div className="flex gap-[3px] items-center">
-                        {amount > 0 && (
-                          <span className="text-white font-bold text-base [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
-                            {amount}
-                          </span>
-                        )}
-                        <BehaviorIcon
-                          resourceType={resourceType}
-                          isProduction={false}
-                          isAttack={false}
-                          context="standalone"
-                          isAffordable={isAffordable}
+            return (
+              <React.Fragment key={`choice-compact-${choiceIndex}`}>
+                {choiceIndex > 0 &&
+                  (behavior.choices.length >= 3 ? (
+                    <span className="text-[#e0e0e0] text-xs font-bold mx-[2px]">/</span>
+                  ) : (
+                    <div className="text-[10px] font-semibold text-white [text-shadow:0_0_2px_rgba(0,0,0,0.6)] my-0.5 mx-1 bg-gray-600/60 py-0.5 px-1.5 rounded backdrop-blur-[2px]">
+                      OR
+                    </div>
+                  ))}
+                {allChoiceOutputsAreProduction ? (
+                  <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
+                    {choiceOutputs.map((output: any, outputIndex: number) => {
+                      const displayInfo = analyzeResourceDisplayWithConstraints(
+                        output,
+                        7,
+                        forceNumberMode,
+                      );
+                      return (
+                        <ResourceDisplay
+                          key={`choice-${choiceIndex}-output-${outputIndex}`}
+                          displayInfo={displayInfo}
+                          isInput={false}
+                          resource={output}
+                          isGroupedWithOtherNegatives={false}
+                          context="production"
+                          isAffordable={isResourceAffordable(output, false)}
                           tileScaleInfo={tileScaleInfo}
                         />
-                      </div>
-                    </React.Fragment>
-                  );
-                })}
-            </React.Fragment>
-          ))}
+                      );
+                    })}
+                  </div>
+                ) : (
+                  choiceOutputs.map((output: any, outputIndex: number) => {
+                    const displayInfo = analyzeResourceDisplayWithConstraints(
+                      output,
+                      7,
+                      forceNumberMode,
+                    );
+                    return (
+                      <ResourceDisplay
+                        key={`choice-${choiceIndex}-output-${outputIndex}`}
+                        displayInfo={displayInfo}
+                        isInput={false}
+                        resource={output}
+                        isGroupedWithOtherNegatives={false}
+                        context="standalone"
+                        isAffordable={isResourceAffordable(output, false)}
+                        tileScaleInfo={tileScaleInfo}
+                      />
+                    );
+                  })
+                )}
+              </React.Fragment>
+            );
+          })}
         </div>
 
         {(() => {
@@ -526,11 +569,14 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
           <div className="flex items-center gap-2">
             {behavior.choices.map((choice: any, choiceIndex: number) => (
               <React.Fragment key={`prod-choice-${choiceIndex}`}>
-                {choiceIndex > 0 && (
-                  <div className="text-xs font-semibold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] my-0.5 mx-1 bg-[rgba(139,89,42,0.6)] py-0.5 px-1.5 rounded-[2px] backdrop-blur-[2px]">
-                    OR
-                  </div>
-                )}
+                {choiceIndex > 0 &&
+                  (behavior.choices.length >= 3 ? (
+                    <span className="text-[#e0e0e0] text-xs font-bold mx-[2px]">/</span>
+                  ) : (
+                    <div className="text-[10px] font-semibold text-white [text-shadow:0_0_2px_rgba(0,0,0,0.6)] my-0.5 mx-1 bg-[rgba(139,89,42,0.6)] py-0.5 px-1.5 rounded backdrop-blur-[2px]">
+                      OR
+                    </div>
+                  ))}
                 <div className="flex gap-[3px] items-center">
                   {choice.outputs.map((output: any, outputIndex: number) => {
                     const displayInfo = analyzeResourceDisplayWithConstraints(output, 7, false);
@@ -555,6 +601,66 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
         </div>
       );
     }
+
+    // Handle non-production choices (e.g., Sabotage, Virus - attack cards)
+    // These use "OR" chip separator with grey background and red glow on icons
+    return (
+      <div className="flex flex-wrap gap-2 items-center justify-center">
+        {behavior.choices.map((choice: any, choiceIndex: number) => (
+          <React.Fragment key={`attack-choice-${choiceIndex}`}>
+            {choiceIndex > 0 &&
+              (behavior.choices.length >= 3 ? (
+                <span className="text-[#e0e0e0] text-xs font-bold mx-[2px]">/</span>
+              ) : (
+                <div className="text-[10px] font-semibold text-white [text-shadow:0_0_2px_rgba(0,0,0,0.6)] my-0.5 mx-1 bg-gray-600/60 py-0.5 px-1.5 rounded backdrop-blur-[2px]">
+                  OR
+                </div>
+              ))}
+            {choice.outputs &&
+              choice.outputs.map((output: any, outputIndex: number) => {
+                const amount = Math.abs(output.amount || 1);
+                const resourceType = output.resourceType || output.type;
+                const isAttack = output.target === "any-player" || output.target === "any-card";
+
+                if (resourceType === "credit") {
+                  return (
+                    <div
+                      key={`attack-choice-${choiceIndex}-output-${outputIndex}`}
+                      className="flex gap-[3px] items-center"
+                    >
+                      <GameIcon
+                        iconType="credit"
+                        amount={amount}
+                        size="small"
+                        isAttack={isAttack}
+                      />
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={`attack-choice-${choiceIndex}-output-${outputIndex}`}
+                    className="flex gap-[3px] items-center"
+                  >
+                    <span className="text-[13px] font-black font-[Prototype,Arial_Black,Arial,sans-serif] text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
+                      {amount}
+                    </span>
+                    <BehaviorIcon
+                      resourceType={resourceType}
+                      isProduction={false}
+                      isAttack={isAttack}
+                      context="standalone"
+                      isAffordable={isResourceAffordable(output, false)}
+                      tileScaleInfo={tileScaleInfo}
+                    />
+                  </div>
+                );
+              })}
+          </React.Fragment>
+        ))}
+      </div>
+    );
   }
 
   if (!behavior.outputs || behavior.outputs.length === 0) return null;
@@ -631,7 +737,7 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
 
     return (
       <div className="flex flex-col gap-[9px] items-center justify-center max-w-full">
-        <div className="flex gap-[3px] items-center justify-center">
+        <div className="flex gap-2 items-center justify-center">
           {attackResources.map((output: any, index: number) => {
             const displayInfo = regularDisplayModes.get(output)!;
             return (
@@ -651,7 +757,7 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
           {negativeRegular.length > 0 && (
             <>
               {negativeRegular.length > 1 && (
-                <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[24px] flex items-center justify-center leading-none [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] -translate-y-px">
                   -
                 </span>
               )}
@@ -767,7 +873,7 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
           {negativeRegular.length > 0 && (
             <div className="flex gap-[3px] items-center justify-center">
               {negativeRegular.length > 1 && (
-                <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[24px] flex items-center justify-center leading-none [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] -translate-y-px">
                   -
                 </span>
               )}
@@ -958,7 +1064,7 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
           >
             {negativeProduction.length > 0 && (
               <div className="flex gap-[3px] items-center justify-start">
-                <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[24px] flex items-center justify-center leading-none [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] -translate-y-px">
                   -
                 </span>
                 {negativeProduction.map((output: any, index: number) => {
@@ -990,7 +1096,7 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                     className="flex gap-[3px] items-center justify-start"
                   >
                     {index === 0 && negativeProduction.length > 0 && (
-                      <span className="text-xl font-bold text-[#c8e6c9] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                      <span className="text-xl font-bold text-[#c8e6c9] w-[20px] h-[24px] flex items-center justify-center leading-none [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] -translate-y-px">
                         +
                       </span>
                     )}
@@ -1054,7 +1160,7 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                   >
                     <div className="flex items-center gap-px relative">
                       {(output.amount ?? 1) > 1 && (
-                        <span className="text-lg font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] leading-none flex items-center ml-0.5 max-md:text-xs">
+                        <span className="text-[20px] font-black font-[Prototype,Arial_Black,Arial,sans-serif] text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-none flex items-center ml-0.5 max-md:text-xs">
                           {output.amount}
                         </span>
                       )}
@@ -1083,7 +1189,7 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
               >
                 {negativeProduction.length > 0 && (
                   <div className="flex gap-[3px] items-center justify-start">
-                    <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                    <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[24px] flex items-center justify-center leading-none [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] -translate-y-px">
                       -
                     </span>
                     {negativeProduction.map((output: any, index: number) => {
@@ -1130,11 +1236,38 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                       })
                     ) : (
                       <div className="flex gap-[3px] items-center justify-start flex-wrap">
-                        {negativeProduction.length > 0 && (
-                          <span className="text-xl font-bold text-[#c8e6c9] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
-                            +
-                          </span>
-                        )}
+                        {(() => {
+                          // Check if any NON-CREDIT positive production will display with number mode
+                          // Credits always show number inside the icon, so they don't count as "number mode"
+                          const anyNonCreditPositiveUsesNumberMode = positiveProduction.some(
+                            (output: any) => {
+                              const resourceType = output.resourceType || output.type || "";
+                              const isCredit =
+                                resourceType === "credit" || resourceType === "credit-production";
+                              if (isCredit) return false;
+
+                              const displayInfo = analyzeResourceDisplayWithConstraints(
+                                output,
+                                7,
+                                false,
+                              );
+                              return displayInfo.displayMode === "number";
+                            },
+                          );
+
+                          // Show + sign if there are negatives AND no number mode in non-credit positives
+                          if (
+                            negativeProduction.length > 0 &&
+                            !anyNonCreditPositiveUsesNumberMode
+                          ) {
+                            return (
+                              <span className="text-xl font-bold text-[#c8e6c9] w-[20px] h-[24px] flex items-center justify-center leading-none [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] -translate-y-px">
+                                +
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
                         {positiveProduction.map((output: any, index: number) => {
                           const displayInfo = analyzeResourceDisplayWithConstraints(
                             output,
@@ -1193,7 +1326,7 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
           {negativeOutputs.length > 0 && (
             <div className="flex gap-[3px] items-center justify-start">
               {negativeOutputs.length > 1 && (
-                <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[24px] flex items-center justify-center leading-none [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] -translate-y-px">
                   -
                 </span>
               )}
@@ -1242,7 +1375,7 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
               ) : (
                 <div className="flex gap-[3px] items-center justify-start">
                   {negativeOutputs.length > 0 && (
-                    <span className="text-xl font-bold text-[#c8e6c9] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                    <span className="text-xl font-bold text-[#c8e6c9] w-[20px] h-[24px] flex items-center justify-center leading-none [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] -translate-y-px">
                       +
                     </span>
                   )}
@@ -1275,6 +1408,7 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                     amount={cardItem.amount}
                     badgeType={cardItem.badgeType}
                     isAffordable={true}
+                    totalCardTypes={consolidatedCards.length}
                   />
                 </React.Fragment>
               ))}

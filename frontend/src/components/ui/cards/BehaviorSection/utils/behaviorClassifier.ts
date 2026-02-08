@@ -21,6 +21,9 @@ export const classifyBehaviors = (behaviors: CardBehaviorDto[]): ClassifiedBehav
     const hasValueModifier =
       behavior.outputs && behavior.outputs.some((output: any) => output.type === "value-modifier");
 
+    const hasDefense =
+      behavior.outputs && behavior.outputs.some((output: any) => output.type === "defense");
+
     if (hasDiscount) {
       return { behavior, type: "discount" };
     }
@@ -31,6 +34,10 @@ export const classifyBehaviors = (behaviors: CardBehaviorDto[]): ClassifiedBehav
 
     if (hasValueModifier) {
       return { behavior, type: "value-modifier" };
+    }
+
+    if (hasDefense) {
+      return { behavior, type: "defense" };
     }
 
     if (triggerType === "manual") {

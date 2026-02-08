@@ -49,6 +49,16 @@ func SubscribePassiveEffectToEvents(
 			subID = subscribeTagPlayedEffect(ctx, g, p, effect, trigger, log, cr)
 		}
 
+		// Handle card-played trigger with selectors
+		if trigger.Condition.Type == "card-played" {
+			subID = subscribeCardPlayedEffect(ctx, g, p, effect, trigger, log, cr)
+		}
+
+		// Handle standard-project-played trigger
+		if trigger.Condition.Type == "standard-project-played" {
+			subID = subscribeStandardProjectPlayedEffect(ctx, g, p, effect, trigger, log, cr)
+		}
+
 		// Register subscription for cleanup when effect is removed
 		if subID != "" {
 			p.Effects().RegisterSubscription(effect.CardID, subID)
@@ -82,12 +92,17 @@ func subscribePlacementBonusEffect(
 			return // Effect only applies to self
 		}
 
-		// Check if affected resources match the condition
-		if len(trigger.Condition.AffectedResources) > 0 {
+		// Check if selectors match the bonus resources
+		if len(trigger.Condition.Selectors) > 0 {
 			matchFound := false
-			for _, affectedResource := range trigger.Condition.AffectedResources {
-				if _, exists := event.Resources[affectedResource]; exists {
-					matchFound = true
+			for _, sel := range trigger.Condition.Selectors {
+				for _, resource := range sel.Resources {
+					if _, exists := event.Resources[resource]; exists {
+						matchFound = true
+						break
+					}
+				}
+				if matchFound {
 					break
 				}
 			}
@@ -208,11 +223,17 @@ func subscribeTagPlayedEffect(
 			return
 		}
 
-		if len(trigger.Condition.AffectedTags) > 0 {
+		// Check if selectors match the played tag
+		if len(trigger.Condition.Selectors) > 0 {
 			matchFound := false
-			for _, affectedTag := range trigger.Condition.AffectedTags {
-				if string(affectedTag) == event.Tag {
-					matchFound = true
+			for _, sel := range trigger.Condition.Selectors {
+				for _, tag := range sel.Tags {
+					if string(tag) == event.Tag {
+						matchFound = true
+						break
+					}
+				}
+				if matchFound {
 					break
 				}
 			}
@@ -238,6 +259,139 @@ func subscribeTagPlayedEffect(
 	})
 
 	log.Debug("📬 Subscribed passive effect to TagPlayedEvent",
+		zap.String("card_name", effect.CardName))
+
+	return subID
+}
+
+func subscribeCardPlayedEffect(
+	_ context.Context,
+	g *game.Game,
+	p *player.Player,
+	effect player.CardEffect,
+	trigger shared.Trigger,
+	log *zap.Logger,
+	cr gamecards.CardRegistryInterface,
+) events.SubscriptionID {
+	subID := events.Subscribe(g.EventBus(), func(event events.CardPlayedEvent) {
+		if event.GameID != g.ID() {
+			return
+		}
+
+		target := "self-player"
+		if trigger.Condition.Target != nil {
+			target = *trigger.Condition.Target
+		}
+
+		if target == "self-player" && event.PlayerID != p.ID() {
+			return
+		}
+
+		if cr == nil {
+			return
+		}
+
+		card, err := cr.GetByID(event.CardID)
+		if err != nil {
+			return
+		}
+
+		// Check if the card matches any selector
+		if len(trigger.Condition.Selectors) > 0 {
+			if !gamecards.MatchesAnySelector(card, trigger.Condition.Selectors) {
+				return
+			}
+		}
+
+		log.Info("🎴 Passive effect triggered (card played)",
+			zap.String("card_name", effect.CardName),
+			zap.String("effect_owner", p.ID()),
+			zap.String("card_played_by", event.PlayerID),
+			zap.String("card_played", event.CardName))
+
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+			WithSourceCardID(effect.CardID).
+			WithCardRegistry(cr)
+		if err := applier.ApplyOutputs(context.Background(), effect.Behavior.Outputs); err != nil {
+			log.Error("Failed to apply passive effect outputs",
+				zap.String("card_name", effect.CardName),
+				zap.Error(err))
+		}
+	})
+
+	log.Debug("📬 Subscribed passive effect to CardPlayedEvent",
+		zap.String("card_name", effect.CardName))
+
+	return subID
+}
+
+func subscribeStandardProjectPlayedEffect(
+	_ context.Context,
+	g *game.Game,
+	p *player.Player,
+	effect player.CardEffect,
+	trigger shared.Trigger,
+	log *zap.Logger,
+	cr gamecards.CardRegistryInterface,
+) events.SubscriptionID {
+	subID := events.Subscribe(g.EventBus(), func(event events.StandardProjectPlayedEvent) {
+		if event.GameID != g.ID() {
+			return
+		}
+
+		target := "self-player"
+		if trigger.Condition.Target != nil {
+			target = *trigger.Condition.Target
+		}
+
+		if target == "self-player" && event.PlayerID != p.ID() {
+			return
+		}
+
+		// Check selectors for cost and project type matching
+		if len(trigger.Condition.Selectors) > 0 {
+			matched := false
+			for _, sel := range trigger.Condition.Selectors {
+				// Check cost requirement
+				if sel.RequiredOriginalCost != nil {
+					if sel.RequiredOriginalCost.Min != nil && event.ProjectCost < *sel.RequiredOriginalCost.Min {
+						continue
+					}
+					if sel.RequiredOriginalCost.Max != nil && event.ProjectCost > *sel.RequiredOriginalCost.Max {
+						continue
+					}
+				}
+				// Check project type match (if specified)
+				if len(sel.StandardProjects) > 0 {
+					if !gamecards.MatchesStandardProjectSelector(shared.StandardProject(event.ProjectType), sel) {
+						continue
+					}
+				}
+				matched = true
+				break
+			}
+			if !matched {
+				return
+			}
+		}
+
+		log.Info("🎴 Passive effect triggered (standard project played)",
+			zap.String("card_name", effect.CardName),
+			zap.String("effect_owner", p.ID()),
+			zap.String("project_type", event.ProjectType),
+			zap.Int("project_cost", event.ProjectCost))
+
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+			WithSourceCardID(effect.CardID).
+			WithCardRegistry(cr)
+		if err := applier.ApplyOutputs(context.Background(), effect.Behavior.Outputs); err != nil {
+			log.Error("Failed to apply passive effect outputs",
+				zap.String("card_name", effect.CardName),
+				zap.Error(err))
+		}
+	})
+
+	log.Debug("📬 Subscribed passive effect to StandardProjectPlayedEvent",
 		zap.String("card_name", effect.CardName))
 
 	return subID

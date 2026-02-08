@@ -31,6 +31,7 @@ const BehaviorContainer: React.FC<BehaviorContainerProps> = ({
       discount: "bg-white/[0.08] border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.15)]",
       "payment-substitute": "bg-white/[0.08] border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.15)]",
       "value-modifier": "bg-white/[0.08] border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.15)]",
+      defense: "bg-white/[0.08] border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.15)]",
       "immediate-production":
         "bg-[linear-gradient(135deg,rgba(139,89,42,0.35)_0%,rgba(101,67,33,0.3)_100%)] border-[rgba(139,89,42,0.5)] shadow-[0_2px_4px_rgba(139,89,42,0.25)]",
       "immediate-effect": "bg-white/[0.08] border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.15)]",
@@ -41,7 +42,8 @@ const BehaviorContainer: React.FC<BehaviorContainerProps> = ({
       type === "triggered-effect" ||
       type === "discount" ||
       type === "payment-substitute" ||
-      type === "value-modifier"
+      type === "value-modifier" ||
+      type === "defense"
         ? "w-fit"
         : "w-[calc(100%-20px)]";
 

@@ -93,6 +93,43 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 	}
 
 	tileType := pendingTileSelection.TileType
+
+	// Handle land claims differently - they reserve a tile instead of placing an occupant
+	if tileType == "land-claim" {
+		if err := g.Board().ReserveTile(ctx, *coords, playerID); err != nil {
+			log.Warn("Failed to reserve tile", zap.Error(err))
+			return nil, fmt.Errorf("failed to reserve tile: %w", err)
+		}
+
+		log.Info("🏴 Tile reserved for land claim",
+			zap.String("position", selectedHex))
+
+		result := &TilePlacementResult{
+			TileType:   tileType,
+			Source:     pendingTileSelection.Source,
+			Hex:        selectedHex,
+			OnComplete: pendingTileSelection.OnComplete,
+		}
+
+		if err := g.SetPendingTileSelection(ctx, playerID, nil); err != nil {
+			return nil, fmt.Errorf("failed to clear pending tile selection: %w", err)
+		}
+
+		if err := g.ProcessNextTile(ctx, playerID); err != nil {
+			return nil, fmt.Errorf("failed to process next tile: %w", err)
+		}
+
+		if err := a.completionRegistry.Handle(ctx, g, playerID, result, result.OnComplete); err != nil {
+			log.Warn("Failed to handle completion callback", zap.Error(err))
+		}
+
+		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+
+		log.Info("✅ Land claim reserved successfully",
+			zap.String("position", selectedHex))
+		return result, nil
+	}
+
 	occupant := board.TileOccupant{
 		Type: mapTileTypeToResourceType(tileType),
 		Tags: []string{},
@@ -117,7 +154,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 
 		for _, bonus := range placedTile.Bonuses {
 			switch bonus.Type {
-			case shared.ResourceSteel, shared.ResourceTitanium, shared.ResourcePlant:
+			case shared.ResourceSteel, shared.ResourceTitanium, shared.ResourcePlant, shared.ResourceCredit:
 				p.Resources().Add(map[shared.ResourceType]int{
 					bonus.Type: bonus.Amount,
 				})

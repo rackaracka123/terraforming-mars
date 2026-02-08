@@ -120,6 +120,85 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
 
     // Default case: each choice has its own outputs
     // Format: <input1> -> <output1> OR <input2> -> <output2>
+
+    // Calculate total icon count across all choices to determine layout
+    const totalIconCount = behavior.choices.reduce((total: number, choice: any) => {
+      const inputCount = choice.inputs?.length || 0;
+      const outputCount = choice.outputs?.length || 0;
+      const hasArrow = inputCount > 0 && outputCount > 0 ? 1 : 0;
+      return total + inputCount + outputCount + hasArrow;
+    }, 0);
+    // Add OR separators between choices
+    const totalWithSeparators = totalIconCount + (behavior.choices.length - 1);
+    const canFitOnSingleRow = totalWithSeparators < 4;
+
+    // Horizontal layout for small choice-based actions
+    if (canFitOnSingleRow) {
+      return (
+        <div className="flex items-center justify-center gap-1 w-full">
+          {behavior.choices.map((choice: any, choiceIndex: number) => (
+            <React.Fragment key={`choice-${choiceIndex}`}>
+              {/* OR separator between choices */}
+              {choiceIndex > 0 && (
+                <div className="text-[10px] font-semibold text-white [text-shadow:0_0_2px_rgba(0,0,0,0.6)] mx-1 bg-white/10 py-0.5 px-1.5 rounded backdrop-blur-[2px]">
+                  OR
+                </div>
+              )}
+
+              {/* Choice content (inputs -> outputs) */}
+              <div className="flex items-center gap-1">
+                {/* Inputs */}
+                {choice.inputs?.map((input: any, inputIndex: number) => {
+                  const displayInfo = analyzeResourceDisplayWithConstraints(input, 3, false);
+                  return (
+                    <ResourceDisplay
+                      key={`choice-${choiceIndex}-input-${inputIndex}`}
+                      displayInfo={displayInfo}
+                      isInput={true}
+                      resource={input}
+                      isGroupedWithOtherNegatives={false}
+                      context="action"
+                      isAffordable={isResourceAffordable(input, true)}
+                      tileScaleInfo={tileScaleInfo}
+                    />
+                  );
+                })}
+
+                {/* Arrow if both inputs and outputs */}
+                {choice.inputs?.length > 0 && choice.outputs?.length > 0 && (
+                  <span className="text-white text-base font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
+                    →
+                  </span>
+                )}
+
+                {/* Outputs */}
+                {choice.outputs?.map((output: any, outputIndex: number) => {
+                  const displayInfo = analyzeResourceDisplayWithConstraints(output, 3, false);
+                  return (
+                    <ResourceDisplay
+                      key={`choice-${choiceIndex}-output-${outputIndex}`}
+                      displayInfo={displayInfo}
+                      isInput={false}
+                      resource={output}
+                      isGroupedWithOtherNegatives={false}
+                      context="action"
+                      isAffordable={isResourceAffordable(output, false)}
+                      tileScaleInfo={tileScaleInfo}
+                    />
+                  );
+                })}
+              </div>
+            </React.Fragment>
+          ))}
+
+          {behavior.generationalEventRequirements?.length > 0 && (
+            <span className="text-white font-bold text-sm ml-1">*</span>
+          )}
+        </div>
+      );
+    }
+
+    // Vertical layout for larger choice-based actions
     return (
       <div className="flex flex-col gap-1.5 items-center w-full">
         {behavior.choices.map((choice: any, choiceIndex: number) => (
@@ -182,7 +261,7 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
 
             {/* Add "OR" separator between choices (except for the last one) */}
             {choiceIndex < behavior.choices.length - 1 && (
-              <div className="text-xs font-semibold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] my-0.5 mx-2 bg-white/10 py-0.5 px-1.5 rounded-[2px] backdrop-blur-[2px]">
+              <div className="text-[10px] font-semibold text-white [text-shadow:0_0_2px_rgba(0,0,0,0.6)] my-0.5 mx-2 bg-white/10 py-0.5 px-1.5 rounded backdrop-blur-[2px]">
                 OR
               </div>
             )}
@@ -209,11 +288,13 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
     ? behavior.outputs.filter((output: any) => !isCardResource(output))
     : [];
 
+  const hasInputs = behavior.inputs && behavior.inputs.length > 0;
+
   return (
-    <div className="flex items-center justify-center gap-2 w-full">
+    <div className="flex items-center justify-center gap-1 w-full">
       {/* Input side */}
       <div className="flex flex-col gap-0.5 items-center min-w-0">
-        {behavior.inputs &&
+        {hasInputs ? (
           behavior.inputs.map((input: any, inputIndex: number) => {
             const displayInfo = analyzeResourceDisplayWithConstraints(input, 3, false);
             return (
@@ -229,13 +310,20 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
                 />
               </React.Fragment>
             );
-          })}
+          })
+        ) : (
+          <span className="text-[10px] font-semibold text-white bg-[rgba(33,150,243,0.5)] px-1.5 py-0.5 rounded [text-shadow:0_0_2px_rgba(0,0,0,0.6)]">
+            Action
+          </span>
+        )}
       </div>
 
-      {/* Arrow separator */}
-      <div className="flex items-center justify-center text-white text-base font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] min-w-[20px] z-[1]">
-        →
-      </div>
+      {/* Arrow separator - only show when there are inputs */}
+      {hasInputs && (
+        <div className="flex items-center justify-center text-white text-base font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] min-w-[20px] z-[1]">
+          →
+        </div>
+      )}
 
       {/* Output side */}
       <div className="flex flex-col gap-0.5 items-center min-w-0">
@@ -260,7 +348,12 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
         {/* Consolidated card icons (card-draw, card-peek, card-take, card-buy) */}
         {consolidatedCards.map((cardItem, index) => (
           <React.Fragment key={`card-${index}`}>
-            <CardIcon amount={cardItem.amount} badgeType={cardItem.badgeType} isAffordable={true} />
+            <CardIcon
+              amount={cardItem.amount}
+              badgeType={cardItem.badgeType}
+              isAffordable={true}
+              totalCardTypes={consolidatedCards.length}
+            />
           </React.Fragment>
         ))}
       </div>

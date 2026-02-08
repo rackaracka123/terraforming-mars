@@ -201,22 +201,31 @@ type ResourceSet struct {
 
 // TileRestrictionsDto represents tile placement restrictions for client consumption
 type TileRestrictionsDto struct {
-	BoardTags []string `json:"boardTags,omitempty" ts:"string[] | undefined"`
-	Adjacency string   `json:"adjacency,omitempty" ts:"string | undefined"` // "none" = no adjacent occupied tiles
+	BoardTags  []string `json:"boardTags,omitempty" ts:"string[] | undefined"`
+	Adjacency  string   `json:"adjacency,omitempty" ts:"string | undefined"`  // "none" = no adjacent occupied tiles
+	OnTileType string   `json:"onTileType,omitempty" ts:"string | undefined"` // "ocean" = only on ocean spaces
+}
+
+// SelectorDto represents matching criteria for cards, resources, or projects.
+// Multiple fields within a Selector use AND logic (all must match).
+// Multiple Selectors in a slice use OR logic (any match is sufficient).
+type SelectorDto struct {
+	Tags                 []CardTag         `json:"tags,omitempty" ts:"CardTag[] | undefined"`
+	CardTypes            []CardType        `json:"cardTypes,omitempty" ts:"CardType[] | undefined"`
+	Resources            []string          `json:"resources,omitempty" ts:"string[] | undefined"`
+	StandardProjects     []StandardProject `json:"standardProjects,omitempty" ts:"StandardProject[] | undefined"`
+	RequiredOriginalCost *MinMaxValueDto   `json:"requiredOriginalCost,omitempty" ts:"MinMaxValueDto | undefined"`
 }
 
 // ResourceConditionDto represents a resource condition for client consumption
 type ResourceConditionDto struct {
-	Type                     ResourceType         `json:"type" ts:"ResourceType"`
-	Amount                   int                  `json:"amount" ts:"number"`
-	Target                   TargetType           `json:"target" ts:"TargetType"`
-	AffectedResources        []string             `json:"affectedResources,omitempty" ts:"string[] | undefined"`
-	AffectedTags             []CardTag            `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`
-	AffectedCardTypes        []CardType           `json:"affectedCardTypes,omitempty" ts:"CardType[] | undefined"`
-	AffectedStandardProjects []StandardProject    `json:"affectedStandardProjects,omitempty" ts:"StandardProject[] | undefined"`
-	MaxTrigger               *int                 `json:"maxTrigger,omitempty" ts:"number | undefined"`
-	Per                      *PerConditionDto     `json:"per,omitempty" ts:"PerConditionDto | undefined"`
-	TileRestrictions         *TileRestrictionsDto `json:"tileRestrictions,omitempty" ts:"TileRestrictionsDto | undefined"`
+	Type             ResourceType         `json:"type" ts:"ResourceType"`
+	Amount           int                  `json:"amount" ts:"number"`
+	Target           TargetType           `json:"target" ts:"TargetType"`
+	Selectors        []SelectorDto        `json:"selectors,omitempty" ts:"SelectorDto[] | undefined"`
+	MaxTrigger       *int                 `json:"maxTrigger,omitempty" ts:"number | undefined"`
+	Per              *PerConditionDto     `json:"per,omitempty" ts:"PerConditionDto | undefined"`
+	TileRestrictions *TileRestrictionsDto `json:"tileRestrictions,omitempty" ts:"TileRestrictionsDto | undefined"`
 }
 
 // PerConditionDto represents a per condition for client consumption
@@ -250,9 +259,7 @@ type MinMaxValueDto struct {
 type ResourceTriggerConditionDto struct {
 	Type                   TriggerType                     `json:"type" ts:"TriggerType"`
 	Location               *CardApplyLocation              `json:"location,omitempty" ts:"CardApplyLocation | undefined"`
-	AffectedTags           []CardTag                       `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`
-	AffectedResources      []string                        `json:"affectedResources,omitempty" ts:"string[] | undefined"`   // Resource types that trigger this effect (for placement-bonus-gained)
-	AffectedCardTypes      []CardType                      `json:"affectedCardTypes,omitempty" ts:"CardType[] | undefined"` // Card types that trigger this effect (for card-played)
+	Selectors              []SelectorDto                   `json:"selectors,omitempty" ts:"SelectorDto[] | undefined"`
 	Target                 *TargetType                     `json:"target,omitempty" ts:"TargetType | undefined"`
 	RequiredOriginalCost   *MinMaxValueDto                 `json:"requiredOriginalCost,omitempty" ts:"MinMaxValueDto | undefined"`
 	RequiredResourceChange map[ResourceType]MinMaxValueDto `json:"requiredResourceChange,omitempty" ts:"Record<ResourceType, MinMaxValueDto> | undefined"`
@@ -668,6 +675,7 @@ type TileDto struct {
 	Bonuses     []TileBonusDto   `json:"bonuses" ts:"TileBonusDto[]"`
 	OccupiedBy  *TileOccupantDto `json:"occupiedBy,omitempty" ts:"TileOccupantDto|null"`
 	OwnerID     *string          `json:"ownerId,omitempty" ts:"string|null"`
+	ReservedBy  *string          `json:"reservedBy,omitempty" ts:"string|null"`
 }
 
 // BoardDto represents the game board containing all tiles

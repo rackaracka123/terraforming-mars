@@ -5,13 +5,22 @@ interface ValueModifierLayoutProps {
   behavior: any;
 }
 
-/**
- * ValueModifierLayout displays value modifiers like Phobolog's titanium bonus
- * or Advanced Alloys' steel/titanium bonus.
- *
- * Display format: [resource-icon] : + [credits-icon-with-amount]
- * Example: [titanium] : + [1 MC] means "Each titanium is worth 1 MC extra"
- */
+const getResourcesFromSelectors = (selectors: any[]): string[] => {
+  const resources: string[] = [];
+  const seen = new Set<string>();
+  selectors.forEach((selector: any) => {
+    if (selector.resources) {
+      selector.resources.forEach((r: string) => {
+        if (!seen.has(r)) {
+          seen.add(r);
+          resources.push(r);
+        }
+      });
+    }
+  });
+  return resources;
+};
+
 const ValueModifierLayout: React.FC<ValueModifierLayoutProps> = ({ behavior }) => {
   if (!behavior.outputs || behavior.outputs.length === 0) return null;
 
@@ -21,7 +30,8 @@ const ValueModifierLayout: React.FC<ValueModifierLayoutProps> = ({ behavior }) =
   if (!valueModifierOutput) return null;
 
   const amount = valueModifierOutput.amount ?? 1;
-  const affectedResources = valueModifierOutput.affectedResources || [];
+  const selectors: any[] = valueModifierOutput.selectors || [];
+  const affectedResources = getResourcesFromSelectors(selectors);
 
   if (affectedResources.length === 0) return null;
 

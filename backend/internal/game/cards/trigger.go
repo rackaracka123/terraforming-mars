@@ -50,9 +50,6 @@ type MinMaxValue struct {
 type ResourceTriggerCondition struct {
 	Type                   TriggerType                         `json:"type"`
 	Location               *CardApplyLocation                  `json:"location,omitempty"`
-	AffectedTags           []shared.CardTag                    `json:"affectedTags,omitempty"`
-	AffectedResources      []string                            `json:"affectedResources,omitempty"`
-	AffectedCardTypes      []CardType                          `json:"affectedCardTypes,omitempty"`
 	Target                 *TargetType                         `json:"target,omitempty"`
 	RequiredOriginalCost   *MinMaxValue                        `json:"requiredOriginalCost,omitempty"`
 	RequiredResourceChange map[shared.ResourceType]MinMaxValue `json:"requiredResourceChange,omitempty"`
