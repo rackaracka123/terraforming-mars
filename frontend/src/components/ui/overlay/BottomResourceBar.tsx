@@ -57,6 +57,7 @@ const AngledPanel: React.FC<AngledPanelProps> = ({ side, corpColor, width, heigh
       : { x1: 0, y1: height, x2: ANGLE_INDENT, y2: 0 };
 
   const gradientId = `corpGradient-${side}`;
+  const whiteGlowId = `whiteGlow-${side}`;
 
   return (
     <div className="relative pointer-events-auto" style={{ width, height }}>
@@ -72,9 +73,16 @@ const AngledPanel: React.FC<AngledPanelProps> = ({ side, corpColor, width, heigh
               <stop offset="100%" stopColor={corpColor} stopOpacity="0" />
             </linearGradient>
           )}
+          {side === "right" && (
+            <linearGradient id={whiteGlowId} x1="70%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.17" />
+            </linearGradient>
+          )}
         </defs>
         <polygon points={fillPoints} fill="rgba(10,10,15,0.95)" />
         {side === "left" && <polygon points={fillPoints} fill={`url(#${gradientId})`} />}
+        {side === "right" && <polygon points={fillPoints} fill={`url(#${whiteGlowId})`} />}
         <line
           x1={topEdge.x1}
           y1={topEdge.y1}
