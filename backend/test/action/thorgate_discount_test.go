@@ -146,17 +146,14 @@ func TestThorGate_CombinedDiscount(t *testing.T) {
 	// Verify ThorGate card has correct structure
 	testutil.AssertEqual(t, 1, len(thorGateCard.Behaviors), "ThorGate should have exactly 1 behavior")
 
-	// Check the behavior has both affectedTags and affectedStandardProjects
+	// Check the behavior has selectors for power tag and power-plant standard project
 	behavior := thorGateCard.Behaviors[0]
 	testutil.AssertEqual(t, 1, len(behavior.Outputs), "Behavior should have 1 output")
 
 	output := behavior.Outputs[0]
 	testutil.AssertEqual(t, shared.ResourceDiscount, output.ResourceType, "Output should be discount type")
 	testutil.AssertEqual(t, 3, output.Amount, "Discount amount should be 3")
-	testutil.AssertEqual(t, 1, len(output.AffectedTags), "Should have 1 affected tag")
-	testutil.AssertEqual(t, shared.TagPower, output.AffectedTags[0], "Affected tag should be power")
-	testutil.AssertEqual(t, 1, len(output.AffectedStandardProjects), "Should have 1 affected standard project")
-	testutil.AssertEqual(t, shared.StandardProjectPowerPlant, output.AffectedStandardProjects[0], "Affected standard project should be power-plant")
+	testutil.AssertEqual(t, 2, len(output.Selectors), "Should have 2 selectors (one for power tag, one for power-plant SP)")
 
 	// Register the effect
 	p.Effects().AddEffect(player.CardEffect{
@@ -194,15 +191,17 @@ func TestDiscountORLogic(t *testing.T) {
 	testGame.UpdateStatus(ctx, game.GameStatusActive)
 	testGame.UpdatePhase(ctx, game.GamePhaseAction)
 
-	// Create a custom discount effect that targets both space tag AND event card type
+	// Create a custom discount effect that targets space tag OR event card type (OR logic between selectors)
 	customBehavior := shared.CardBehavior{
 		Triggers: []shared.Trigger{{Type: "auto"}},
 		Outputs: []shared.ResourceCondition{
 			{
-				ResourceType:      shared.ResourceDiscount,
-				Amount:            5,
-				AffectedTags:      []shared.CardTag{shared.TagSpace},
-				AffectedCardTypes: []string{"event"},
+				ResourceType: shared.ResourceDiscount,
+				Amount:       5,
+				Selectors: []shared.Selector{
+					{Tags: []shared.CardTag{shared.TagSpace}},
+					{CardTypes: []string{"event"}},
+				},
 			},
 		},
 	}

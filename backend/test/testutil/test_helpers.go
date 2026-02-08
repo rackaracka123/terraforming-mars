@@ -91,11 +91,12 @@ func CreateTestCardRegistry() cards.CardRegistry {
 					Triggers: []shared.Trigger{{Type: shared.TriggerTypeAuto}},
 					Outputs: []shared.ResourceCondition{
 						{
-							ResourceType:             shared.ResourceDiscount,
-							Amount:                   1,
-							Target:                   "self-player",
-							AffectedResources:        []string{"plant"},
-							AffectedStandardProjects: []shared.StandardProject{shared.StandardProjectConvertPlantsToGreenery},
+							ResourceType: shared.ResourceDiscount,
+							Amount:       1,
+							Target:       "self-player",
+							Selectors: []shared.Selector{
+								{Resources: []string{"plant"}, StandardProjects: []shared.StandardProject{shared.StandardProjectConvertPlantsToGreenery}},
+							},
 						},
 					},
 				},
@@ -130,11 +131,13 @@ func CreateTestCardRegistry() cards.CardRegistry {
 					Triggers: []shared.Trigger{{Type: shared.TriggerTypeAuto}},
 					Outputs: []shared.ResourceCondition{
 						{
-							ResourceType:             shared.ResourceDiscount,
-							Amount:                   3,
-							Target:                   "self-player",
-							AffectedTags:             []shared.CardTag{shared.TagPower},
-							AffectedStandardProjects: []shared.StandardProject{shared.StandardProjectPowerPlant},
+							ResourceType: shared.ResourceDiscount,
+							Amount:       3,
+							Target:       "self-player",
+							Selectors: []shared.Selector{
+								{Tags: []shared.CardTag{shared.TagPower}},
+								{StandardProjects: []shared.StandardProject{shared.StandardProjectPowerPlant}},
+							},
 						},
 					},
 				},
@@ -182,7 +185,7 @@ func CreateTestCardRegistry() cards.CardRegistry {
 							ResourceType: shared.ResourceDiscount,
 							Amount:       3,
 							Target:       "self-player",
-							AffectedTags: []shared.CardTag{shared.TagEarth},
+							Selectors:    []shared.Selector{{Tags: []shared.CardTag{shared.TagEarth}}},
 						},
 					},
 				},
@@ -367,7 +370,7 @@ func CreateTestCardRegistry() cards.CardRegistry {
 							ResourceType: shared.ResourceDiscount,
 							Amount:       3,
 							Target:       "self-player",
-							AffectedTags: []shared.CardTag{shared.TagEarth},
+							Selectors:    []shared.Selector{{Tags: []shared.CardTag{shared.TagEarth}}},
 						},
 					},
 				},
@@ -659,7 +662,7 @@ func CreateTestCardRegistry() cards.CardRegistry {
 						{
 							ResourceType: shared.ResourceDiscount,
 							Amount:       2,
-							AffectedTags: []shared.CardTag{shared.TagSpace},
+							Selectors:    []shared.Selector{{Tags: []shared.CardTag{shared.TagSpace}}},
 						},
 					},
 				},
