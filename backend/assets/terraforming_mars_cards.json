@@ -7028,7 +7028,9 @@
             "amount": 1,
             "target": "self-card",
             "selectors": [
-              {"resources": ["plant", "microbe", "animal"]}
+              {"resources": ["plant"]},
+              {"resources": ["microbe"]},
+              {"resources": ["animal"]}
             ]
           }
         ],
@@ -16678,7 +16680,9 @@
             "amount": 1,
             "target": "self-card",
             "selectors": [
-              {"resources": ["plant", "microbe", "animal"]}
+              {"resources": ["plant"]},
+              {"resources": ["microbe"]},
+              {"resources": ["animal"]}
             ]
           }
         ]
