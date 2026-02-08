@@ -992,7 +992,7 @@
     "name": "Arctic Algae",
     "type": "active",
     "cost": 12,
-    "description": "Effect: When anyone places an ocean tile, gain 2 plants. It must be -12\u00b0C or colder to play. Gain 1 plant.",
+    "description": "Effect: When anyone places an ocean tile, gain 2 plants. It must be -12°C or colder to play. Gain 1 plant.",
     "pack": "base-game",
     "tags": [
       "plant"
@@ -1017,7 +1017,7 @@
             "target": "self-player"
           }
         ],
-        "description": "When anyone places an ocean tile, gain 2 plants. It must be -12\u00b0C or colder to play. Gain 1 plant."
+        "description": "When anyone places an ocean tile, gain 2 plants. It must be -12°C or colder to play. Gain 1 plant."
       },
       {
         "triggers": [
@@ -1133,7 +1133,7 @@
     "name": "Eos Chasma National Park",
     "type": "automated",
     "cost": 16,
-    "description": "Requires -12\u00b0C  or warmer. Add 1 animal **to any animal card**. Gain 3 plants. Increase your M€ production 2 steps.",
+    "description": "Requires -12°C  or warmer. Add 1 animal **to any animal card**. Gain 3 plants. Increase your M€ production 2 steps.",
     "pack": "base-game",
     "tags": [
       "building",
@@ -1169,7 +1169,7 @@
             "target": "any-card"
           }
         ],
-        "description": "Requires -12\u00b0C  or warmer. Add 1 animal **to any animal card**. Gain 3 plants. Increase your M€ production 2 steps."
+        "description": "Requires -12°C  or warmer. Add 1 animal **to any animal card**. Gain 3 plants. Increase your M€ production 2 steps."
       }
     ],
     "vpConditions": [
@@ -1824,7 +1824,7 @@
     "name": "Archaebacteria",
     "type": "automated",
     "cost": 6,
-    "description": "It must be -18\u00b0C or colder. Increase your plant production 1 step.",
+    "description": "It must be -18°C or colder. Increase your plant production 1 step.",
     "pack": "base-game",
     "tags": [
       "microbe"
@@ -1849,7 +1849,7 @@
             "target": "self-player"
           }
         ],
-        "description": "It must be -18\u00b0C or colder. Increase your plant production 1 step."
+        "description": "It must be -18°C or colder. Increase your plant production 1 step."
       }
     ]
   },
@@ -2207,7 +2207,7 @@
     "name": "Fish",
     "type": "active",
     "cost": 9,
-    "description": "Action: Add 1 animal to this card. Requires 2\u00b0C or warmer. Decrease any plant production 1 step. 1 VP for each animal on this card.",
+    "description": "Action: Add 1 animal to this card. Requires 2°C or warmer. Decrease any plant production 1 step. 1 VP for each animal on this card.",
     "pack": "base-game",
     "tags": [
       "animal"
@@ -2246,7 +2246,7 @@
             "target": "self-card"
           }
         ],
-        "description": "Add 1 animal to this card. Requires 2\u00b0C or warmer. Decrease any plant production 1 step. 1 VP for each animal on this card."
+        "description": "Add 1 animal to this card. Requires 2°C or warmer. Decrease any plant production 1 step. 1 VP for each animal on this card."
       }
     ],
     "resourceStorage": {
@@ -2272,7 +2272,7 @@
     "name": "Lake Marineris",
     "type": "automated",
     "cost": 18,
-    "description": "Requires 0\u00b0C or warmer. Place 2 ocean tiles.",
+    "description": "Requires 0°C or warmer. Place 2 ocean tiles.",
     "pack": "base-game",
     "requirements": [
       {
@@ -2294,7 +2294,7 @@
             "target": "none"
           }
         ],
-        "description": "Requires 0\u00b0C or warmer. Place 2 ocean tiles."
+        "description": "Requires 0°C or warmer. Place 2 ocean tiles."
       }
     ],
     "vpConditions": [
@@ -2535,7 +2535,7 @@
     "name": "Mangrove",
     "type": "automated",
     "cost": 12,
-    "description": "Requires +4\u00b0C or warmer. Place a Greenery tile **on an area reserved for ocean** and raise oxygen 1 step. Disregard normal placement restrictions for this.",
+    "description": "Requires +4°C or warmer. Place a Greenery tile **on an area reserved for ocean** and raise oxygen 1 step. Disregard normal placement restrictions for this.",
     "pack": "base-game",
     "tags": [
       "plant"
@@ -2563,7 +2563,7 @@
             }
           }
         ],
-        "description": "Requires +4\u00b0C or warmer. Place a Greenery tile **on an area reserved for ocean** and raise oxygen 1 step. Disregard normal placement restrictions for this."
+        "description": "Requires +4°C or warmer. Place a Greenery tile **on an area reserved for ocean** and raise oxygen 1 step. Disregard normal placement restrictions for this."
       }
     ],
     "vpConditions": [
@@ -2578,7 +2578,7 @@
     "name": "Trees",
     "type": "automated",
     "cost": 13,
-    "description": "Requires -4\u00b0C or warmer. Increase your plant production 3 steps. Gain 1 plant.",
+    "description": "Requires -4°C or warmer. Increase your plant production 3 steps. Gain 1 plant.",
     "pack": "base-game",
     "tags": [
       "plant"
@@ -2608,7 +2608,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires -4\u00b0C or warmer. Increase your plant production 3 steps. Gain 1 plant."
+        "description": "Requires -4°C or warmer. Increase your plant production 3 steps. Gain 1 plant."
       }
     ],
     "vpConditions": [
@@ -3259,7 +3259,7 @@
     "name": "Space Mirrors",
     "type": "active",
     "cost": 3,
-    "description": "Action: Spend 7\u00a0M€ to increase your energy production 1 step.",
+    "description": "Action: Spend 7 M€ to increase your energy production 1 step.",
     "pack": "base-game",
     "tags": [
       "power",
@@ -3286,7 +3286,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Spend 7\u00a0M€ to increase your energy production 1 step."
+        "description": "Spend 7 M€ to increase your energy production 1 step."
       }
     ]
   },
@@ -3644,7 +3644,7 @@
     "name": "Grass",
     "type": "automated",
     "cost": 11,
-    "description": "Requires -16\u00b0C or warmer. Increase your plant production 1 step. Gain 3 plants.",
+    "description": "Requires -16°C or warmer. Increase your plant production 1 step. Gain 3 plants.",
     "pack": "base-game",
     "tags": [
       "plant"
@@ -3674,7 +3674,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires -16\u00b0C or warmer. Increase your plant production 1 step. Gain 3 plants."
+        "description": "Requires -16°C or warmer. Increase your plant production 1 step. Gain 3 plants."
       }
     ]
   },
@@ -3683,7 +3683,7 @@
     "name": "Heather",
     "type": "automated",
     "cost": 6,
-    "description": "Requires -14\u00b0C or warmer. Increase your plant production 1 step. Gain 1 plant.",
+    "description": "Requires -14°C or warmer. Increase your plant production 1 step. Gain 1 plant.",
     "pack": "base-game",
     "tags": [
       "plant"
@@ -3713,7 +3713,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires -14\u00b0C or warmer. Increase your plant production 1 step. Gain 1 plant."
+        "description": "Requires -14°C or warmer. Increase your plant production 1 step. Gain 1 plant."
       }
     ]
   },
@@ -3879,7 +3879,7 @@
     "name": "Bushes",
     "type": "automated",
     "cost": 10,
-    "description": "Requires -10\u00b0C or warmer. Increase your plant production 2 steps. Gain 2 plants.",
+    "description": "Requires -10°C or warmer. Increase your plant production 2 steps. Gain 2 plants.",
     "pack": "base-game",
     "tags": [
       "plant"
@@ -3909,7 +3909,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires -10\u00b0C or warmer. Increase your plant production 2 steps. Gain 2 plants."
+        "description": "Requires -10°C or warmer. Increase your plant production 2 steps. Gain 2 plants."
       }
     ]
   },
@@ -4733,7 +4733,7 @@
     "name": "Artificial Lake",
     "type": "automated",
     "cost": 15,
-    "description": "Requires -6\u00b0C or warmer. Place 1 ocean tile **on an area not reserved for ocean**.",
+    "description": "Requires -6°C or warmer. Place 1 ocean tile **on an area not reserved for ocean**.",
     "pack": "base-game",
     "tags": [
       "building"
@@ -4758,7 +4758,7 @@
             "target": "none"
           }
         ],
-        "description": "Requires -6\u00b0C or warmer. Place 1 ocean tile **on an area not reserved for ocean**."
+        "description": "Requires -6°C or warmer. Place 1 ocean tile **on an area not reserved for ocean**."
       }
     ],
     "vpConditions": [
@@ -4802,7 +4802,7 @@
     "name": "Farming",
     "type": "automated",
     "cost": 16,
-    "description": "Requires +4\u00b0C or warmer. Increase your M€ production 2 steps and your plant production 2 steps. Gain 2 plants.",
+    "description": "Requires +4°C or warmer. Increase your M€ production 2 steps and your plant production 2 steps. Gain 2 plants.",
     "pack": "base-game",
     "tags": [
       "plant"
@@ -4837,7 +4837,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires +4\u00b0C or warmer. Increase your M€ production 2 steps and your plant production 2 steps. Gain 2 plants."
+        "description": "Requires +4°C or warmer. Increase your M€ production 2 steps and your plant production 2 steps. Gain 2 plants."
       }
     ],
     "vpConditions": [
@@ -5420,7 +5420,7 @@
     "name": "Symbiotic Fungus",
     "type": "active",
     "cost": 4,
-    "description": "Action: Add a microbe to **another** card. Requires -14\u00b0C or warmer.",
+    "description": "Action: Add a microbe to **another** card. Requires -14°C or warmer.",
     "pack": "base-game",
     "tags": [
       "microbe"
@@ -5445,7 +5445,7 @@
             "target": "any-card"
           }
         ],
-        "description": "Add a microbe to **another** card. Requires -14\u00b0C or warmer."
+        "description": "Add a microbe to **another** card. Requires -14°C or warmer."
       }
     ]
   },
@@ -5454,7 +5454,7 @@
     "name": "Extreme-Cold Fungus",
     "type": "active",
     "cost": 13,
-    "description": "Action: Gain 1 plant or add 2 microbes to **another** card. It must be -10\u00b0C or colder.",
+    "description": "Action: Gain 1 plant or add 2 microbes to **another** card. It must be -10°C or colder.",
     "pack": "base-game",
     "tags": [
       "microbe"
@@ -5492,7 +5492,7 @@
             ]
           }
         ],
-        "description": "Gain 1 plant or add 2 microbes to **another** card. It must be -10\u00b0C or colder."
+        "description": "Gain 1 plant or add 2 microbes to **another** card. It must be -10°C or colder."
       }
     ]
   },
@@ -6215,7 +6215,7 @@
     "name": "Caretaker Contract",
     "type": "active",
     "cost": 3,
-    "description": "Action: Spend 8 heat to increase your terraform rating 1 step. Requires 0\u00b0C or warmer.",
+    "description": "Action: Spend 8 heat to increase your terraform rating 1 step. Requires 0°C or warmer.",
     "pack": "corporate-era",
     "requirements": [
       {
@@ -6244,7 +6244,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Spend 8 heat to increase your terraform rating 1 step. Requires 0\u00b0C or warmer."
+        "description": "Spend 8 heat to increase your terraform rating 1 step. Requires 0°C or warmer."
       }
     ]
   },
@@ -6253,7 +6253,7 @@
     "name": "Designed Microorganisms",
     "type": "automated",
     "cost": 16,
-    "description": "It must be -14\u00b0C or colder. Increase your plant production 2 steps.",
+    "description": "It must be -14°C or colder. Increase your plant production 2 steps.",
     "pack": "base-game",
     "tags": [
       "microbe",
@@ -6279,7 +6279,7 @@
             "target": "self-player"
           }
         ],
-        "description": "It must be -14\u00b0C or colder. Increase your plant production 2 steps."
+        "description": "It must be -14°C or colder. Increase your plant production 2 steps."
       }
     ]
   },
@@ -6416,7 +6416,7 @@
     "name": "Lichen",
     "type": "automated",
     "cost": 7,
-    "description": "Requires -24\u00b0C or warmer. Increase your plant production 1 step.",
+    "description": "Requires -24°C or warmer. Increase your plant production 1 step.",
     "pack": "base-game",
     "tags": [
       "plant"
@@ -6441,7 +6441,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires -24\u00b0C or warmer. Increase your plant production 1 step."
+        "description": "Requires -24°C or warmer. Increase your plant production 1 step."
       }
     ]
   },
@@ -6805,7 +6805,7 @@
     "name": "Tundra Farming",
     "type": "automated",
     "cost": 16,
-    "description": "Requires -6\u00b0C or warmer. Increase your plant production 1 step and your M€ production 2 steps. Gain 1 plant.",
+    "description": "Requires -6°C or warmer. Increase your plant production 1 step and your M€ production 2 steps. Gain 1 plant.",
     "pack": "base-game",
     "tags": [
       "plant"
@@ -6840,7 +6840,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires -6\u00b0C or warmer. Increase your plant production 1 step and your M€ production 2 steps. Gain 1 plant."
+        "description": "Requires -6°C or warmer. Increase your plant production 1 step and your M€ production 2 steps. Gain 1 plant."
       }
     ],
     "vpConditions": [
@@ -7115,7 +7115,7 @@
     "name": "Noctis Farming",
     "type": "automated",
     "cost": 10,
-    "description": "Requires -20\u00b0C or warmer. Increase your M€ production 1 step and gain 2 plants.",
+    "description": "Requires -20°C or warmer. Increase your M€ production 1 step and gain 2 plants.",
     "pack": "base-game",
     "tags": [
       "building",
@@ -7146,7 +7146,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires -20\u00b0C or warmer. Increase your M€ production 1 step and gain 2 plants."
+        "description": "Requires -20°C or warmer. Increase your M€ production 1 step and gain 2 plants."
       }
     ],
     "vpConditions": [
@@ -7322,7 +7322,7 @@
     "name": "Ice Cap Melting",
     "type": "event",
     "cost": 5,
-    "description": "Requires +2\u00b0C or warmer. Place 1 ocean tile.",
+    "description": "Requires +2°C or warmer. Place 1 ocean tile.",
     "pack": "base-game",
     "requirements": [
       {
@@ -7344,7 +7344,7 @@
             "target": "none"
           }
         ],
-        "description": "Requires +2\u00b0C or warmer. Place 1 ocean tile."
+        "description": "Requires +2°C or warmer. Place 1 ocean tile."
       }
     ]
   },
@@ -7760,7 +7760,7 @@
     "name": "Permafrost Extraction",
     "type": "event",
     "cost": 8,
-    "description": "Requires -8\u00b0C or warmer. Place 1 ocean tile.",
+    "description": "Requires -8°C or warmer. Place 1 ocean tile.",
     "pack": "base-game",
     "requirements": [
       {
@@ -7782,7 +7782,7 @@
             "target": "none"
           }
         ],
-        "description": "Requires -8\u00b0C or warmer. Place 1 ocean tile."
+        "description": "Requires -8°C or warmer. Place 1 ocean tile."
       }
     ]
   },
@@ -12873,7 +12873,7 @@
     "name": "Sub-Zero Salt Fish",
     "type": "active",
     "cost": 5,
-    "description": "Action: Add 1 animal to this card. Requires -6\u00b0C or warmer. Decrease any plant production 1 step. 1 VP per 2 animals on this card.",
+    "description": "Action: Add 1 animal to this card. Requires -6°C or warmer. Decrease any plant production 1 step. 1 VP per 2 animals on this card.",
     "pack": "colonies",
     "tags": [
       "animal"
@@ -12912,7 +12912,7 @@
             "target": "self-card"
           }
         ],
-        "description": "Add 1 animal to this card. Requires -6\u00b0C or warmer. Decrease any plant production 1 step. 1 VP per 2 animals on this card."
+        "description": "Add 1 animal to this card. Requires -6°C or warmer. Decrease any plant production 1 step. 1 VP per 2 animals on this card."
       }
     ],
     "resourceStorage": {
@@ -14730,7 +14730,7 @@
     "name": "Psychrophiles",
     "type": "active",
     "cost": 2,
-    "description": "Action: Add a microbe to this card. / Effect: When paying for a plant card, microbes here may be used as 2 M€ each. Requires temperature -20\u00b0C or colder.",
+    "description": "Action: Add a microbe to this card. / Effect: When paying for a plant card, microbes here may be used as 2 M€ each. Requires temperature -20°C or colder.",
     "pack": "prelude",
     "tags": [
       "microbe"
@@ -14755,7 +14755,7 @@
             "target": "self-card"
           }
         ],
-        "description": "When paying for a plant card, microbes here may be used as 2 M€ each. Requires temperature -20\u00b0C or colder."
+        "description": "When paying for a plant card, microbes here may be used as 2 M€ each. Requires temperature -20°C or colder."
       },
       {
         "triggers": [
