@@ -787,15 +787,16 @@ func (a *BehaviorApplier) applyOutput(
 		if a.player == nil {
 			return fmt.Errorf("cannot apply payment substitute: no player context")
 		}
-		// Extract resource type from affectedResources (e.g., "heat" for Helion)
-		if len(output.AffectedResources) > 0 {
-			resourceType := shared.ResourceType(output.AffectedResources[0])
+		// Extract resource type from selectors (e.g., "heat" for Helion)
+		resources := GetResourcesFromSelectors(output.Selectors)
+		if len(resources) > 0 {
+			resourceType := shared.ResourceType(resources[0])
 			a.player.Resources().AddPaymentSubstitute(resourceType, output.Amount)
 			log.Info("💰 Added payment substitute",
 				zap.String("resource_type", string(resourceType)),
 				zap.Int("conversion_rate", output.Amount))
 		} else {
-			log.Warn("⚠️ payment-substitute output missing affectedResources")
+			log.Warn("⚠️ payment-substitute output missing selectors with resources")
 		}
 
 	case shared.ResourceDiscount:
@@ -804,15 +805,14 @@ func (a *BehaviorApplier) applyOutput(
 		// The calculator then computes the actual modifiers from all effects
 		log.Info("🏷️ Discount effect registered",
 			zap.Int("amount", output.Amount),
-			zap.Any("affected_tags", output.AffectedTags),
-			zap.Any("affected_standard_projects", output.AffectedStandardProjects))
+			zap.Any("selectors", output.Selectors))
 
 	case shared.ResourceValueModifier:
 		if a.player == nil {
 			return fmt.Errorf("cannot apply value modifier: no player context")
 		}
 		// Apply value modifier to each affected resource (e.g., titanium +1, steel +1)
-		for _, resourceStr := range output.AffectedResources {
+		for _, resourceStr := range GetResourcesFromSelectors(output.Selectors) {
 			resourceType := shared.ResourceType(resourceStr)
 			a.player.Resources().AddValueModifier(resourceType, output.Amount)
 			log.Info("💎 Added resource value modifier",
