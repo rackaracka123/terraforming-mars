@@ -84,6 +84,27 @@ Use for any display with multiple resources, costs/gains, or input/output relati
 
 Custom theme values (colors, fonts, shadows) defined in `@theme {}` block.
 
+### Typography & Fonts
+
+The project uses two font styles:
+
+**Game Font (Orbitron)** - `font-orbitron`
+- Use for: titles, headers, numbers, labels, button text, UI elements
+- Futuristic, bold, sci-fi aesthetic
+- Available weights: 400-900
+- Example: `className="font-orbitron font-bold"`
+
+**Default Font (System)**
+- Use for: long descriptions, card text, tooltips, explanatory content
+- More readable for extended text
+- Default if no font class specified
+
+**Guidelines:**
+- Numbers and statistics: Always use `font-orbitron`
+- Short labels (1-3 words): Use `font-orbitron`
+- Descriptions (sentences/paragraphs): Use default font
+- Interactive elements (buttons): Use `font-orbitron`
+
 ### 3D Rendering
 
 Uses React Three Fiber for Three.js integration. Hex coordinates use cube system (q, r, s) where q + r + s = 0, with utilities in `utils/`.
