@@ -69,6 +69,52 @@ const DiscountRow: React.FC<{
   );
 };
 
+const renderSelectorIcons = (selector: any): React.ReactNode => {
+  const elements: React.ReactNode[] = [];
+
+  if (selector.tags && selector.tags.length > 0) {
+    selector.tags.forEach((tag: string, tagIndex: number) => {
+      elements.push(
+        <IconWithBadge
+          key={`tag-${tagIndex}`}
+          iconType={`${tag.toLowerCase()}-tag`}
+          showSpBadge={false}
+        />,
+      );
+    });
+  }
+
+  if (selector.cardTypes && selector.cardTypes.length > 0) {
+    selector.cardTypes.forEach((cardType: string, typeIndex: number) => {
+      if (cardType === "event") {
+        elements.push(<GameIcon key={`type-${typeIndex}`} iconType="event" size="small" />);
+      } else {
+        elements.push(
+          <span
+            key={`type-${typeIndex}`}
+            className="text-xs font-semibold text-[#e0e0e0] capitalize [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]"
+          >
+            {cardType}
+          </span>,
+        );
+      }
+    });
+  }
+
+  if (selector.standardProjects && selector.standardProjects.length > 0) {
+    selector.standardProjects.forEach((project: string, spIndex: number) => {
+      const iconType = getStandardProjectIcon(project);
+      if (iconType) {
+        elements.push(
+          <IconWithBadge key={`sp-${spIndex}`} iconType={iconType} showSpBadge={true} />,
+        );
+      }
+    });
+  }
+
+  return elements;
+};
+
 const DiscountLayout: React.FC<DiscountLayoutProps> = ({ behavior }) => {
   if (!behavior.outputs || behavior.outputs.length === 0) return null;
 
@@ -76,88 +122,41 @@ const DiscountLayout: React.FC<DiscountLayoutProps> = ({ behavior }) => {
   if (!discountOutput) return null;
 
   const amount = Math.abs(discountOutput.amount ?? 0);
-  const affectedTags: string[] = discountOutput.affectedTags || [];
-  const affectedStandardProjects: string[] = discountOutput.affectedStandardProjects || [];
-  const affectedResources: string[] = discountOutput.affectedResources || [];
+  const selectors: any[] = discountOutput.selectors || [];
 
-  const discountResourceType = affectedResources.length > 0 ? affectedResources[0] : "credit";
+  // Discount resource type defaults to "credit"
+  const discountResourceType = "credit";
 
-  const rows: React.ReactNode[] = [];
-
-  if (affectedTags.length > 0) {
-    const tagIcons = affectedTags.map((tag: string, tagIndex: number) => (
-      <React.Fragment key={`tag-${tagIndex}`}>
-        {tagIndex > 0 && (
+  // If we have selectors, render them with OR separators between selectors
+  if (selectors.length > 0) {
+    const selectorIcons = selectors.map((selector: any, selectorIndex: number) => (
+      <React.Fragment key={`selector-${selectorIndex}`}>
+        {selectorIndex > 0 && (
           <span className="text-base font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
             /
           </span>
         )}
-        <IconWithBadge iconType={`${tag.toLowerCase()}-tag`} showSpBadge={false} />
+        <div className="flex gap-[2px] items-center">{renderSelectorIcons(selector)}</div>
       </React.Fragment>
     ));
 
-    rows.push(
-      <DiscountRow
-        key="tags"
-        icons={tagIcons}
-        amount={amount}
-        resourceType={discountResourceType}
-      />,
+    return (
+      <DiscountRow icons={selectorIcons} amount={amount} resourceType={discountResourceType} />
     );
   }
 
-  if (affectedStandardProjects.length > 0) {
-    const spIcons = affectedStandardProjects.map((project: string, spIndex: number) => {
-      const iconType = getStandardProjectIcon(project);
-      if (!iconType) return null;
-
-      return (
-        <React.Fragment key={`sp-${spIndex}`}>
-          {spIndex > 0 && (
-            <span className="text-base font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
-              /
-            </span>
-          )}
-          <IconWithBadge iconType={iconType} showSpBadge={true} />
-        </React.Fragment>
-      );
-    });
-
-    const validIcons = spIcons.filter((icon) => icon !== null);
-    if (validIcons.length > 0) {
-      rows.push(
-        <DiscountRow
-          key="standard-projects"
-          icons={validIcons}
-          amount={amount}
-          resourceType={discountResourceType}
-        />,
-      );
-    }
-  }
-
-  if (affectedTags.length === 0 && affectedStandardProjects.length === 0) {
-    rows.push(
-      <DiscountRow
-        key="blanket"
-        icons={
-          <span className="text-[10px] font-semibold text-white bg-[rgba(60,60,60,0.8)] px-1.5 py-0.5 rounded [text-shadow:0_0_2px_rgba(0,0,0,0.6)]">
-            All cards
-          </span>
-        }
-        amount={amount}
-        resourceType={discountResourceType}
-      />,
-    );
-  }
-
-  if (rows.length === 0) return null;
-
-  if (rows.length === 1) {
-    return <>{rows[0]}</>;
-  }
-
-  return <div className="flex flex-col gap-1 items-center">{rows}</div>;
+  // Global discount (no selectors - applies to all cards)
+  return (
+    <DiscountRow
+      icons={
+        <span className="text-[10px] font-semibold text-white bg-[rgba(60,60,60,0.8)] px-1.5 py-0.5 rounded [text-shadow:0_0_2px_rgba(0,0,0,0.6)]">
+          All cards
+        </span>
+      }
+      amount={amount}
+      resourceType={discountResourceType}
+    />
+  );
 };
 
 export default DiscountLayout;

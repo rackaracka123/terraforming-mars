@@ -1,7 +1,7 @@
 import React from "react";
 import ResourceDisplay from "./ResourceDisplay.tsx";
 import GameIcon from "../../../display/GameIcon.tsx";
-import { CardBehaviorDto } from "@/types/generated/api-types.ts";
+import { CardBehaviorDto, SelectorDto, MinMaxValueDto } from "@/types/generated/api-types.ts";
 
 interface IconDisplayInfo {
   resourceType: string;
@@ -34,22 +34,105 @@ interface TriggeredEffectLayoutProps {
   tileScaleInfo: TileScaleInfo;
 }
 
+// Extract requiredOriginalCost from selectors (new location) or condition level (legacy)
+const getRequiredOriginalCost = (
+  selectors: SelectorDto[] | undefined,
+  conditionLevelCost: MinMaxValueDto | undefined,
+): MinMaxValueDto | undefined => {
+  if (selectors) {
+    for (const sel of selectors) {
+      if (sel.requiredOriginalCost) {
+        return sel.requiredOriginalCost;
+      }
+    }
+  }
+  return conditionLevelCost;
+};
+
+// Render a single selector (AND logic: tags together, then card type)
+const renderSelector = (
+  selector: any,
+  selectorIndex: number,
+  triggerIndex: number,
+  redGlowClass: string,
+): React.ReactNode => {
+  const elements: React.ReactNode[] = [];
+
+  if (selector.tags && selector.tags.length > 0) {
+    selector.tags.forEach((tag: string, tagIndex: number) => {
+      elements.push(
+        <GameIcon
+          key={`tag-${triggerIndex}-${selectorIndex}-${tagIndex}`}
+          iconType={`${tag}-tag`}
+          size="small"
+        />,
+      );
+    });
+  }
+
+  if (selector.cardTypes && selector.cardTypes.length > 0) {
+    selector.cardTypes.forEach((cardType: string, typeIndex: number) => {
+      if (cardType === "event") {
+        elements.push(
+          <GameIcon
+            key={`type-${triggerIndex}-${selectorIndex}-${typeIndex}`}
+            iconType="event"
+            size="small"
+          />,
+        );
+      } else {
+        elements.push(
+          <span
+            key={`type-${triggerIndex}-${selectorIndex}-${typeIndex}`}
+            className="text-xs font-semibold text-[#e0e0e0] capitalize [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)] max-md:text-[11px]"
+          >
+            {cardType}
+          </span>,
+        );
+      }
+    });
+  }
+
+  return (
+    <div
+      key={`selector-${triggerIndex}-${selectorIndex}`}
+      className={`flex gap-[2px] items-center ${redGlowClass}`}
+    >
+      {elements}
+    </div>
+  );
+};
+
 // Render a single trigger icon based on its condition type
 const renderTriggerIcon = (trigger: any, triggerIndex: number): React.ReactNode => {
-  // Check if trigger has condition with affectedResources (e.g., placement-bonus-gained)
-  const hasAffectedResources =
-    trigger.condition?.affectedResources && trigger.condition.affectedResources.length > 0;
-
-  // Check if trigger has condition with affectedCardTypes (e.g., card-played with event filter)
-  const hasAffectedCardTypes =
-    trigger.condition?.affectedCardTypes && trigger.condition.affectedCardTypes.length > 0;
-
-  // Check if trigger has condition with affectedTags (e.g., card-played with tag filter)
-  const hasAffectedTags =
-    trigger.condition?.affectedTags && trigger.condition.affectedTags.length > 0;
+  // Check if trigger has selectors (new system)
+  const hasSelectors = trigger.condition?.selectors && trigger.condition.selectors.length > 0;
 
   // Check if trigger is city-placed condition (e.g., Tharsis Republic)
   const isCityPlaced = trigger.condition?.type === "city-placed";
+
+  // Handle selectors first (new system with AND within selector, OR between selectors)
+  if (hasSelectors) {
+    const target = trigger.condition?.target || "self-player";
+    const isAnyPlayer = target === "any-player";
+
+    const redGlowClass = isAnyPlayer
+      ? "[filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))_drop-shadow(0_0_2px_rgba(244,67,54,0.9))_drop-shadow(0_0_4px_rgba(244,67,54,0.7))]"
+      : "";
+
+    return (
+      <div key={triggerIndex} className="flex gap-[2px] items-center">
+        {trigger.condition.selectors.map((selector: any, selectorIndex: number) => (
+          <React.Fragment key={`${triggerIndex}-${selectorIndex}`}>
+            {selectorIndex > 0 && (
+              <span className="text-[#e0e0e0] text-xs font-bold mx-[2px]">/</span>
+            )}
+            {renderSelector(selector, selectorIndex, triggerIndex, redGlowClass)}
+          </React.Fragment>
+        ))}
+      </div>
+    );
+  }
 
   if (isCityPlaced) {
     const target = trigger.condition?.target || "self-player";
@@ -88,68 +171,18 @@ const renderTriggerIcon = (trigger: any, triggerIndex: number): React.ReactNode 
     );
   }
 
-  if (hasAffectedTags) {
-    const target = trigger.condition?.target || "self-player";
-    const isAnyPlayer = target === "any-player";
-
-    const redGlowClass = isAnyPlayer
-      ? "[filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))_drop-shadow(0_0_2px_rgba(244,67,54,0.9))_drop-shadow(0_0_4px_rgba(244,67,54,0.7))]"
-      : "";
-
-    return (
-      <div key={triggerIndex} className={`flex gap-[2px] items-center ${redGlowClass}`}>
-        {trigger.condition.affectedTags.map((tag: string, tagIndex: number) => (
-          <React.Fragment key={`${triggerIndex}-${tagIndex}`}>
-            {tagIndex > 0 && <span className="text-[#e0e0e0] text-xs font-bold mx-[2px]">/</span>}
-            <GameIcon iconType={`${tag}-tag`} size="small" />
-          </React.Fragment>
-        ))}
-      </div>
-    );
-  }
-
-  if (hasAffectedResources) {
-    // Render icons for affected resources (e.g., steel / titanium)
-    return (
-      <div key={triggerIndex} className="flex gap-[2px] items-center">
-        {trigger.condition.affectedResources.map((resource: string, resIndex: number) => (
-          <React.Fragment key={`${triggerIndex}-${resIndex}`}>
-            {resIndex > 0 && <span className="text-[#e0e0e0] text-xs font-bold mx-[2px]">/</span>}
-            <GameIcon iconType={resource} size="small" />
-          </React.Fragment>
-        ))}
-      </div>
-    );
-  }
-
-  if (hasAffectedCardTypes) {
-    // Render icons/text for affected card types (e.g., event card icon)
-    return (
-      <div key={triggerIndex} className="flex gap-[2px] items-center">
-        {trigger.condition.affectedCardTypes.map((cardType: string, typeIndex: number) => (
-          <React.Fragment key={`${triggerIndex}-${typeIndex}`}>
-            {typeIndex > 0 && <span className="text-[#e0e0e0] text-xs font-bold mx-[2px]">/</span>}
-            {cardType === "event" ? (
-              <GameIcon iconType="event" size="small" />
-            ) : (
-              <span className="text-xs font-semibold text-[#e0e0e0] capitalize [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)] max-md:text-[11px]">
-                {cardType}
-              </span>
-            )}
-          </React.Fragment>
-        ))}
-      </div>
-    );
-  }
-
-  // Check if trigger has requiredOriginalCost condition (e.g., CrediCor "pay 20+ get 4")
-  const hasRequiredOriginalCost = trigger.condition?.requiredOriginalCost !== undefined;
+  // Check if trigger has requiredOriginalCost (from selectors or legacy condition level)
+  const requiredOriginalCost = getRequiredOriginalCost(
+    trigger.condition?.selectors,
+    trigger.condition?.requiredOriginalCost,
+  );
+  const hasRequiredOriginalCost = requiredOriginalCost !== undefined;
 
   if (hasRequiredOriginalCost) {
-    const costReq = trigger.condition.requiredOriginalCost;
+    const costReq = requiredOriginalCost;
     const hasMin = costReq.min !== undefined;
     const hasMax = costReq.max !== undefined;
-    const value = hasMin ? costReq.min : costReq.max;
+    const value = (hasMin ? costReq.min : hasMax ? costReq.max : 0) ?? 0;
     const isMax = hasMax && !hasMin;
 
     return (
@@ -199,9 +232,13 @@ const renderBehaviorRow = (
           <>
             <div className="flex gap-[3px] items-center">
               {(() => {
-                // Check if any trigger has requiredOriginalCost
+                // Check if any trigger has requiredOriginalCost (from selectors or condition level)
                 const triggersWithCost = behavior.triggers.filter(
-                  (trigger: any) => trigger.condition?.requiredOriginalCost !== undefined,
+                  (trigger: any) =>
+                    getRequiredOriginalCost(
+                      trigger.condition?.selectors,
+                      trigger.condition?.requiredOriginalCost,
+                    ) !== undefined,
                 );
 
                 // If we have cost-based triggers, deduplicate and show once
@@ -210,10 +247,13 @@ const renderBehaviorRow = (
                   const uniqueCosts: string[] = Array.from(
                     new Set(
                       triggersWithCost.map((trigger: any) => {
-                        const costReq = trigger.condition.requiredOriginalCost;
-                        const hasMin = costReq.min !== undefined;
-                        const hasMax = costReq.max !== undefined;
-                        const value = hasMin ? costReq.min : costReq.max;
+                        const costReq = getRequiredOriginalCost(
+                          trigger.condition?.selectors,
+                          trigger.condition?.requiredOriginalCost,
+                        );
+                        const hasMin = costReq?.min !== undefined;
+                        const hasMax = costReq?.max !== undefined;
+                        const value = hasMin ? costReq?.min : costReq?.max;
                         const prefix = hasMax && !hasMin ? "Max-" : "";
                         return `${prefix}${value}`;
                       }),

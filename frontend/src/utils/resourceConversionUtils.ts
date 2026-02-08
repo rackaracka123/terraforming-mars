@@ -57,7 +57,12 @@ function calculateDiscountedCost(
         continue;
       }
 
-      if (!output.affectedStandardProjects?.includes(standardProject as never)) {
+      // Check if any selector targets this standard project
+      const matchesStandardProject = output.selectors?.some((selector) =>
+        selector.standardProjects?.includes(standardProject as never),
+      );
+
+      if (!matchesStandardProject) {
         continue;
       }
 

@@ -4,13 +4,32 @@ interface DefenseLayoutProps {
   behavior: any;
 }
 
+const getResourcesFromSelectors = (selectors: any[]): string[] => {
+  const resources: string[] = [];
+  const seen = new Set<string>();
+  selectors.forEach((selector: any) => {
+    if (selector.resources) {
+      selector.resources.forEach((r: string) => {
+        if (!seen.has(r)) {
+          seen.add(r);
+          resources.push(r);
+        }
+      });
+    }
+  });
+  return resources;
+};
+
 const DefenseLayout: React.FC<DefenseLayoutProps> = ({ behavior }) => {
   if (!behavior.outputs || behavior.outputs.length === 0) return null;
 
   const defenseOutput = behavior.outputs.find((output: any) => output.type === "defense");
   if (!defenseOutput) return null;
 
-  const affectedResources: string[] = defenseOutput.affectedResources || [];
+  const selectors: any[] = defenseOutput.selectors || [];
+  const affectedResources = getResourcesFromSelectors(selectors);
+
+  if (affectedResources.length === 0) return null;
 
   return (
     <div className="flex gap-[6px] items-center">
