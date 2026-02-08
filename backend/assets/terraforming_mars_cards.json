@@ -1113,8 +1113,8 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "space"
+            "selectors": [
+              {"tags": ["space"]}
             ]
           }
         ],
@@ -1350,7 +1350,17 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto",
+            "condition": {
+              "type": "card-played",
+              "target": "self-player",
+              "selectors": [
+                {
+                  "tags": ["space"],
+                  "cardTypes": ["event"]
+                }
+              ]
+            }
           }
         ],
         "outputs": [
@@ -3020,8 +3030,8 @@
             "type": "value-modifier",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "steel"
+            "selectors": [
+              {"resources": ["steel"]}
             ]
           }
         ],
@@ -3038,8 +3048,8 @@
             "type": "value-modifier",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "titanium"
+            "selectors": [
+              {"resources": ["titanium"]}
             ]
           }
         ]
@@ -3164,10 +3174,10 @@
             "type": "auto",
             "condition": {
               "type": "card-played",
-              "affectedTags": [
-                "plant",
-                "microbe",
-                "animal"
+              "selectors": [
+                {"tags": ["plant"]},
+                {"tags": ["microbe"]},
+                {"tags": ["animal"]}
               ],
               "target": "self-player"
             }
@@ -3373,8 +3383,8 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "space"
+            "selectors": [
+              {"tags": ["space"]}
             ]
           }
         ],
@@ -3933,8 +3943,8 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "space"
+            "selectors": [
+              {"tags": ["space"]}
             ]
           }
         ],
@@ -4356,8 +4366,8 @@
             "type": "discount",
             "amount": 3,
             "target": "self-player",
-            "affectedTags": [
-              "earth"
+            "selectors": [
+              {"tags": ["earth"]}
             ]
           }
         ],
@@ -5190,9 +5200,9 @@
             "type": "auto",
             "condition": {
               "type": "card-played",
-              "affectedTags": [
-                "plant",
-                "animal"
+              "selectors": [
+                {"tags": ["plant"]},
+                {"tags": ["animal"]}
               ],
               "target": "self-player"
             }
@@ -5331,10 +5341,10 @@
             "type": "auto",
             "condition": {
               "type": "card-played",
-              "affectedTags": [
-                "plant",
-                "microbe",
-                "animal"
+              "selectors": [
+                {"tags": ["plant"]},
+                {"tags": ["microbe"]},
+                {"tags": ["animal"]}
               ],
               "target": "self-player"
             }
@@ -6706,8 +6716,8 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "space"
+            "selectors": [
+              {"tags": ["space"]}
             ]
           }
         ]
@@ -6973,8 +6983,8 @@
             "type": "defense",
             "amount": 1,
             "target": "self-card",
-            "affectedResources": [
-              "animal"
+            "selectors": [
+              {"resources": ["animal"]}
             ]
           }
         ]
@@ -7017,10 +7027,8 @@
             "type": "defense",
             "amount": 1,
             "target": "self-card",
-            "affectedResources": [
-              "plant",
-              "microbe",
-              "animal"
+            "selectors": [
+              {"resources": ["plant", "microbe", "animal"]}
             ]
           }
         ],
@@ -7515,8 +7523,8 @@
             "type": "auto",
             "condition": {
               "type": "tag-played",
-              "affectedTags": [
-                "science"
+              "selectors": [
+                {"tags": ["science"]}
               ]
             }
           }
@@ -8658,8 +8666,8 @@
             "type": "floater",
             "amount": 3,
             "target": "any-card",
-            "affectedTags": [
-              "venus"
+            "selectors": [
+              {"tags": ["venus"]}
             ]
           }
         ],
@@ -8826,8 +8834,8 @@
             "type": "credit",
             "amount": 1,
             "target": "any-card",
-            "affectedTags": [
-              "venus"
+            "selectors": [
+              {"tags": ["venus"]}
             ]
           }
         ],
@@ -9263,8 +9271,8 @@
                 "type": "animal",
                 "amount": 2,
                 "target": "any-card",
-                "affectedTags": [
-                  "venus"
+                "selectors": [
+                  {"tags": ["venus"]}
                 ]
               }
             ]
@@ -9275,8 +9283,8 @@
                 "type": "microbe",
                 "amount": 2,
                 "target": "any-card",
-                "affectedTags": [
-                  "venus"
+                "selectors": [
+                  {"tags": ["venus"]}
                 ]
               }
             ]
@@ -9401,8 +9409,8 @@
             "type": "floater",
             "amount": 1,
             "target": "any-card",
-            "affectedTags": [
-              "venus"
+            "selectors": [
+              {"tags": ["venus"]}
             ],
             "per": {
               "type": "tag",
@@ -9727,8 +9735,8 @@
             "type": "credit",
             "amount": 1,
             "target": "any-card",
-            "affectedTags": [
-              "venus"
+            "selectors": [
+              {"tags": ["venus"]}
             ]
           }
         ],
@@ -10116,8 +10124,8 @@
             "type": "floater",
             "amount": 2,
             "target": "any-card",
-            "affectedTags": [
-              "venus"
+            "selectors": [
+              {"tags": ["venus"]}
             ]
           }
         ],
@@ -10342,8 +10350,8 @@
                 "type": "microbe",
                 "amount": 1,
                 "target": "any-card",
-                "affectedTags": [
-                  "venus"
+                "selectors": [
+                  {"tags": ["venus"]}
                 ]
               }
             ]
@@ -10510,8 +10518,8 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "venus"
+            "selectors": [
+              {"tags": ["venus"]}
             ]
           }
         ],
@@ -10668,8 +10676,8 @@
                 "type": "animal",
                 "amount": 1,
                 "target": "any-card",
-                "affectedTags": [
-                  "venus"
+                "selectors": [
+                  {"tags": ["venus"]}
                 ]
               }
             ]
@@ -10680,8 +10688,8 @@
                 "type": "microbe",
                 "amount": 1,
                 "target": "any-card",
-                "affectedTags": [
-                  "venus"
+                "selectors": [
+                  {"tags": ["venus"]}
                 ]
               }
             ]
@@ -10726,9 +10734,7 @@
             "condition": {
               "type": "card-played",
               "target": "self-player",
-              "requiredOriginalCost": {
-                "min": 20
-              }
+              "selectors": [{ "requiredOriginalCost": { "min": 20 } }]
             }
           },
           {
@@ -10736,9 +10742,7 @@
             "condition": {
               "type": "standard-project-played",
               "target": "self-player",
-              "requiredOriginalCost": {
-                "min": 20
-              }
+              "selectors": [{ "requiredOriginalCost": { "min": 20 } }]
             }
           }
         ],
@@ -10799,11 +10803,8 @@
             "type": "discount",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "plant"
-            ],
-            "affectedStandardProjects": [
-              "convert-plants-to-greenery"
+            "selectors": [
+              {"standardProjects": ["convert-plants-to-greenery"], "resources": ["plant"]}
             ]
           }
         ],
@@ -10852,8 +10853,8 @@
             "type": "payment-substitute",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "heat"
+            "selectors": [
+              {"resources": ["heat"]}
             ]
           }
         ],
@@ -10896,8 +10897,8 @@
           {
             "type": "auto",
             "condition": {
-              "affectedCardTypes": [
-                "event"
+              "selectors": [
+                {"cardTypes": ["event"]}
               ],
               "type": "card-played"
             }
@@ -11015,9 +11016,8 @@
             "type": "auto",
             "condition": {
               "type": "placement-bonus-gained",
-              "affectedResources": [
-                "steel",
-                "titanium"
+              "selectors": [
+                {"resources": ["steel", "titanium"]}
               ],
               "target": "self-player"
             }
@@ -11075,8 +11075,8 @@
             "type": "value-modifier",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "titanium"
+            "selectors": [
+              {"resources": ["titanium"]}
             ]
           }
         ],
@@ -11206,29 +11206,13 @@
             "type": "discount",
             "amount": 3,
             "target": "self-player",
-            "affectedTags": [
-              "power"
+            "selectors": [
+              {"tags": ["power"]},
+              {"standardProjects": ["power-plant"]}
             ]
           }
         ],
         "description": "When playing a power card **or the standard project power plant**, you pay 3 M€ less for it. You start with 1 energy production and 48 M€."
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "discount",
-            "amount": 3,
-            "target": "self-player",
-            "affectedStandardProjects": [
-              "power-plant"
-            ]
-          }
-        ]
       }
     ]
   },
@@ -11325,8 +11309,8 @@
             "type": "auto",
             "condition": {
               "type": "tag-played",
-              "affectedTags": [
-                "jovian"
+              "selectors": [
+                {"tags": ["jovian"]}
               ],
               "target": "any-player"
             }
@@ -11379,8 +11363,8 @@
             "type": "discount",
             "amount": 3,
             "target": "self-player",
-            "affectedTags": [
-              "earth"
+            "selectors": [
+              {"tags": ["earth"]}
             ]
           }
         ],
@@ -12109,8 +12093,8 @@
                 "type": "floater",
                 "amount": 1,
                 "target": "any-card",
-                "affectedTags": [
-                  "jovian"
+                "selectors": [
+                  {"tags": ["jovian"]}
                 ]
               }
             ]
@@ -12427,8 +12411,8 @@
             "type": "floater",
             "amount": 2,
             "target": "any-card",
-            "affectedTags": [
-              "jovian"
+            "selectors": [
+              {"tags": ["jovian"]}
             ]
           },
           {
@@ -13034,8 +13018,8 @@
             "type": "floater",
             "amount": 2,
             "target": "any-card",
-            "affectedTags": [
-              "jovian"
+            "selectors": [
+              {"tags": ["jovian"]}
             ]
           }
         ]
@@ -13053,8 +13037,8 @@
                 "type": "floater",
                 "amount": 1,
                 "target": "any-card",
-                "affectedTags": [
-                  "jovian"
+                "selectors": [
+                  {"tags": ["jovian"]}
                 ]
               }
             ]
@@ -13108,8 +13092,8 @@
                 "type": "floater",
                 "amount": 2,
                 "target": "any-card",
-                "affectedTags": [
-                  "jovian"
+                "selectors": [
+                  {"tags": ["jovian"]}
                 ]
               }
             ]
@@ -13219,8 +13203,8 @@
             "type": "discount",
             "amount": 4,
             "target": "self-player",
-            "affectedTags": [
-              "space"
+            "selectors": [
+              {"tags": ["space"]}
             ]
           }
         ],
@@ -13290,9 +13274,9 @@
             "type": "auto-corporation-start",
             "condition": {
               "type": "card-played",
-              "affectedTags": [
-                "plant",
-                "animal"
+              "selectors": [
+                {"tags": ["plant"]},
+                {"tags": ["animal"]}
               ],
               "target": "self-player"
             }
@@ -14914,8 +14898,8 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "building"
+            "selectors": [
+              {"tags": ["building"]}
             ]
           }
         ],
@@ -15102,8 +15086,8 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "science"
+            "selectors": [
+              {"tags": ["science"]}
             ]
           }
         ],
@@ -15328,10 +15312,10 @@
             "type": "auto",
             "condition": {
               "type": "card-played",
-              "affectedTags": [
-                "plant",
-                "microbe",
-                "animal"
+              "selectors": [
+                {"tags": ["plant"]},
+                {"tags": ["microbe"]},
+                {"tags": ["animal"]}
               ],
               "target": "self-player"
             }
@@ -16432,8 +16416,8 @@
             "type": "value-modifier",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "titanium"
+            "selectors": [
+              {"resources": ["titanium"]}
             ]
           }
         ],
@@ -16544,8 +16528,8 @@
             "type": "value-modifier",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "steel"
+            "selectors": [
+              {"resources": ["steel"]}
             ]
           }
         ],
@@ -16693,10 +16677,8 @@
             "type": "defense",
             "amount": 1,
             "target": "self-card",
-            "affectedResources": [
-              "plant",
-              "microbe",
-              "animal"
+            "selectors": [
+              {"resources": ["plant", "microbe", "animal"]}
             ]
           }
         ]
