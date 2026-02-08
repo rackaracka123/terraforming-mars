@@ -131,9 +131,7 @@ func toResourceTriggerConditionDto(cond shared.ResourceTriggerCondition) Resourc
 	return ResourceTriggerConditionDto{
 		Type:                 TriggerType(cond.Type),
 		Location:             ptrCast(cond.Location, func(l string) CardApplyLocation { return CardApplyLocation(l) }),
-		AffectedTags:         mapSlice(cond.AffectedTags, func(t shared.CardTag) CardTag { return CardTag(t) }),
-		AffectedResources:    cond.AffectedResources,
-		AffectedCardTypes:    mapSlice(cond.AffectedCardTypes, func(ct string) CardType { return CardType(ct) }),
+		Selectors:            mapSlice(cond.Selectors, toSelectorDto),
 		Target:               ptrCast(cond.Target, func(t string) TargetType { return TargetType(t) }),
 		RequiredOriginalCost: ptrCast(cond.RequiredOriginalCost, toMinMaxValueDto),
 	}
@@ -154,18 +152,25 @@ func toTileRestrictionsDto(tr shared.TileRestrictions) TileRestrictionsDto {
 	}
 }
 
+func toSelectorDto(sel shared.Selector) SelectorDto {
+	return SelectorDto{
+		Tags:                 mapSlice(sel.Tags, func(t shared.CardTag) CardTag { return CardTag(t) }),
+		CardTypes:            mapSlice(sel.CardTypes, func(ct string) CardType { return CardType(ct) }),
+		Resources:            sel.Resources,
+		StandardProjects:     mapSlice(sel.StandardProjects, func(sp shared.StandardProject) StandardProject { return StandardProject(sp) }),
+		RequiredOriginalCost: ptrCast(sel.RequiredOriginalCost, toMinMaxValueDto),
+	}
+}
+
 func toResourceConditionDto(rc shared.ResourceCondition) ResourceConditionDto {
 	return ResourceConditionDto{
-		Type:                     ResourceType(rc.ResourceType),
-		Amount:                   rc.Amount,
-		Target:                   TargetType(rc.Target),
-		AffectedResources:        rc.AffectedResources,
-		AffectedTags:             mapSlice(rc.AffectedTags, func(t shared.CardTag) CardTag { return CardTag(t) }),
-		AffectedCardTypes:        mapSlice(rc.AffectedCardTypes, func(ct string) CardType { return CardType(ct) }),
-		AffectedStandardProjects: mapSlice(rc.AffectedStandardProjects, func(sp shared.StandardProject) StandardProject { return StandardProject(sp) }),
-		MaxTrigger:               rc.MaxTrigger,
-		Per:                      ptrCast(rc.Per, toPerConditionDto),
-		TileRestrictions:         ptrCast(rc.TileRestrictions, toTileRestrictionsDto),
+		Type:             ResourceType(rc.ResourceType),
+		Amount:           rc.Amount,
+		Target:           TargetType(rc.Target),
+		Selectors:        mapSlice(rc.Selectors, toSelectorDto),
+		MaxTrigger:       rc.MaxTrigger,
+		Per:              ptrCast(rc.Per, toPerConditionDto),
+		TileRestrictions: ptrCast(rc.TileRestrictions, toTileRestrictionsDto),
 	}
 }
 
