@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   PlayerDto,
   PlayerActionDto,
@@ -20,18 +20,96 @@ import StoragesPopover from "../popover/StoragesPopover.tsx";
 import LogPopover from "../popover/LogPopover.tsx";
 import VictoryPointsPopover from "../popover/VictoryPointsPopover.tsx";
 import GameIcon from "../display/GameIcon.tsx";
+import CorporationCard from "../cards/CorporationCard.tsx";
+import { getCorporationLogo } from "@/utils/corporationLogos.tsx";
+import { getCorporationBorderColor } from "@/utils/corporationColors.ts";
 import {
   calculatePlantsForGreenery,
   calculateHeatForTemperature,
 } from "@/utils/resourceConversionUtils.ts";
-// Modal components are now imported and managed in GameInterface
+
+interface AngledPanelProps {
+  side: "left" | "right";
+  corpColor: string;
+  width: number;
+  height: number;
+  children: React.ReactNode;
+}
+
+const ANGLE_INDENT = 42;
+
+const BORDER_COLOR = "rgba(60,60,70,0.7)";
+
+const AngledPanel: React.FC<AngledPanelProps> = ({ side, corpColor, width, height, children }) => {
+  const fillPoints =
+    side === "left"
+      ? `0,0 ${width - ANGLE_INDENT},0 ${width},${height} 0,${height}`
+      : `${ANGLE_INDENT},0 ${width},0 ${width},${height} 0,${height}`;
+
+  const topEdge =
+    side === "left"
+      ? { x1: 0, y1: 0, x2: width - ANGLE_INDENT, y2: 0 }
+      : { x1: ANGLE_INDENT, y1: 0, x2: width, y2: 0 };
+
+  const angledEdge =
+    side === "left"
+      ? { x1: width - ANGLE_INDENT, y1: 0, x2: width, y2: height }
+      : { x1: 0, y1: height, x2: ANGLE_INDENT, y2: 0 };
+
+  const gradientId = `corpGradient-${side}`;
+  const whiteGlowId = `whiteGlow-${side}`;
+
+  return (
+    <div className="relative pointer-events-auto" style={{ width, height }}>
+      <svg
+        className="absolute inset-0 w-full h-full"
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
+      >
+        <defs>
+          {side === "left" && (
+            <linearGradient id={gradientId} x1="0%" y1="0%" x2="30%" y2="0%">
+              <stop offset="0%" stopColor={corpColor} stopOpacity="0.17" />
+              <stop offset="100%" stopColor={corpColor} stopOpacity="0" />
+            </linearGradient>
+          )}
+          {side === "right" && (
+            <linearGradient id={whiteGlowId} x1="70%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.17" />
+            </linearGradient>
+          )}
+        </defs>
+        <polygon points={fillPoints} fill="rgba(10,10,15,0.95)" />
+        {side === "left" && <polygon points={fillPoints} fill={`url(#${gradientId})`} />}
+        {side === "right" && <polygon points={fillPoints} fill={`url(#${whiteGlowId})`} />}
+        <line
+          x1={topEdge.x1}
+          y1={topEdge.y1}
+          x2={topEdge.x2}
+          y2={topEdge.y2}
+          stroke={BORDER_COLOR}
+          strokeWidth="4"
+        />
+        <line
+          x1={angledEdge.x1}
+          y1={angledEdge.y1}
+          x2={angledEdge.x2}
+          y2={angledEdge.y2}
+          stroke={BORDER_COLOR}
+          strokeWidth="3"
+        />
+      </svg>
+      <div className="relative z-10 h-full">{children}</div>
+    </div>
+  );
+};
 
 interface ResourceData {
   id: string;
   name: string;
   current: number;
   production: number;
-  color: string;
 }
 
 export interface BottomResourceBarCallbacks {
@@ -50,6 +128,7 @@ interface BottomResourceBarProps {
   changedPaths?: Set<string>;
   callbacks?: BottomResourceBarCallbacks;
   gameId?: string;
+  corporation?: CardDto | null;
 }
 
 const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
@@ -59,6 +138,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   changedPaths = new Set(),
   callbacks = {},
   gameId,
+  corporation,
 }) => {
   const {
     onOpenCardEffectsModal,
@@ -74,19 +154,57 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   const [showStoragesPopover, setShowStoragesPopover] = useState(false);
   const [showLogPopover, setShowLogPopover] = useState(false);
   const [showVPPopover, setShowVPPopover] = useState(false);
+  const [isCorpExpanded, setIsCorpExpanded] = useState(false);
+  const [showCorpExpanded, setShowCorpExpanded] = useState(false);
   const actionsButtonRef = useRef<HTMLButtonElement>(null);
   const effectsButtonRef = useRef<HTMLButtonElement>(null);
   const tagsButtonRef = useRef<HTMLButtonElement>(null);
   const storagesButtonRef = useRef<HTMLButtonElement>(null);
   const logButtonRef = useRef<HTMLButtonElement>(null);
   const vpButtonRef = useRef<HTMLButtonElement>(null);
+  const corpContainerRef = useRef<HTMLDivElement>(null);
 
-  // Helper function to check if a path has changed
+  const corpColor = corporation ? getCorporationBorderColor(corporation.name) : "#ffc107";
+
+  const handleCorpToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isCorpExpanded) {
+      handleCorpClose();
+    } else {
+      setShowCorpExpanded(true);
+      requestAnimationFrame(() => {
+        setIsCorpExpanded(true);
+      });
+    }
+  };
+
+  const handleCorpClose = () => {
+    setIsCorpExpanded(false);
+    setTimeout(() => {
+      setShowCorpExpanded(false);
+    }, 200);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (corpContainerRef.current && !corpContainerRef.current.contains(event.target as Node)) {
+        handleCorpClose();
+      }
+    };
+
+    if (isCorpExpanded) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isCorpExpanded]);
+
   const hasPathChanged = (path: string): boolean => {
     return changedPaths.has(path);
   };
 
-  // Map resource ID to ResourceType constant
   const getResourceType = (resourceId: string): string => {
     const resourceTypeMap: Record<string, string> = {
       credits: ResourceTypeCredit,
@@ -99,13 +217,11 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     return resourceTypeMap[resourceId] || resourceId;
   };
 
-  // Count tags from played cards
   const tagCounts = React.useMemo(() => {
     if (!playedCards || playedCards.length === 0) return [];
 
     const counts: { [key: string]: number } = {};
 
-    // Count tags from played cards
     playedCards.forEach((card) => {
       if (card.tags) {
         card.tags.forEach((tag) => {
@@ -115,7 +231,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       }
     });
 
-    // All possible tags
     const allTags = [
       "space",
       "earth",
@@ -142,79 +257,65 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     }));
   }, [playedCards]);
 
-  // Count storage cards (cards with resource storage)
   const storageCardsCount = React.useMemo(() => {
     if (!currentPlayer?.resourceStorage) return 0;
     return Object.keys(currentPlayer.resourceStorage).length;
   }, [currentPlayer?.resourceStorage]);
 
-  // Early return if no player data available
   if (!currentPlayer?.resources || !currentPlayer?.production) {
     return null;
   }
 
-  // Create resources from current player data
   const playerResources: ResourceData[] = [
     {
       id: "credit",
       name: "Credits",
       current: currentPlayer.resources.credits,
       production: currentPlayer.production.credits,
-      color: "#f1c40f", // Gold - OK already
     },
     {
       id: "steel",
       name: "Steel",
       current: currentPlayer.resources.steel,
       production: currentPlayer.production.steel,
-      color: "#d2691e", // Brown/orangy
     },
     {
       id: "titanium",
       name: "Titanium",
       current: currentPlayer.resources.titanium,
       production: currentPlayer.production.titanium,
-      color: "#95a5a6", // Grey
     },
     {
       id: "plant",
       name: "Plants",
       current: currentPlayer.resources.plants,
       production: currentPlayer.production.plants,
-      color: "#27ae60", // Green - OK already
     },
     {
       id: "energy",
       name: "Energy",
       current: currentPlayer.resources.energy,
       production: currentPlayer.production.energy,
-      color: "#9b59b6", // Purple
     },
     {
       id: "heat",
       name: "Heat",
       current: currentPlayer.resources.heat,
       production: currentPlayer.production.heat,
-      color: "#ff4500", // Red/orange
     },
   ];
 
-  // Get actual played cards count from game state
   const playedCardsCount = currentPlayer?.playedCards?.length || 0;
 
-  // Calculate required resources for conversions
   const requiredPlants = calculatePlantsForGreenery(currentPlayer?.effects);
   const requiredHeat = calculateHeatForTemperature(currentPlayer?.effects);
 
-  // Check if player can afford conversions
   const canConvertPlants = (currentPlayer?.resources.plants ?? 0) >= requiredPlants;
   const canConvertHeat =
     (currentPlayer?.resources.heat ?? 0) >= requiredHeat &&
-    (gameState?.globalParameters?.temperature ?? -30) < 8; // Same check as Asteroid standard project
+    (gameState?.globalParameters?.temperature ?? -30) < 8;
 
-  // Modal handlers
   const handleOpenCardsModal = () => {
-    // Opening cards modal
     onOpenCardsPlayedModal?.();
   };
 
@@ -240,340 +341,373 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     setShowVPPopover(!showVPPopover);
   };
 
-  // Modal escape handling is now managed in GameInterface
+  const isTilePlacementActive = !!currentPlayer?.pendingTileSelection;
+  const isConversionDisabled = isTilePlacementActive;
+
+  const BAR_HEIGHT = 90;
+  const LEFT_PANEL_WIDTH = 640;
+  const RIGHT_PANEL_WIDTH = 640;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-12 flex items-end justify-between px-[30px] pb-2 z-[1000] pointer-events-auto">
-      {/* Background bar */}
-      <div className="absolute inset-0 bg-space-black-darker/95 backdrop-blur-space border-t-2 border-space-blue-400 shadow-[0_-8px_32px_rgba(0,0,0,0.6),0_0_20px_rgba(30,60,150,0.3)] -z-10" />
-
-      {/* Resource Grid */}
-      <div className="flex-[2] -translate-y-[30px] pointer-events-auto relative">
-        <div className="grid grid-cols-6 gap-[15px] max-w-[500px] items-end">
-          {playerResources.map((resource) => {
-            const resourceChanged = hasPathChanged(`currentPlayer.resources.${resource.id}`);
-            const productionChanged = hasPathChanged(`currentPlayer.production.${resource.id}`);
-
-            // Check if this resource has a conversion button
-            const showConversionButton =
-              (resource.id === "plant" && canConvertPlants) ||
-              (resource.id === "heat" && canConvertHeat);
-
-            // Disable conversion buttons during tile placement
-            const isTilePlacementActive = !!currentPlayer?.pendingTileSelection;
-            const isConversionDisabled = isTilePlacementActive;
-
-            return (
-              <div key={resource.id} className="flex flex-col items-center">
+    <div className="fixed bottom-0 left-0 right-0 z-[1000] flex justify-between pointer-events-none">
+      {/* LEFT PANEL: Corporation + Resources */}
+      <AngledPanel side="left" corpColor={corpColor} width={LEFT_PANEL_WIDTH} height={BAR_HEIGHT}>
+        <div className="flex items-center h-full" style={{ paddingRight: ANGLE_INDENT + 16 }}>
+          {/* Corporation Section */}
+          <div
+            ref={corpContainerRef}
+            className="flex items-center relative w-[120px] justify-center"
+          >
+            {corporation && (
+              <>
+                {/* Corporation Logo Button */}
                 <div
-                  className={`flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 rounded-xl p-2 relative overflow-hidden transition-all duration-500 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]`}
-                  style={
-                    {
-                      "--resource-color": resource.color,
-                      borderColor: resource.color,
-                      boxShadow: `0 0 10px ${resource.color}40`,
-                    } as React.CSSProperties
-                  }
+                  className="cursor-pointer p-2 transition-all duration-200 hover:brightness-110"
+                  onClick={handleCorpToggle}
+                  style={{
+                    filter: `drop-shadow(0 0 8px ${corpColor}50)`,
+                  }}
                 >
-                  {/* Conversion button area - all resources have this for consistent height */}
+                  <div className="flex items-center justify-center min-h-[50px] [&>*]:scale-65 [&>*]:origin-center">
+                    {getCorporationLogo(corporation.name.toLowerCase())}
+                  </div>
+                </div>
+
+                {/* Expanded Corporation Card */}
+                {showCorpExpanded && (
                   <div
-                    className={`transition-all duration-500 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] ${showConversionButton ? "max-h-[40px] h-auto opacity-100 mb-1" : "max-h-0 h-0 opacity-0 mb-0"}`}
+                    className={`absolute bottom-[100%] left-4 mb-2 origin-bottom-left transition-all duration-200 ${
+                      isCorpExpanded ? "opacity-100 scale-100" : "opacity-0 scale-90"
+                    }`}
                   >
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCorpClose();
+                      }}
+                      className="absolute top-4 right-4 text-white/70 hover:text-white text-xl leading-none transition-colors z-10 cursor-pointer"
+                    >
+                      ×
+                    </button>
+                    <CorporationCard
+                      corporation={{
+                        id: corporation.id,
+                        name: corporation.name,
+                        description: corporation.description,
+                        startingMegaCredits: corporation.startingResources?.credits || 0,
+                        startingProduction: corporation.startingProduction,
+                        startingResources: corporation.startingResources,
+                        behaviors: corporation.behaviors,
+                      }}
+                      isSelected={false}
+                      onSelect={() => {}}
+                      showCheckbox={false}
+                      borderColor={corpColor}
+                      disableInteraction={true}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Divider between corp and resources */}
+          <div
+            className="w-[1px] h-[50px] self-center mx-2"
+            style={{
+              background: `linear-gradient(transparent, ${corpColor}40, transparent)`,
+            }}
+          />
+
+          {/* Resources Section */}
+          <div className="flex items-center justify-evenly flex-1">
+            {playerResources.map((resource, index) => {
+              const resourceChanged = hasPathChanged(`currentPlayer.resources.${resource.id}`);
+              const productionChanged = hasPathChanged(`currentPlayer.production.${resource.id}`);
+
+              const showConversionButton =
+                (resource.id === "plant" && canConvertPlants) ||
+                (resource.id === "heat" && canConvertHeat);
+
+              return (
+                <React.Fragment key={resource.id}>
+                  {/* Resource Item */}
+                  <div className="flex flex-col items-center gap-0.5 px-2 py-1.5 relative">
+                    {/* Conversion button - positioned absolutely above production box */}
                     {(resource.id === "plant" || resource.id === "heat") && (
-                      <button
-                        disabled={isConversionDisabled || !showConversionButton}
-                        className={`flex items-center justify-center gap-0.5 px-2 py-1 bg-space-black-darker/95 border rounded transition-all duration-200 ${isConversionDisabled || !showConversionButton ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
-                        style={{
-                          borderColor: resource.color,
-                          boxShadow: "none",
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (isConversionDisabled || !showConversionButton) return;
-                          // Execute conversion immediately
-                          if (resource.id === "plant") {
-                            void onConvertPlantsToGreenery?.();
-                          } else if (resource.id === "heat") {
-                            void onConvertHeatToTemperature?.();
-                          }
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isConversionDisabled && showConversionButton) {
-                            e.currentTarget.style.boxShadow = `0 0 8px ${resource.color}, 0 0 16px ${resource.color}, 0 3px 6px rgba(0, 0, 0, 0.3)`;
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.boxShadow = "none";
-                        }}
+                      <div
+                        className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-1 transition-all duration-300 ${
+                          showConversionButton
+                            ? "opacity-100 scale-100"
+                            : "opacity-0 scale-90 pointer-events-none"
+                        }`}
                       >
-                        <span className="text-[15px] font-bold text-white/90">+</span>
+                        <button
+                          disabled={isConversionDisabled || !showConversionButton}
+                          className={`flex items-center justify-center gap-0.5 px-1.5 py-0.5 bg-black/80 border border-white/20 transition-all duration-200 ${
+                            isConversionDisabled || !showConversionButton
+                              ? "opacity-40 cursor-not-allowed"
+                              : "cursor-pointer hover:bg-white/10 hover:border-white/40"
+                          }`}
+                          style={{
+                            borderColor: showConversionButton ? `${corpColor}60` : undefined,
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isConversionDisabled || !showConversionButton) return;
+                            if (resource.id === "plant") {
+                              void onConvertPlantsToGreenery?.();
+                            } else if (resource.id === "heat") {
+                              void onConvertHeatToTemperature?.();
+                            }
+                          }}
+                        >
+                          <span className="text-[10px] font-bold text-white/90">+</span>
+                          <GameIcon
+                            iconType={
+                              resource.id === "plant"
+                                ? ResourceTypeGreeneryTile
+                                : ResourceTypeTemperature
+                            }
+                            size="small"
+                          />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Production badge */}
+                    <div className="inline-flex items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.5)_0%,rgba(139,89,42,0.45)_100%)] border border-[rgba(160,110,60,0.6)] px-3 py-0.5 w-[32px] mb-1">
+                      <span
+                        className={`text-[10px] font-bold font-orbitron text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none tabular-nums ${
+                          productionChanged ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""
+                        }`}
+                      >
+                        {resource.production}
+                      </span>
+                    </div>
+
+                    {/* Resource icon and value */}
+                    {resource.id === "credit" ? (
+                      <div className="flex items-center gap-1 w-[48px] justify-center scale-110">
                         <GameIcon
-                          iconType={
-                            resource.id === "plant"
-                              ? ResourceTypeGreeneryTile
-                              : ResourceTypeTemperature
-                          }
+                          iconType={ResourceTypeCredit}
+                          amount={resource.current}
                           size="small"
                         />
-                      </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 w-[48px] justify-center scale-[0.85]">
+                        <GameIcon iconType={getResourceType(resource.id)} size="small" />
+                        <span
+                          className={`text-sm font-bold font-orbitron text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] tabular-nums w-[24px] text-left ${
+                            resourceChanged ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""
+                          }`}
+                        >
+                          {resource.current}
+                        </span>
+                      </div>
                     )}
                   </div>
 
-                  <div className="inline-flex items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-2 py-1 shadow-[0_1px_3px_rgba(0,0,0,0.2)] mb-1 min-w-[28px]">
-                    <span
-                      className={`text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${productionChanged ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""}`}
-                    >
-                      {resource.production}
-                    </span>
-                  </div>
-
-                  {resource.id === "credit" ? (
-                    <div className="flex items-center gap-1.5 min-w-[52px] justify-center">
-                      <GameIcon
-                        iconType={ResourceTypeCredit}
-                        amount={resource.current}
-                        size="medium"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 min-w-[52px]">
-                      <GameIcon iconType={getResourceType(resource.id)} size="medium" />
-                      <div
-                        className={`text-lg font-bold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] ${resourceChanged ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""}`}
-                      >
-                        {resource.current}
-                      </div>
-                    </div>
+                  {/* Divider between resources */}
+                  {index < playerResources.length - 1 && (
+                    <div
+                      className="w-[1px] h-[40px] self-center"
+                      style={{
+                        background: `linear-gradient(transparent, rgba(60,60,70,0.8), transparent)`,
+                      }}
+                    />
                   )}
-                </div>
-              </div>
-            );
-          })}
+                </React.Fragment>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      </AngledPanel>
 
-      {/* Action Buttons Section */}
-      <div className="flex-1 flex items-center justify-end gap-[15px] -translate-y-[30px] pointer-events-auto relative">
-        <button
-          ref={actionsButtonRef}
-          className="flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 border-[#ff6464] rounded-xl p-2 cursor-pointer transition-all duration-200 w-[70px] hover:-translate-y-0.5"
-          style={{ boxShadow: "0 0 10px #ff646440" }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #ff6464";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.boxShadow = "0 0 10px #ff646440";
-          }}
-          onClick={handleOpenActionsPopover}
+      {/* RIGHT PANEL: Action Buttons */}
+      <AngledPanel side="right" corpColor={corpColor} width={RIGHT_PANEL_WIDTH} height={BAR_HEIGHT}>
+        <div
+          className="flex items-center h-full justify-evenly"
+          style={{ paddingLeft: ANGLE_INDENT + 16, paddingRight: ANGLE_INDENT + 16 }}
         >
-          <div
-            className="text-base font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center gap-[2px] h-[32px] w-[32px] justify-center"
-            style={{ color: "#ff6464" }}
-          >
-            <span className="text-[8px] leading-none translate-y-[1px]">●</span>
-            <span className="text-[8px] leading-none translate-y-[1px]">●</span>
-            <span className="text-[23px] leading-none">→</span>
-          </div>
-          <div
-            className={`text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${hasPathChanged("currentPlayer.actions") ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""}`}
-          >
-            {currentPlayer?.actions?.length || 0}
-          </div>
-          <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
-            Actions
-          </div>
-        </button>
-
-        <button
-          ref={effectsButtonRef}
-          className="flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 border-[#ff96ff] rounded-xl p-2 cursor-pointer transition-all duration-200 w-[70px] hover:-translate-y-0.5"
-          style={{ boxShadow: "0 0 10px #ff96ff40" }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #ff96ff";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.boxShadow = "0 0 10px #ff96ff40";
-          }}
-          onClick={handleOpenEffectsPopover}
-        >
-          <div
-            className="font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center justify-center h-[32px] w-[32px] relative"
-            style={{ color: "#ff96ff" }}
-          >
-            <div className="absolute w-[26px] h-[26px] rounded-full border-2 border-current" />
-            <div className="flex flex-col items-center justify-center relative">
-              <span className="text-[10px] leading-none">●</span>
-              <span className="text-[10px] leading-none">●</span>
-            </div>
-          </div>
-          <div
-            className={`text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${hasPathChanged("currentPlayer.effects") ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""}`}
-          >
-            {currentPlayer?.effects?.length || 0}
-          </div>
-          <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
-            Effects
-          </div>
-        </button>
-
-        <button
-          ref={tagsButtonRef}
-          className="flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 border-[#64ff96] rounded-xl p-2 cursor-pointer transition-all duration-200 w-[70px] hover:-translate-y-0.5"
-          style={{ boxShadow: "0 0 10px #64ff9640" }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #64ff96";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.boxShadow = "0 0 10px #64ff9640";
-          }}
-          onClick={handleOpenTagsPopover}
-        >
-          <div
-            className="font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center justify-center h-[32px] w-[32px] relative"
-            style={{ color: "#64ff96" }}
-          >
-            <div className="absolute w-[26px] h-[26px] rounded-full border-2 border-current" />
-            <div className="flex items-center gap-[2px] relative text-[8px] leading-none">
-              <span>●</span>
-              <span>●</span>
-              <span>●</span>
-            </div>
-          </div>
-          <div
-            className={`text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${hasPathChanged("currentPlayer.playedCards") ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""}`}
-          >
-            {tagCounts.reduce((sum, tag) => sum + tag.count, 0)}
-          </div>
-          <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
-            Tags
-          </div>
-        </button>
-
-        <button
-          ref={storagesButtonRef}
-          className="flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 border-[#6496c8] rounded-xl p-2 cursor-pointer transition-all duration-200 w-[70px] hover:-translate-y-0.5"
-          style={{ boxShadow: "0 0 10px #6496c840" }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #6496c8";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.boxShadow = "0 0 10px #6496c840";
-          }}
-          onClick={handleOpenStoragesPopover}
-        >
-          <div
-            className="font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center justify-center h-[32px] w-[32px] relative"
-            style={{ color: "#6496c8" }}
-          >
-            <div className="absolute w-[26px] h-[26px] border-2 border-current" />
-            <div className="flex items-center gap-[2px] relative text-[8px] leading-none">
-              <span>●</span>
-              <span>●</span>
-              <span>●</span>
-            </div>
-          </div>
-          <div
-            className={`text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${hasPathChanged("currentPlayer.resourceStorage") ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""}`}
-          >
-            {storageCardsCount}
-          </div>
-          <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
-            Storages
-          </div>
-        </button>
-
-        <button
-          className="flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 border-[#9664ff] rounded-xl p-2 cursor-pointer transition-all duration-200 w-[70px] hover:-translate-y-0.5"
-          style={{ boxShadow: "0 0 10px #9664ff40" }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #9664ff";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.boxShadow = "0 0 10px #9664ff40";
-          }}
-          onClick={handleOpenCardsModal}
-        >
-          <div
-            className="text-2xl font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center justify-center h-[32px] w-[32px]"
-            style={{ color: "#9664ff" }}
-          >
-            ↓
-          </div>
-          <div
-            className={`text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${hasPathChanged("currentPlayer.playedCards") ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""}`}
-          >
-            {playedCardsCount}
-          </div>
-          <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
-            Played
-          </div>
-        </button>
-
-        <button
-          ref={vpButtonRef}
-          className="flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 border-[#ffc864] rounded-xl p-2 cursor-pointer transition-all duration-200 w-[70px] hover:-translate-y-0.5"
-          style={{ boxShadow: "0 0 10px #ffc86440" }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #ffc864";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.boxShadow = "0 0 10px #ffc86440";
-          }}
-          onClick={handleOpenVPPopover}
-        >
-          <div
-            className="font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center justify-center h-[32px] w-[32px] relative"
-            style={{ color: "#ffc864" }}
-          >
-            <span className="text-3xl absolute">○</span>
-            <span className="text-lg absolute">●</span>
-          </div>
-          <div
-            className={`text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${
-              hasPathChanged("currentPlayer.vpGranters") ||
-              hasPathChanged("currentPlayer.terraformRating")
-                ? "[animation:valueUpdateShine_0.8s_ease-in-out]"
-                : ""
-            }`}
-          >
-            {totalVP}
-          </div>
-          <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
-            VP
-          </div>
-        </button>
-
-        {/* Log Button */}
-        {gameId && (
+          {/* Actions Button */}
           <button
-            ref={logButtonRef}
-            className="flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 border-[#64c8ff] rounded-xl p-2 cursor-pointer transition-all duration-200 w-[70px] hover:-translate-y-0.5"
-            style={{ boxShadow: "0 0 10px #64c8ff40" }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #64c8ff";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = "0 0 10px #64c8ff40";
-            }}
-            onClick={() => setShowLogPopover(!showLogPopover)}
+            ref={actionsButtonRef}
+            className="group flex flex-col items-center gap-1.5 p-1.5 cursor-pointer transition-all duration-200 w-[52px] hover:bg-white/5"
+            onClick={handleOpenActionsPopover}
           >
+            <div className="font-bold flex items-center gap-[2px] h-[24px] w-[24px] justify-center text-[rgb(140,140,150)] group-hover:text-[rgb(100,160,220)] transition-colors duration-200">
+              <span className="text-[7px] leading-none translate-y-[1px]">●</span>
+              <span className="text-[7px] leading-none translate-y-[1px]">●</span>
+              <span className="text-[18px] leading-none">→</span>
+            </div>
             <div
-              className="font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center justify-center h-[32px] w-[32px] relative text-lg"
-              style={{ color: "#64c8ff" }}
+              className={`text-sm font-bold font-orbitron text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${
+                hasPathChanged("currentPlayer.actions")
+                  ? "[animation:valueUpdateShine_0.8s_ease-in-out]"
+                  : ""
+              }`}
             >
-              ☰
+              {currentPlayer?.actions?.length || 0}
             </div>
-            <div className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none invisible">
-              0
-            </div>
-            <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
-              Log
+            <div className="text-[8px] font-medium font-orbitron text-white/70 uppercase tracking-[0.5px]">
+              Actions
             </div>
           </button>
-        )}
-      </div>
 
-      {/* Actions Popover */}
+          {/* Effects Button */}
+          <button
+            ref={effectsButtonRef}
+            className="group flex flex-col items-center gap-1.5 p-1.5 cursor-pointer transition-all duration-200 w-[52px] hover:bg-white/5"
+            onClick={handleOpenEffectsPopover}
+          >
+            <div className="font-bold flex items-center justify-center h-[24px] w-[24px] relative text-[rgb(140,140,150)] group-hover:text-[rgb(100,160,220)] transition-colors duration-200">
+              <div className="absolute w-[20px] h-[20px] rounded-full border-2 border-current" />
+              <div className="flex flex-col items-center justify-center relative">
+                <span className="text-[7px] leading-none">●</span>
+                <span className="text-[7px] leading-none">●</span>
+              </div>
+            </div>
+            <div
+              className={`text-sm font-bold font-orbitron text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${
+                hasPathChanged("currentPlayer.effects")
+                  ? "[animation:valueUpdateShine_0.8s_ease-in-out]"
+                  : ""
+              }`}
+            >
+              {currentPlayer?.effects?.length || 0}
+            </div>
+            <div className="text-[8px] font-medium font-orbitron text-white/70 uppercase tracking-[0.5px]">
+              Effects
+            </div>
+          </button>
+
+          {/* Tags Button */}
+          <button
+            ref={tagsButtonRef}
+            className="group flex flex-col items-center gap-1.5 p-1.5 cursor-pointer transition-all duration-200 w-[52px] hover:bg-white/5"
+            onClick={handleOpenTagsPopover}
+          >
+            <div className="font-bold flex items-center justify-center h-[24px] w-[24px] relative text-[rgb(140,140,150)] group-hover:text-[rgb(100,160,220)] transition-colors duration-200">
+              <div className="absolute w-[20px] h-[20px] rounded-full border-2 border-current" />
+              <div className="flex items-center gap-[2px] relative text-[6px] leading-none">
+                <span>●</span>
+                <span>●</span>
+                <span>●</span>
+              </div>
+            </div>
+            <div
+              className={`text-sm font-bold font-orbitron text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${
+                hasPathChanged("currentPlayer.playedCards")
+                  ? "[animation:valueUpdateShine_0.8s_ease-in-out]"
+                  : ""
+              }`}
+            >
+              {tagCounts.reduce((sum, tag) => sum + tag.count, 0)}
+            </div>
+            <div className="text-[8px] font-medium font-orbitron text-white/70 uppercase tracking-[0.5px]">
+              Tags
+            </div>
+          </button>
+
+          {/* Storages Button */}
+          <button
+            ref={storagesButtonRef}
+            className="group flex flex-col items-center gap-1.5 p-1.5 cursor-pointer transition-all duration-200 w-[52px] hover:bg-white/5"
+            onClick={handleOpenStoragesPopover}
+          >
+            <div className="font-bold flex items-center justify-center h-[24px] w-[24px] relative text-[rgb(140,140,150)] group-hover:text-[rgb(100,160,220)] transition-colors duration-200">
+              <div className="absolute w-[20px] h-[20px] border-2 border-current" />
+              <div className="flex items-center gap-[2px] relative text-[6px] leading-none">
+                <span>●</span>
+                <span>●</span>
+                <span>●</span>
+              </div>
+            </div>
+            <div
+              className={`text-sm font-bold font-orbitron text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${
+                hasPathChanged("currentPlayer.resourceStorage")
+                  ? "[animation:valueUpdateShine_0.8s_ease-in-out]"
+                  : ""
+              }`}
+            >
+              {storageCardsCount}
+            </div>
+            <div className="text-[8px] font-medium font-orbitron text-white/70 uppercase tracking-[0.5px]">
+              Storages
+            </div>
+          </button>
+
+          {/* Played Cards Button */}
+          <button
+            className="group flex flex-col items-center gap-1.5 p-1.5 cursor-pointer transition-all duration-200 w-[52px] hover:bg-white/5"
+            onClick={handleOpenCardsModal}
+          >
+            <div className="text-lg font-bold flex items-center justify-center h-[24px] w-[24px] text-[rgb(140,140,150)] group-hover:text-[rgb(100,160,220)] transition-colors duration-200">
+              ↓
+            </div>
+            <div
+              className={`text-sm font-bold font-orbitron text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${
+                hasPathChanged("currentPlayer.playedCards")
+                  ? "[animation:valueUpdateShine_0.8s_ease-in-out]"
+                  : ""
+              }`}
+            >
+              {playedCardsCount}
+            </div>
+            <div className="text-[8px] font-medium font-orbitron text-white/70 uppercase tracking-[0.5px]">
+              Played
+            </div>
+          </button>
+
+          {/* VP Button */}
+          <button
+            ref={vpButtonRef}
+            className="group flex flex-col items-center gap-1.5 p-1.5 cursor-pointer transition-all duration-200 w-[52px] hover:bg-white/5"
+            onClick={handleOpenVPPopover}
+          >
+            <div className="font-bold flex items-center justify-center h-[24px] w-[24px] relative text-[rgb(140,140,150)] group-hover:text-[rgb(100,160,220)] transition-colors duration-200">
+              <span className="text-xl absolute">○</span>
+              <span className="text-sm absolute">●</span>
+            </div>
+            <div
+              className={`text-sm font-bold font-orbitron text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${
+                hasPathChanged("currentPlayer.vpGranters") ||
+                hasPathChanged("currentPlayer.terraformRating")
+                  ? "[animation:valueUpdateShine_0.8s_ease-in-out]"
+                  : ""
+              }`}
+            >
+              {totalVP}
+            </div>
+            <div className="text-[8px] font-medium font-orbitron text-white/70 uppercase tracking-[0.5px]">
+              VP
+            </div>
+          </button>
+
+          {/* Log Button */}
+          {gameId && (
+            <button
+              ref={logButtonRef}
+              className="group flex flex-col items-center gap-1.5 p-1.5 cursor-pointer transition-all duration-200 w-[52px] hover:bg-white/5"
+              onClick={() => setShowLogPopover(!showLogPopover)}
+            >
+              <div className="font-bold flex items-center justify-center h-[24px] w-[24px] relative text-base text-[rgb(140,140,150)] group-hover:text-[rgb(100,160,220)] transition-colors duration-200">
+                ☰
+              </div>
+              <div className="text-sm font-bold font-orbitron text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none invisible">
+                0
+              </div>
+              <div className="text-[8px] font-medium font-orbitron text-white/70 uppercase tracking-[0.5px]">
+                Log
+              </div>
+            </button>
+          )}
+        </div>
+      </AngledPanel>
+
+      {/* Popovers */}
       <ActionsPopover
         isVisible={showActionsPopover}
         onClose={() => setShowActionsPopover(false)}
@@ -588,7 +722,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         gameState={gameState}
       />
 
-      {/* Effects Popover */}
       <EffectsPopover
         isVisible={showEffectsPopover}
         onClose={() => setShowEffectsPopover(false)}
@@ -598,7 +731,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         anchorRef={effectsButtonRef as React.RefObject<HTMLElement>}
       />
 
-      {/* Tags Popover */}
       <TagsPopover
         isVisible={showTagsPopover}
         onClose={() => setShowTagsPopover(false)}
@@ -606,7 +738,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         anchorRef={tagsButtonRef as React.RefObject<HTMLElement>}
       />
 
-      {/* Storages Popover */}
       <StoragesPopover
         isVisible={showStoragesPopover}
         onClose={() => setShowStoragesPopover(false)}
@@ -614,7 +745,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         anchorRef={storagesButtonRef as React.RefObject<HTMLElement>}
       />
 
-      {/* Victory Points Popover */}
       <VictoryPointsPopover
         isVisible={showVPPopover}
         onClose={() => setShowVPPopover(false)}
@@ -623,7 +753,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         anchorRef={vpButtonRef as React.RefObject<HTMLElement>}
       />
 
-      {/* Log Popover */}
       {gameId && (
         <LogPopover
           isVisible={showLogPopover}

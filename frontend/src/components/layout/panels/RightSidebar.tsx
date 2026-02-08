@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { PlayerDto, OtherPlayerDto } from "@/types/generated/api-types.ts";
 import GameIcon from "../../ui/display/GameIcon.tsx";
 
@@ -14,143 +14,406 @@ interface RightSidebarProps {
   currentPlayer?: PlayerDto | OtherPlayerDto | null;
 }
 
+const ANGLE_INDENT = 20;
+const BORDER_COLOR = "rgba(60,60,70,0.7)";
+const THICK_BORDER_COLOR = "rgba(80,80,90,0.9)";
+const BACKGROUND_COLOR = "rgba(10,10,15,0.95)";
+const SIDEBAR_WIDTH = 50;
+const GAUGE_GAP = 2;
+
+interface GenerationPanelProps {
+  generation: number;
+  width: number;
+  height: number;
+}
+
+const GenerationPanel: React.FC<GenerationPanelProps> = ({ generation, width, height }) => {
+  const fillPoints = `0,${ANGLE_INDENT} ${width},0 ${width},${height - ANGLE_INDENT} 0,${height}`;
+
+  return (
+    <div
+      className="relative pointer-events-auto transition-[width] duration-300 ease-out"
+      style={{ width, height }}
+    >
+      <svg
+        className="absolute inset-0 w-full h-full"
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
+      >
+        <polygon points={fillPoints} fill={BACKGROUND_COLOR} />
+        <line x1={0} y1={ANGLE_INDENT} x2={width} y2={0} stroke={BORDER_COLOR} strokeWidth="2" />
+        <line
+          x1={width}
+          y1={0}
+          x2={width}
+          y2={height - ANGLE_INDENT}
+          stroke={BORDER_COLOR}
+          strokeWidth="2"
+        />
+        <line
+          x1={width}
+          y1={height - ANGLE_INDENT}
+          x2={0}
+          y2={height}
+          stroke={THICK_BORDER_COLOR}
+          strokeWidth="4"
+        />
+        <line x1={0} y1={height} x2={0} y2={ANGLE_INDENT} stroke={BORDER_COLOR} strokeWidth="2" />
+      </svg>
+      <div className="relative z-10 h-full flex flex-col items-center justify-center">
+        <div className="text-[10px] font-orbitron font-bold text-white/70 uppercase tracking-[1px]">
+          GEN
+        </div>
+        <div className="text-xl font-orbitron font-bold text-white [text-shadow:0_0_8px_rgba(255,255,255,0.3)]">
+          {generation}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface GaugesSectionProps {
+  oxygen: number;
+  temperature: number;
+  width: number;
+  isHovered: boolean;
+}
+
+const GaugesSection: React.FC<GaugesSectionProps> = ({ oxygen, temperature, width, isHovered }) => {
+  const oxygenPercent = Math.max(0, (oxygen / 14) * 100);
+  const temperaturePercent = Math.max(0, ((temperature + 30) / 38) * 100);
+
+  const gaugeWidth = (width - GAUGE_GAP) / 2;
+
+  const oxygenSteps = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+  const tempSteps = [
+    -30, -28, -26, -24, -22, -20, -18, -16, -14, -12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8,
+  ];
+
+  return (
+    <div
+      className="relative pointer-events-auto flex-1 transition-[width] duration-300 ease-out"
+      style={{ width }}
+    >
+      <svg
+        className="absolute inset-0 w-full h-full transition-all duration-300 ease-out"
+        preserveAspectRatio="none"
+      >
+        <line
+          x1={0}
+          y1={ANGLE_INDENT}
+          x2={width}
+          y2={0}
+          stroke={THICK_BORDER_COLOR}
+          strokeWidth="4"
+        />
+        <line x1={width} y1={0} x2={width} y2="100%" stroke={BORDER_COLOR} strokeWidth="2" />
+        <line
+          x1={width}
+          y1="100%"
+          x2={0}
+          y2={`calc(100% - ${ANGLE_INDENT}px)`}
+          stroke={BORDER_COLOR}
+          strokeWidth="2"
+        />
+        <line
+          x1={0}
+          y1={`calc(100% - ${ANGLE_INDENT}px)`}
+          x2={0}
+          y2={ANGLE_INDENT}
+          stroke={BORDER_COLOR}
+          strokeWidth="2"
+        />
+      </svg>
+
+      <div className="relative z-10 h-full flex">
+        {/* Oxygen Gauge */}
+        <div
+          className="relative h-full bg-[linear-gradient(to_right,#1a1a1a_0%,#0a0a0a_50%,#1a1a1a_100%)] overflow-hidden transition-[width] duration-300 ease-out"
+          style={{ width: gaugeWidth }}
+        >
+          <div
+            className="absolute bottom-0 left-0 right-0 bg-[linear-gradient(to_top,#006400_0%,#32cd32_50%,#00ff00_100%)] transition-[height] duration-500 ease-[ease] shadow-[0_0_8px_rgba(0,255,0,1),0_0_15px_rgba(50,205,50,0.8),inset_0_1px_2px_rgba(255,255,255,0.3)]"
+            style={{ height: `${oxygenPercent}%` }}
+          />
+          <div
+            className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${isHovered ? "opacity-0" : "opacity-100"}`}
+          >
+            {oxygenSteps.map((o) => {
+              const position = (o / 14) * 100;
+              const isFirst = o === 0;
+              const isLast = o === 14;
+              const adjustedPosition = isFirst ? 2 : isLast ? 96 : position;
+              return (
+                <div
+                  key={o}
+                  className="absolute w-full text-[8px] font-orbitron font-bold text-[#00ff00] [text-shadow:0_0_3px_rgba(0,255,0,0.8)] text-center transition-opacity duration-300"
+                  style={{
+                    bottom: `${adjustedPosition}%`,
+                    transform: "translateY(50%)",
+                    opacity: oxygen >= o ? 0.3 : 1,
+                  }}
+                >
+                  {o}
+                </div>
+              );
+            })}
+          </div>
+          {/* Current value indicator */}
+          <div
+            className={`absolute w-full z-20 text-sm font-orbitron font-bold text-white [text-shadow:0_0_4px_rgba(0,0,0,1),0_0_8px_rgba(0,0,0,0.8)] text-center pointer-events-none transition-opacity duration-300 ${isHovered ? "opacity-100" : "opacity-0"}`}
+            style={{
+              bottom: `${oxygenPercent}%`,
+              transform: "translateY(50%)",
+            }}
+          >
+            {oxygen}%
+          </div>
+        </div>
+
+        {/* Gap */}
+        <div style={{ width: GAUGE_GAP, backgroundColor: BORDER_COLOR }} />
+
+        {/* Temperature Gauge */}
+        <div
+          className="relative h-full bg-[linear-gradient(to_right,#1a1a1a_0%,#0a0a0a_50%,#1a1a1a_100%)] overflow-hidden transition-[width] duration-300 ease-out"
+          style={{ width: gaugeWidth }}
+        >
+          <div
+            className="absolute bottom-0 left-0 right-0 bg-[linear-gradient(to_top,#87ceeb_0%,#ffb347_50%,#ff8c00_100%)] transition-[height] duration-500 ease-[ease] shadow-[0_0_8px_rgba(255,140,0,1),0_0_15px_rgba(255,179,71,0.8),inset_0_1px_2px_rgba(255,255,255,0.3)]"
+            style={{ height: `${temperaturePercent}%` }}
+          />
+          <div
+            className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${isHovered ? "opacity-0" : "opacity-100"}`}
+          >
+            {tempSteps.map((t) => {
+              const position = ((t + 30) / 38) * 100;
+              const isFirst = t === -30;
+              const isLast = t === 6;
+              const adjustedPosition = isFirst ? 2 : isLast ? 96 : position;
+              return (
+                <div
+                  key={t}
+                  className="absolute w-full text-[8px] font-orbitron font-bold text-[#ff8c00] [text-shadow:0_0_3px_rgba(255,140,0,0.8)] text-center transition-opacity duration-300"
+                  style={{
+                    bottom: `${adjustedPosition}%`,
+                    transform: "translateY(50%)",
+                    opacity: temperature >= t ? 0.3 : 1,
+                  }}
+                >
+                  {t}
+                </div>
+              );
+            })}
+          </div>
+          {/* Current value indicator */}
+          <div
+            className={`absolute w-full z-20 text-sm font-orbitron font-bold text-white [text-shadow:0_0_4px_rgba(0,0,0,1),0_0_8px_rgba(0,0,0,0.8)] text-center pointer-events-none transition-opacity duration-300 ${isHovered ? "opacity-100" : "opacity-0"}`}
+            style={{
+              bottom: `${temperaturePercent}%`,
+              transform: "translateY(50%)",
+            }}
+          >
+            {temperature}°
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface GaugeLegendPanelProps {
+  width: number;
+  height: number;
+}
+
+const GaugeLegendPanel: React.FC<GaugeLegendPanelProps> = ({ width, height }) => {
+  const fillPoints = `0,0 ${width},${ANGLE_INDENT} ${width},${height} 0,${height - ANGLE_INDENT}`;
+  const gaugeWidth = (width - GAUGE_GAP) / 2;
+
+  return (
+    <div
+      className="relative pointer-events-auto transition-[width] duration-300 ease-out"
+      style={{ width, height }}
+    >
+      <svg
+        className="absolute inset-0 w-full h-full"
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
+      >
+        <polygon points={fillPoints} fill={BACKGROUND_COLOR} />
+        <line
+          x1={0}
+          y1={0}
+          x2={width}
+          y2={ANGLE_INDENT}
+          stroke={THICK_BORDER_COLOR}
+          strokeWidth="4"
+        />
+        <line
+          x1={width}
+          y1={ANGLE_INDENT}
+          x2={width}
+          y2={height}
+          stroke={BORDER_COLOR}
+          strokeWidth="2"
+        />
+        <line
+          x1={width}
+          y1={height}
+          x2={0}
+          y2={height - ANGLE_INDENT}
+          stroke={BORDER_COLOR}
+          strokeWidth="2"
+        />
+        <line
+          x1={0}
+          y1={height - ANGLE_INDENT}
+          x2={0}
+          y2={0}
+          stroke={BORDER_COLOR}
+          strokeWidth="2"
+        />
+      </svg>
+      <div className="relative z-10 h-full flex items-center justify-center">
+        <div
+          className="flex items-center transition-[width] duration-300 ease-out"
+          style={{
+            width: gaugeWidth,
+            justifyContent: "center",
+            transform: "translateY(-5px) scale(0.8)",
+          }}
+        >
+          <GameIcon iconType="oxygen" size="small" />
+        </div>
+        <div style={{ width: GAUGE_GAP }} />
+        <div
+          className="flex items-center transition-[width] duration-300 ease-out"
+          style={{
+            width: gaugeWidth,
+            justifyContent: "center",
+            transform: "translateY(5px) scale(0.8)",
+          }}
+        >
+          <GameIcon iconType="temperature" size="small" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface OceansPanelProps {
+  oceans: number;
+  width: number;
+  height: number;
+}
+
+const OceansPanel: React.FC<OceansPanelProps> = ({ oceans, width, height }) => {
+  const fillPoints = `0,0 ${width},${ANGLE_INDENT} ${width},${height} 0,${height - ANGLE_INDENT}`;
+
+  return (
+    <div
+      className="relative pointer-events-auto transition-[width] duration-300 ease-out"
+      style={{ width, height }}
+    >
+      <svg
+        className="absolute inset-0 w-full h-full"
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
+      >
+        <polygon points={fillPoints} fill={BACKGROUND_COLOR} />
+        <line x1={0} y1={0} x2={width} y2={ANGLE_INDENT} stroke={BORDER_COLOR} strokeWidth="2" />
+        <line
+          x1={width}
+          y1={ANGLE_INDENT}
+          x2={width}
+          y2={height}
+          stroke={BORDER_COLOR}
+          strokeWidth="2"
+        />
+        <line
+          x1={width}
+          y1={height}
+          x2={0}
+          y2={height - ANGLE_INDENT}
+          stroke={BORDER_COLOR}
+          strokeWidth="2"
+        />
+        <line
+          x1={0}
+          y1={height - ANGLE_INDENT}
+          x2={0}
+          y2={0}
+          stroke={BORDER_COLOR}
+          strokeWidth="2"
+        />
+      </svg>
+      <div className="relative z-10 h-full flex flex-col items-center justify-center gap-1">
+        <div className="flex items-center justify-center w-6 h-6 brightness-[1.2]">
+          <GameIcon iconType="ocean" size="small" />
+        </div>
+        <div className="flex items-center font-orbitron text-sm font-bold">
+          <span className="text-[#00bfff] [text-shadow:0_0_3px_rgba(0,191,255,0.6)]">{oceans}</span>
+          <span className="text-[#666]"> / </span>
+          <span className="text-[#999]">9</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const RightSidebar: React.FC<RightSidebarProps> = ({
   globalParameters,
   generation,
   currentPlayer: _currentPlayer,
 }) => {
-  // Get temperature scale markings (every 2 degrees)
-  const getTemperatureMarkings = () => {
-    const markings = [];
-    for (let temp = 8; temp >= -30; temp -= 2) {
-      markings.push(temp);
-    }
-    return markings;
-  };
+  const [isHovered, setIsHovered] = useState(false);
+
+  const GEN_PANEL_HEIGHT = 80;
+  const LEGEND_PANEL_HEIGHT = 60;
+  const OCEANS_PANEL_HEIGHT = 80;
+
+  const currentWidth = isHovered ? Math.round(SIDEBAR_WIDTH * 1.4) : SIDEBAR_WIDTH;
 
   return (
-    <div className="absolute bottom-[20%] right-0 z-10 w-[250px] min-w-[150px] max-w-[250px] h-auto bg-transparent p-[clamp(4px,1vw,8px)_clamp(10px,2vw,20px)] overflow-visible flex flex-col items-center justify-end pointer-events-auto max-xl:min-w-[120px] max-xl:max-w-[180px] max-lg:min-w-[100px] max-lg:max-w-[150px] max-md:w-full max-md:max-w-full max-md:h-auto max-md:border-l-none max-md:border-t max-md:border-t-[rgba(40,50,70,0.6)] max-md:p-[10px]">
-      <div className="mb-[15px] shrink-0">
-        <div className="w-9 h-9 bg-gradient-to-br from-[#4a4a4a] via-[#2a2a2a] to-[#1a1a1a] [clip-path:polygon(30%_0%,70%_0%,100%_50%,70%_100%,30%_100%,0%_50%)] flex flex-col items-center justify-center text-white font-bold border border-[#666] shadow-[inset_0_1px_2px_rgba(255,255,255,0.1),0_2px_4px_rgba(0,0,0,0.5)] relative before:content-[''] before:absolute before:top-[2px] before:left-[2px] before:right-[2px] before:bottom-[2px] before:bg-gradient-to-br before:from-[rgba(255,255,255,0.1)] before:to-transparent before:[clip-path:polygon(30%_0%,70%_0%,100%_50%,70%_100%,30%_100%,0%_50%)] before:pointer-events-none max-xl:w-8 max-xl:h-8 max-lg:w-7 max-lg:h-7">
-          <div className="text-[8px] leading-none max-xl:text-[7px] max-lg:text-[6px]">GEN</div>
-          <div className="text-base leading-none max-xl:text-sm max-lg:text-xs">
-            {generation || 1}
-          </div>
-        </div>
+    <div
+      className="fixed right-0 z-10 flex flex-col pointer-events-auto top-1/2 -translate-y-1/2 transition-all duration-300 ease-out"
+      style={{ height: "70vh" }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div style={{ marginBottom: -ANGLE_INDENT, zIndex: 2, position: "relative" }}>
+        <GenerationPanel
+          generation={generation || 1}
+          width={currentWidth}
+          height={GEN_PANEL_HEIGHT}
+        />
       </div>
-
-      <div className="flex flex-col items-center gap-[15px] w-full h-auto max-md:h-auto">
-        <div className="flex flex-row items-end gap-10 w-full justify-center pr-0 mb-2.5 max-xl:gap-[30px] max-xl:pr-0 max-lg:gap-[25px] max-lg:pr-0 max-md:flex-row max-md:justify-center max-md:pr-0 max-md:gap-5">
-          <div className="relative h-[50vh] flex flex-col items-center mt-0 max-md:h-[clamp(200px,25vh,300px)] max-md:mt-0">
-            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#1a1a1a] to-[#2d2d2d] border-2 border-[#444] flex items-center justify-center relative z-[110] mb-[5px]">
-              <div className="w-[14px] h-[14px] rounded-full bg-gradient-to-br from-[#006400] to-[#00ff00] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]"></div>
-            </div>
-
-            <div className="w-[clamp(14px,2vw,18px)] h-[calc(100%-60px)] bg-[linear-gradient(to_right,#1a1a1a_0%,#0a0a0a_50%,#1a1a1a_100%)] border border-[#333] rounded-t-lg relative overflow-visible">
-              <div
-                className="absolute bottom-0 left-[2px] w-[14px] bg-[linear-gradient(to_top,#006400_0%,#32cd32_50%,#00ff00_100%)] rounded-b-[7px] transition-[height] duration-500 ease-[ease] shadow-[0_0_8px_rgba(0,255,0,1),0_0_15px_rgba(50,205,50,0.8),inset_0_1px_2px_rgba(255,255,255,0.3)] opacity-100 brightness-[1.2]"
-                style={{
-                  height: `${Math.max(0, ((globalParameters?.oxygen || 0) / 14) * 100)}%`,
-                }}
-              ></div>
-
-              <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((oxygen) => (
-                  <div
-                    key={oxygen}
-                    className="absolute left-0 right-0 h-px bg-[rgba(0,255,0,0.3)] border-t border-t-[rgba(0,255,0,0.5)]"
-                    style={{
-                      bottom: `${(oxygen / 14) * 90}%`,
-                    }}
-                  ></div>
-                ))}
-              </div>
-
-              <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none">
-                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((oxygen) => (
-                  <div
-                    key={oxygen}
-                    className="absolute w-full flex items-center justify-center text-[10px] font-bold transition-opacity duration-300 -translate-y-1/2 text-[#00ff00] [text-shadow:0_0_3px_rgba(0,255,0,0.8)]"
-                    style={{
-                      bottom: `${(oxygen / 14) * 90}%`,
-                      opacity: (globalParameters?.oxygen || 0) > oxygen ? 0 : 1,
-                    }}
-                  >
-                    {oxygen}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="text-[8px] font-bold text-[#87ceeb] text-center bg-black/70 px-1 py-0.5 rounded-[3px] border border-[#444]">
-              {globalParameters?.oxygen || 0}%
-            </div>
-          </div>
-
-          <div className="relative h-[50vh] flex flex-col items-center mt-0 max-md:h-[clamp(200px,25vh,300px)] max-md:mt-0">
-            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#1a1a1a] to-[#2d2d2d] border-2 border-[#444] flex items-center justify-center relative z-[110] mb-[5px]">
-              <div className="w-[14px] h-[14px] rounded-full bg-gradient-to-br from-[#87ceeb] to-[#ff8c00] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]"></div>
-            </div>
-
-            <div className="w-[clamp(14px,2vw,18px)] h-[calc(100%-60px)] bg-[linear-gradient(to_right,#1a1a1a_0%,#0a0a0a_50%,#1a1a1a_100%)] border border-[#333] rounded-t-lg relative overflow-visible">
-              <div
-                className="absolute bottom-0 left-[2px] w-[14px] bg-[linear-gradient(to_top,#87ceeb_0%,#ffb347_50%,#ff8c00_100%)] rounded-b-[7px] transition-[height] duration-500 ease-[ease] shadow-[0_0_8px_rgba(255,140,0,1),0_0_15px_rgba(255,179,71,0.8),inset_0_1px_2px_rgba(255,255,255,0.3)] opacity-100 brightness-[1.2]"
-                style={{
-                  height: `${Math.max(0, (((globalParameters?.temperature || -30) + 30) / 38) * 100)}%`,
-                }}
-              ></div>
-
-              <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none">
-                {getTemperatureMarkings()
-                  .filter((temp) => temp !== -30)
-                  .map((temp) => (
-                    <div
-                      key={temp}
-                      className="absolute left-0 right-0 h-px bg-[rgba(255,140,0,0.3)] border-t border-t-[rgba(255,140,0,0.5)]"
-                      style={{
-                        bottom: `${((temp + 30) / 38) * 90}%`,
-                      }}
-                    ></div>
-                  ))}
-              </div>
-
-              <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none">
-                {getTemperatureMarkings().map((temp) => (
-                  <div
-                    key={temp}
-                    className="absolute w-full flex items-center justify-center text-[10px] font-bold transition-opacity duration-300 -translate-y-1/2 text-[#ff8c00] [text-shadow:0_0_3px_rgba(255,140,0,0.8)]"
-                    style={{
-                      bottom: `${((temp + 30) / 38) * 90}%`,
-                      opacity: (globalParameters?.temperature || -30) > temp ? 0 : 1,
-                    }}
-                  >
-                    {temp}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="text-[8px] font-bold text-[#ff6b2d] text-center bg-black/70 px-1 py-0.5 rounded-[3px] border border-[#444]">
-              {globalParameters?.temperature || -30}°C
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col items-center gap-1 bg-[linear-gradient(135deg,rgba(0,100,200,0.15)_0%,rgba(0,50,150,0.2)_100%)] border border-[rgba(0,150,255,0.3)] rounded-md p-2 w-4/5 mt-0">
-          <div className="flex items-center justify-center w-4 h-4 brightness-[1.2]">
-            <GameIcon iconType="ocean" size="small" />
-          </div>
-          <div className="text-[6px] font-bold text-[#4da6ff] uppercase tracking-[0.5px]">
-            OCEANS
-          </div>
-          <div className="flex items-center text-xs font-bold">
-            <span className="text-[#00bfff] [text-shadow:0_0_3px_rgba(0,191,255,0.6)]">
-              {globalParameters?.oceans || 0}
-            </span>
-            <span className="text-[#666]"> / </span>
-            <span className="text-[#999]">9</span>
-          </div>
-        </div>
+      <div
+        style={{
+          zIndex: 1,
+          position: "relative",
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <GaugesSection
+          oxygen={globalParameters?.oxygen || 0}
+          temperature={globalParameters?.temperature || -30}
+          width={currentWidth}
+          isHovered={isHovered}
+        />
+      </div>
+      <div style={{ marginTop: -ANGLE_INDENT, zIndex: 2, position: "relative" }}>
+        <GaugeLegendPanel width={currentWidth} height={LEGEND_PANEL_HEIGHT} />
+      </div>
+      <div style={{ marginTop: -ANGLE_INDENT, zIndex: 2, position: "relative" }}>
+        <OceansPanel
+          oceans={globalParameters?.oceans || 0}
+          width={currentWidth}
+          height={OCEANS_PANEL_HEIGHT}
+        />
       </div>
     </div>
   );

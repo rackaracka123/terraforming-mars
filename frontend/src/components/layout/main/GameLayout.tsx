@@ -9,7 +9,6 @@ import BottomResourceBar, {
   BottomResourceBarCallbacks,
 } from "../../ui/overlay/BottomResourceBar.tsx";
 import PlayerOverlay from "../../ui/overlay/PlayerOverlay.tsx";
-import CorporationViewer from "../../ui/display/CorporationViewer.tsx";
 import { StandardProject } from "../../../types/cards.tsx";
 import {
   GameDto,
@@ -79,17 +78,12 @@ const GameLayout: React.FC<GameLayoutProps> = ({
     transitionPhase === "animateUI" || transitionPhase === "complete" || transitionPhase === "idle";
   const isAnimatingIn = transitionPhase === "animateUI";
   const uiAnimationClass = isAnimatingIn ? "animate-[uiFadeIn_1200ms_ease-out_both]" : "";
-  const corpAnimationClass = isAnimatingIn ? "animate-[corpFadeIn_800ms_ease-out_800ms_both]" : "";
 
   return (
     <div className="relative w-screen h-screen bg-[#000000] text-white overflow-hidden">
       {/* CSS animations for transition */}
       <style>{`
         @keyframes uiFadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes corpFadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
         }
@@ -146,24 +140,17 @@ const GameLayout: React.FC<GameLayoutProps> = ({
       )}
 
       {showUI && !showCardSelection && (
-        <>
-          <div className={uiAnimationClass}>
-            <BottomResourceBar
-              currentPlayer={currentPlayer}
-              gameState={gameState}
-              playedCards={playedCards}
-              changedPaths={changedPaths}
-              callbacks={bottomBarCallbacks}
-              gameId={gameState?.id}
-            />
-          </div>
-
-          {corporationCard && (
-            <div className={corpAnimationClass}>
-              <CorporationViewer corporation={corporationCard} />
-            </div>
-          )}
-        </>
+        <div className={uiAnimationClass}>
+          <BottomResourceBar
+            currentPlayer={currentPlayer}
+            gameState={gameState}
+            playedCards={playedCards}
+            changedPaths={changedPaths}
+            callbacks={bottomBarCallbacks}
+            gameId={gameState?.id}
+            corporation={corporationCard}
+          />
+        </div>
       )}
     </div>
   );
