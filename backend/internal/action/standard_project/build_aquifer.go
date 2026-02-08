@@ -3,9 +3,12 @@ package standard_project
 import (
 	"context"
 	"fmt"
+	"time"
+
 	baseaction "terraforming-mars-backend/internal/action"
 
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	playerPkg "terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
@@ -65,6 +68,14 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID string, playerI
 
 	player.Resources().Add(map[shared.ResourceType]int{
 		shared.ResourceCredit: -BuildAquiferCost,
+	})
+
+	events.Publish(g.EventBus(), events.StandardProjectPlayedEvent{
+		GameID:      g.ID(),
+		PlayerID:    playerID,
+		ProjectType: string(shared.StandardProjectAquifer),
+		ProjectCost: BuildAquiferCost,
+		Timestamp:   time.Now(),
 	})
 
 	resources = player.Resources().Get()

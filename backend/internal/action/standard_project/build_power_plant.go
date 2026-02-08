@@ -3,14 +3,16 @@ package standard_project
 import (
 	"context"
 	"fmt"
+	"time"
+
 	baseaction "terraforming-mars-backend/internal/action"
 
+	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
-
-	"go.uber.org/zap"
 )
 
 const (
@@ -90,6 +92,14 @@ func (a *BuildPowerPlantAction) Execute(
 
 	player.Resources().Add(map[shared.ResourceType]int{
 		shared.ResourceCredit: -effectiveCost,
+	})
+
+	events.Publish(g.EventBus(), events.StandardProjectPlayedEvent{
+		GameID:      g.ID(),
+		PlayerID:    playerID,
+		ProjectType: string(shared.StandardProjectPowerPlant),
+		ProjectCost: BuildPowerPlantCost,
+		Timestamp:   time.Now(),
 	})
 
 	resources = player.Resources().Get()
