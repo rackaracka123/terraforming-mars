@@ -1,15 +1,140 @@
 import { useRef, useState, useMemo, useEffect } from "react";
-import { useFrame, useLoader } from "@react-three/fiber";
-import { Text, useGLTF } from "@react-three/drei";
+import { useFrame, useLoader, useThree } from "@react-three/fiber";
+import { Text, useGLTF, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import { HexTile2D } from "../../../utils/hex-grid-2d";
 import { SkeletonUtils } from "three-stdlib";
 import { panState } from "../controls/PanControls";
+import CityEmergenceEffect from "./effects/CityEmergenceEffect";
 
-// Preload 3D models for better performance
+// Preload 3D models and textures for better performance
 useGLTF.preload("/assets/models/city.glb");
 useGLTF.preload("/assets/models/forrest.glb");
-useGLTF.preload("/assets/models/water.glb");
+
+// Ocean water vertex shader - passes world position and computes tangent basis
+const OCEAN_VERTEX_SHADER = `
+  varying vec4 worldPosition;
+  varying vec3 vNormal;
+  varying vec3 vTangent;
+  varying vec3 vBitangent;
+  varying vec2 vUv;
+
+  void main() {
+    vUv = uv;
+    worldPosition = modelMatrix * vec4(position, 1.0);
+
+    // Transform normal to world space
+    vNormal = normalize(mat3(modelMatrix) * normal);
+
+    // Build tangent basis for spherical surface
+    vec3 up = abs(vNormal.y) < 0.999 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+    vTangent = normalize(cross(up, vNormal));
+    vBitangent = cross(vNormal, vTangent);
+
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+// Ocean water fragment shader - exact Three.js Water algorithm
+// Adapted for spherical hex tiles with tangent-space normal perturbation
+const OCEAN_FRAGMENT_SHADER = `
+  uniform float time;
+  uniform float size;
+  uniform float distortionScale;
+  uniform float alpha;
+  uniform sampler2D normalSampler;
+  uniform vec3 sunColor;
+  uniform vec3 sunDirection;
+  uniform vec3 eye;
+  uniform vec3 waterColor;
+
+  varying vec4 worldPosition;
+  varying vec3 vNormal;
+  varying vec3 vTangent;
+  varying vec3 vBitangent;
+  varying vec2 vUv;
+
+  // Exact getNoise from Three.js Water.js
+  vec4 getNoise(vec2 uv) {
+    vec2 uv0 = (uv / 103.0) + vec2(time / 17.0, time / 29.0);
+    vec2 uv1 = uv / 107.0 - vec2(time / -19.0, time / 31.0);
+    vec2 uv2 = uv / vec2(8907.0, 9803.0) + vec2(time / 101.0, time / 97.0);
+    vec2 uv3 = uv / vec2(1091.0, 1027.0) - vec2(time / 109.0, time / -113.0);
+    vec4 noise = texture2D(normalSampler, uv0) +
+      texture2D(normalSampler, uv1) +
+      texture2D(normalSampler, uv2) +
+      texture2D(normalSampler, uv3);
+    return noise * 0.5 - 1.0;
+  }
+
+  // Exact sunLight from Three.js Water.js
+  void sunLight(const vec3 surfaceNormal, const vec3 eyeDirection, float shiny, float spec, float diffuse, inout vec3 diffuseColor, inout vec3 specularColor) {
+    vec3 reflection = normalize(reflect(-sunDirection, surfaceNormal));
+    float direction = max(0.0, dot(eyeDirection, reflection));
+    specularColor += pow(direction, shiny) * sunColor * spec;
+    diffuseColor += max(dot(sunDirection, surfaceNormal), 0.0) * sunColor * diffuse;
+  }
+
+  void main() {
+    // Use world position for UV sampling like Three.js Water
+    // Project onto tangent plane for consistent wave direction on sphere
+    vec2 projectedPos = vec2(
+      dot(worldPosition.xyz, vTangent),
+      dot(worldPosition.xyz, vBitangent)
+    );
+    vec4 noise = getNoise(projectedPos * size);
+
+    // Build surface normal in tangent space then transform to world space
+    // noise.xzy with scaling is exactly from Three.js Water
+    vec3 tangentNormal = normalize(noise.xzy * vec3(1.5, 1.0, 1.5));
+
+    // Transform tangent-space normal to world space
+    vec3 surfaceNormal = normalize(
+      vTangent * tangentNormal.x +
+      vNormal * tangentNormal.y +
+      vBitangent * tangentNormal.z
+    );
+
+    vec3 diffuseLight = vec3(0.0);
+    vec3 specularLight = vec3(0.0);
+
+    vec3 worldToEye = eye - worldPosition.xyz;
+    vec3 eyeDirection = normalize(worldToEye);
+
+    // Sun lighting - exact Three.js Water parameters
+    sunLight(surfaceNormal, eyeDirection, 100.0, 2.0, 0.5, diffuseLight, specularLight);
+
+    float distance = length(worldToEye);
+
+    // Fresnel reflectance - exact Three.js Water formula
+    float theta = max(dot(eyeDirection, surfaceNormal), 0.0);
+    float rf0 = 0.3;
+    float reflectance = rf0 + (1.0 - rf0) * pow((1.0 - theta), 5.0);
+
+    // Scatter color - exact Three.js Water formula
+    vec3 scatter = max(0.0, dot(surfaceNormal, eyeDirection)) * waterColor;
+
+    // Simulated sky reflection (since we don't have mirror texture)
+    vec3 skyColor = vec3(0.4, 0.5, 0.7);
+    vec3 horizonColor = vec3(0.7, 0.75, 0.85);
+    float skyGradient = max(0.0, surfaceNormal.y);
+    vec3 reflectionSample = mix(horizonColor, skyColor, skyGradient);
+
+    // Final color blend - based on Three.js Water albedo calculation
+    vec3 albedo = mix(
+      (sunColor * diffuseLight * 0.3 + scatter),
+      (vec3(0.1) + reflectionSample * 0.9 + reflectionSample * specularLight),
+      reflectance
+    );
+
+    // Soft hex edge fade
+    vec2 center = vUv - 0.5;
+    float distFromCenter = length(center);
+    float edgeAlpha = 1.0 - smoothstep(0.35, 0.5, distFromCenter);
+
+    gl_FragColor = vec4(albedo, alpha * edgeAlpha);
+  }
+`;
 
 interface ProjectedHexTileData extends HexTile2D {
   spherePosition: THREE.Vector3;
@@ -36,6 +161,8 @@ interface ProjectedHexTileProps {
   animateEntrance?: boolean;
   /** Delay in ms before starting entrance animation */
   entranceDelay?: number;
+  /** Whether this tile was just placed (triggers emergence animation for cities) */
+  isNewlyPlaced?: boolean;
 }
 
 export default function ProjectedHexTile({
@@ -51,11 +178,19 @@ export default function ProjectedHexTile({
   vpAnimating = false,
   animateEntrance = false,
   entranceDelay = 0,
+  isNewlyPlaced = false,
 }: ProjectedHexTileProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const vpTextRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
   const animationStartTimeRef = useRef<number | null>(null);
+
+  // Access camera for eye position in water shader
+  const { camera } = useThree();
+
+  // Load water normals texture for three.js Water algorithm
+  const waterNormals = useTexture("/assets/textures/waternormals.jpg");
+  waterNormals.wrapS = waterNormals.wrapT = THREE.RepeatWrapping;
 
   // Entrance animation state
   const [entranceScale, setEntranceScale] = useState(animateEntrance ? 0 : 1);
@@ -131,6 +266,35 @@ export default function ProjectedHexTile({
       transparent: true,
       side: THREE.DoubleSide,
     });
+  }, []);
+
+  // Create animated ocean water material - exact Three.js Water uniforms
+  const oceanWaterMaterial = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      vertexShader: OCEAN_VERTEX_SHADER,
+      fragmentShader: OCEAN_FRAGMENT_SHADER,
+      uniforms: {
+        time: { value: 0.0 },
+        size: { value: 250.0 },
+        distortionScale: { value: 3.7 },
+        alpha: { value: 1.0 },
+        normalSampler: { value: waterNormals },
+        sunColor: { value: new THREE.Vector3(1.0, 1.0, 1.0) },
+        sunDirection: { value: new THREE.Vector3(0.70707, 0.70707, 0.0).normalize() },
+        eye: { value: new THREE.Vector3() },
+        waterColor: { value: new THREE.Vector3(0.0, 0.118, 0.059) },
+      },
+      transparent: true,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+  }, [waterNormals]);
+
+  // Create circular geometry for the animated ocean water - sized to fill hex
+  const oceanWaterGeometry = useMemo(() => {
+    // Match hex size (0.166) with higher segment count for smooth edges
+    const geometry = new THREE.CircleGeometry(0.166, 32);
+    return geometry;
   }, []);
 
   // Create hover glow material with pulsation
@@ -286,6 +450,12 @@ export default function ProjectedHexTile({
     }
     if (oceanBorderMaterial.uniforms) {
       oceanBorderMaterial.uniforms.time.value = state.clock.elapsedTime;
+    }
+
+    // Animate ocean water shader - use elapsed time for consistent animation
+    if (oceanWaterMaterial.uniforms) {
+      oceanWaterMaterial.uniforms.time.value = state.clock.elapsedTime * 0.8;
+      oceanWaterMaterial.uniforms.eye.value.copy(camera.position);
     }
 
     if (hoverGlowMaterial.uniforms) {
@@ -497,17 +667,19 @@ export default function ProjectedHexTile({
         <meshStandardMaterial
           color={tileColor}
           transparent
-          opacity={tileType === "empty" ? 0.3 : 0.7}
+          opacity={tileType === "ocean" ? 0 : tileType === "empty" ? 0.3 : 0.7}
           roughness={0.7}
           metalness={0.1}
           side={THREE.DoubleSide}
         />
       </mesh>
 
-      {/* Hex border */}
-      <mesh geometry={borderGeometry} position={[0, 0, 0.001]}>
-        <meshBasicMaterial color={borderColor} transparent opacity={0.9} />
-      </mesh>
+      {/* Hex border - hidden for ocean tiles */}
+      {tileType !== "ocean" && (
+        <mesh geometry={borderGeometry} position={[0, 0, 0.001]}>
+          <meshBasicMaterial color={borderColor} transparent opacity={0.9} />
+        </mesh>
+      )}
 
       {/* Ocean space indicator - blue gradient fading to center */}
       {tileType === "empty" && tileData.isOceanSpace && (
@@ -518,12 +690,14 @@ export default function ProjectedHexTile({
         />
       )}
 
-      {/* Hover glow effect with pulsation */}
-      <mesh
-        position={[0, 0, 0.0015]}
-        geometry={oceanGradientGeometry}
-        material={hoverGlowMaterial}
-      />
+      {/* Hover glow effect with pulsation - hidden for ocean tiles */}
+      {tileType !== "ocean" && (
+        <mesh
+          position={[0, 0, 0.0015]}
+          geometry={oceanGradientGeometry}
+          material={hoverGlowMaterial}
+        />
+      )}
 
       {/* Available placement glow effect with pulsing animation */}
       {isAvailableForPlacement && (
@@ -541,9 +715,24 @@ export default function ProjectedHexTile({
         material={endGameHighlightMaterial}
       />
 
-      {/* Tile type 3D model (city, greenery, ocean) */}
-      {(tileType === "city" || tileType === "greenery" || tileType === "ocean") && (
-        <TileModel tileType={tileType} position={[0, 0, tileType === "ocean" ? 0.00001 : 0.03]} />
+      {/* Animated ocean water effect using three.js Water algorithm */}
+      {tileType === "ocean" && (
+        <mesh
+          position={[0, 0, 0.004]}
+          geometry={oceanWaterGeometry}
+          material={oceanWaterMaterial}
+        />
+      )}
+
+      {/* Tile type 3D model (city, greenery) */}
+      {(tileType === "city" || tileType === "greenery") && (
+        <TileModel
+          tileType={tileType}
+          position={[0, 0, 0.03]}
+          isNewlyPlaced={isNewlyPlaced}
+          surfaceNormal={tileData.normal}
+          worldPosition={adjustedPosition}
+        />
       )}
 
       {/* Special tile fallback emoji (no 3D model available) */}
@@ -677,20 +866,75 @@ export default function ProjectedHexTile({
   );
 }
 
-// Component for rendering 3D tile models (city, greenery, ocean)
+// Component for rendering 3D tile models (city, greenery)
 interface TileModelProps {
-  tileType: "city" | "greenery" | "ocean";
+  tileType: "city" | "greenery";
   position: [number, number, number];
+  isNewlyPlaced?: boolean;
+  surfaceNormal?: THREE.Vector3;
+  worldPosition?: THREE.Vector3;
+  onEmergenceComplete?: () => void;
 }
 
-function TileModel({ tileType, position }: TileModelProps) {
+function TileModel({
+  tileType,
+  position,
+  isNewlyPlaced = false,
+  surfaceNormal,
+  worldPosition,
+  onEmergenceComplete,
+}: TileModelProps) {
+  const groupRef = useRef<THREE.Group>(null);
+  const emergenceStartRef = useRef<number | null>(null);
+  const [isEmerging, setIsEmerging] = useState(isNewlyPlaced && tileType === "city");
+  const [showParticles, setShowParticles] = useState(isNewlyPlaced && tileType === "city");
+
+  useEffect(() => {
+    if (isNewlyPlaced && tileType === "city") {
+      setIsEmerging(true);
+      setShowParticles(true);
+      emergenceStartRef.current = null;
+    }
+  }, [isNewlyPlaced, tileType]);
+
+  useFrame((state) => {
+    if (!isEmerging || !groupRef.current) return;
+
+    if (emergenceStartRef.current === null) {
+      emergenceStartRef.current = state.clock.elapsedTime * 1000;
+    }
+
+    const elapsed = state.clock.elapsedTime * 1000 - emergenceStartRef.current;
+    const riseDuration = 800;
+    const riseDepth = 0.08;
+
+    const riseProgress = Math.min(elapsed / riseDuration, 1);
+    const easedProgress = 1 - Math.pow(1 - riseProgress, 3);
+
+    const zOffset = -riseDepth * (1 - easedProgress);
+
+    const shakeIntensity = 0.01 * (1 - easedProgress);
+    const shakeX = (Math.random() - 0.5) * 2 * shakeIntensity;
+    const shakeY = (Math.random() - 0.5) * 2 * shakeIntensity;
+
+    groupRef.current.position.set(
+      position[0] + shakeX,
+      position[1] + shakeY,
+      position[2] + zOffset,
+    );
+
+    if (riseProgress >= 1) {
+      setIsEmerging(false);
+      groupRef.current.position.set(position[0], position[1], position[2]);
+      onEmergenceComplete?.();
+    }
+  });
+
+  const handleParticleComplete = () => {
+    setShowParticles(false);
+  };
   // Load appropriate model based on tile type
-  const modelPath =
-    tileType === "city"
-      ? "/assets/models/city.glb"
-      : tileType === "greenery"
-        ? "/assets/models/forrest.glb"
-        : "/assets/models/water.glb";
+  const modelPath = tileType === "city" ? "/assets/models/city.glb" : "/assets/models/forrest.glb";
 
   const { scene } = useGLTF(modelPath);
 
@@ -699,8 +943,8 @@ function TileModel({ tileType, position }: TileModelProps) {
     // Clone the scene properly
     const clonedScene = SkeletonUtils.clone(scene);
 
-    // Calculate bounding box and scale - larger size for greenery and ocean to fill hex
-    const targetSize = tileType === "greenery" ? 0.3 : tileType === "ocean" ? 0.33 : 0.28;
+    // Calculate bounding box and scale - larger size for greenery to fill hex
+    const targetSize = tileType === "greenery" ? 0.3 : 0.28;
     const box = new THREE.Box3().setFromObject(clonedScene);
     const size = box.getSize(new THREE.Vector3());
     const maxDimension = Math.max(size.x, size.y, size.z);
@@ -716,49 +960,36 @@ function TileModel({ tileType, position }: TileModelProps) {
     // Position to center the model at origin
     clonedScene.position.set(-scaledCenter.x, -scaledCenter.y, -scaledCenter.z);
 
-    // Enable shadows and apply material modifications
+    // Enable shadows
     clonedScene.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.castShadow = true;
         child.receiveShadow = true;
-
-        // Apply water-specific material properties for ocean tiles
-        if (tileType === "ocean" && child.material) {
-          const material = child.material as THREE.MeshStandardMaterial;
-          if (material.isMeshStandardMaterial) {
-            // Make water more transparent and reflective
-            material.transparent = true;
-            material.opacity = 0.7;
-            material.metalness = 0.3;
-            material.roughness = 0.2;
-            // Tint with blue color
-            material.color = new THREE.Color(0.2, 0.5, 0.8);
-          }
-        }
       }
     });
 
     return clonedScene;
   }, [scene, tileType]);
 
-  // Rotation for specific tile types
+  // Rotation for specific tile types - both city and greenery need +90° rotation
   const rotation: [number, number, number] = useMemo(() => {
-    if (tileType === "city") {
-      return [Math.PI / 2, 0, 0]; // +90° rotation on x-axis to flip city buildings right-side up
-    }
-    if (tileType === "greenery") {
-      return [Math.PI / 2, 0, 0]; // +90° rotation on x-axis to flip trees right-side up
-    }
-    if (tileType === "ocean") {
-      return [-Math.PI / 2, 0, 0]; // -90° rotation to lay water flat on surface
-    }
-    return [0, 0, 0];
-  }, [tileType]);
+    return [Math.PI / 2, 0, 0];
+  }, []);
 
   return (
-    <group position={position} rotation={rotation}>
-      <primitive object={configuredModel} />
-    </group>
+    <>
+      <group ref={groupRef} position={position} rotation={rotation}>
+        <primitive object={configuredModel} />
+      </group>
+      {showParticles && surfaceNormal && worldPosition && (
+        <CityEmergenceEffect
+          position={worldPosition}
+          normal={surfaceNormal}
+          duration={2600}
+          onComplete={handleParticleComplete}
+        />
+      )}
+    </>
   );
 }
 
