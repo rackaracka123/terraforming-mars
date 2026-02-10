@@ -200,6 +200,11 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 			log.Info("📢 Published PlacementBonusGainedEvent",
 				zap.Any("resources", resourceBonuses))
 		}
+
+		// Clear bonuses from tile after claiming
+		if err := g.Board().ClearTileBonuses(ctx, *coords); err != nil {
+			log.Warn("Failed to clear tile bonuses", zap.Error(err))
+		}
 	}
 
 	result := &TilePlacementResult{
