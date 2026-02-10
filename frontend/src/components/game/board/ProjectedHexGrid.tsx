@@ -4,6 +4,7 @@ import { HexGrid2D } from "../../../utils/hex-grid-2d";
 import ProjectedHexTile, { TileHighlightMode } from "./ProjectedHexTile";
 import { TileVPIndicator } from "../../ui/overlay/EndGameOverlay";
 import { GameDto, TileDto, TileBonusDto } from "../../../types/generated/api-types";
+import { usePreviousTiles } from "../../../hooks/usePreviousTiles";
 
 interface ProjectedHexGridProps {
   gameState?: GameDto;
@@ -41,6 +42,8 @@ export default function ProjectedHexGrid({
   animateHexEntrance = false,
 }: ProjectedHexGridProps) {
   const SPHERE_RADIUS = 2.02;
+
+  const newlyPlacedCities = usePreviousTiles(gameState?.board?.tiles);
 
   // Create lookup map for VP indicators by coordinate
   const vpIndicatorMap = useMemo(() => {
@@ -199,6 +202,7 @@ export default function ProjectedHexGrid({
             vpAnimating={vpIndicator?.isAnimating}
             animateEntrance={animateHexEntrance}
             entranceDelay={index * 15}
+            isNewlyPlaced={newlyPlacedCities.has(hexKey)}
           />
         );
       })}
