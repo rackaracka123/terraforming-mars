@@ -165,6 +165,7 @@ export const corporationLogos: Record<string, React.ReactNode> = {
           paddingLeft: "5px",
           paddingBottom: "5px",
           color: "grey",
+          whiteSpace: "nowrap",
         }}
       >
         <span
@@ -230,6 +231,7 @@ export const corporationLogos: Record<string, React.ReactNode> = {
         style={{
           fontSize: "24px",
           color: "lightgrey",
+          whiteSpace: "nowrap",
         }}
       >
         <div
@@ -352,6 +354,7 @@ export const corporationLogos: Record<string, React.ReactNode> = {
           borderRadius: "50%",
           fontWeight: "normal",
           border: "2px solid white",
+          whiteSpace: "nowrap",
         }}
       >
         SATURN
