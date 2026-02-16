@@ -8,6 +8,10 @@
 >
 > The board game is great and this repository highly recommends purchasing it for personal use.
 
+<p align="center">
+  <img src="docs/img/screenshot.png" alt="Terraforming Mars 3D Edition" width="800" style="border-radius: 12px" />
+</p>
+
 ## Features
 
 - **3D Game View**: Interactive Mars board with hex-based tile system
