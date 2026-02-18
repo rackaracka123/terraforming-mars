@@ -288,7 +288,6 @@ const showMyModal = () => {
 
 - `components/ui/portal/ModalProvider.tsx` - Main modal management system
 - `components/ui/portal/ModalPortal.tsx` - Individual portal implementation
-- `hooks/useModalStack.ts` - Modal state management hook
 - `components/ui/modals/DeclarativeModalPopup.tsx` - Example implementation
 
 ## Future Improvements
