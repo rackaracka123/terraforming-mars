@@ -1,8 +1,9 @@
 import { useRef, useEffect } from "react";
-import { useFrame, useThree, useLoader } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { useTextures } from "../../../../hooks/useTextures";
 
-interface CityEmergenceEffectProps {
+interface DustEffectProps {
   position: THREE.Vector3;
   normal: THREE.Vector3;
   duration?: number;
@@ -18,19 +19,19 @@ interface SmokeParticle {
   initialScale: number;
 }
 
-export default function CityEmergenceEffect({
+export default function DustEffect({
   position,
   normal,
   duration = 2600,
   onComplete,
-}: CityEmergenceEffectProps) {
+}: DustEffectProps) {
   const { scene } = useThree();
   const particlesRef = useRef<SmokeParticle[]>([]);
   const startTimeRef = useRef<number | null>(null);
   const completedRef = useRef(false);
   const groupRef = useRef<THREE.Group | null>(null);
 
-  const smokeTexture = useLoader(THREE.TextureLoader, "/assets/effects/smoke.png");
+  const { smoke: smokeTexture } = useTextures();
 
   useEffect(() => {
     const group = new THREE.Group();

@@ -1,12 +1,14 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { HexGrid2D } from "../../../utils/hex-grid-2d";
-import ProjectedHexTile, { TileHighlightMode } from "./ProjectedHexTile";
+import Tile, { TileHighlightMode } from "./Tile";
 import { TileVPIndicator } from "../../ui/overlay/EndGameOverlay";
 import { GameDto, TileDto, TileBonusDto } from "../../../types/generated/api-types";
 import { usePreviousTiles } from "../../../hooks/usePreviousTiles";
+import GreeneryRenderer from "./GreeneryRenderer";
+import { SPHERE_RADIUS } from "./boardConstants";
 
-interface ProjectedHexGridProps {
+interface TileGridProps {
   gameState?: GameDto;
   onHexClick?: (hexCoordinate: string) => void;
   tileHighlightMode?: TileHighlightMode;
@@ -34,16 +36,14 @@ interface TileData {
   specialType: null;
 }
 
-export default function ProjectedHexGrid({
+export default function TileGrid({
   gameState,
   onHexClick,
   tileHighlightMode,
   vpIndicators = [],
   animateHexEntrance = false,
-}: ProjectedHexGridProps) {
-  const SPHERE_RADIUS = 2.02;
-
-  const newlyPlacedCities = usePreviousTiles(gameState?.board?.tiles);
+}: TileGridProps) {
+  const newlyPlacedTiles = usePreviousTiles(gameState?.board?.tiles);
 
   // Create lookup map for VP indicators by coordinate
   const vpIndicatorMap = useMemo(() => {
@@ -125,7 +125,7 @@ export default function ProjectedHexGrid({
         normal: spherePosition.clone().normalize(),
       };
     });
-  }, [gameState?.board?.tiles, SPHERE_RADIUS]);
+  }, [gameState?.board?.tiles]);
 
   // Get tile type and occupancy data
   const getTileData = (tile: ProjectedTile): TileData => {
@@ -177,8 +177,47 @@ export default function ProjectedHexGrid({
   // Get available hexes from current player's pending tile selection
   const availableHexes = gameState?.currentPlayer?.pendingTileSelection?.availableHexes || [];
 
+  // Collect all greenery tiles for the GreeneryRenderer
+  const greeneryTiles = useMemo(() => {
+    return projectedHexGrid
+      .filter((tile) => {
+        const tileData = getTileData(tile);
+        return tileData.type === "greenery";
+      })
+      .map((tile) => ({
+        coordinate: tile.coordinate,
+        worldPosition: tile.spherePosition,
+        normal: tile.normal,
+      }));
+  }, [projectedHexGrid]);
+
+  // Detect newly placed greenery tiles
+  const knownGreeneryRef = useRef<Set<string>>(new Set());
+  const greeneryInitializedRef = useRef(false);
+  const newGreeneryKeys = useMemo(() => {
+    const currentKeys = new Set<string>();
+    for (const tile of greeneryTiles) {
+      currentKeys.add(`${tile.coordinate.q},${tile.coordinate.r},${tile.coordinate.s}`);
+    }
+
+    if (!greeneryInitializedRef.current) {
+      knownGreeneryRef.current = currentKeys;
+      greeneryInitializedRef.current = true;
+      return new Set<string>();
+    }
+
+    const added = new Set<string>();
+    for (const key of currentKeys) {
+      if (!knownGreeneryRef.current.has(key)) added.add(key);
+    }
+    knownGreeneryRef.current = currentKeys;
+    return added;
+  }, [greeneryTiles]);
+
   return (
     <>
+      {/* Single GreeneryRenderer handles ALL greenery tiles */}
+      <GreeneryRenderer tiles={greeneryTiles} newTileKeys={newGreeneryKeys} />
       {projectedHexGrid.map((tile, index) => {
         const hexKey = HexGrid2D.coordinateToKey(tile.coordinate);
         const tileData = getTileData(tile);
@@ -186,7 +225,7 @@ export default function ProjectedHexGrid({
         const vpIndicator = vpIndicatorMap.get(hexKey);
 
         return (
-          <ProjectedHexTile
+          <Tile
             key={hexKey}
             tileData={tile}
             tileType={tileData.type}
@@ -202,7 +241,7 @@ export default function ProjectedHexGrid({
             vpAnimating={vpIndicator?.isAnimating}
             animateEntrance={animateHexEntrance}
             entranceDelay={index * 15}
-            isNewlyPlaced={newlyPlacedCities.has(hexKey)}
+            isNewlyPlaced={newlyPlacedTiles.has(hexKey)}
           />
         );
       })}

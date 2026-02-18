@@ -2,21 +2,18 @@ import { useRef, useMemo } from "react";
 import { TileDto } from "../types/generated/api-types";
 
 /**
- * Hook to detect newly placed city tiles by comparing current tiles with previous state.
- * Returns a Set of coordinate keys for tiles that were just placed as cities.
- *
- * @param tiles - Current array of tiles from game state
- * @returns Set of coordinate keys (format: "q,r,s") for newly placed cities
+ * Hook to detect newly placed tiles by comparing current tiles with previous state.
+ * Returns a Set of coordinate keys for tiles that were just occupied.
  */
 export function usePreviousTiles(tiles: TileDto[] | undefined): Set<string> {
   const previousTilesRef = useRef<Map<string, TileDto>>(new Map());
   const isInitializedRef = useRef(false);
 
-  const newlyPlacedCities = useMemo(() => {
-    const newCities = new Set<string>();
+  const newlyPlacedTiles = useMemo(() => {
+    const placed = new Set<string>();
 
     if (!tiles) {
-      return newCities;
+      return placed;
     }
 
     const currentTilesMap = new Map<string, TileDto>();
@@ -25,14 +22,14 @@ export function usePreviousTiles(tiles: TileDto[] | undefined): Set<string> {
       const key = `${tile.coordinates.q},${tile.coordinates.r},${tile.coordinates.s}`;
       currentTilesMap.set(key, tile);
 
-      // Skip detection on first render to avoid triggering for existing cities
+      // Skip detection on first render to avoid triggering for existing tiles
       if (isInitializedRef.current) {
         const previousTile = previousTilesRef.current.get(key);
-        const isCityNow = tile.occupiedBy?.type === "city-tile";
-        const wasCityBefore = previousTile?.occupiedBy?.type === "city-tile";
+        const isOccupiedNow = tile.occupiedBy != null;
+        const wasOccupiedBefore = previousTile?.occupiedBy != null;
 
-        if (isCityNow && !wasCityBefore) {
-          newCities.add(key);
+        if (isOccupiedNow && !wasOccupiedBefore) {
+          placed.add(key);
         }
       }
     }
@@ -40,8 +37,8 @@ export function usePreviousTiles(tiles: TileDto[] | undefined): Set<string> {
     previousTilesRef.current = currentTilesMap;
     isInitializedRef.current = true;
 
-    return newCities;
+    return placed;
   }, [tiles]);
 
-  return newlyPlacedCities;
+  return newlyPlacedTiles;
 }
