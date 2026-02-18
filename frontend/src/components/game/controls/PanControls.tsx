@@ -1,11 +1,13 @@
 import { useRef, useEffect, useState } from "react";
 import { useThree, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { useWorld3DSettings } from "../../../contexts/World3DSettingsContext";
 
 export const panState = { isPanning: false };
 
 export function PanControls() {
   const { camera, gl, size } = useThree();
+  const { settings, storedCameraState, setStoredCameraState } = useWorld3DSettings();
   const isPointerDown = useRef(false);
   const previousPointer = useRef({ x: 0, y: 0 });
   const [shouldRecenter, setShouldRecenter] = useState(false);
@@ -23,8 +25,35 @@ export function PanControls() {
   );
 
   const marsCenter = new THREE.Vector3(0, 0, 0);
+  const wasFreeCameraEnabled = useRef(settings.freeCameraEnabled);
 
   useFrame(() => {
+    // Handle free camera toggle
+    if (settings.freeCameraEnabled && !wasFreeCameraEnabled.current) {
+      // Switching TO free camera - store current state
+      setStoredCameraState({
+        position: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+        spherical: { radius: spherical.radius, phi: spherical.phi, theta: spherical.theta },
+      });
+      wasFreeCameraEnabled.current = true;
+    } else if (!settings.freeCameraEnabled && wasFreeCameraEnabled.current) {
+      // Switching FROM free camera - restore state
+      if (storedCameraState) {
+        spherical.radius = storedCameraState.spherical.radius;
+        spherical.phi = storedCameraState.spherical.phi;
+        spherical.theta = storedCameraState.spherical.theta;
+        targetSpherical.current.radius = storedCameraState.spherical.radius;
+        targetSpherical.current.phi = storedCameraState.spherical.phi;
+        targetSpherical.current.theta = storedCameraState.spherical.theta;
+      }
+      wasFreeCameraEnabled.current = false;
+    }
+
+    // Skip normal controls when free camera is enabled
+    if (settings.freeCameraEnabled) {
+      return;
+    }
+
     if (size.width !== previousSize.current.width || size.height !== previousSize.current.height) {
       setShouldRecenter(true);
       previousSize.current = { width: size.width, height: size.height };
@@ -47,14 +76,17 @@ export function PanControls() {
   });
 
   useEffect(() => {
-    camera.position.setFromSpherical(spherical);
-    camera.lookAt(marsCenter);
+    if (!settings.freeCameraEnabled) {
+      camera.position.setFromSpherical(spherical);
+      camera.lookAt(marsCenter);
+    }
 
     const handleWindowResize = () => {
       setShouldRecenter(true);
     };
 
     const handlePointerDown = (event: PointerEvent) => {
+      if (settings.freeCameraEnabled) return;
       isPointerDown.current = true;
       panState.isPanning = true;
       previousPointer.current = { x: event.clientX, y: event.clientY };
@@ -99,6 +131,7 @@ export function PanControls() {
     };
 
     const handleWheel = (event: WheelEvent) => {
+      if (settings.freeCameraEnabled) return;
       event.preventDefault();
 
       const zoomSpeed = 0.5;
@@ -115,7 +148,9 @@ export function PanControls() {
 
     const domElement = gl.domElement;
 
-    domElement.style.cursor = "grab";
+    if (!settings.freeCameraEnabled) {
+      domElement.style.cursor = "grab";
+    }
 
     domElement.addEventListener("pointerdown", handlePointerDown);
     domElement.addEventListener("wheel", handleWheel, { passive: false });
@@ -129,7 +164,7 @@ export function PanControls() {
       document.removeEventListener("pointerup", handlePointerUp);
       window.removeEventListener("resize", handleWindowResize);
     };
-  }, [camera, gl, spherical, marsCenter]);
+  }, [camera, gl, spherical, marsCenter, settings.freeCameraEnabled]);
 
   return null;
 }

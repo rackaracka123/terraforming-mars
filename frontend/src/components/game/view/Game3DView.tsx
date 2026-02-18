@@ -2,14 +2,18 @@ import { Suspense, useEffect, useState, useRef, useCallback } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { PanControls } from "../controls/PanControls.tsx";
+import { FreeCamera, CameraFrustumHelper } from "../controls/FreeCamera.tsx";
 import MarsSphere from "../board/MarsSphere.tsx";
-import { TileHighlightMode } from "../board/ProjectedHexTile.tsx";
+import { TileHighlightMode } from "../board/Tile.tsx";
 import { TileVPIndicator } from "../../ui/overlay/EndGameOverlay.tsx";
 import SkyboxLoader from "./SkyboxLoader.tsx";
 import GameIcon from "../../ui/display/GameIcon.tsx";
 import { GameDto } from "@/types/generated/api-types.ts";
 import { MarsRotationProvider } from "../../../contexts/MarsRotationContext.tsx";
 import { webSocketService } from "../../../services/webSocketService.ts";
+import { useWorld3DSettings } from "../../../contexts/World3DSettingsContext.tsx";
+import GpuWarmup from "../board/GpuWarmup.tsx";
+import PerformanceProbe from "../board/PerformanceProbe.tsx";
 
 function SkyboxRotation() {
   const { scene } = useThree();
@@ -27,6 +31,57 @@ function SkyboxRotation() {
   });
 
   return null;
+}
+
+function FreeCameraFrustum({ fov }: { fov: number }) {
+  const { size } = useThree();
+  const { storedCameraState } = useWorld3DSettings();
+
+  if (!storedCameraState) return null;
+
+  return (
+    <CameraFrustumHelper
+      storedState={storedCameraState}
+      fov={fov}
+      aspect={size.width / size.height}
+    />
+  );
+}
+
+function DynamicSunLight() {
+  const { settings } = useWorld3DSettings();
+  const lightRef = useRef<THREE.DirectionalLight>(null);
+
+  useFrame(() => {
+    if (lightRef.current) {
+      // Scale direction by distance to position the light
+      const distance = 18;
+      lightRef.current.position.set(
+        settings.sunDirectionX * distance,
+        settings.sunDirectionY * distance,
+        settings.sunDirectionZ * distance + 5,
+      );
+      lightRef.current.intensity = 2.6 * settings.sunIntensity;
+      lightRef.current.color.setRGB(settings.sunColor.r, settings.sunColor.g, settings.sunColor.b);
+    }
+  });
+
+  return (
+    <directionalLight
+      ref={lightRef}
+      position={[8, 6, 15]}
+      intensity={2.6}
+      color="#ffdcb8"
+      castShadow
+      shadow-mapSize-width={2048}
+      shadow-mapSize-height={2048}
+      shadow-camera-far={50}
+      shadow-camera-left={-20}
+      shadow-camera-right={-20}
+      shadow-camera-top={20}
+      shadow-camera-bottom={-20}
+    />
+  );
 }
 
 interface Game3DViewProps {
@@ -170,22 +225,11 @@ export default function Game3DView({
             <SkyboxRotation />
 
             {/* Realistic Lighting Setup */}
-            {/* Very low ambient light for deep shadows */}
-            <ambientLight intensity={0.03} color="#1a1a2e" />
+            {/* Ambient light - enough to keep shadow side of vegetation visible */}
+            <ambientLight intensity={0.4} color="#2a2a3e" />
 
-            <directionalLight
-              position={[8, 6, 15]}
-              intensity={2.6}
-              color="#ffdcb8"
-              castShadow
-              shadow-mapSize-width={2048}
-              shadow-mapSize-height={2048}
-              shadow-camera-far={50}
-              shadow-camera-left={-20}
-              shadow-camera-right={20}
-              shadow-camera-top={20}
-              shadow-camera-bottom={-20}
-            />
+            {/* Main sun light - controlled by 3D World settings */}
+            <DynamicSunLight />
 
             {/* Cool blue rim light for moody atmosphere */}
             <directionalLight position={[-8, -3, -10]} intensity={0.35} color="#4488ff" />
@@ -202,8 +246,15 @@ export default function Game3DView({
               animateHexEntrance={animateHexEntrance}
             />
 
-            {/* Orbital camera controls */}
+            {/* GPU warmup — pre-compiles all tile shaders to prevent first-placement lag */}
+            <GpuWarmup />
+
+            <PerformanceProbe />
+
+            {/* Camera controls */}
             <PanControls />
+            <FreeCamera />
+            <FreeCameraFrustum fov={cameraConfig.fov} />
           </Suspense>
         </MarsRotationProvider>
       </Canvas>

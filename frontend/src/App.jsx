@@ -10,6 +10,7 @@ import { globalWebSocketManager } from "./services/globalWebSocketManager.ts";
 import { SpaceBackgroundProvider, useSpaceBackground } from "./contexts/SpaceBackgroundContext.tsx";
 import { SoundProvider } from "./contexts/SoundContext.tsx";
 import { NotificationProvider } from "./contexts/NotificationContext.tsx";
+import { World3DSettingsProvider } from "./contexts/World3DSettingsContext.tsx";
 import NotificationContainer from "./components/ui/notifications/NotificationContainer.tsx";
 import { audioService } from "./services/audioService.ts";
 import { skyboxCache } from "./services/SkyboxCache.ts";
@@ -62,14 +63,16 @@ function App() {
   return (
     <SoundProvider>
       <SpaceBackgroundProvider>
-        <div className="App" style={{ margin: 0, padding: 0 }}>
-          <Router>
-            <NotificationProvider>
-              <AppWithBackground />
-              <NotificationContainer />
-            </NotificationProvider>
-          </Router>
-        </div>
+        <World3DSettingsProvider>
+          <div className="App" style={{ margin: 0, padding: 0 }}>
+            <Router>
+              <NotificationProvider>
+                <AppWithBackground />
+                <NotificationContainer />
+              </NotificationProvider>
+            </Router>
+          </div>
+        </World3DSettingsProvider>
       </SpaceBackgroundProvider>
     </SoundProvider>
   );
