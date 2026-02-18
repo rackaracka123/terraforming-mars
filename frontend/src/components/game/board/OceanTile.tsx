@@ -4,11 +4,7 @@ import * as THREE from "three";
 import { panState } from "../controls/PanControls";
 import { useWorld3DSettings } from "../../../contexts/World3DSettingsContext";
 import { useTextures } from "../../../hooks/useTextures";
-import {
-  sphereProjectionVertex,
-  oceanBorderFragment,
-  createOceanMaterial,
-} from "./shaders";
+import { sphereProjectionVertex, oceanBorderFragment, createOceanMaterial } from "./shaders";
 import { SPHERE_RADIUS, CHROME_Z_BASE, easeOutCubic } from "./boardConstants";
 
 const OCEAN_EMERGENCE_DURATION = 600;
