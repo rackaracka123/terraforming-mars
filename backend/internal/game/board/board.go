@@ -266,6 +266,31 @@ func (b *Board) UpdateTileOccupancy(ctx context.Context, coords shared.HexPositi
 	return nil
 }
 
+// ClearTileBonuses removes all bonuses from a tile after they have been claimed
+func (b *Board) ClearTileBonuses(ctx context.Context, coords shared.HexPosition) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	var found bool
+
+	b.mu.Lock()
+	for i := range b.tiles {
+		if b.tiles[i].Coordinates == coords {
+			b.tiles[i].Bonuses = nil
+			found = true
+			break
+		}
+	}
+	b.mu.Unlock()
+
+	if !found {
+		return fmt.Errorf("tile not found at coordinates %v", coords)
+	}
+
+	return nil
+}
+
 // ReserveTile reserves a tile for exclusive future placement by a player
 func (b *Board) ReserveTile(ctx context.Context, coords shared.HexPosition, playerID string) error {
 	if err := ctx.Err(); err != nil {

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import TreeNode from "./TreeNode.tsx";
 import AdminCommandPanel from "./AdminCommandPanel.tsx";
+import World3DSettingsPanel from "./World3DSettingsPanel.tsx";
 import { GameDto } from "../../../types/generated/api-types.ts";
 
 interface DebugDropdownProps {
@@ -21,7 +22,7 @@ const DebugDropdown: React.FC<DebugDropdownProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [expandAll, setExpandAll] = useState(false);
   const [expandAllSignal, setExpandAllSignal] = useState<number>(0);
-  const [activeTab, setActiveTab] = useState<"state" | "admin">("state");
+  const [activeTab, setActiveTab] = useState<"state" | "admin" | "3d-world">("state");
   const [position, setPosition] = useState(() => {
     if (typeof window === "undefined") {
       return { x: 100, y: 60 };
@@ -366,6 +367,23 @@ const DebugDropdown: React.FC<DebugDropdownProps> = ({
             Commands
           </button>
         )}
+        <button
+          onClick={() => setActiveTab("3d-world")}
+          onMouseDown={(e) => e.stopPropagation()}
+          style={{
+            flex: 1,
+            padding: "8px",
+            background: activeTab === "3d-world" ? "rgba(155, 89, 182, 0.3)" : "transparent",
+            border: "none",
+            borderBottom: activeTab === "3d-world" ? "2px solid #9b59b6" : "2px solid transparent",
+            color: activeTab === "3d-world" ? "#9b59b6" : "#abb2bf",
+            fontSize: "12px",
+            cursor: "pointer",
+            transition: "all 0.2s",
+          }}
+        >
+          3D World
+        </button>
       </div>
 
       {activeTab === "state" && (
@@ -508,6 +526,8 @@ const DebugDropdown: React.FC<DebugDropdownProps> = ({
       {activeTab === "admin" && gameState?.settings.developmentMode && (
         <AdminCommandPanel gameState={gameState} onClose={onClose} />
       )}
+
+      {activeTab === "3d-world" && <World3DSettingsPanel />}
     </div>
   );
 };

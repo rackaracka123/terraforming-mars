@@ -262,6 +262,28 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
             <SoundToggleButton />
             <div className="border-t border-[#333] mx-2" />
             <button
+              onClick={() => {
+                setMenuOpen(false);
+                window.dispatchEvent(new CustomEvent("toggle-performance-window"));
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-white text-sm hover:bg-white/10 transition-colors text-left"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="22,12 18,12 15,21 9,3 6,12 2,12" />
+              </svg>
+              Performance
+            </button>
+            <div className="border-t border-[#333] mx-2" />
+            <button
               onClick={handleLeaveGame}
               className="w-full flex items-center gap-3 px-4 py-3 text-red-400 text-sm hover:bg-white/10 transition-colors text-left"
             >

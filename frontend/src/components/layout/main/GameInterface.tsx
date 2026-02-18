@@ -8,6 +8,7 @@ import ProductionPhaseModal from "../../ui/modals/ProductionPhaseModal.tsx";
 import PaymentSelectionPopover from "../../ui/popover/PaymentSelectionPopover.tsx";
 import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
 import DevModeChip from "../../ui/debug/DevModeChip.tsx";
+import PerformanceWindow from "../../ui/debug/PerformanceWindow.tsx";
 import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
 import PlayerSelectionOverlay from "../../ui/overlay/PlayerSelectionOverlay.tsx";
 import JoinGameOverlay from "../../ui/overlay/JoinGameOverlay.tsx";
@@ -24,7 +25,7 @@ import GameMenuModal from "../../ui/overlay/GameMenuModal.tsx";
 import SpaceBackground from "../../3d/SpaceBackground.tsx";
 import HexagonalShieldOverlay from "../../ui/overlay/HexagonalShieldOverlay.tsx";
 import EndGameOverlay, { TileVPIndicator } from "../../ui/overlay/EndGameOverlay.tsx";
-import { TileHighlightMode } from "../../game/board/ProjectedHexTile.tsx";
+import { TileHighlightMode } from "../../game/board/Tile.tsx";
 import ChoiceSelectionPopover from "../../ui/popover/ChoiceSelectionPopover.tsx";
 import CardStorageSelectionPopover from "../../ui/popover/CardStorageSelectionPopover.tsx";
 import TargetPlayerSelectionPopover from "../../ui/popover/TargetPlayerSelectionPopover.tsx";
@@ -89,6 +90,7 @@ export default function GameInterface() {
   const [showCardEffectsModal, setShowCardEffectsModal] = useState(false);
   const [showActionsModal, setShowActionsModal] = useState(false);
   const [showDebugDropdown, setShowDebugDropdown] = useState(false);
+  const [showPerformanceWindow, setShowPerformanceWindow] = useState(false);
 
   // Set corporation data directly from player (backend now sends full CardDto)
   useEffect(() => {
@@ -1637,6 +1639,16 @@ export default function GameInterface() {
     };
   }, []);
 
+  useEffect(() => {
+    const handleTogglePerf = () => {
+      setShowPerformanceWindow((prev) => !prev);
+    };
+    window.addEventListener("toggle-performance-window", handleTogglePerf);
+    return () => {
+      window.removeEventListener("toggle-performance-window", handleTogglePerf);
+    };
+  }, []);
+
   // Extract card details directly from game data (backend now sends full card objects)
   const extractCardDetails = useCallback((cards: CardDto[]) => {
     setCardDetails(cards);
@@ -1896,6 +1908,11 @@ export default function GameInterface() {
         onClose={() => setShowDebugDropdown(false)}
         gameState={game}
         changedPaths={changedPaths}
+      />
+
+      <PerformanceWindow
+        isVisible={showPerformanceWindow}
+        onClose={() => setShowPerformanceWindow(false)}
       />
 
       {(transitionPhase === "lobby" ||

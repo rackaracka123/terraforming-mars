@@ -1,6 +1,6 @@
 import React from "react";
 import Game3DView from "../../game/view/Game3DView.tsx";
-import { TileHighlightMode } from "../../game/board/ProjectedHexTile.tsx";
+import { TileHighlightMode } from "../../game/board/Tile.tsx";
 import { TileVPIndicator } from "../../ui/overlay/EndGameOverlay.tsx";
 import { GameDto } from "@/types/generated/api-types.ts";
 

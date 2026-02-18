@@ -3,7 +3,7 @@ import LeftSidebar from "../panels/LeftSidebar.tsx";
 import TopMenuBar from "../panels/TopMenuBar.tsx";
 import RightSidebar from "../panels/RightSidebar.tsx";
 import MainContentDisplay from "../../ui/display/MainContentDisplay.tsx";
-import { TileHighlightMode } from "../../game/board/ProjectedHexTile.tsx";
+import { TileHighlightMode } from "../../game/board/Tile.tsx";
 import { TileVPIndicator } from "../../ui/overlay/EndGameOverlay.tsx";
 import BottomResourceBar, {
   BottomResourceBarCallbacks,
