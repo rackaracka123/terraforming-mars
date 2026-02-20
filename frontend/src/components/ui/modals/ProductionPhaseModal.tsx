@@ -183,12 +183,13 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   }, [energyAnimationState, animationStep, isAnimating]);
 
   useEffect(() => {
+    if (!isOpen) return;
     setCurrentPlayerIndex(0);
     setAnimationStep("energyConversion");
     setIsAnimating(true);
     setResourceAnimationState("initial");
     setEnergyAnimationState("initial");
-  }, []);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isAnimating || animationStep !== "production") return;

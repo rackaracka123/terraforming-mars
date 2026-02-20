@@ -1,5 +1,5 @@
 import React from "react";
-import SimpleGameCard from "../cards/SimpleGameCard.tsx";
+import GameCard from "../cards/GameCard.tsx";
 import GameIcon from "../display/GameIcon.tsx";
 import { PendingCardSelectionDto, ResourceTypeCredit } from "../../../types/generated/api-types.ts";
 import { useCardSelection } from "../../../hooks/useCardSelection.ts";
@@ -109,7 +109,6 @@ const PendingCardSelectionOverlay: React.FC<PendingCardSelectionOverlayProps> = 
   };
 
   const titleInfo = getTitleAndDescription(selection.source);
-  const netGain = totalReward - totalCost;
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center animate-[fadeIn_0.3s_ease]">
@@ -134,28 +133,26 @@ const PendingCardSelectionOverlay: React.FC<PendingCardSelectionOverlayProps> = 
 
               return (
                 <div key={card.id} className="relative">
-                  <SimpleGameCard
+                  <GameCard
                     card={card}
                     isSelected={isSelected}
                     onSelect={handleCardSelect}
                     animationDelay={index * 100}
                     showCheckbox={true}
                   />
-                  {/* Cost/Reward Badge */}
-                  {badge && (
+                  {/* Cost/Reward Badge (hidden for sell-patents since reward is obvious) */}
+                  {badge && selection.source !== "sell-patents" && (
                     <div
                       className={`absolute top-2 right-2 px-2 py-1 rounded-md font-bold text-sm shadow-lg ${
-                        badge.type === "reward"
-                          ? "bg-[#4caf50] text-white"
-                          : badge.type === "cost"
-                            ? "bg-[#f44336] text-white"
-                            : "bg-[#4caf50] text-white"
+                        badge.type === "cost"
+                          ? "bg-[#f44336] text-white"
+                          : "bg-[#4caf50] text-white"
                       }`}
                     >
-                      {badge.type === "reward"
-                        ? `+${badge.value} MC`
-                        : badge.type === "cost"
-                          ? `${badge.value} MC`
+                      {badge.type === "cost"
+                        ? `${badge.value} MC`
+                        : badge.type === "reward"
+                          ? `+${badge.value} MC`
                           : "FREE"}
                     </div>
                   )}
@@ -186,27 +183,8 @@ const PendingCardSelectionOverlay: React.FC<PendingCardSelectionOverlayProps> = 
             )}
             {totalReward > 0 && (
               <div className="flex items-center gap-3">
-                <span className={RESOURCE_LABEL_CLASS}>Total Reward:</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-[#4caf50] font-bold text-lg">+</span>
-                  <GameIcon iconType={ResourceTypeCredit} amount={totalReward} size="large" />
-                </div>
-              </div>
-            )}
-            {netGain !== 0 && (
-              <div className="flex items-center gap-3">
-                <span className={RESOURCE_LABEL_CLASS}>Net Gain:</span>
-                <div className="flex items-center gap-1">
-                  <span
-                    className={`font-bold text-lg ${
-                      netGain > 0 ? "text-[#4caf50]" : "text-[#f44336]"
-                    }`}
-                  >
-                    {netGain > 0 ? "+" : ""}
-                    {netGain}
-                  </span>
-                  <span className="text-white/80 text-sm">MC</span>
-                </div>
+                <span className={RESOURCE_LABEL_CLASS}>Gain:</span>
+                <GameIcon iconType={ResourceTypeCredit} amount={totalReward} size="large" />
               </div>
             )}
           </div>
@@ -231,7 +209,7 @@ const PendingCardSelectionOverlay: React.FC<PendingCardSelectionOverlayProps> = 
             <div className="flex gap-3 items-center">
               {(onCancel || selection.minCards === 0) && (
                 <GameMenuButton variant="text" size="md" onClick={handleCancel}>
-                  {onCancel ? "Cancel" : "Skip"}
+                  Cancel
                 </GameMenuButton>
               )}
               <GameMenuButton

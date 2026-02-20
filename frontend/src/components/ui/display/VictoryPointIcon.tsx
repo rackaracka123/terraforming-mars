@@ -4,111 +4,74 @@ import { getIconPath } from "@/utils/iconStore.ts";
 interface VictoryPointIconProps {
   value?: number | string;
   vpConditions?: any[];
-  size?: "small" | "medium" | "large";
+  onHoverDescription?: (description: string | null) => void;
 }
+
+const VP_CLIP_PATH = "polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%)";
 
 const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
   value,
   vpConditions,
-  size = "medium",
+  onHoverDescription,
 }) => {
-  const vpIconPath = getIconPath("mars");
+  const vpDescription = vpConditions?.find((c: any) => c.description)?.description ?? null;
 
-  const sizeClasses = {
-    small: "w-8 h-8 text-[calc(32px*0.7)]",
-    medium: "w-10 h-10 text-[calc(40px*0.5)]",
-    large: "w-12 h-12 text-[calc(48px*0.7)]",
+  const handleMouseEnter = () => {
+    if (onHoverDescription && vpDescription) {
+      onHoverDescription(vpDescription);
+    }
   };
 
-  // If vpConditions is provided, use the new system
+  const handleMouseLeave = () => {
+    if (onHoverDescription) {
+      onHoverDescription(null);
+    }
+  };
+
+  const renderBox = (content: React.ReactNode) => (
+    <div className="relative -mt-[2px] w-fit">
+      <div
+        className="inline-flex items-center gap-1 px-1.5 py-px bg-[rgba(5,5,10,0.95)] border border-[rgba(60,60,70,0.7)] border-t-0 text-white font-orbitron"
+        style={{ clipPath: VP_CLIP_PATH }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        {content}
+        <span className="text-[9px] text-white/50 font-semibold tracking-wider">VP</span>
+      </div>
+      <svg className="absolute bottom-0 right-0 w-2 h-2 pointer-events-none" viewBox="0 0 8 8">
+        <line x1="8" y1="0" x2="0" y2="8" stroke="rgba(60,60,70,0.7)" strokeWidth="1.5" />
+      </svg>
+    </div>
+  );
+
   if (vpConditions && Array.isArray(vpConditions) && vpConditions.length > 0) {
-    // Handle multiple VP conditions - for now, render each separately or combine them
     const totalConditions = vpConditions.length;
 
     if (totalConditions === 1) {
       const condition = vpConditions[0];
 
-      if (condition.condition === "fixed") {
-        // Fixed VP amount
+      if (condition.condition === "fixed" || condition.condition === "once") {
         if (condition.amount === 0) return null;
-        return (
-          <div className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}>
-            <img
-              src={vpIconPath || ""}
-              alt="VP"
-              className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
-            />
-            <span className="absolute top-0 left-0 right-0 bottom-0 text-black font-bold font-[Prototype,Arial_Black,Arial,sans-serif] flex items-center justify-center text-center leading-none [text-shadow:-1px_-1px_0_#d2691e,1px_-1px_0_#d2691e,-1px_1px_0_#d2691e,1px_1px_0_#d2691e,0_0_3px_rgba(210,105,30,0.5)] tracking-[0.3px] [-webkit-font-smoothing:antialiased] [-moz-osx-font-smoothing:grayscale] [text-rendering:optimizeLegibility]">
-              {condition.amount}
-            </span>
-          </div>
-        );
+        return renderBox(<span className="text-[13px] font-bold">{condition.amount}</span>);
       } else if (condition.condition === "per" && condition.per) {
-        // Per condition - display as fraction with icon
         const perCondition = condition.per;
-        let resourceIcon = null;
-        let displayText = "";
-
-        // Get the resource icon - check tag first, then type
         const resourceType = perCondition.tag || perCondition.type;
-        if (resourceType) {
-          resourceIcon = getIconPath(resourceType);
-          // If per.amount is 1, show slash but omit the number (e.g., "1/" instead of "1/1")
-          if ((perCondition.amount || 1) === 1) {
-            displayText = `${condition.amount}/`;
-          } else {
-            displayText = `${condition.amount}/${perCondition.amount}`;
-          }
-        }
+        const resourceIcon = resourceType ? getIconPath(resourceType) : null;
+        const perAmount = perCondition.amount || 1;
 
-        // Calculate text size based on content length
-        const textLength = displayText.length;
-        const textSizeClass =
-          textLength <= 3
-            ? "text-[calc(100%*0.6)]" // Smaller size for single row layout
-            : "text-[calc(100%*0.45)]"; // Even smaller for longer text
-
-        return (
-          <div className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}>
-            <img
-              src={vpIconPath || ""}
-              alt="VP"
-              className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
-            />
-            <div className="absolute inset-0 flex flex-row items-center justify-center gap-0.5 p-1">
-              <span
-                className={`text-black font-bold font-[Prototype,Arial_Black,Arial,sans-serif] leading-none [text-shadow:-1px_-1px_0_#d2691e,1px_-1px_0_#d2691e,-1px_1px_0_#d2691e,1px_1px_0_#d2691e,0_0_3px_rgba(210,105,30,0.5)] [-webkit-font-smoothing:antialiased] [-moz-osx-font-smoothing:grayscale] [text-rendering:optimizeLegibility] ${textSizeClass} tracking-[-0.5px]`}
-              >
-                {displayText}
-              </span>
-              {resourceIcon && (
-                <img
-                  src={resourceIcon}
-                  alt={resourceType}
-                  className="w-[40%] h-[40%] object-contain [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.8))_drop-shadow(0_0_2px_rgba(0,0,0,0.6))]"
-                />
-              )}
-            </div>
-          </div>
-        );
-      } else if (condition.condition === "once") {
-        // Once condition - similar to fixed but different styling?
-        if (condition.amount === 0) return null;
-        return (
-          <div className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}>
-            <img
-              src={vpIconPath || ""}
-              alt="VP"
-              className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
-            />
-            <span className="absolute top-0 left-0 right-0 bottom-0 text-black font-bold font-[Prototype,Arial_Black,Arial,sans-serif] flex items-center justify-center text-center leading-none [text-shadow:-1px_-1px_0_#d2691e,1px_-1px_0_#d2691e,-1px_1px_0_#d2691e,1px_1px_0_#d2691e,0_0_3px_rgba(210,105,30,0.5)] tracking-[0.3px] [-webkit-font-smoothing:antialiased] [-moz-osx-font-smoothing:grayscale] [text-rendering:optimizeLegibility]">
-              {condition.amount}
-            </span>
-          </div>
+        return renderBox(
+          <div className="flex items-center gap-0.5">
+            <span className="text-[11px] font-bold">{condition.amount}</span>
+            <span className="text-[9px] text-white/40">/</span>
+            {perAmount > 1 && <span className="text-[11px] font-bold">{perAmount}</span>}
+            {resourceIcon && (
+              <img src={resourceIcon} alt={resourceType} className="w-3.5 h-3.5 object-contain" />
+            )}
+          </div>,
         );
       }
     } else {
-      // Multiple conditions - sum up fixed ones and show first per condition
       let totalFixed = 0;
       let firstPerCondition = null;
 
@@ -120,86 +83,35 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
         }
       }
 
-      // For now, just show the total fixed VP or the first per condition
       if (firstPerCondition && firstPerCondition.per) {
         const perCondition = firstPerCondition.per;
-        let resourceIcon = null;
-        let displayText = "";
-
-        // Get the resource icon - check tag first, then type
         const resourceType = perCondition.tag || perCondition.type;
-        if (resourceType) {
-          resourceIcon = getIconPath(resourceType);
-          // If per.amount is 1, show slash but omit the number (e.g., "1/" instead of "1/1")
-          if ((perCondition.amount || 1) === 1) {
-            displayText = `${firstPerCondition.amount}/`;
-          } else {
-            displayText = `${firstPerCondition.amount}/${perCondition.amount}`;
-          }
-        }
+        const resourceIcon = resourceType ? getIconPath(resourceType) : null;
+        const perAmount = perCondition.amount || 1;
 
-        // Calculate text size based on content length
-        const textLength = displayText.length;
-        const textSizeClass =
-          textLength <= 3
-            ? "text-[calc(100%*0.6)]" // Smaller size for single row layout
-            : "text-[calc(100%*0.45)]"; // Even smaller for longer text
-
-        return (
-          <div className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}>
-            <img
-              src={vpIconPath || ""}
-              alt="VP"
-              className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
-            />
-            <div className="absolute inset-0 flex flex-row items-center justify-center gap-0.5 p-1">
-              <span
-                className={`text-black font-bold font-[Prototype,Arial_Black,Arial,sans-serif] leading-none [text-shadow:-1px_-1px_0_#d2691e,1px_-1px_0_#d2691e,-1px_1px_0_#d2691e,1px_1px_0_#d2691e,0_0_3px_rgba(210,105,30,0.5)] [-webkit-font-smoothing:antialiased] [-moz-osx-font-smoothing:grayscale] [text-rendering:optimizeLegibility] ${textSizeClass} tracking-[-0.5px]`}
-              >
-                {displayText}
-              </span>
-              {resourceIcon && (
-                <img
-                  src={resourceIcon}
-                  alt={resourceType}
-                  className="w-[40%] h-[40%] object-contain [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.8))_drop-shadow(0_0_2px_rgba(0,0,0,0.6))]"
-                />
-              )}
-            </div>
-          </div>
+        return renderBox(
+          <div className="flex items-center gap-0.5">
+            <span className="text-[11px] font-bold">{firstPerCondition.amount}</span>
+            <span className="text-[9px] text-white/40">/</span>
+            {perAmount > 1 && <span className="text-[11px] font-bold">{perAmount}</span>}
+            {resourceIcon && (
+              <img src={resourceIcon} alt={resourceType} className="w-3.5 h-3.5 object-contain" />
+            )}
+          </div>,
         );
       } else if (totalFixed > 0) {
-        return (
-          <div className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}>
-            <img
-              src={vpIconPath || ""}
-              alt="VP"
-              className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
-            />
-            <span className="absolute top-0 left-0 right-0 bottom-0 text-black font-bold font-[Prototype,Arial_Black,Arial,sans-serif] flex items-center justify-center text-center leading-none [text-shadow:-1px_-1px_0_#d2691e,1px_-1px_0_#d2691e,-1px_1px_0_#d2691e,1px_1px_0_#d2691e,0_0_3px_rgba(210,105,30,0.5)] tracking-[0.3px] [-webkit-font-smoothing:antialiased] [-moz-osx-font-smoothing:grayscale] [text-rendering:optimizeLegibility]">
-              {totalFixed}
-            </span>
-          </div>
-        );
+        return renderBox(<span className="text-[13px] font-bold">{totalFixed}</span>);
       }
     }
 
-    return null; // No valid conditions
+    return null;
   }
 
   if (value === 0 || !value) {
     return null;
   }
 
-  return (
-    <div className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}>
-      <img
-        src={vpIconPath || ""}
-        alt="VP"
-        className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
-      />
-    </div>
-  );
+  return renderBox(<span className="text-[13px] font-bold">{value}</span>);
 };
 
 export default VictoryPointIcon;

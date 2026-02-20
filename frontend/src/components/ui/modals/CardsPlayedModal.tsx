@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { CardDto, ResourceTypeCredit } from "../../../types/generated/api-types.ts";
 import { CardType } from "../../../types/cards.tsx";
 import GameIcon from "../display/GameIcon.tsx";
-import SimpleGameCard from "../cards/SimpleGameCard.tsx";
+import GameCard from "../cards/GameCard.tsx";
 import {
   GameModal,
   GameModalHeader,
@@ -185,7 +185,7 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({ isVisible, onClose,
           <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-[15px] justify-items-center">
             {filteredAndSortedCards.map((card, index) => (
               <div key={card.id} className="w-full max-w-[280px]">
-                <SimpleGameCard
+                <GameCard
                   card={card}
                   isSelected={false}
                   onSelect={() => {}}

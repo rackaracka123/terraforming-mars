@@ -23,7 +23,6 @@ import MainMenuSettingsButton from "../../ui/buttons/MainMenuSettingsButton.tsx"
 import GameMenuButton from "../../ui/buttons/GameMenuButton.tsx";
 import GameMenuModal from "../../ui/overlay/GameMenuModal.tsx";
 import SpaceBackground from "../../3d/SpaceBackground.tsx";
-import HexagonalShieldOverlay from "../../ui/overlay/HexagonalShieldOverlay.tsx";
 import EndGameOverlay, { TileVPIndicator } from "../../ui/overlay/EndGameOverlay.tsx";
 import { TileHighlightMode } from "../../game/board/Tile.tsx";
 import ChoiceSelectionPopover from "../../ui/popover/ChoiceSelectionPopover.tsx";
@@ -50,7 +49,6 @@ import {
   GameStatusActive,
   GameStatusCompleted,
   GameStatusLobby,
-  PlayerCardDto,
   PlayerDisconnectedPayload,
   PlayerDto,
   PlayerActionDto,
@@ -116,10 +114,6 @@ export default function GameInterface() {
 
   // Card draw selection state (for card-draw/peek/take/buy effects)
   const [showCardDrawSelection, setShowCardDrawSelection] = useState(false);
-
-  // Unplayable card feedback state
-  const [unplayableCard, setUnplayableCard] = useState<PlayerCardDto | null>(null);
-  const [unplayableReason, setUnplayableReason] = useState<string | null>(null);
 
   // End game tile highlighting state
   const [tileHighlightMode, setTileHighlightMode] = useState<TileHighlightMode>(null);
@@ -564,11 +558,6 @@ export default function GameInterface() {
       try {
         // Block card plays when tile selection is pending
         if (currentPlayer?.pendingTileSelection) {
-          const card = currentPlayer?.cards.find((c) => c.id === cardId);
-          if (card) {
-            setUnplayableCard(card);
-            setUnplayableReason("Complete tile placement first");
-          }
           return;
         }
 
@@ -1117,14 +1106,6 @@ export default function GameInterface() {
     setShowCardResourceSelection(false);
     setPendingCardResourceInput(null);
   }, []);
-
-  const handleUnplayableCard = useCallback(
-    (card: PlayerCardDto | null, errorMessage: string | null) => {
-      setUnplayableCard(card);
-      setUnplayableReason(errorMessage);
-    },
-    [],
-  );
 
   // Attempt reconnection to the game
   const attemptReconnection = useCallback(async () => {
@@ -2136,17 +2117,9 @@ export default function GameInterface() {
               // TODO: Implement card selection logic (view details, etc.)
             }}
             onPlayCard={handlePlayCard}
-            onUnplayableCard={handleUnplayableCard}
           />
         </div>
       )}
-
-      {/* Hexagonal shield overlay */}
-      <HexagonalShieldOverlay
-        card={unplayableCard}
-        reason={unplayableReason}
-        isVisible={unplayableCard !== null}
-      />
 
       {/* End game overlay - shown when game is completed */}
       {game &&

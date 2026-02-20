@@ -578,6 +578,13 @@ export interface PaymentConstantsDto {
   titaniumValue: number /* int */;
 }
 /**
+ * CardRequirementsDto wraps requirement items with a description for client consumption
+ */
+export interface CardRequirementsDto {
+  description?: string;
+  items: RequirementDto[];
+}
+/**
  * RequirementDto represents a card requirement for client consumption
  */
 export interface RequirementDto {
@@ -595,6 +602,7 @@ export interface ResourceStorageDto {
   type: ResourceType;
   capacity?: number /* int */;
   starting: number /* int */;
+  description?: string;
 }
 /**
  * VPConditionDto represents a victory point condition for client consumption
@@ -604,6 +612,7 @@ export interface VPConditionDto {
   condition: VPConditionType;
   maxTrigger?: number /* int */;
   per?: PerConditionDto;
+  description?: string;
 }
 /**
  * CardDto represents a card for client consumption
@@ -616,7 +625,7 @@ export interface CardDto {
   description: string;
   pack: string;
   tags?: CardTag[];
-  requirements?: RequirementDto[];
+  requirements?: CardRequirementsDto;
   behaviors?: CardBehaviorDto[];
   resourceStorage?: ResourceStorageDto;
   vpConditions?: VPConditionDto[];
@@ -770,7 +779,7 @@ export interface PlayerCardDto {
   description: string;
   pack: string;
   tags?: CardTag[];
-  requirements?: RequirementDto[];
+  requirements?: CardRequirementsDto;
   behaviors?: CardBehaviorDto[];
   resourceStorage?: ResourceStorageDto;
   vpConditions?: VPConditionDto[];

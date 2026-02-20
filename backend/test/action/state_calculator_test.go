@@ -42,12 +42,12 @@ func setupTestEnvironment(t *testing.T) (*game.Game, *player.Player, cards.CardR
 			Type: gamecards.CardTypeAutomated,
 			Cost: 10,
 			Tags: []shared.CardTag{shared.TagBuilding},
-			Requirements: []gamecards.Requirement{
+			Requirements: &gamecards.CardRequirements{Items: []gamecards.Requirement{
 				{
 					Type: gamecards.RequirementTemperature,
 					Min:  intPtr(-10),
 				},
-			},
+			}},
 		},
 		{
 			ID:   "card2",
@@ -61,7 +61,7 @@ func setupTestEnvironment(t *testing.T) (*game.Game, *player.Player, cards.CardR
 			Name: "Card With Multiple Requirements",
 			Type: gamecards.CardTypeAutomated,
 			Cost: 15,
-			Requirements: []gamecards.Requirement{
+			Requirements: &gamecards.CardRequirements{Items: []gamecards.Requirement{
 				{
 					Type: gamecards.RequirementOxygen,
 					Min:  intPtr(5),
@@ -70,7 +70,7 @@ func setupTestEnvironment(t *testing.T) (*game.Game, *player.Player, cards.CardR
 					Type: gamecards.RequirementOceans,
 					Min:  intPtr(3),
 				},
-			},
+			}},
 		},
 	}
 

@@ -15,7 +15,7 @@ import {
 import { apiService } from "../../../services/apiService.ts";
 import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
 import GameIcon from "../display/GameIcon.tsx";
-import SimpleGameCard from "../cards/SimpleGameCard.tsx";
+import GameCard from "../cards/GameCard.tsx";
 import CorporationCard from "../cards/CorporationCard.tsx";
 import { getCorporationBorderColor } from "@/utils/corporationColors.ts";
 import {
@@ -541,7 +541,7 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId }) =
               <div className="flex flex-wrap gap-x-1 gap-y-2 justify-center content-start flex-1 min-h-0 overflow-y-auto ">
                 {filteredCards.slice(0, 50).map((card) => (
                   <div className="scale-80">
-                    <SimpleGameCard
+                    <GameCard
                       card={card}
                       isSelected={selectedCardIds.includes(card.id)}
                       onSelect={() => toggleCardSelection(card.id)}

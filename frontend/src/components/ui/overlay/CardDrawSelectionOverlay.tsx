@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import SimpleGameCard from "../cards/SimpleGameCard.tsx";
+import GameCard from "../cards/GameCard.tsx";
 import GameIcon from "../display/GameIcon.tsx";
 import {
   PendingCardDrawSelectionDto,
@@ -204,7 +204,7 @@ const CardDrawSelectionOverlay: React.FC<CardDrawSelectionOverlayProps> = ({
 
               return (
                 <div key={card.id} className="relative">
-                  <SimpleGameCard
+                  <GameCard
                     card={card}
                     isSelected={isSelected}
                     onSelect={handleCardSelect}

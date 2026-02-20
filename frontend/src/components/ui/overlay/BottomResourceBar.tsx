@@ -345,14 +345,36 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   const isConversionDisabled = isTilePlacementActive;
 
   const BAR_HEIGHT = 90;
-  const LEFT_PANEL_WIDTH = 640;
-  const RIGHT_PANEL_WIDTH = 640;
+
+  const MAX_PANEL_WIDTH = 640;
+
+  const calcPanelWidth = () =>
+    Math.min(MAX_PANEL_WIDTH, Math.max(480, (window.innerWidth - 700) / 2));
+
+  const [panelWidth, setPanelWidth] = useState(calcPanelWidth);
+
+  useEffect(() => {
+    const handleResize = () => setPanelWidth(calcPanelWidth());
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const LEFT_PANEL_WIDTH = panelWidth;
+  const RIGHT_PANEL_WIDTH = panelWidth;
+  const contentScale = panelWidth / MAX_PANEL_WIDTH;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-[1000] flex justify-between pointer-events-none">
       {/* LEFT PANEL: Corporation + Resources */}
       <AngledPanel side="left" corpColor={corpColor} width={LEFT_PANEL_WIDTH} height={BAR_HEIGHT}>
-        <div className="flex items-center h-full" style={{ paddingRight: ANGLE_INDENT + 16 }}>
+        <div
+          className="flex items-center h-full origin-left"
+          style={{
+            paddingRight: ANGLE_INDENT + 16,
+            transform: `scale(${contentScale})`,
+            width: MAX_PANEL_WIDTH,
+          }}
+        >
           {/* Corporation Section */}
           <div
             ref={corpContainerRef}

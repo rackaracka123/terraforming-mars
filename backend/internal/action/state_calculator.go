@@ -305,13 +305,13 @@ func validateRequirements(
 	g *game.Game,
 	cardRegistry cards.CardRegistry,
 ) []player.StateError {
-	if len(card.Requirements) == 0 {
+	if card.Requirements == nil || len(card.Requirements.Items) == 0 {
 		return nil
 	}
 
 	var errors []player.StateError
 
-	for _, req := range card.Requirements {
+	for _, req := range card.Requirements.Items {
 		err := checkRequirement(req, p, g, cardRegistry)
 		if err != nil {
 			errors = append(errors, *err)

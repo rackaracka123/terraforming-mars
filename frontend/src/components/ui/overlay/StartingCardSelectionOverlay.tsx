@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import SimpleGameCard from "../cards/SimpleGameCard.tsx";
+import GameCard from "../cards/GameCard.tsx";
 import CorporationCard from "../cards/CorporationCard.tsx";
 import GameIcon from "../display/GameIcon.tsx";
 import { CardDto, ResourceTypeCredit } from "../../../types/generated/api-types.ts";
@@ -99,14 +99,6 @@ const StartingCardSelectionOverlay: React.FC<StartingCardSelectionOverlayProps> 
               ? "Choose your corporation to begin the game"
               : "Choose your starting cards. Each card costs 3 MC."}
           </p>
-          <div className="mt-3 flex gap-2 items-center">
-            <div
-              className={`h-2 w-2 rounded-full ${currentStep === "corporation" ? "bg-space-blue-400" : "bg-white/30"}`}
-            />
-            <div
-              className={`h-2 w-2 rounded-full ${currentStep === "cards" ? "bg-space-blue-400" : "bg-white/30"}`}
-            />
-          </div>
         </div>
 
         {/* Step 1: Corporation Selection */}
@@ -163,7 +155,7 @@ const StartingCardSelectionOverlay: React.FC<StartingCardSelectionOverlayProps> 
                 const isSelected = cardIndex !== -1;
 
                 return (
-                  <SimpleGameCard
+                  <GameCard
                     key={card.id}
                     card={card}
                     isSelected={isSelected}

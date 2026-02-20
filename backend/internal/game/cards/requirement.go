@@ -20,6 +20,12 @@ const (
 	RequirementResource    RequirementType = "resource"
 )
 
+// CardRequirements wraps a list of requirements with a human-readable description
+type CardRequirements struct {
+	Description string        `json:"description,omitempty"`
+	Items       []Requirement `json:"items"`
+}
+
 // Requirement represents a single card requirement
 type Requirement struct {
 	Type     RequirementType      `json:"type"`

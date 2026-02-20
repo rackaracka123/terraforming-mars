@@ -21,9 +21,11 @@ func ValidateCardJSON(card *Card) []error {
 		}
 	}
 
-	for i, req := range card.Requirements {
-		if reqErr := validateRequirement(card.ID, i, req); reqErr != nil {
-			errors = append(errors, reqErr)
+	if card.Requirements != nil {
+		for i, req := range card.Requirements.Items {
+			if reqErr := validateRequirement(card.ID, i, req); reqErr != nil {
+				errors = append(errors, reqErr)
+			}
 		}
 	}
 

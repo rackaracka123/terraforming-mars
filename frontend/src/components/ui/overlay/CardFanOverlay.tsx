@@ -1,14 +1,56 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import SimpleGameCard from "../cards/SimpleGameCard.tsx";
-import { PlayerCardDto, StateErrorDto } from "@/types/generated/api-types.ts";
+import GameCard from "../cards/GameCard.tsx";
+import { PlayerCardDto } from "@/types/generated/api-types.ts";
 
-/**
- * Convert StateErrorDto to a user-friendly message
- */
-function formatErrorMessage(errors: StateErrorDto[]): string {
-  if (errors.length === 0) return "";
-  if (errors.length === 1) return errors[0].message;
-  return `${errors[0].message} (+${errors.length - 1} more)`;
+function clamp(n: number, min: number, max: number): number {
+  return Math.min(Math.max(n, min), max);
+}
+
+// --- Layout constants ---
+const SPACING = 120;
+const FLAT_RADIUS = 2.5;
+const TURN_RADIUS = 4;
+const MAX_ROTATE = 22;
+const EDGE_DROP = 18;
+const BASE_Y_OFFSET = 160;
+const VISIBLE_RADIUS = 4;
+const CULL_RADIUS = VISIBLE_RADIUS + 1;
+
+const SELECTED_LIFT = -180;
+const SELECTED_SCALE = 1.12;
+
+const THROW_DISTANCE_THRESHOLD = 120;
+const THROW_Y_THRESHOLD = -80;
+const DRAG_THRESHOLD = 14;
+const DRAG_RAISE_THRESHOLD = -60;
+const WHEEL_SCALE = 0.005;
+
+interface CardTransform {
+  x: number;
+  y: number;
+  rotation: number;
+  scale: number;
+  z: number;
+}
+
+function getCardTransform(i: number, scrollPos: number): CardTransform {
+  const d = i - scrollPos;
+  const absD = Math.abs(d);
+
+  const x = d * SPACING;
+
+  let rotation = 0;
+  let t = 0;
+  if (absD > FLAT_RADIUS) {
+    t = clamp((absD - FLAT_RADIUS) / TURN_RADIUS, 0, 1);
+    rotation = Math.sign(d) * Math.pow(t, 1.2) * MAX_ROTATE;
+  }
+
+  const y = BASE_Y_OFFSET + t * t * EDGE_DROP;
+
+  const z = i;
+
+  return { x, y, rotation, scale: 1, z };
 }
 
 interface CardFanOverlayProps {
@@ -16,7 +58,6 @@ interface CardFanOverlayProps {
   hideWhenModalOpen?: boolean;
   onCardSelect?: (cardId: string) => void;
   onPlayCard?: (cardId: string) => Promise<void>;
-  onUnplayableCard?: (card: PlayerCardDto | null, errorMessage: string | null) => void;
 }
 
 const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
@@ -24,355 +65,279 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
   hideWhenModalOpen = false,
   onCardSelect,
   onPlayCard,
-  onUnplayableCard,
 }) => {
+  const [scrollPos, setScrollPos] = useState(0);
+  const [cardOrder, setCardOrder] = useState<string[]>([]);
   const [highlightedCard, setHighlightedCard] = useState<string | null>(null);
   const [draggedCard, setDraggedCard] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
   const [dragStartPosition, setDragStartPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [justDragged, setJustDragged] = useState(false);
   const [isInThrowZone, setIsInThrowZone] = useState(false);
-  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
-  const [cardScales, setCardScales] = useState<Record<string, number>>({});
-  const [cardRotations, setCardRotations] = useState<Record<string, number>>({});
-  const [isHoveringMars, setIsHoveringMars] = useState(false);
   const [returningCard, setReturningCard] = useState<string | null>(null);
+
   const handRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef(cards);
+  const dragIntentRef = useRef(false);
+  const capturedCardRef = useRef<HTMLDivElement | null>(null);
+  const lastPointerXRef = useRef(0);
 
   useEffect(() => {
     cardsRef.current = cards;
   }, [cards]);
 
-  const THROW_DISTANCE_THRESHOLD = 120;
-  const THROW_Y_THRESHOLD = -80;
-
-  const isCursorOverMars = (x: number, y: number): boolean => {
-    const centerX = window.innerWidth / 2;
-
-    const marsAreaWidth = window.innerWidth * 0.8;
-    const marsAreaHeight = window.innerHeight - 400;
-
-    const leftBound = centerX - marsAreaWidth / 2;
-    const rightBound = centerX + marsAreaWidth / 2;
-    const topBound = 100;
-    const bottomBound = topBound + marsAreaHeight;
-
-    return x >= leftBound && x <= rightBound && y >= topBound && y <= bottomBound;
-  };
-
-  const calculateCardPosition = (
-    index: number,
-    totalCards: number,
-    spreadIndex: number | null = null,
-    expanded: boolean = false,
-  ) => {
-    const handWidth = expanded ? 800 : 400;
-    const handCurve = expanded ? 0.15 : 0.3;
-    const cardWidth = 160; // Wider for SimpleGameCard
-    const baseY = -20;
-
-    const baseSpacing = expanded ? cardWidth * 0.8 : cardWidth * 0.3;
-    const spacing = Math.min(baseSpacing, handWidth / Math.max(totalCards - 1, 1));
-
-    let spreadOffset = 0;
-    if (spreadIndex !== null) {
-      const distanceFromSpread = Math.abs(index - spreadIndex);
-      if (distanceFromSpread === 1) {
-        const direction = index > spreadIndex ? 1 : -1;
-        spreadOffset = direction * 40;
-      } else if (distanceFromSpread === 2) {
-        const direction = index > spreadIndex ? 1 : -1;
-        spreadOffset = direction * 20;
-      } else if (distanceFromSpread === 3) {
-        const direction = index > spreadIndex ? 1 : -1;
-        spreadOffset = direction * 10;
+  // Sync cardOrder when cards prop changes (additions/removals)
+  useEffect(() => {
+    setCardOrder((prev) => {
+      const propIds = new Set(cards.map((c) => c.id));
+      const kept = prev.filter((id) => propIds.has(id));
+      const keptSet = new Set(kept);
+      const added = cards.filter((c) => !keptSet.has(c.id)).map((c) => c.id);
+      const next = [...kept, ...added];
+      const isFirstRender = prev.length === 0;
+      const result = isFirstRender ? cards.map((c) => c.id) : next;
+      // Center scroll on first load
+      if (isFirstRender && result.length > 0) {
+        const center = (result.length - 1) / 2;
+        setScrollPos(center);
+        scrollTargetRef.current = center;
       }
-    }
-
-    const totalWidth = spacing * (totalCards - 1);
-    const startX = -totalWidth / 2;
-    const x = startX + index * spacing + spreadOffset;
-
-    const normalizedX = x / (handWidth / 2);
-    const curveY = Math.pow(Math.abs(normalizedX), 2) * handCurve * 60;
-    const y = baseY + curveY;
-
-    const rotation = normalizedX * 8;
-
-    return { x, y, rotation };
-  };
-
-  const getCardScale = (cardId: string) => {
-    return cardScales[cardId] || 1;
-  };
-
-  const setCardScale = (cardId: string, scale: number) => {
-    setCardScales((prev) => ({ ...prev, [cardId]: scale }));
-  };
-
-  const resetCardScale = useCallback((cardId: string) => {
-    setCardScales((prev) => {
-      const newScales = { ...prev };
-      delete newScales[cardId];
-      return newScales;
+      return result;
     });
-  }, []);
+  }, [cards]);
 
-  const getCardRotation = (cardId: string, defaultRotation: number) => {
-    return cardRotations[cardId] !== undefined ? cardRotations[cardId] : defaultRotation;
-  };
-
-  const setCardRotation = (cardId: string, rotation: number) => {
-    setCardRotations((prev) => ({ ...prev, [cardId]: rotation }));
-  };
-
-  const resetCardRotation = useCallback((cardId: string) => {
-    setCardRotations((prev) => {
-      const newRotations = { ...prev };
-      delete newRotations[cardId];
-      return newRotations;
+  // Clamp scrollPos when cards change
+  useEffect(() => {
+    const maxScroll = Math.max(cardOrder.length - 1, 0);
+    setScrollPos((prev) => {
+      const clamped = clamp(prev, 0, maxScroll);
+      scrollTargetRef.current = clamped;
+      return clamped;
     });
-  }, []);
-
-  const handleCardHover = (cardId: string) => {
-    setHoveredCard(cardId);
-    if (!highlightedCard || highlightedCard !== cardId) {
-      setCardScale(cardId, 1.2);
-      setCardRotation(cardId, 0);
-    }
-  };
-
-  const handleCardLeave = (cardId: string) => {
-    setHoveredCard(null);
-    if (!highlightedCard || highlightedCard !== cardId) {
-      resetCardScale(cardId);
-      resetCardRotation(cardId);
-    }
-  };
-
-  const handleCardClick = (cardId: string, event: React.MouseEvent) => {
-    event.stopPropagation();
-    if (isDragging || justDragged) return;
-
-    // Toggle card selection
-    if (highlightedCard === cardId) {
+    // Clear selection if card disappeared
+    if (highlightedCard && !cardOrder.includes(highlightedCard)) {
       setHighlightedCard(null);
-      resetCardScale(cardId);
-      resetCardRotation(cardId);
-    } else {
-      setHighlightedCard(cardId);
-      setCardScale(cardId, 1.4);
-      setCardRotation(cardId, 0);
-      onCardSelect?.(cardId);
     }
-  };
+  }, [cardOrder, highlightedCard]);
 
-  const handleDragStart = (cardId: string, event: React.MouseEvent) => {
-    event.preventDefault();
-    setHoveredCard(null);
+  // --- Wheel scrolling ---
+  const scrollTargetRef = useRef(0);
+  const scrollAnimRef = useRef(0);
+  const isAnimatingRef = useRef(false);
 
-    const cardIndex = cards.findIndex((c) => c.id === cardId);
-    const spreadCard = highlightedCard || hoveredCard;
-    const spreadIndex = spreadCard ? cards.findIndex((c) => c.id === spreadCard) : null;
-    const cardPosition = calculateCardPosition(cardIndex, cards.length, spreadIndex, false);
+  const animateScroll = useCallback(() => {
+    setScrollPos((prev) => {
+      const diff = scrollTargetRef.current - prev;
+      if (Math.abs(diff) < 0.01) {
+        isAnimatingRef.current = false;
+        return scrollTargetRef.current;
+      }
+      scrollAnimRef.current = requestAnimationFrame(animateScroll);
+      return prev + diff * 0.25;
+    });
+  }, []);
+
+  const startScrollAnimation = useCallback(() => {
+    if (!isAnimatingRef.current) {
+      isAnimatingRef.current = true;
+      scrollAnimRef.current = requestAnimationFrame(animateScroll);
+    }
+  }, [animateScroll]);
+
+  useEffect(() => {
+    return () => cancelAnimationFrame(scrollAnimRef.current);
+  }, []);
+
+  const handleWheel = useCallback(
+    (e: WheelEvent) => {
+      // When dragging, only allow scroll if cursor is near the card fan
+      if (draggedCard) {
+        const containerRect = handRef.current?.getBoundingClientRect();
+        if (!containerRect || e.clientY < containerRect.bottom - 200) return;
+      }
+      e.preventDefault();
+      if (highlightedCard) {
+        setHighlightedCard(null);
+      }
+      const delta = e.deltaY || e.deltaX;
+      const maxScroll = Math.max(cardOrder.length - 1, 0);
+      scrollTargetRef.current = clamp(scrollTargetRef.current + delta * WHEEL_SCALE, 0, maxScroll);
+      startScrollAnimation();
+    },
+    [draggedCard, highlightedCard, cardOrder.length, startScrollAnimation],
+  );
+
+  useEffect(() => {
+    const el = handRef.current;
+    if (!el) return;
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, [handleWheel]);
+
+  // --- Pointer events for drag ---
+  const handlePointerDown = (cardId: string, e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const cardEl = e.currentTarget;
+    cardEl.setPointerCapture(e.pointerId);
+    capturedCardRef.current = cardEl;
+
+    dragIntentRef.current = false;
+
+    const cardIndex = cardOrder.indexOf(cardId);
+    const transform = getCardTransform(cardIndex, scrollPos);
     const containerRect = handRef.current?.getBoundingClientRect();
 
     if (containerRect) {
-      let adjustedY = cardPosition.y;
-      // Always add offset for collapsed state
-      adjustedY += 90;
-
-      const cardScreenX = containerRect.left + containerRect.width / 2 + cardPosition.x;
-      const cardScreenY = containerRect.bottom + adjustedY;
+      const cardScreenX = containerRect.left + containerRect.width / 2 + transform.x;
+      // Include selected lift so the card doesn't snap down on grab
+      const isSelected = highlightedCard === cardId;
+      const liftY = isSelected ? SELECTED_LIFT : 0;
+      const cardScreenY = containerRect.bottom + transform.y + liftY;
 
       setDragOffset({
-        x: cardScreenX - event.clientX,
-        y: cardScreenY - event.clientY,
+        x: cardScreenX - e.clientX,
+        y: cardScreenY - e.clientY,
       });
     }
 
     setDraggedCard(cardId);
-    setIsDragging(true);
-    setDragPosition({ x: event.clientX, y: event.clientY });
-    setDragStartPosition({ x: event.clientX, y: event.clientY });
-    setHighlightedCard(null);
+    setDragPosition({ x: e.clientX, y: e.clientY });
+    setDragStartPosition({ x: e.clientX, y: e.clientY });
     setIsInThrowZone(false);
   };
 
-  const handleDragEnd = useCallback(async () => {
-    const draggedCardId = draggedCard;
-
-    // Calculate drag distance and direction for throw detection
-    const deltaX = dragPosition.x - dragStartPosition.x;
-    const deltaY = dragPosition.y - dragStartPosition.y;
-    const dragDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    const isUpwardThrow = deltaY < THROW_Y_THRESHOLD;
-    const isThrowDetected = dragDistance > THROW_DISTANCE_THRESHOLD && isUpwardThrow;
-
-    if (draggedCardId) {
-      if (isThrowDetected && onPlayCard) {
-        const draggedCardData = cardsRef.current.find((c) => c.id === draggedCardId);
-
-        if (draggedCardData?.available) {
-          try {
-            await onPlayCard(draggedCardId);
-            setDraggedCard(null);
-            setIsDragging(false);
-            setDragPosition({ x: 0, y: 0 });
-            setDragStartPosition({ x: 0, y: 0 });
-            setDragOffset({ x: 0, y: 0 });
-            setHighlightedCard(null);
-            setIsInThrowZone(false);
-            setIsHoveringMars(false);
-            resetCardScale(draggedCardId);
-            resetCardRotation(draggedCardId);
-          } catch (error) {
-            console.error("Failed to play card:", error);
-            setReturningCard(draggedCardId);
-            setIsDragging(false);
-            setIsInThrowZone(false);
-            setIsHoveringMars(false);
-            setHoveredCard(null);
-
-            setTimeout(() => {
-              setDraggedCard(null);
-              setDragPosition({ x: 0, y: 0 });
-              setDragStartPosition({ x: 0, y: 0 });
-              setDragOffset({ x: 0, y: 0 });
-              setHighlightedCard(null);
-              setReturningCard(null);
-              resetCardScale(draggedCardId);
-              resetCardRotation(draggedCardId);
-            }, 400);
-          }
-        } else {
-          setReturningCard(draggedCardId);
-          setIsDragging(false);
-          setIsInThrowZone(false);
-          setIsHoveringMars(false);
-          setHoveredCard(null);
-
-          setTimeout(() => {
-            setDraggedCard(null);
-            setDragPosition({ x: 0, y: 0 });
-            setDragStartPosition({ x: 0, y: 0 });
-            setDragOffset({ x: 0, y: 0 });
-            setHighlightedCard(null);
-            setReturningCard(null);
-            resetCardScale(draggedCardId);
-            resetCardRotation(draggedCardId);
-          }, 400);
-        }
-      } else {
-        setReturningCard(draggedCardId);
-        setIsDragging(false);
-        setIsInThrowZone(false);
-        setIsHoveringMars(false);
-        setHoveredCard(null);
-
-        setTimeout(() => {
-          setDraggedCard(null);
-          setDragPosition({ x: 0, y: 0 });
-          setDragStartPosition({ x: 0, y: 0 });
-          setDragOffset({ x: 0, y: 0 });
-          setHighlightedCard(null);
-          setReturningCard(null);
-          resetCardScale(draggedCardId);
-          resetCardRotation(draggedCardId);
-        }, 400);
-      }
-    } else {
-      setDraggedCard(null);
-      setIsDragging(false);
-      setDragPosition({ x: 0, y: 0 });
-      setDragStartPosition({ x: 0, y: 0 });
-      setDragOffset({ x: 0, y: 0 });
-      setHighlightedCard(null);
-      setIsInThrowZone(false);
-      setIsHoveringMars(false);
-    }
-
-    if (onUnplayableCard) {
-      onUnplayableCard(null, null);
-    }
-
-    setJustDragged(true);
-    setTimeout(() => {
-      setJustDragged(false);
-    }, 100);
-  }, [draggedCard, dragPosition, dragStartPosition, onPlayCard, resetCardScale, resetCardRotation]);
-
-  const handleDocumentClick = useCallback((event: MouseEvent) => {
-    if (handRef.current && !handRef.current.contains(event.target as Node)) {
-      setHighlightedCard(null);
-    }
-  }, []);
-
-  const handleDocumentMouseMove = useCallback(
-    (event: MouseEvent) => {
-      if (isDragging && draggedCard) {
-        setDragPosition({ x: event.clientX, y: event.clientY });
-
-        const hoveringMars = isCursorOverMars(event.clientX, event.clientY);
-        if (hoveringMars !== isHoveringMars) {
-          setIsHoveringMars(hoveringMars);
-        }
-
-        if (hoveringMars && onUnplayableCard && draggedCard) {
-          const currentCard = cardsRef.current.find((c) => c.id === draggedCard);
-
-          if (currentCard && !currentCard.available && currentCard.errors.length > 0) {
-            const errorMessage = formatErrorMessage(currentCard.errors);
-            onUnplayableCard(currentCard, errorMessage);
-          } else if (currentCard?.available) {
-            onUnplayableCard(null, null);
-          }
-        } else if (!hoveringMars && onUnplayableCard) {
-          onUnplayableCard(null, null);
-        }
-
-        const deltaX = event.clientX - dragStartPosition.x;
-        const deltaY = event.clientY - dragStartPosition.y;
-        const dragDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-        const isUpwardThrow = deltaY < THROW_Y_THRESHOLD;
-        const inThrowZone = dragDistance > THROW_DISTANCE_THRESHOLD && isUpwardThrow;
-
-        if (inThrowZone !== isInThrowZone) {
-          setIsInThrowZone(inThrowZone);
-        }
-      }
+  const tryReorder = useCallback(
+    (pointerX: number, pointerY: number) => {
+      if (!draggedCard || !dragIntentRef.current) return;
+      const containerRect = handRef.current?.getBoundingClientRect();
+      if (!containerRect) return;
+      const cursorNearFan = pointerY >= containerRect.bottom - 80;
+      if (!cursorNearFan) return;
+      const relativeX = pointerX - (containerRect.left + containerRect.width / 2);
+      const targetSlot = clamp(
+        Math.round(relativeX / SPACING + scrollPos),
+        0,
+        cardOrder.length - 1,
+      );
+      setCardOrder((prev) => {
+        const currentIdx = prev.indexOf(draggedCard);
+        if (currentIdx === -1 || currentIdx === targetSlot) return prev;
+        const next = [...prev];
+        next.splice(currentIdx, 1);
+        next.splice(targetSlot, 0, draggedCard);
+        return next;
+      });
     },
-    [
-      isDragging,
-      draggedCard,
-      dragStartPosition,
-      isInThrowZone,
-      isHoveringMars,
-      onUnplayableCard,
-      isCursorOverMars,
-    ],
+    [draggedCard, scrollPos, cardOrder.length],
   );
 
-  const handleDocumentMouseUp = useCallback(() => {
-    if (isDragging && draggedCard) {
-      void handleDragEnd();
-    }
-  }, [isDragging, draggedCard, handleDragEnd]);
-
+  // Re-run reorder when scrollPos changes during drag
   useEffect(() => {
-    document.addEventListener("click", handleDocumentClick);
-    document.addEventListener("mousemove", handleDocumentMouseMove);
-    document.addEventListener("mouseup", handleDocumentMouseUp);
+    if (draggedCard && dragIntentRef.current) {
+      tryReorder(lastPointerXRef.current, dragPosition.y);
+    }
+  }, [scrollPos, draggedCard, tryReorder, dragPosition.y]);
 
-    return () => {
-      document.removeEventListener("click", handleDocumentClick);
-      document.removeEventListener("mousemove", handleDocumentMouseMove);
-      document.removeEventListener("mouseup", handleDocumentMouseUp);
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!draggedCard) return;
+
+      const deltaX = e.clientX - dragStartPosition.x;
+      const deltaY = e.clientY - dragStartPosition.y;
+      const movedDist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+      if (!dragIntentRef.current && movedDist > DRAG_THRESHOLD) {
+        dragIntentRef.current = true;
+      }
+
+      if (!dragIntentRef.current) return;
+
+      lastPointerXRef.current = e.clientX;
+      setDragPosition({ x: e.clientX, y: e.clientY });
+
+      tryReorder(e.clientX, e.clientY);
+
+      const throwDist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      const isUpward = deltaY < THROW_Y_THRESHOLD;
+      setIsInThrowZone(throwDist > THROW_DISTANCE_THRESHOLD && isUpward);
+    },
+    [draggedCard, dragStartPosition, tryReorder],
+  );
+
+  const handlePointerUp = useCallback(
+    async (e: React.PointerEvent<HTMLDivElement>) => {
+      const cardId = draggedCard;
+      if (!cardId) return;
+
+      if (capturedCardRef.current) {
+        capturedCardRef.current.releasePointerCapture(e.pointerId);
+        capturedCardRef.current = null;
+      }
+
+      const wasDrag = dragIntentRef.current;
+      dragIntentRef.current = false;
+
+      if (!wasDrag) {
+        // This was a click, not a drag
+        setDraggedCard(null);
+        setIsInThrowZone(false);
+
+        // Toggle selection
+        if (highlightedCard === cardId) {
+          setHighlightedCard(null);
+        } else {
+          setHighlightedCard(cardId);
+          onCardSelect?.(cardId);
+        }
+
+        return;
+      }
+
+      // Drag ended — check throw
+      const deltaX = e.clientX - dragStartPosition.x;
+      const deltaY = e.clientY - dragStartPosition.y;
+      const dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      const isUpward = deltaY < THROW_Y_THRESHOLD;
+      const isThrow = dist > THROW_DISTANCE_THRESHOLD && isUpward;
+
+      if (isThrow && onPlayCard) {
+        const cardData = cardsRef.current.find((c) => c.id === cardId);
+        if (cardData?.available) {
+          try {
+            await onPlayCard(cardId);
+            setDraggedCard(null);
+            setIsInThrowZone(false);
+
+            setHighlightedCard(null);
+            return;
+          } catch (error) {
+            console.error("Failed to play card:", error);
+          }
+        }
+      }
+
+      // Return card to hand with animation
+      setReturningCard(cardId);
+      setDraggedCard(null);
+      setIsInThrowZone(false);
+
+      setTimeout(() => {
+        setReturningCard(null);
+      }, 400);
+    },
+    [draggedCard, dragStartPosition, highlightedCard, onPlayCard, onCardSelect],
+  );
+
+  // --- Click outside to deselect ---
+  useEffect(() => {
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (handRef.current && !handRef.current.contains(event.target as Node)) {
+        setHighlightedCard(null);
+      }
     };
-  }, [handleDocumentClick, handleDocumentMouseMove, handleDocumentMouseUp]);
+    document.addEventListener("click", handleDocumentClick);
+    return () => document.removeEventListener("click", handleDocumentClick);
+  }, []);
 
   if (hideWhenModalOpen || cards.length === 0) {
     return null;
@@ -380,73 +345,98 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
 
   return (
     <div className="card-fan-overlay" ref={handRef}>
-      {cards.map((card, index) => {
-        const spreadCard = highlightedCard || hoveredCard;
-        const spreadIndex = spreadCard ? cards.findIndex((c) => c.id === spreadCard) : null;
-        const position = calculateCardPosition(index, cards.length, spreadIndex, false);
-        const isHighlighted = highlightedCard === card.id;
+      {cards.map((card) => {
+        const index = cardOrder.indexOf(card.id);
+        if (index === -1) return null;
+
         const isDraggedCard = draggedCard === card.id;
-        const isHovered = hoveredCard === card.id;
+
+        const absD = Math.abs(index - scrollPos);
+        if (absD > CULL_RADIUS && !isDraggedCard) return null;
+
+        const edgeOpacity = isDraggedCard || absD <= VISIBLE_RADIUS ? 1 : 0;
+        const isDragging = isDraggedCard && dragIntentRef.current;
         const isReturning = returningCard === card.id;
-        const isUnplayableInThrowZone = isDraggedCard && isInThrowZone && !card.available;
-        const isUnplayableOverMars = isDraggedCard && isHoveringMars && !card.available;
+        const isHighlighted = highlightedCard === card.id;
 
-        let finalX = position.x;
-        let finalY = position.y;
-        const finalRotation = getCardRotation(card.id, position.rotation);
-        let scale = getCardScale(card.id);
+        const base = getCardTransform(index, scrollPos);
+        let finalX = base.x;
+        let finalY = base.y;
+        let finalRotation = base.rotation;
+        let finalScale = base.scale;
+        let finalZ = base.z;
 
-        // Cards are always in collapsed state - show only top portion
-        finalY += 160;
-        scale = Math.max(scale * 0.8, 0.8); // Smaller scale when collapsed
-
-        if (isHovered && !isDragging && !isHighlighted) {
-          finalY -= 60;
+        // Selected overlay (click to raise)
+        if (isHighlighted && !isDraggedCard) {
+          finalY += SELECTED_LIFT;
+          finalScale = SELECTED_SCALE;
+          finalRotation = 0;
+          finalZ = 2000;
         }
 
-        if (isHighlighted && !isDragging) {
-          finalY -= 80;
-        }
-
+        // Dragged card follows pointer
+        let isDragRaised = false;
         if (isDraggedCard && !isReturning) {
           const containerRect = handRef.current?.getBoundingClientRect();
           if (containerRect) {
-            const targetScreenX = dragPosition.x + dragOffset.x;
-            const targetScreenY = dragPosition.y + dragOffset.y;
+            finalX = dragPosition.x + dragOffset.x - (containerRect.left + containerRect.width / 2);
+            finalY = dragPosition.y + dragOffset.y - containerRect.bottom;
+            finalRotation = 0;
+            finalScale = 1;
+            finalZ = 3000;
 
-            finalX = targetScreenX - (containerRect.left + containerRect.width / 2);
-            finalY = targetScreenY - containerRect.bottom;
+            const dragDeltaY = dragPosition.y - dragStartPosition.y;
+            isDragRaised = dragIntentRef.current && dragDeltaY < DRAG_RAISE_THRESHOLD;
           }
         }
+
+        const showErrors =
+          !card.available &&
+          card.errors.length > 0 &&
+          (isHighlighted || (isDraggedCard && isDragRaised));
+
+        const classNames = [
+          "card-fan-card",
+          isDragging && !isReturning ? "is-dragging" : "",
+          !isDraggedCard && draggedCard ? "is-reordering" : "",
+          isReturning ? "is-returning" : "",
+          isDraggedCard && isInThrowZone && card.available ? "is-throw-zone" : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
 
         return (
           <div
             key={card.id}
-            className={`terraforming-card ${isHighlighted ? "highlighted" : ""} ${isDraggedCard && !isReturning ? "dragged" : ""} ${isHovered ? "hovered" : ""} ${isDraggedCard && isInThrowZone && card.available ? "throw-zone" : ""} ${isUnplayableInThrowZone ? "unplayable-throw-zone" : ""} ${isUnplayableOverMars ? "unplayable-over-mars" : ""} ${isReturning ? "returning" : ""}`}
-            style={
-              {
-                transform: `translate(${finalX}px, ${finalY}px) rotate(${finalRotation}deg) scale(${scale})`,
-                "--card-x": `${finalX}px`,
-                "--card-y": `${finalY}px`,
-                "--card-rotation": `${finalRotation}deg`,
-                "--card-scale": scale,
-              } as React.CSSProperties
-            }
-            onClick={(e) => handleCardClick(card.id, e)}
-            onMouseDown={(e) => handleDragStart(card.id, e)}
-            onMouseEnter={() => handleCardHover(card.id)}
-            onMouseLeave={() => handleCardLeave(card.id)}
+            data-card-id={card.id}
+            className={classNames}
+            style={{
+              transform: `translate(${finalX}px, ${finalY}px) rotate(${finalRotation}deg) scale(${finalScale})`,
+              zIndex: finalZ,
+              opacity: edgeOpacity,
+              pointerEvents: edgeOpacity === 0 ? "none" : undefined,
+            }}
+            onPointerDown={(e) => handlePointerDown(card.id, e)}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
           >
-            <SimpleGameCard
+            <GameCard
               card={card}
               isSelected={
-                isHighlighted ||
-                isHovered ||
-                (isDraggedCard && isInThrowZone && card.available === true)
+                isHighlighted || (isDraggedCard && isInThrowZone && card.available === true)
               }
-              onSelect={() => {}} // Handled by parent div click
-              animationDelay={0}
+              onSelect={() => {}}
+              animationDelay={-1}
             />
+            {!card.available && card.errors.length > 0 && (
+              <div className={`card-fan-error-panel ${showErrors ? "is-visible" : ""}`}>
+                {card.errors.map((err, i) => (
+                  <div key={i} className="card-fan-error-item">
+                    {err.message}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}
@@ -454,67 +444,78 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
       <style>{`
         .card-fan-overlay {
           position: fixed;
-          bottom: 48px; /* Position above BottomResourceBar */
+          bottom: 48px;
           left: 50%;
           transform: translateX(-50%);
-          width: 0; /* No blocking width */
-          height: 300px; /* Cards area height */
-          z-index: 1100; /* Above bottom bar (1000) and its content (1001) */
-          pointer-events: none; /* Don't block clicks - cards handle their own events */
+          width: 0;
+          height: 300px;
+          z-index: 1100;
+          pointer-events: none;
         }
 
-        .terraforming-card {
+        .card-fan-card {
           position: absolute;
           bottom: 0;
           left: 50%;
+          margin-left: -100px;
           cursor: pointer;
-          transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
           transform-origin: bottom center;
           pointer-events: auto;
           user-select: none;
-          isolation: isolate;
+          touch-action: none;
+          transition: transform 180ms ease, filter 180ms ease, opacity 180ms ease;
         }
 
-        .terraforming-card.hovered {
-          /* Glow is now handled by SimpleGameCard's isSelected prop */
-        }
-
-        .terraforming-card.highlighted {
-          /* Glow is now handled by SimpleGameCard's isSelected prop */
-        }
-
-        .terraforming-card.dragged {
+        .card-fan-card.is-dragging {
           transition: none;
           cursor: grabbing;
-          z-index: 1000;
         }
 
-        .terraforming-card.throw-zone {
-          /* Glow is now handled by SimpleGameCard's isSelected prop */
-          /* Keeping only the brightness filter for extra visual feedback */
+        .card-fan-card.is-reordering {
+          transition: transform 200ms ease, opacity 180ms ease;
+        }
+
+        .card-fan-card.is-returning {
+          transition: transform 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                      filter 180ms ease,
+                      opacity 180ms ease;
+        }
+
+        .card-fan-card.is-throw-zone {
           filter: brightness(1.15);
         }
 
-        .terraforming-card.unplayable-throw-zone {
-          /* No special styling for unplayable cards in throw zone */
+        .card-fan-error-panel {
+          position: absolute;
+          left: 100%;
+          top: 0;
+          margin-left: 10px;
+          width: 180px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          pointer-events: none;
+          opacity: 0;
+          transform: translateX(-6px);
+          transition: opacity 200ms ease, transform 200ms ease;
         }
 
-        .terraforming-card.unplayable-over-mars {
-          opacity: 0.5;
-          filter: grayscale(70%) brightness(0.6);
+        .card-fan-error-panel.is-visible {
+          opacity: 1;
+          transform: translateX(0);
         }
 
-        .terraforming-card:not(.dragged) {
-          transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        .card-fan-error-item {
+          background: rgba(10, 10, 15, 0.95);
+          border: 1px solid rgba(231, 76, 60, 0.6);
+          border-left: 3px solid #e74c3c;
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 12px;
+          line-height: 1.4;
+          padding: 8px 10px;
+          white-space: normal;
         }
 
-        .terraforming-card.returning {
-          transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-          cursor: pointer;
-        }
-
-
-        /* Responsive Design */
         @media (max-width: 1200px) {
           .card-fan-overlay {
             height: 250px;
