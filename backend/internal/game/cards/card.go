@@ -24,7 +24,7 @@ type Card struct {
 	Description     string                  `json:"description"`
 	Pack            string                  `json:"pack"`
 	Tags            []shared.CardTag        `json:"tags"`
-	Requirements    []Requirement           `json:"requirements"`
+	Requirements    *CardRequirements       `json:"requirements,omitempty"`
 	Behaviors       []shared.CardBehavior   `json:"behaviors"`
 	ResourceStorage *ResourceStorage        `json:"resourceStorage"`
 	VPConditions    []VictoryPointCondition `json:"vpConditions"`
@@ -38,8 +38,15 @@ func (c Card) DeepCopy() Card {
 	tags := make([]shared.CardTag, len(c.Tags))
 	copy(tags, c.Tags)
 
-	requirements := make([]Requirement, len(c.Requirements))
-	copy(requirements, c.Requirements)
+	var requirements *CardRequirements
+	if c.Requirements != nil {
+		items := make([]Requirement, len(c.Requirements.Items))
+		copy(items, c.Requirements.Items)
+		requirements = &CardRequirements{
+			Description: c.Requirements.Description,
+			Items:       items,
+		}
+	}
 
 	behaviors := make([]shared.CardBehavior, len(c.Behaviors))
 	for i, behavior := range c.Behaviors {

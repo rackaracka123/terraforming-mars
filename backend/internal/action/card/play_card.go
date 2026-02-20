@@ -236,11 +236,11 @@ func hasTag(card *gamecards.Card, tag shared.CardTag) bool {
 
 // validateCardRequirements validates that the player and game state meet all card requirements
 func validateCardRequirements(card *gamecards.Card, g *game.Game, player *player.Player) error {
-	if len(card.Requirements) == 0 {
+	if card.Requirements == nil || len(card.Requirements.Items) == 0 {
 		return nil // No requirements to validate
 	}
 
-	for _, req := range card.Requirements {
+	for _, req := range card.Requirements.Items {
 		switch req.Type {
 		case gamecards.RequirementTemperature:
 			temp := g.GlobalParameters().Temperature()

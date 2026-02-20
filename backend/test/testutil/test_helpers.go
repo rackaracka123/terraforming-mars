@@ -257,9 +257,9 @@ func CreateTestCardRegistry() cards.CardRegistry {
 			Pack: "corporate-era",
 			Cost: 13,
 			Tags: []shared.CardTag{shared.TagJovian},
-			Requirements: []gamecards.Requirement{
+			Requirements: &gamecards.CardRequirements{Items: []gamecards.Requirement{
 				{Type: "production", Min: func() *int { v := 1; return &v }(), Resource: func() *shared.ResourceType { v := shared.ResourceTitaniumProduction; return &v }()},
-			},
+			}},
 			Behaviors: []shared.CardBehavior{
 				{
 					Triggers: []shared.Trigger{{Type: "auto"}},

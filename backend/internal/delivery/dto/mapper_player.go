@@ -393,13 +393,7 @@ func ToPlayerCardDto(pc *player.PlayerCard) PlayerCardDto {
 		tags[i] = CardTag(tag)
 	}
 
-	var requirements []RequirementDto
-	if len(card.Requirements) > 0 {
-		requirements = make([]RequirementDto, len(card.Requirements))
-		for i, req := range card.Requirements {
-			requirements[i] = toRequirementDto(req)
-		}
-	}
+	requirements := toCardRequirementsDto(card.Requirements)
 
 	var behaviors []CardBehaviorDto
 	if len(card.Behaviors) > 0 {

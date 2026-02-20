@@ -281,6 +281,12 @@ type PaymentConstantsDto struct {
 	TitaniumValue int `json:"titaniumValue" ts:"number"`
 }
 
+// CardRequirementsDto wraps requirement items with a description for client consumption
+type CardRequirementsDto struct {
+	Description string           `json:"description,omitempty" ts:"string | undefined"`
+	Items       []RequirementDto `json:"items" ts:"RequirementDto[]"`
+}
+
 // RequirementDto represents a card requirement for client consumption
 type RequirementDto struct {
 	Type     RequirementType    `json:"type" ts:"RequirementType"`
@@ -293,32 +299,34 @@ type RequirementDto struct {
 
 // ResourceStorageDto represents a card's resource storage for client consumption
 type ResourceStorageDto struct {
-	Type     ResourceType `json:"type" ts:"ResourceType"`
-	Capacity *int         `json:"capacity,omitempty" ts:"number | undefined"`
-	Starting int          `json:"starting" ts:"number"`
+	Type        ResourceType `json:"type" ts:"ResourceType"`
+	Capacity    *int         `json:"capacity,omitempty" ts:"number | undefined"`
+	Starting    int          `json:"starting" ts:"number"`
+	Description string       `json:"description,omitempty" ts:"string | undefined"`
 }
 
 // VPConditionDto represents a victory point condition for client consumption
 type VPConditionDto struct {
-	Amount     int              `json:"amount" ts:"number"`
-	Condition  VPConditionType  `json:"condition" ts:"VPConditionType"`
-	MaxTrigger *int             `json:"maxTrigger,omitempty" ts:"number | undefined"`
-	Per        *PerConditionDto `json:"per,omitempty" ts:"PerConditionDto | undefined"`
+	Amount      int              `json:"amount" ts:"number"`
+	Condition   VPConditionType  `json:"condition" ts:"VPConditionType"`
+	MaxTrigger  *int             `json:"maxTrigger,omitempty" ts:"number | undefined"`
+	Per         *PerConditionDto `json:"per,omitempty" ts:"PerConditionDto | undefined"`
+	Description string           `json:"description,omitempty" ts:"string | undefined"`
 }
 
 // CardDto represents a card for client consumption
 type CardDto struct {
-	ID              string              `json:"id" ts:"string"`
-	Name            string              `json:"name" ts:"string"`
-	Type            CardType            `json:"type" ts:"CardType"`
-	Cost            int                 `json:"cost" ts:"number"`
-	Description     string              `json:"description" ts:"string"`
-	Pack            string              `json:"pack" ts:"string"`
-	Tags            []CardTag           `json:"tags,omitempty" ts:"CardTag[] | undefined"`
-	Requirements    []RequirementDto    `json:"requirements,omitempty" ts:"RequirementDto[] | undefined"`
-	Behaviors       []CardBehaviorDto   `json:"behaviors,omitempty" ts:"CardBehaviorDto[] | undefined"`
-	ResourceStorage *ResourceStorageDto `json:"resourceStorage,omitempty" ts:"ResourceStorageDto | undefined"`
-	VPConditions    []VPConditionDto    `json:"vpConditions,omitempty" ts:"VPConditionDto[] | undefined"`
+	ID              string               `json:"id" ts:"string"`
+	Name            string               `json:"name" ts:"string"`
+	Type            CardType             `json:"type" ts:"CardType"`
+	Cost            int                  `json:"cost" ts:"number"`
+	Description     string               `json:"description" ts:"string"`
+	Pack            string               `json:"pack" ts:"string"`
+	Tags            []CardTag            `json:"tags,omitempty" ts:"CardTag[] | undefined"`
+	Requirements    *CardRequirementsDto `json:"requirements,omitempty" ts:"CardRequirementsDto | undefined"`
+	Behaviors       []CardBehaviorDto    `json:"behaviors,omitempty" ts:"CardBehaviorDto[] | undefined"`
+	ResourceStorage *ResourceStorageDto  `json:"resourceStorage,omitempty" ts:"ResourceStorageDto | undefined"`
+	VPConditions    []VPConditionDto     `json:"vpConditions,omitempty" ts:"VPConditionDto[] | undefined"`
 
 	StartingResources  *ResourceSet `json:"startingResources,omitempty" ts:"ResourceSet | undefined"`
 	StartingProduction *ResourceSet `json:"startingProduction,omitempty" ts:"ResourceSet | undefined"`
@@ -471,17 +479,17 @@ type StateWarningDto struct {
 // PlayerCardDto represents a card in a player's hand with calculated playability state
 // Part of the Player-Scoped Card Architecture
 type PlayerCardDto struct {
-	ID              string              `json:"id" ts:"string"`
-	Name            string              `json:"name" ts:"string"`
-	Type            CardType            `json:"type" ts:"CardType"`
-	Cost            int                 `json:"cost" ts:"number"` // Original card cost (same as CardDto.Cost)
-	Description     string              `json:"description" ts:"string"`
-	Pack            string              `json:"pack" ts:"string"`
-	Tags            []CardTag           `json:"tags,omitempty" ts:"CardTag[] | undefined"`
-	Requirements    []RequirementDto    `json:"requirements,omitempty" ts:"RequirementDto[] | undefined"`
-	Behaviors       []CardBehaviorDto   `json:"behaviors,omitempty" ts:"CardBehaviorDto[] | undefined"`
-	ResourceStorage *ResourceStorageDto `json:"resourceStorage,omitempty" ts:"ResourceStorageDto | undefined"`
-	VPConditions    []VPConditionDto    `json:"vpConditions,omitempty" ts:"VPConditionDto[] | undefined"`
+	ID              string               `json:"id" ts:"string"`
+	Name            string               `json:"name" ts:"string"`
+	Type            CardType             `json:"type" ts:"CardType"`
+	Cost            int                  `json:"cost" ts:"number"` // Original card cost (same as CardDto.Cost)
+	Description     string               `json:"description" ts:"string"`
+	Pack            string               `json:"pack" ts:"string"`
+	Tags            []CardTag            `json:"tags,omitempty" ts:"CardTag[] | undefined"`
+	Requirements    *CardRequirementsDto `json:"requirements,omitempty" ts:"CardRequirementsDto | undefined"`
+	Behaviors       []CardBehaviorDto    `json:"behaviors,omitempty" ts:"CardBehaviorDto[] | undefined"`
+	ResourceStorage *ResourceStorageDto  `json:"resourceStorage,omitempty" ts:"ResourceStorageDto | undefined"`
+	VPConditions    []VPConditionDto     `json:"vpConditions,omitempty" ts:"VPConditionDto[] | undefined"`
 
 	Available     bool              `json:"available" ts:"boolean"`                                      // Computed: len(Errors) == 0
 	Errors        []StateErrorDto   `json:"errors" ts:"StateErrorDto[]"`                                 // Single source of truth for availability

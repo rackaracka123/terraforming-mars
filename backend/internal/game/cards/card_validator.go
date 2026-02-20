@@ -16,7 +16,10 @@ func ValidateCardCanBePlayed(
 	globalParams *global_parameters.GlobalParameters,
 	playedCards []*Card, // All cards played by the player (for tag counting)
 ) error {
-	for _, req := range card.Requirements {
+	if card.Requirements == nil {
+		return nil
+	}
+	for _, req := range card.Requirements.Items {
 		if err := validateRequirementMet(req, pl, globalParams, playedCards); err != nil {
 			return fmt.Errorf("requirement not met: %w", err)
 		}

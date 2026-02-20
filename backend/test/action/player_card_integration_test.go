@@ -44,9 +44,9 @@ func TestPlayerCard_EventDrivenStateUpdate(t *testing.T) {
 		Name: "Test Card",
 		Type: gamecards.CardTypeAutomated,
 		Cost: 10,
-		Requirements: []gamecards.Requirement{
+		Requirements: &gamecards.CardRequirements{Items: []gamecards.Requirement{
 			{Type: gamecards.RequirementTemperature, Min: intPtr(-10)},
-		},
+		}},
 	}
 
 	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{*card})
@@ -382,9 +382,9 @@ func TestPlayerCard_MultipleCardsIndependentState(t *testing.T) {
 		Name: "Low Temp Card",
 		Type: gamecards.CardTypeAutomated,
 		Cost: 10,
-		Requirements: []gamecards.Requirement{
+		Requirements: &gamecards.CardRequirements{Items: []gamecards.Requirement{
 			{Type: gamecards.RequirementTemperature, Min: intPtr(-10)},
-		},
+		}},
 	}
 
 	card2 := &gamecards.Card{
@@ -392,9 +392,9 @@ func TestPlayerCard_MultipleCardsIndependentState(t *testing.T) {
 		Name: "High Temp Card",
 		Type: gamecards.CardTypeAutomated,
 		Cost: 10,
-		Requirements: []gamecards.Requirement{
+		Requirements: &gamecards.CardRequirements{Items: []gamecards.Requirement{
 			{Type: gamecards.RequirementTemperature, Min: intPtr(10)},
-		},
+		}},
 	}
 
 	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{*card1, *card2})

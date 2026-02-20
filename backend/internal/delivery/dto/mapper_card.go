@@ -20,7 +20,7 @@ func ToCardDto(card gamecards.Card) CardDto {
 		Description:        card.Description,
 		Pack:               card.Pack,
 		Tags:               mapSlice(card.Tags, func(t shared.CardTag) CardTag { return CardTag(t) }),
-		Requirements:       mapSlice(card.Requirements, toRequirementDto),
+		Requirements:       toCardRequirementsDto(card.Requirements),
 		Behaviors:          mapSlice(card.Behaviors, toCardBehaviorDto),
 		ResourceStorage:    ptrCast(card.ResourceStorage, toResourceStorageDto),
 		VPConditions:       mapSlice(card.VPConditions, toVPConditionDto),
@@ -81,6 +81,16 @@ func getPlayedCards(cardIDs []string, cardRegistry cards.CardRegistry) []CardDto
 }
 
 // Card-related helper functions for nested DTO conversions
+
+func toCardRequirementsDto(reqs *gamecards.CardRequirements) *CardRequirementsDto {
+	if reqs == nil {
+		return nil
+	}
+	return &CardRequirementsDto{
+		Description: reqs.Description,
+		Items:       mapSlice(reqs.Items, toRequirementDto),
+	}
+}
 
 func toRequirementDto(req gamecards.Requirement) RequirementDto {
 	return RequirementDto{
@@ -193,18 +203,20 @@ func toPerConditionDto(pc shared.PerCondition) PerConditionDto {
 
 func toResourceStorageDto(storage gamecards.ResourceStorage) ResourceStorageDto {
 	return ResourceStorageDto{
-		Type:     ResourceType(storage.Type),
-		Capacity: storage.Capacity,
-		Starting: storage.Starting,
+		Type:        ResourceType(storage.Type),
+		Capacity:    storage.Capacity,
+		Starting:    storage.Starting,
+		Description: storage.Description,
 	}
 }
 
 func toVPConditionDto(vp gamecards.VictoryPointCondition) VPConditionDto {
 	return VPConditionDto{
-		Amount:     vp.Amount,
-		Condition:  VPConditionType(vp.Condition),
-		MaxTrigger: vp.MaxTrigger,
-		Per:        ptrCast(vp.Per, toVPPerConditionDto),
+		Amount:      vp.Amount,
+		Condition:   VPConditionType(vp.Condition),
+		MaxTrigger:  vp.MaxTrigger,
+		Per:         ptrCast(vp.Per, toVPPerConditionDto),
+		Description: vp.Description,
 	}
 }
 
