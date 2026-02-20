@@ -133,10 +133,19 @@ const GameCard: React.FC<GameCardProps> = ({
           style={{ clipPath: CARD_CLIP_PATH }}
         ></div>
         {/* Diagonal border line at the angled corner */}
-        <svg className="absolute top-0 right-0 w-[28px] h-[28px] pointer-events-none transition-colors duration-200" viewBox="0 0 28 28">
-          <line x1="0" y1="0" x2="28" y2="28" className="stroke-[rgba(60,60,70,0.7)] group-hover:stroke-[rgba(120,120,140,0.8)] transition-all duration-200" strokeWidth="2" />
+        <svg
+          className="absolute top-0 right-0 w-[28px] h-[28px] pointer-events-none transition-colors duration-200"
+          viewBox="0 0 28 28"
+        >
+          <line
+            x1="0"
+            y1="0"
+            x2="28"
+            y2="28"
+            className="stroke-[rgba(60,60,70,0.7)] group-hover:stroke-[rgba(120,120,140,0.8)] transition-all duration-200"
+            strokeWidth="2"
+          />
         </svg>
-
       </div>
 
       {/* Cost in top-left */}
@@ -165,7 +174,9 @@ const GameCard: React.FC<GameCardProps> = ({
         <div
           className="absolute -left-[5px] top-[2.5%] bottom-[2.5%] w-[5px] z-[0] transition-all duration-300"
           style={{
-            boxShadow: isSelected ? `0 0 12px ${accentColors[cardType]}, 0 0 24px ${accentColors[cardType]}80` : "none",
+            boxShadow: isSelected
+              ? `0 0 12px ${accentColors[cardType]}, 0 0 24px ${accentColors[cardType]}80`
+              : "none",
           }}
         >
           <div
@@ -221,21 +232,28 @@ const GameCard: React.FC<GameCardProps> = ({
           />
         )}
         {imageError && (
-          <div className="w-full h-full bg-white/5 rounded border border-dashed border-white/20">
-          </div>
+          <div className="w-full h-full bg-white/5 rounded border border-dashed border-white/20"></div>
         )}
       </div>
 
       {/* Card title at 38% from top */}
-      <div className={`absolute top-[38%] left-0 right-2 z-[4] max-md:px-0.5 ${vpDescription ? "z-[10]" : ""}`}>
+      <div
+        className={`absolute top-[38%] left-0 right-2 z-[4] max-md:px-0.5 ${vpDescription ? "z-[10]" : ""}`}
+      >
         <div className="relative w-full">
           <h3
             className={`${card.name.length > 19 ? "text-[11px]" : card.name.length > 14 ? "text-[13px]" : "text-base"} font-orbitron font-semibold text-white leading-[1.2] text-left flex items-center justify-start w-full h-[44px] rounded-none p-1 pl-3 ${hasTags ? "pr-[30px]" : "pr-3"} shadow-[0_3px_6px_rgba(0,0,0,0.4)] my-0 mx-auto ${card.name.length > 19 ? "max-md:text-[9px]" : card.name.length > 14 ? "max-md:text-[11px]" : "max-md:text-sm"} max-md:h-[36px] max-md:pl-2 ${hasTags ? "max-md:pr-[25px]" : "max-md:pr-2"} ${cardType && titleStyles[cardType] ? titleStyles[cardType] : ""}`}
-            style={{ clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%)" }}
+            style={{
+              clipPath:
+                "polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%)",
+            }}
           >
             {card.name}
           </h3>
-          <svg className="absolute bottom-0 right-0 w-[12px] h-[12px] pointer-events-none" viewBox="0 0 12 12">
+          <svg
+            className="absolute bottom-0 right-0 w-[12px] h-[12px] pointer-events-none"
+            viewBox="0 0 12 12"
+          >
             <line x1="12" y1="0" x2="0" y2="12" stroke="rgba(60,60,70,0.7)" strokeWidth="2" />
           </svg>
         </div>
@@ -245,28 +263,51 @@ const GameCard: React.FC<GameCardProps> = ({
             vpConditions={card.vpConditions}
             onHoverDescription={setVpDescription}
           />
-          {vpDescription && vpTooltipPos && createPortal(
-            <div
-              className="fixed w-max max-w-40 pt-1 pointer-events-none animate-[fadeIn_150ms_ease-in]"
-              style={{ left: vpTooltipPos.x, top: vpTooltipPos.y, zIndex: 99999 }}
-            >
+          {vpDescription &&
+            vpTooltipPos &&
+            createPortal(
               <div
-                className="relative bg-[rgba(10,10,15,0.98)] border border-[rgba(60,60,70,0.7)] text-white/90 text-[11px] leading-tight px-3 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
-                style={{
-                  clipPath: "polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px))",
-                }}
+                className="fixed w-max max-w-40 pt-1 pointer-events-none animate-[fadeIn_150ms_ease-in]"
+                style={{ left: vpTooltipPos.x, top: vpTooltipPos.y, zIndex: 99999 }}
               >
-                <FormattedDescription text={vpDescription} />
-                <svg className="absolute top-0 right-0 w-[14px] h-[14px] pointer-events-none" viewBox="0 0 14 14">
-                  <line x1="0" y1="0" x2="14" y2="14" stroke="rgba(60,60,70,0.7)" strokeWidth="1.5" />
-                </svg>
-                <svg className="absolute bottom-0 left-0 w-[14px] h-[14px] pointer-events-none" viewBox="0 0 14 14">
-                  <line x1="0" y1="0" x2="14" y2="14" stroke="rgba(60,60,70,0.7)" strokeWidth="1.5" />
-                </svg>
-              </div>
-            </div>,
-            document.body
-          )}
+                <div
+                  className="relative bg-[rgba(10,10,15,0.98)] border border-[rgba(60,60,70,0.7)] text-white/90 text-[11px] leading-tight px-3 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
+                  style={{
+                    clipPath:
+                      "polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px))",
+                  }}
+                >
+                  <FormattedDescription text={vpDescription} />
+                  <svg
+                    className="absolute top-0 right-0 w-[14px] h-[14px] pointer-events-none"
+                    viewBox="0 0 14 14"
+                  >
+                    <line
+                      x1="0"
+                      y1="0"
+                      x2="14"
+                      y2="14"
+                      stroke="rgba(60,60,70,0.7)"
+                      strokeWidth="1.5"
+                    />
+                  </svg>
+                  <svg
+                    className="absolute bottom-0 left-0 w-[14px] h-[14px] pointer-events-none"
+                    viewBox="0 0 14 14"
+                  >
+                    <line
+                      x1="0"
+                      y1="0"
+                      x2="14"
+                      y2="14"
+                      stroke="rgba(60,60,70,0.7)"
+                      strokeWidth="1.5"
+                    />
+                  </svg>
+                </div>
+              </div>,
+              document.body,
+            )}
         </div>
       </div>
 

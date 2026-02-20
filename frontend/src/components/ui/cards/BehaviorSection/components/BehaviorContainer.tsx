@@ -12,7 +12,10 @@ interface BehaviorContainerProps {
   children: React.ReactNode;
 }
 
-const DescriptionPortal: React.FC<{ description: string; anchorRef: React.RefObject<HTMLDivElement | null> }> = ({ description, anchorRef }) => {
+const DescriptionPortal: React.FC<{
+  description: string;
+  anchorRef: React.RefObject<HTMLDivElement | null>;
+}> = ({ description, anchorRef }) => {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
@@ -31,18 +34,27 @@ const DescriptionPortal: React.FC<{ description: string; anchorRef: React.RefObj
     >
       <div
         className="relative bg-[rgba(10,10,15,0.98)] border border-[rgba(60,60,70,0.7)] text-white/90 text-[11px] leading-tight px-3 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
-        style={{ clipPath: "polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px))" }}
+        style={{
+          clipPath:
+            "polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px))",
+        }}
       >
         <FormattedDescription text={description} />
-        <svg className="absolute top-0 right-0 w-[14px] h-[14px] pointer-events-none" viewBox="0 0 14 14">
+        <svg
+          className="absolute top-0 right-0 w-[14px] h-[14px] pointer-events-none"
+          viewBox="0 0 14 14"
+        >
           <line x1="0" y1="0" x2="14" y2="14" stroke="rgba(60,60,70,0.7)" strokeWidth="1.5" />
         </svg>
-        <svg className="absolute bottom-0 left-0 w-[14px] h-[14px] pointer-events-none" viewBox="0 0 14 14">
+        <svg
+          className="absolute bottom-0 left-0 w-[14px] h-[14px] pointer-events-none"
+          viewBox="0 0 14 14"
+        >
           <line x1="0" y1="0" x2="14" y2="14" stroke="rgba(60,60,70,0.7)" strokeWidth="1.5" />
         </svg>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
 
@@ -70,7 +82,9 @@ const BehaviorContainer: React.FC<BehaviorContainerProps> = ({
         onMouseLeave={handleMouseLeave}
       >
         {children}
-        {isHovered && description && <DescriptionPortal description={description} anchorRef={containerRef} />}
+        {isHovered && description && (
+          <DescriptionPortal description={description} anchorRef={containerRef} />
+        )}
       </div>
     );
   } else {
@@ -108,7 +122,9 @@ const BehaviorContainer: React.FC<BehaviorContainerProps> = ({
         <div className="flex items-center gap-1.5 flex-nowrap w-full justify-center max-md:gap-1">
           {children}
         </div>
-        {isHovered && description && <DescriptionPortal description={description} anchorRef={containerRef} />}
+        {isHovered && description && (
+          <DescriptionPortal description={description} anchorRef={containerRef} />
+        )}
       </div>
     );
   }

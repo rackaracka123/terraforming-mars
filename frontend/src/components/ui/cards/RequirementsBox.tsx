@@ -183,50 +183,69 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements }) => {
 
   return (
     <>
-    <div
-      className={`absolute bottom-full left-[10%] w-fit min-w-[60px] max-w-[80%] ${isHovered ? "z-[50]" : "z-[-10]"}`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
       <div
-        ref={badgeRef}
-        className="relative shadow-[0_3px_8px_rgba(0,0,0,0.4)] backdrop-blur-[2px] pl-2 pr-6 py-0.5 border border-b-0 border-[rgba(60,60,70,0.7)] max-md:min-w-[50px] max-md:px-2 max-md:py-1"
-        style={{
-          clipPath: "polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%)",
-          background: "linear-gradient(-45deg, #5a2a10 25%, #2d1508 25%, #2d1508 50%, #5a2a10 50%, #5a2a10 75%, #2d1508 75%)",
-          backgroundSize: "20px 20px",
-          animation: "stripeMove 4s linear infinite",
-        }}
-      >
-        <div className="absolute inset-0 bg-black/40 pointer-events-none" style={{ clipPath: "polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%)" }} />
-        <svg className="absolute top-0 right-0 w-[16px] h-[16px] pointer-events-none" viewBox="0 0 16 16">
-          <line x1="0" y1="0" x2="16" y2="16" stroke="rgba(60,60,70,0.7)" strokeWidth="1.5" />
-        </svg>
-        <div className="relative flex items-center justify-start gap-[3px] flex-wrap max-md:gap-1">
-          {groupedRequirements.map((group, index) => renderRequirementGroup(group, index))}
-        </div>
-      </div>
-    </div>
-    {isHovered && requirements.description && tooltipPos && createPortal(
-      <div
-        className="fixed w-max max-w-44 pt-1 animate-[fadeIn_150ms_ease-in] pointer-events-none"
-        style={{ left: tooltipPos.x, top: tooltipPos.y, zIndex: 99999 }}
+        className={`absolute bottom-full left-[10%] w-fit min-w-[60px] max-w-[80%] ${isHovered ? "z-[50]" : "z-[-10]"}`}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         <div
-          className="relative bg-[rgba(10,10,15,0.98)] border border-[rgba(60,60,70,0.7)] text-white/90 text-[11px] leading-tight px-3 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
-          style={{ clipPath: "polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px))" }}
+          ref={badgeRef}
+          className="relative shadow-[0_3px_8px_rgba(0,0,0,0.4)] backdrop-blur-[2px] pl-2 pr-6 py-0.5 border border-b-0 border-[rgba(60,60,70,0.7)] max-md:min-w-[50px] max-md:px-2 max-md:py-1"
+          style={{
+            clipPath: "polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%)",
+            background:
+              "linear-gradient(-45deg, #5a2a10 25%, #2d1508 25%, #2d1508 50%, #5a2a10 50%, #5a2a10 75%, #2d1508 75%)",
+            backgroundSize: "20px 20px",
+            animation: "stripeMove 4s linear infinite",
+          }}
         >
-          <FormattedDescription text={requirements.description} />
-          <svg className="absolute top-0 right-0 w-[14px] h-[14px] pointer-events-none" viewBox="0 0 14 14">
-            <line x1="0" y1="0" x2="14" y2="14" stroke="rgba(60,60,70,0.7)" strokeWidth="1.5" />
+          <div
+            className="absolute inset-0 bg-black/40 pointer-events-none"
+            style={{ clipPath: "polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%)" }}
+          />
+          <svg
+            className="absolute top-0 right-0 w-[16px] h-[16px] pointer-events-none"
+            viewBox="0 0 16 16"
+          >
+            <line x1="0" y1="0" x2="16" y2="16" stroke="rgba(60,60,70,0.7)" strokeWidth="1.5" />
           </svg>
-          <svg className="absolute bottom-0 left-0 w-[14px] h-[14px] pointer-events-none" viewBox="0 0 14 14">
-            <line x1="0" y1="0" x2="14" y2="14" stroke="rgba(60,60,70,0.7)" strokeWidth="1.5" />
-          </svg>
+          <div className="relative flex items-center justify-start gap-[3px] flex-wrap max-md:gap-1">
+            {groupedRequirements.map((group, index) => renderRequirementGroup(group, index))}
+          </div>
         </div>
-      </div>,
-      document.body
-    )}
+      </div>
+      {isHovered &&
+        requirements.description &&
+        tooltipPos &&
+        createPortal(
+          <div
+            className="fixed w-max max-w-44 pt-1 animate-[fadeIn_150ms_ease-in] pointer-events-none"
+            style={{ left: tooltipPos.x, top: tooltipPos.y, zIndex: 99999 }}
+          >
+            <div
+              className="relative bg-[rgba(10,10,15,0.98)] border border-[rgba(60,60,70,0.7)] text-white/90 text-[11px] leading-tight px-3 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
+              style={{
+                clipPath:
+                  "polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px))",
+              }}
+            >
+              <FormattedDescription text={requirements.description} />
+              <svg
+                className="absolute top-0 right-0 w-[14px] h-[14px] pointer-events-none"
+                viewBox="0 0 14 14"
+              >
+                <line x1="0" y1="0" x2="14" y2="14" stroke="rgba(60,60,70,0.7)" strokeWidth="1.5" />
+              </svg>
+              <svg
+                className="absolute bottom-0 left-0 w-[14px] h-[14px] pointer-events-none"
+                viewBox="0 0 14 14"
+              >
+                <line x1="0" y1="0" x2="14" y2="14" stroke="rgba(60,60,70,0.7)" strokeWidth="1.5" />
+              </svg>
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   );
 };

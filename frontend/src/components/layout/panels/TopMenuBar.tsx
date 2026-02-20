@@ -198,7 +198,10 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
   return (
     <div className="bg-transparent relative z-[100] pointer-events-none">
       <div className="flex justify-between items-center px-2 h-[60px] max-lg:h-[50px] max-md:flex-wrap">
-        <div className="flex max-md:order-2 max-md:flex-[0_0_100%] max-md:mt-2.5 origin-top-left" style={{ transform: `scale(${topBarScale})` }}>
+        <div
+          className="flex max-md:order-2 max-md:flex-[0_0_100%] max-md:mt-2.5 origin-top-left"
+          style={{ transform: `scale(${topBarScale})` }}
+        >
           {menuItems.map((item, index) => (
             <ParallelogramButton
               key={item.id}

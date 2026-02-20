@@ -367,7 +367,14 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     <div className="fixed bottom-0 left-0 right-0 z-[1000] flex justify-between pointer-events-none">
       {/* LEFT PANEL: Corporation + Resources */}
       <AngledPanel side="left" corpColor={corpColor} width={LEFT_PANEL_WIDTH} height={BAR_HEIGHT}>
-        <div className="flex items-center h-full origin-left" style={{ paddingRight: ANGLE_INDENT + 16, transform: `scale(${contentScale})`, width: MAX_PANEL_WIDTH }}>
+        <div
+          className="flex items-center h-full origin-left"
+          style={{
+            paddingRight: ANGLE_INDENT + 16,
+            transform: `scale(${contentScale})`,
+            width: MAX_PANEL_WIDTH,
+          }}
+        >
           {/* Corporation Section */}
           <div
             ref={corpContainerRef}

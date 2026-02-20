@@ -161,11 +161,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
       }
       const delta = e.deltaY || e.deltaX;
       const maxScroll = Math.max(cardOrder.length - 1, 0);
-      scrollTargetRef.current = clamp(
-        scrollTargetRef.current + delta * WHEEL_SCALE,
-        0,
-        maxScroll,
-      );
+      scrollTargetRef.current = clamp(scrollTargetRef.current + delta * WHEEL_SCALE, 0, maxScroll);
       startScrollAnimation();
     },
     [draggedCard, highlightedCard, cardOrder.length, startScrollAnimation],
@@ -179,10 +175,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
   }, [handleWheel]);
 
   // --- Pointer events for drag ---
-  const handlePointerDown = (
-    cardId: string,
-    e: React.PointerEvent<HTMLDivElement>,
-  ) => {
+  const handlePointerDown = (cardId: string, e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
     const cardEl = e.currentTarget;
     cardEl.setPointerCapture(e.pointerId);
@@ -195,8 +188,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
     const containerRect = handRef.current?.getBoundingClientRect();
 
     if (containerRect) {
-      const cardScreenX =
-        containerRect.left + containerRect.width / 2 + transform.x;
+      const cardScreenX = containerRect.left + containerRect.width / 2 + transform.x;
       // Include selected lift so the card doesn't snap down on grab
       const isSelected = highlightedCard === cardId;
       const liftY = isSelected ? SELECTED_LIFT : 0;
@@ -221,8 +213,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
       if (!containerRect) return;
       const cursorNearFan = pointerY >= containerRect.bottom - 80;
       if (!cursorNearFan) return;
-      const relativeX =
-        pointerX - (containerRect.left + containerRect.width / 2);
+      const relativeX = pointerX - (containerRect.left + containerRect.width / 2);
       const targetSlot = clamp(
         Math.round(relativeX / SPACING + scrollPos),
         0,
@@ -291,7 +282,6 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
         setDraggedCard(null);
         setIsInThrowZone(false);
 
-
         // Toggle selection
         if (highlightedCard === cardId) {
           setHighlightedCard(null);
@@ -317,9 +307,9 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
             await onPlayCard(cardId);
             setDraggedCard(null);
             setIsInThrowZone(false);
-    
+
             setHighlightedCard(null);
-                  return;
+            return;
           } catch (error) {
             console.error("Failed to play card:", error);
           }
@@ -334,15 +324,8 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
       setTimeout(() => {
         setReturningCard(null);
       }, 400);
-
     },
-    [
-      draggedCard,
-      dragStartPosition,
-      highlightedCard,
-      onPlayCard,
-      onCardSelect,
-    ],
+    [draggedCard, dragStartPosition, highlightedCard, onPlayCard, onCardSelect],
   );
 
   // --- Click outside to deselect ---
@@ -396,12 +379,8 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
         if (isDraggedCard && !isReturning) {
           const containerRect = handRef.current?.getBoundingClientRect();
           if (containerRect) {
-            finalX =
-              dragPosition.x +
-              dragOffset.x -
-              (containerRect.left + containerRect.width / 2);
-            finalY =
-              dragPosition.y + dragOffset.y - containerRect.bottom;
+            finalX = dragPosition.x + dragOffset.x - (containerRect.left + containerRect.width / 2);
+            finalY = dragPosition.y + dragOffset.y - containerRect.bottom;
             finalRotation = 0;
             finalScale = 1;
             finalZ = 3000;
@@ -411,7 +390,9 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
           }
         }
 
-        const showErrors = !card.available && card.errors.length > 0 &&
+        const showErrors =
+          !card.available &&
+          card.errors.length > 0 &&
           (isHighlighted || (isDraggedCard && isDragRaised));
 
         const classNames = [
@@ -419,9 +400,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
           isDragging && !isReturning ? "is-dragging" : "",
           !isDraggedCard && draggedCard ? "is-reordering" : "",
           isReturning ? "is-returning" : "",
-          isDraggedCard && isInThrowZone && card.available
-            ? "is-throw-zone"
-            : "",
+          isDraggedCard && isInThrowZone && card.available ? "is-throw-zone" : "",
         ]
           .filter(Boolean)
           .join(" ");
@@ -444,8 +423,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
             <GameCard
               card={card}
               isSelected={
-                isHighlighted ||
-                (isDraggedCard && isInThrowZone && card.available === true)
+                isHighlighted || (isDraggedCard && isInThrowZone && card.available === true)
               }
               onSelect={() => {}}
               animationDelay={-1}
