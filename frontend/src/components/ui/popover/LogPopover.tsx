@@ -255,7 +255,7 @@ const LogEntry: React.FC<LogEntryProps> = ({ diff, playerNames }) => {
         )}
         {isCardPlay && vpConditions.length > 0 && (
           <div className="shrink-0">
-            <VictoryPointIcon vpConditions={vpConditions} size="small" />
+            <VictoryPointIcon vpConditions={vpConditions} />
           </div>
         )}
       </div>
