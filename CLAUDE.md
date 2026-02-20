@@ -107,6 +107,9 @@ When working with energy, it's referenced as `power.png` in assets.
 - In-memory game state (no persistence required for generational events) (001-generational-events)
 - Go 1.21+, TypeScript 5.x + None (custom diff computation) (001-game-state-repo)
 - In-memory (map-based, per-game isolation) (001-game-state-repo)
+- TypeScript 5.x (React 18) + React 18, Tailwind CSS v4, existing BehaviorSection component system (001-full-card-view)
+- N/A (no persistence needed) (001-full-card-view)
+- TypeScript 5.x (React 18), Go 1.21+ (backend DTO change) + React 18, Tailwind CSS v4, existing BehaviorSection component system (001-full-card-view)
 
 ## Recent Changes
 - 001-generational-events: Added Go 1.21+ (backend), TypeScript 5.x (frontend) + gorilla/websocket, chi router, React 18, Tailwind CSS v4

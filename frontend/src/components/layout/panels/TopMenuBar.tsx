@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { GameDto, PlayerDto } from "@/types/generated/api-types.ts";
 import { StandardProject } from "@/types/cards.tsx";
 import SoundToggleButton from "../../ui/buttons/SoundToggleButton.tsx";
@@ -183,13 +183,22 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
     return null;
   };
 
+  const calcScale = () => Math.min(1, Math.max(0.75, window.innerWidth / 2200));
+  const [topBarScale, setTopBarScale] = useState(calcScale);
+
+  useEffect(() => {
+    const handleResize = () => setTopBarScale(calcScale());
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const buttonWidths = [250, 190, 160];
   const buttonHeight = 40;
 
   return (
     <div className="bg-transparent relative z-[100] pointer-events-none">
       <div className="flex justify-between items-center px-2 h-[60px] max-lg:h-[50px] max-md:flex-wrap">
-        <div className="flex max-md:order-2 max-md:flex-[0_0_100%] max-md:mt-2.5">
+        <div className="flex max-md:order-2 max-md:flex-[0_0_100%] max-md:mt-2.5 origin-top-left" style={{ transform: `scale(${topBarScale})` }}>
           {menuItems.map((item, index) => (
             <ParallelogramButton
               key={item.id}
