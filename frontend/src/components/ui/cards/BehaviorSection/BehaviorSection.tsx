@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useState } from "react";
 import { BehaviorSectionProps, ClassifiedBehavior } from "./types.ts";
 import { classifyBehaviors } from "./utils/behaviorClassifier.ts";
 import { detectTilePlacementScale } from "./utils/tileScaling.ts";
@@ -23,6 +23,11 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
   cardId,
   greyOutAll = false,
 }) => {
+  const [hoveredBehaviorIndex, setHoveredBehaviorIndex] = useState<number | null>(null);
+  const handleBehaviorHover = useCallback((index: number | null) => {
+    setHoveredBehaviorIndex(index);
+  }, []);
+
   if (!behaviors || behaviors.length === 0) {
     return null;
   }
@@ -148,6 +153,9 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
         key={`behavior-${index}`}
         classifiedBehavior={classifiedBehavior}
         index={index}
+        description={classifiedBehavior.description}
+        isHovered={hoveredBehaviorIndex === index}
+        onHover={handleBehaviorHover}
       >
         {content}
       </BehaviorContainer>

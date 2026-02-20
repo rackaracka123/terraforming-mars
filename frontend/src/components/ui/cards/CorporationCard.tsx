@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import GameIcon from "../display/GameIcon.tsx";
 import BehaviorSection from "./BehaviorSection";
 
@@ -223,25 +223,21 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
     });
   };
 
+  const [isHovered, setIsHovered] = useState(false);
+
   // Determine border color
   const effectiveBorderColor = borderColor || "#ffc107";
 
   // Build className based on state
   const getClassName = () => {
     const base =
-      "w-[400px] h-[380px] relative bg-[rgba(5,4,2,0.98)] border-2 rounded-xl p-3 transition-all duration-300 ease-[ease]";
+      "w-[400px] h-[380px] relative bg-[rgba(5,4,2,0.98)] border-2 rounded-xl p-3 transition-all duration-200";
 
     if (disableInteraction) {
-      // No cursor, no hover effects - just static display
       return base;
     }
 
-    if (isSelected) {
-      return `${base} cursor-pointer`;
-    }
-
-    // Default non-selected with hover effects
-    return `${base} cursor-pointer hover:-translate-y-0.5`;
+    return `${base} cursor-pointer`;
   };
 
   // Build inline style for dynamic border color and shadow
@@ -256,9 +252,8 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
       };
     }
 
-    // Default non-selected state
     return {
-      borderColor: color30,
+      borderColor: isHovered ? effectiveBorderColor : color30,
     };
   };
 
@@ -267,6 +262,8 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
       className={getClassName()}
       style={getStyle()}
       onClick={disableInteraction ? undefined : () => onSelect(corporation.id)}
+      onMouseEnter={() => !disableInteraction && setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Logo centered at top */}
       {corporation.logoPath && (

@@ -20,7 +20,7 @@ export interface ClassifiedBehavior {
     | "payment-substitute"
     | "value-modifier"
     | "defense";
-  // For merged triggered effects that share the same condition type
+  description?: string;
   mergedBehaviors?: CardBehaviorDto[];
 }
 

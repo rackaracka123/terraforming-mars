@@ -24,43 +24,44 @@ export const classifyBehaviors = (behaviors: CardBehaviorDto[]): ClassifiedBehav
     const hasDefense =
       behavior.outputs && behavior.outputs.some((output: any) => output.type === "defense");
 
+    const { description } = behavior;
+
     if (hasDiscount) {
-      return { behavior, type: "discount" };
+      return { behavior, type: "discount", description };
     }
 
     if (hasPaymentSubstitute) {
-      return { behavior, type: "payment-substitute" };
+      return { behavior, type: "payment-substitute", description };
     }
 
     if (hasValueModifier) {
-      return { behavior, type: "value-modifier" };
+      return { behavior, type: "value-modifier", description };
     }
 
     if (hasDefense) {
-      return { behavior, type: "defense" };
+      return { behavior, type: "defense", description };
     }
 
     if (triggerType === "manual") {
-      return { behavior, type: "manual-action" };
+      return { behavior, type: "manual-action", description };
     }
 
-    // Auto triggers with conditions (e.g., placement-bonus-gained) should be triggered-effect
     if (triggerType === "auto" && hasCondition) {
-      return { behavior, type: "triggered-effect" };
+      return { behavior, type: "triggered-effect", description };
     }
 
     if (triggerType === "auto" && !hasInputs) {
-      return { behavior, type: "auto-no-background" };
+      return { behavior, type: "auto-no-background", description };
     }
 
     if (hasTrigger && hasInputs) {
-      return { behavior, type: "triggered-effect" };
+      return { behavior, type: "triggered-effect", description };
     }
 
     if (hasProduction && (!hasTrigger || triggerType === "auto")) {
-      return { behavior, type: "immediate-production" };
+      return { behavior, type: "immediate-production", description };
     }
 
-    return { behavior, type: "immediate-effect" };
+    return { behavior, type: "immediate-effect", description };
   });
 };

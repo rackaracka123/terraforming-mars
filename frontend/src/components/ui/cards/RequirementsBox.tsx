@@ -1,15 +1,30 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import GameIcon from "../display/GameIcon.tsx";
-import { CardTag, ResourceType } from "@/types/generated/api-types.ts";
+import { FormattedDescription } from "../display/FormattedDescription.tsx";
+import { CardRequirementsDto, CardTag, ResourceType } from "@/types/generated/api-types.ts";
 
 interface RequirementsBoxProps {
-  requirements?: any[];
+  requirements?: CardRequirementsDto;
 }
 
 const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements }) => {
-  if (!requirements || requirements.length === 0) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
+  const badgeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isHovered && badgeRef.current) {
+      const rect = badgeRef.current.getBoundingClientRect();
+      setTooltipPos({ x: rect.left, y: rect.bottom });
+    }
+  }, [isHovered]);
+
+  if (!requirements || !requirements.items || requirements.items.length === 0) {
     return null;
   }
+
+  const items = requirements.items;
 
   // Group requirements by type/tag
   const groupRequirements = (requirements: any[]) => {
@@ -124,7 +139,7 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements }) => {
       >
         {/* Show amount before icon for tag/production requirements with multiple units */}
         {(isTagRequirement || isProductionRequirement) && displayText && !showMultipleIcons && (
-          <span className="text-[11px] font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-none">
+          <span className="text-[11px] font-orbitron font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-none">
             {displayText}
           </span>
         )}
@@ -149,14 +164,14 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements }) => {
             )}
           </div>
         ) : (
-          <span className="text-[10px] font-semibold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] capitalize max-md:text-[9px]">
+          <span className="text-[10px] font-orbitron font-semibold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] capitalize max-md:text-[9px]">
             {key}
           </span>
         )}
 
         {/* Show amount after icon for non-tag, non-production requirements */}
         {!isTagRequirement && !isProductionRequirement && displayText && (
-          <span className="text-[11px] font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-none max-md:text-[10px]">
+          <span className="text-[11px] font-orbitron font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-none max-md:text-[10px]">
             {displayText}
           </span>
         )}
@@ -164,14 +179,55 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements }) => {
     );
   };
 
-  const groupedRequirements = groupRequirements(requirements);
+  const groupedRequirements = groupRequirements(items);
 
   return (
-    <div className="absolute bottom-full left-[10%] w-fit min-w-[60px] max-w-[80%] z-[-10] bg-[linear-gradient(135deg,rgba(255,87,34,0.15)_0%,rgba(255,69,0,0.12)_100%)] rounded-[2px] shadow-[0_3px_8px_rgba(0,0,0,0.4)] backdrop-blur-[2px] pt-1 pr-0.5 pb-1 pl-1.5 before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:bottom-0 before:border-2 before:border-[rgba(255,87,34,0.9)] before:rounded-[2px] before:pointer-events-none max-md:min-w-[50px] max-md:pt-[3px] max-md:pr-0.5 max-md:pb-2.5 max-md:pl-1">
-      <div className="flex items-center justify-start gap-[3px] flex-wrap max-md:gap-1">
-        {groupedRequirements.map((group, index) => renderRequirementGroup(group, index))}
+    <>
+    <div
+      className={`absolute bottom-full left-[10%] w-fit min-w-[60px] max-w-[80%] ${isHovered ? "z-[50]" : "z-[-10]"}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div
+        ref={badgeRef}
+        className="relative shadow-[0_3px_8px_rgba(0,0,0,0.4)] backdrop-blur-[2px] pl-2 pr-6 py-0.5 border border-b-0 border-[rgba(60,60,70,0.7)] max-md:min-w-[50px] max-md:px-2 max-md:py-1"
+        style={{
+          clipPath: "polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%)",
+          background: "linear-gradient(-45deg, #5a2a10 25%, #2d1508 25%, #2d1508 50%, #5a2a10 50%, #5a2a10 75%, #2d1508 75%)",
+          backgroundSize: "20px 20px",
+          animation: "stripeMove 4s linear infinite",
+        }}
+      >
+        <div className="absolute inset-0 bg-black/40 pointer-events-none" style={{ clipPath: "polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%)" }} />
+        <svg className="absolute top-0 right-0 w-[16px] h-[16px] pointer-events-none" viewBox="0 0 16 16">
+          <line x1="0" y1="0" x2="16" y2="16" stroke="rgba(60,60,70,0.7)" strokeWidth="1.5" />
+        </svg>
+        <div className="relative flex items-center justify-start gap-[3px] flex-wrap max-md:gap-1">
+          {groupedRequirements.map((group, index) => renderRequirementGroup(group, index))}
+        </div>
       </div>
     </div>
+    {isHovered && requirements.description && tooltipPos && createPortal(
+      <div
+        className="fixed w-max max-w-44 pt-1 animate-[fadeIn_150ms_ease-in] pointer-events-none"
+        style={{ left: tooltipPos.x, top: tooltipPos.y, zIndex: 99999 }}
+      >
+        <div
+          className="relative bg-[rgba(10,10,15,0.98)] border border-[rgba(60,60,70,0.7)] text-white/90 text-[11px] leading-tight px-3 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
+          style={{ clipPath: "polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px))" }}
+        >
+          <FormattedDescription text={requirements.description} />
+          <svg className="absolute top-0 right-0 w-[14px] h-[14px] pointer-events-none" viewBox="0 0 14 14">
+            <line x1="0" y1="0" x2="14" y2="14" stroke="rgba(60,60,70,0.7)" strokeWidth="1.5" />
+          </svg>
+          <svg className="absolute bottom-0 left-0 w-[14px] h-[14px] pointer-events-none" viewBox="0 0 14 14">
+            <line x1="0" y1="0" x2="14" y2="14" stroke="rgba(60,60,70,0.7)" strokeWidth="1.5" />
+          </svg>
+        </div>
+      </div>,
+      document.body
+    )}
+    </>
   );
 };
 

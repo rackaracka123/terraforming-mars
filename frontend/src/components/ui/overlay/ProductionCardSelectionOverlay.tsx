@@ -1,5 +1,5 @@
 import React from "react";
-import SimpleGameCard from "../cards/SimpleGameCard.tsx";
+import GameCard from "../cards/GameCard.tsx";
 import GameIcon from "../display/GameIcon.tsx";
 import { CardDto, ResourceTypeCredit } from "../../../types/generated/api-types.ts";
 import { useCardSelection } from "../../../hooks/useCardSelection.ts";
@@ -74,7 +74,7 @@ const ProductionCardSelectionOverlay: React.FC<ProductionCardSelectionOverlayPro
               const isSelected = cardIndex !== -1;
 
               return (
-                <SimpleGameCard
+                <GameCard
                   key={card.id}
                   card={card}
                   isSelected={isSelected}

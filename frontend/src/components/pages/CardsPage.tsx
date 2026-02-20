@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiService } from "../../services/apiService";
-import SimpleGameCard from "../ui/cards/SimpleGameCard";
+import GameCard from "../ui/cards/GameCard";
 import CorporationCard from "../ui/cards/CorporationCard";
 import CopyLinkButton from "../ui/buttons/CopyLinkButton";
 import { CardDto, CardTypeCorporation } from "@/types/generated/api-types";
@@ -716,7 +716,7 @@ const CardsPage: React.FC = () => {
                   borderColor={getCorporationBorderColor(card.name)}
                 />
               ) : (
-                <SimpleGameCard
+                <GameCard
                   card={card}
                   isSelected={selectedCards.has(card.id)}
                   onSelect={handleCardSelect}
