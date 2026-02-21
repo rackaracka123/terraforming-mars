@@ -7,6 +7,7 @@ import MilestonePopover from "../../ui/popover/MilestonePopover.tsx";
 import AwardPopover from "../../ui/popover/AwardPopover.tsx";
 import { GamePopover } from "../../ui/GamePopover";
 import GameMenuButton from "../../ui/buttons/GameMenuButton.tsx";
+import { useHoverSound } from "@/hooks/useHoverSound.ts";
 
 const ANGLE_INDENT = 20;
 const BUTTON_SPACING = 6;
@@ -33,6 +34,7 @@ const ParallelogramButton: React.FC<ParallelogramButtonProps> = ({
   buttonRef,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const hoverSound = useHoverSound();
   const isFirst = index === 0;
 
   // For parallelogram: both angled edges slant the same direction (\)
@@ -55,7 +57,10 @@ const ParallelogramButton: React.FC<ParallelogramButtonProps> = ({
     <button
       ref={buttonRef}
       onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={() => {
+        setIsHovered(true);
+        hoverSound.onMouseEnter?.();
+      }}
       onMouseLeave={() => setIsHovered(false)}
       className="relative pointer-events-auto cursor-pointer"
       style={{
@@ -131,6 +136,7 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const hamburgerButtonRef = useRef<HTMLButtonElement>(null);
+  const menuItemHover = useHoverSound();
 
   const [showStandardProjectsPopover, setShowStandardProjectsPopover] = useState(false);
   const [showMilestonePopover, setShowMilestonePopover] = useState(false);
@@ -253,6 +259,7 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
           <div className="py-1">
             <button
               onClick={() => void handleCopyGameLink()}
+              onMouseEnter={menuItemHover.onMouseEnter}
               className="w-full flex items-center gap-3 px-4 py-3 text-white text-sm hover:bg-white/10 transition-colors text-left"
             >
               <svg
@@ -278,6 +285,7 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
                 setMenuOpen(false);
                 window.dispatchEvent(new CustomEvent("toggle-performance-window"));
               }}
+              onMouseEnter={menuItemHover.onMouseEnter}
               className="w-full flex items-center gap-3 px-4 py-3 text-white text-sm hover:bg-white/10 transition-colors text-left"
             >
               <svg
@@ -297,6 +305,7 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
             <div className="border-t border-[#333] mx-2" />
             <button
               onClick={handleLeaveGame}
+              onMouseEnter={menuItemHover.onMouseEnter}
               className="w-full flex items-center gap-3 px-4 py-3 text-red-400 text-sm hover:bg-white/10 transition-colors text-left"
             >
               <svg
