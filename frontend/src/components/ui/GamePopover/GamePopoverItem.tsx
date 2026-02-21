@@ -1,5 +1,6 @@
 import React from "react";
 import { GamePopoverItemProps } from "./types";
+import { useSoundEffects } from "@/hooks/useSoundEffects.ts";
 
 const GamePopoverItem: React.FC<GamePopoverItemProps> = ({
   state,
@@ -11,6 +12,7 @@ const GamePopoverItem: React.FC<GamePopoverItemProps> = ({
   children,
   className = "",
 }) => {
+  const { playButtonHoverSound } = useSoundEffects();
   const isClickable = state === "available" && onClick;
 
   const getStateClasses = () => {
@@ -36,6 +38,7 @@ const GamePopoverItem: React.FC<GamePopoverItemProps> = ({
     <div
       className={`relative flex items-center gap-3 py-2.5 px-[15px] rounded-lg border transition-all duration-200 animate-[itemSlideIn_0.4s_ease-out_both] max-[768px]:py-2 max-[768px]:px-3 ${getStateClasses()} ${className}`}
       onClick={isClickable ? onClick : undefined}
+      onMouseEnter={isClickable ? () => void playButtonHoverSound() : undefined}
       style={{ animationDelay: `${animationDelay}s` }}
     >
       {error && state === "disabled" && (

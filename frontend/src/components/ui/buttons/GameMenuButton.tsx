@@ -1,5 +1,6 @@
 import React, { forwardRef } from "react";
 import { Link } from "react-router-dom";
+import { useSoundEffects } from "@/hooks/useSoundEffects.ts";
 
 const variantStyles = {
   primary: [
@@ -91,11 +92,24 @@ const GameMenuButton = forwardRef<HTMLButtonElement, GameMenuButtonProps>(
     },
     ref,
   ) => {
+    const { playButtonHoverSound } = useSoundEffects();
     const classes = `${variantStyles[variant]} ${sizeStyles[size]} ${className}`.trim();
+
+    const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
+      if (!disabled) {
+        void playButtonHoverSound();
+      }
+      onMouseEnter?.(e as React.MouseEvent<HTMLButtonElement>);
+    };
 
     if (as === "link" && to) {
       return (
-        <Link to={to} onClick={linkOnClick} className={`${classes} no-underline inline-block`}>
+        <Link
+          to={to}
+          onClick={linkOnClick}
+          className={`${classes} no-underline inline-block`}
+          onMouseEnter={handleMouseEnter}
+        >
           {children}
         </Link>
       );
@@ -110,7 +124,7 @@ const GameMenuButton = forwardRef<HTMLButtonElement, GameMenuButtonProps>(
         className={classes}
         title={title}
         style={style}
-        onMouseEnter={onMouseEnter}
+        onMouseEnter={handleMouseEnter}
         onMouseLeave={onMouseLeave}
         aria-label={ariaLabel}
       >
