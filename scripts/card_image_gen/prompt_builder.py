@@ -90,6 +90,23 @@ _NAME_OVERRIDES = {
     "T09": "public relations command center, wall of holographic screens showing broadcasts",
     "T10": "festive crowd gathering at a Martian colony, fireworks in the dusty sky",
     "XC5": "sleek corporate skyscraper overlooking a volcanic Martian mountain at twilight",
+    # Cards where name causes text artifacts
+    "012": "massive spacecraft hauling water tanks from Europa moon toward distant Mars, icy moon surface below",
+    "014": "futuristic research campus with scientists working on blueprints, robotic arms assembling prototypes",
+    "026": "vast canyon national park on Mars with hiking trails, terraformed greenery along cliff edges, visitors exploring",
+    # Asteroid/comet impact cards — show them hitting the planet, not floating in space
+    "009": "massive fiery asteroid slamming into Martian surface, huge explosion and shockwave, debris flying",
+    "010": "icy comet crashing into Mars, enormous impact explosion, steam and water erupting from crater",
+    "011": "gigantic asteroid impact on Mars, catastrophic explosion, massive dust cloud rising, shockwave visible from orbit",
+    "037": "glowing green nitrogen-rich asteroid streaking through Martian atmosphere, blazing trail, impacting surface",
+    "075": "icy comet being guided toward Mars by spacecraft, comet entering atmosphere with bright trail",
+    "078": "two massive ice asteroids impacting Martian polar region, twin explosions, water ice scattered everywhere",
+    "080": "colossal ice asteroid devastating Martian landscape, enormous impact crater forming, tidal wave of meltwater",
+    "170": "asteroid with glowing ammonia trail entering Martian atmosphere, fiery reentry, microbe-filled debris",
+    "209": "small asteroid striking Martian terrain, localized explosion, dust plume rising from impact crater",
+    "218": "comet plunging into Venus thick atmosphere, brilliant fireball visible from orbit",
+    "246": "huge asteroid slamming into Venus surface at oblique angle, enormous explosion, debris cloud engulfing the planet",
+    "P19": "metallic asteroid crashing into Mars, molten metal splashing from impact, glowing crater",
 }
 
 # Keywords that indicate a sentence is about game mechanics, not visuals
