@@ -92,7 +92,7 @@ const GameMenuButton = forwardRef<HTMLButtonElement, GameMenuButtonProps>(
     },
     ref,
   ) => {
-    const { playButtonHoverSound } = useSoundEffects();
+    const { playButtonHoverSound, playButtonClickSound } = useSoundEffects();
     const classes = `${variantStyles[variant]} ${sizeStyles[size]} ${className}`.trim();
 
     const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
@@ -102,11 +102,23 @@ const GameMenuButton = forwardRef<HTMLButtonElement, GameMenuButtonProps>(
       onMouseEnter?.(e as React.MouseEvent<HTMLButtonElement>);
     };
 
+    const handleClick = (e: React.MouseEvent) => {
+      if (!disabled) {
+        void playButtonClickSound();
+      }
+      onClick?.(e);
+    };
+
+    const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+      void playButtonClickSound();
+      linkOnClick?.(e);
+    };
+
     if (as === "link" && to) {
       return (
         <Link
           to={to}
-          onClick={linkOnClick}
+          onClick={handleLinkClick}
           className={`${classes} no-underline inline-block`}
           onMouseEnter={handleMouseEnter}
         >
@@ -119,7 +131,7 @@ const GameMenuButton = forwardRef<HTMLButtonElement, GameMenuButtonProps>(
       <button
         ref={ref}
         type={type}
-        onClick={onClick}
+        onClick={handleClick}
         disabled={disabled}
         className={classes}
         title={title}

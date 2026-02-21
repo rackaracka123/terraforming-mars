@@ -126,7 +126,10 @@ const SoundToggleButton: React.FC = () => {
     <div className="flex flex-col gap-2 px-4 py-3 text-white">
       <div className="flex items-center gap-3">
         <button
-          onClick={toggleMute}
+          onClick={() => {
+            hoverSound.onClick?.();
+            toggleMute();
+          }}
           onMouseEnter={hoverSound.onMouseEnter}
           className="flex-shrink-0 w-5 h-5 flex items-center justify-center hover:text-space-blue-400 transition-colors cursor-pointer"
           aria-label={enabled ? "Mute sound" : "Unmute sound"}
@@ -146,7 +149,10 @@ const SoundToggleButton: React.FC = () => {
       </div>
       <div className="flex items-center gap-3">
         <button
-          onClick={toggleMusicMute}
+          onClick={() => {
+            hoverSound.onClick?.();
+            toggleMusicMute();
+          }}
           onMouseEnter={hoverSound.onMouseEnter}
           className="flex-shrink-0 w-5 h-5 flex items-center justify-center hover:text-space-blue-400 transition-colors cursor-pointer"
           aria-label={musicEnabled ? "Mute music" : "Unmute music"}

@@ -56,7 +56,10 @@ const ParallelogramButton: React.FC<ParallelogramButtonProps> = ({
   return (
     <button
       ref={buttonRef}
-      onClick={onClick}
+      onClick={() => {
+        hoverSound.onClick?.();
+        onClick();
+      }}
       onMouseEnter={() => {
         setIsHovered(true);
         hoverSound.onMouseEnter?.();
@@ -258,7 +261,10 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
         >
           <div className="py-1">
             <button
-              onClick={() => void handleCopyGameLink()}
+              onClick={() => {
+                menuItemHover.onClick?.();
+                void handleCopyGameLink();
+              }}
               onMouseEnter={menuItemHover.onMouseEnter}
               className="w-full flex items-center gap-3 px-4 py-3 text-white text-sm hover:bg-white/10 transition-colors text-left"
             >
@@ -282,6 +288,7 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
             <div className="border-t border-[#333] mx-2" />
             <button
               onClick={() => {
+                menuItemHover.onClick?.();
                 setMenuOpen(false);
                 window.dispatchEvent(new CustomEvent("toggle-performance-window"));
               }}
@@ -304,7 +311,10 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
             </button>
             <div className="border-t border-[#333] mx-2" />
             <button
-              onClick={handleLeaveGame}
+              onClick={() => {
+                menuItemHover.onClick?.();
+                handleLeaveGame();
+              }}
               onMouseEnter={menuItemHover.onMouseEnter}
               className="w-full flex items-center gap-3 px-4 py-3 text-red-400 text-sm hover:bg-white/10 transition-colors text-left"
             >

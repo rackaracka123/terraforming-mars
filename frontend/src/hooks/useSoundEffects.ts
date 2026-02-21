@@ -30,6 +30,10 @@ export function useSoundEffects() {
     return audioService.playButtonHoverSound();
   }, []);
 
+  const playButtonClickSound = useCallback(() => {
+    return audioService.playButtonClickSound();
+  }, []);
+
   return {
     playSound,
     playProductionSound,
@@ -37,5 +41,6 @@ export function useSoundEffects() {
     playWaterPlacementSound,
     playOxygenSound,
     playButtonHoverSound,
+    playButtonClickSound,
   };
 }

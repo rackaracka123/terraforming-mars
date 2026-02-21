@@ -524,6 +524,9 @@ export default function Tile({
           onClick={(event) => {
             if (panState.isPanning) return;
             event.stopPropagation();
+            if (isAvailableForPlacement) {
+              hoverSound.onClick?.();
+            }
             onClick();
           }}
         />
