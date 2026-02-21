@@ -371,7 +371,7 @@
         "outputs": [
           {
             "type": "plant",
-            "amount": 3,
+            "amount": -3,
             "target": "any-player"
           },
           {
@@ -419,7 +419,7 @@
           },
           {
             "type": "plant",
-            "amount": 3,
+            "amount": -3,
             "target": "any-player"
           }
         ],
@@ -1737,7 +1737,7 @@
         "outputs": [
           {
             "type": "plant",
-            "amount": 8,
+            "amount": -8,
             "target": "any-player"
           },
           {
@@ -2762,7 +2762,7 @@
         "outputs": [
           {
             "type": "plant",
-            "amount": 2,
+            "amount": -2,
             "target": "any-player"
           },
           {
@@ -3506,7 +3506,7 @@
           },
           {
             "type": "plant",
-            "amount": 6,
+            "amount": -6,
             "target": "any-player"
           }
         ],
@@ -7857,7 +7857,7 @@
         "outputs": [
           {
             "type": "credit",
-            "amount": 4,
+            "amount": -4,
             "target": "any-player"
           },
           {
@@ -8581,7 +8581,7 @@
         "outputs": [
           {
             "type": "plant",
-            "amount": 2,
+            "amount": -2,
             "target": "any-player"
           },
           {
@@ -9021,7 +9021,7 @@
         "outputs": [
           {
             "type": "credit",
-            "amount": 4,
+            "amount": -4,
             "target": "any-player"
           }
         ],
@@ -12398,7 +12398,7 @@
           },
           {
             "type": "plant",
-            "amount": 2,
+            "amount": -2,
             "target": "any-player"
           }
         ],
@@ -15731,7 +15731,7 @@
           },
           {
             "type": "plant",
-            "amount": 2,
+            "amount": -2,
             "target": "any-player"
           }
         ],
@@ -17964,7 +17964,7 @@
         "outputs": [
           {
             "type": "plant",
-            "amount": 6,
+            "amount": -6,
             "target": "any-player"
           },
           {

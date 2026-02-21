@@ -1,0 +1,20 @@
+Water Import From Europa: Needs titanium mapping
+Research Output: Missing city icon on card with asterix
+Phobos Space Heaven: Missing city icon on card with asterix, might need extra modelling due to the moon placement
+Predators: Should be <animal tag any> -> <animal tag>, now its wrong
+Optimal Aerobreaking: Layout broken
+Security Fleet: Wrong icon on card, should be fighter (it is now titanium in action box and asteroid in VP box)
+Ants: Should be <microbe tag any> -> <microbe tag>, now its wrong
+Natural Reserve: We can't place that tile at all. It is a "nature tile", should be like Research output (next to no other tile)
+Virus: Should be a minus sign on 2 <animal icon> and 5 <plant icon>. It looks now like it is given to other players in stead of removing resources
+Mining Expedition: Should be a minus sign infront of plants icon
+Mining Area: We can't place that tile at all. Will need a mining tile and a mining model for Mars
+Mining Rights: We can't place that tile at all. Will need a mining tile and a mining model for Mars
+Land Claim: We need a 3D model for this so it is easy to say it is reseved, could be completley virtual with a lock or something
+Mars University: Completely missing the logic, needs full check
+Mars Converter: Missing "Increase energy production 6 stpes"
+Physics Complex: Should be 2 VP per science resource, NOT per 2 science resource
+Greenhouses: City tile on the card should have "any city" mark (red outline)
+Nuclear Zone: We can't place that tile at all. Need tile for nuclear zone and a model + nuke animation, maybe a bomb flying in?
+Toll station: Titanium tag icon in the behavior on the card should have "any titanium tag" (so red tint behind it)
+Media Group: Should have "After you play an event card" effect
