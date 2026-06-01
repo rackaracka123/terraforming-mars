@@ -16,8 +16,15 @@ class AudioService {
   private volumeMultipliers: Map<string, number> = new Map();
   private ambientVolumeMultiplier: number = 0.3;
   private fadeOutInterval: ReturnType<typeof setInterval> | null = null;
-  private ambientTracks: string[] = ["/sounds/main-ambient.mp3", "/sounds/choral-chambers.mp3"];
-  private currentTrackIndex: number = 0;
+  private ambientTracks: string[] = [
+    "/sounds/stars.mp3",
+    "/sounds/sands.mp3",
+    "/sounds/ethereum.mp3",
+    "/sounds/dreams.mp3",
+    "/sounds/settlers.mp3",
+  ];
+  private playOrder: number[] = [];
+  private playPosition: number = 0;
 
   constructor() {
     const settings = getSoundSettings();
@@ -196,11 +203,31 @@ class AudioService {
     return this.playSound("production-score");
   }
 
+  private shufflePlayOrder(): void {
+    const lastPlayed = this.playOrder.length > 0 ? this.playOrder[this.playOrder.length - 1] : -1;
+    const order = this.ambientTracks.map((_, i) => i);
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    if (order.length > 1 && order[0] === lastPlayed) {
+      [order[0], order[1]] = [order[1], order[0]];
+    }
+    this.playOrder = order;
+    this.playPosition = 0;
+  }
+
   private createAmbientAudio(): HTMLAudioElement {
-    const audio = new Audio(this.ambientTracks[this.currentTrackIndex]);
+    if (this.playOrder.length === 0) {
+      this.shufflePlayOrder();
+    }
+    const audio = new Audio(this.ambientTracks[this.playOrder[this.playPosition]]);
     audio.loop = false;
     audio.addEventListener("ended", () => {
-      this.currentTrackIndex = (this.currentTrackIndex + 1) % this.ambientTracks.length;
+      this.playPosition += 1;
+      if (this.playPosition >= this.playOrder.length) {
+        this.shufflePlayOrder();
+      }
       this.ambientAudio = this.createAmbientAudio();
       this.ambientAudio.volume = this.musicVolume * this.ambientVolumeMultiplier;
       if (this.isMusicEnabled) {

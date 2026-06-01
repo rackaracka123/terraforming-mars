@@ -11,6 +11,8 @@ Real-time multiplayer. 450+ cards. Six expansions. One red planet.
 [![Issues](https://img.shields.io/github/issues/terraforming-mars-ce/terraforming-mars)](https://github.com/terraforming-mars-ce/terraforming-mars/issues)
 [![Coverage](https://img.shields.io/endpoint?url=https://terraforming-mars-ce.github.io/terraforming-mars/coverage.json)](https://terraforming-mars-ce.github.io/terraforming-mars/)
 
+**Original soundtrack by [Lucas](mailto:lucas.gussua@gmail.com)** -- thank you for scoring the red planet.
+
 </div>
 
 ---
