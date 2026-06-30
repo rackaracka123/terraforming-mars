@@ -105,3 +105,13 @@ Notes on the corp/prelude application phase (`GamePhaseInitApplyCorp`,
   only "passed" because the unfiltered milestone surface false-positived on
   `generalist`. Real games always set `CardPacks: ["base-game"]`; the repro
   fixture now does too, so PowerPlant is a genuine surface.
+- 2026-06-30: CI-TRIGGER GOTCHA. Every workflow under `.github/workflows/`
+  (backend-test, frontend, format) fires ONLY on `pull_request` to `main` or
+  `push` to `main` — never on a push to a feature branch like
+  `fix/in-game-issues-batch`. Pushing the combined batch branch is a no-op for CI:
+  `gh run list --branch fix/in-game-issues-batch` stays empty. The only ways to
+  exercise CI on the batch work are to open the PR-to-main (deferred to the
+  combined-PR step) or `workflow_dispatch`. So a CI-aware push on a non-main branch
+  with "do not open a PR" cannot turn CI green by itself — that is expected, not a
+  failure. Local `make` (build + go test ./test/... + format-check + lint +
+  typecheck) is the authoritative pre-PR gate in this situation.
