@@ -126,3 +126,27 @@ Notes on the corp/prelude application phase (`GamePhaseInitApplyCorp`,
   run, `hasAvailableActions?: boolean;` was already present and content-correct;
   the 163-line diff was pure formatting and was reverted. ENFORCED-BY: rule line
   added to backend/CLAUDE.md "Go to TypeScript" section.
+
+# Player-name length cap (#558)
+
+- 2026-06-30: The `binding:"...,max=50"` struct tags on `JoinGameRequest`
+  (http_dto.go) and `CreateGameRequest` are DECORATIVE ONLY. There is NO
+  go-playground/validator dependency in backend/go.mod and no `.Struct()` /
+  `ShouldBindWith` validation call anywhere; `JoinGameRequest` is not even
+  referenced by any HTTP handler. Changing the tag value enforces nothing at
+  runtime. The REAL player-name entry chokepoint is
+  `internal/action/game/join_game.go` `JoinGameAction.Execute(ctx, gameID,
+  playerName, playerID)` — both the WS join handler and the create-game first
+  player route through it (CreateGameAction takes no name). So the backend cap
+  MUST be an explicit length guard in JoinGameAction.Execute (single source of
+  truth via one Go const), and the tag value is updated only to keep the
+  documented contract honest.
+- 2026-06-30: Refinement — the `binding:` tag on `JoinGameRequest` was REMOVED
+  entirely (not just retargeted), because the struct is never bound/validated
+  and the tag advertised an unenforced 45-char limit (an unenforced decorative
+  tag). tygo only reads `json:`/`tstype:` tags, so dropping `binding:` leaves
+  the generated `frontend/src/types/generated/api-types.ts` byte-identical — no
+  `make generate` needed, no DTO shape change. This also removes the last
+  scattered `45` literal on the backend, leaving `game.MaxPlayerNameLength` as
+  the single source of truth referenced by the real guard in
+  JoinGameAction.Execute.
