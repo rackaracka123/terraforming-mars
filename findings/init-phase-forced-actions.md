@@ -1,0 +1,83 @@
+# Init phase advancement after forced actions
+
+Notes on the corp/prelude application phase (`GamePhaseInitApplyCorp`,
+`GamePhaseInitApplyPrelude`) and how forced first actions interact with it.
+
+- 2026-06-30: Issue #568 — a forced colony placement (Poseidon's forced first
+  action) during the init-apply phase left the turn stuck. The frontend never
+  sent a `ConfirmInitAdvance` after the placement, and the placement itself did
+  not advance the phase, so the game hung waiting for confirm. Fix: backend-side
+  auto-advance. `ConfirmColonyPlacementAction.Execute` now, when
+  `CurrentPhase()` is an init-apply phase, calls the new exported
+  `turn_management.AdvanceInitPhaseAfterForcedAction(ctx, g, log)`. The
+  `CurrentPhase` guard keeps normal in-game colony placement unaffected.
+- 2026-06-30: The already-applied advance path is the single source of truth in
+  `AdvanceInitPhaseAfterForcedAction`. It is a probe-style helper: returns
+  `(false, nil)` WITHOUT mutating state when advancement is not applicable (wrong
+  phase, not waiting for confirm, index out of range, or the current init player
+  still has a pending selection / pending tile queue / incomplete forced first
+  action); returns `(true, err)` after clearing the waiting flag and advancing.
+  Contrast with `ConfirmInitAdvanceAction.Execute`, which performs the SAME gate
+  checks but returns errors — because it is a user-initiated action that should
+  fail loudly. Different semantics (probe vs assertion), so this is not true
+  duplication; do not naively merge the two gate blocks.
+- 2026-06-30: Coupling direction is `confirmation` → `turn_management` only
+  (one-directional, acyclic). `turn_management` must NOT import
+  `action/confirmation`. `advanceToNextPlayer` was converted from a method to a
+  package function so both the confirm flow and the auto-advance helper share it
+  (no copy-paste of the next-player/phase-transition logic).
+
+# Aggregate action availability (#571)
+
+- 2026-06-30: Issue #571 — no aggregate "can this player act at all?" helper
+  exists. Per-surface validators live in `internal/action/state_calculator.go`
+  (`CalculatePlayerCardState`, `CalculatePlayerCardActionState`,
+  `CalculatePlayerStandardProjectState`, `CalculateMilestoneState`,
+  `CalculateAwardState`). The DTO mapper (`mapper_player.go`) already iterates
+  every surface to build the per-entity `.Available` arrays — a new
+  `HasAvailableActions` MUST reuse these calculators, not re-derive affordability.
+- 2026-06-30: Colony trade is the ONLY action surface with NO state-calculator
+  function. Affordability is validated inline in `internal/action/colony/trade.go`
+  (TradeCreditsCost/EnergyCost/TitaniumCost minus `CalculateActionDiscounts`).
+  `mapPlayerActionCosts` duplicates the same numbers. Any trade-availability check
+  in the aggregator should reuse `RequirementModifierCalculator.CalculateActionDiscounts`
+  + `Colonies().GetTradeableIDs()` + `GetTradeFleetAvailable`, not invent new logic.
+- 2026-06-30: PENDING-SELECTION NUANCE. `validateNoPendingSelection` (via
+  `g.HasAnyPendingSelection`) makes EVERY surface unavailable while a pending
+  tile/card/choice selection or forced first action is active. That state is NOT
+  "stuck" — the player has a forced thing to do. So a true zero-available-actions
+  / "stuck" signal must EXCLUDE the pending-selection case (treat pending/forced
+  as "has action"), else the indicator fires wrongly mid-selection.
+- 2026-06-30: sell-patents (free standard project) is available iff
+  `Hand().CardCount() > 0`. An empty hand is REQUIRED for the stuck state. The
+  per-project calculator already encodes this, so reusing it is correct.
+- 2026-06-30: #571 import-cycle confirmed safe. `internal/colonies` (registry) and
+  `internal/game/colonies` (state) do NOT import `internal/action`, so
+  `package action` can import both. `package action` is the cycle-free home for
+  `CalculateColonyTradeState` + the canonical `Trade*Cost` constants; `action/colony`
+  already imports `action` as `baseaction`, so it references them as
+  `baseaction.TradeCreditsCost` etc. `mapPlayerActionCosts` (dto) already imports
+  `internal/action`, so it can call the new helper too.
+- 2026-06-30: #568 corp test lives at
+  `backend/test/action/card_packs/corporations_colonies_test.go` (NOT
+  `test/action/corp/...` as a stale reference implied). The three #568 files that
+  must NOT be modified are: confirm_colony_placement.go,
+  turn_management/confirm_init_advance.go, and that card_packs test.
+- 2026-06-30: #571 repro test currently lives ONLY on branch `repro/state-bugs`
+  at `backend/test/action/core/no_available_actions_repro571_test.go`; it is NOT
+  on `fix/in-game-issues-batch`. "Extend the committed repro test" => cherry-pick /
+  re-create that file onto the batch branch first, then add a HasAvailableActions
+  assertion. The frontend already has ad-hoc client-side affordability logic in
+  PlayerList.handleSkipAction (cards.some(available) / actions.some(available)) that
+  is NOT the source of truth; the new backend *bool is authoritative for the indicator.
+- 2026-06-30: #571 c2 — `action.HasAvailableActions(g, p, cardRegistry,
+  stdProjRegistry, milestoneRegistry, awardRegistry)` lives in
+  `internal/action/has_available_actions.go`. It short-circuits on the first
+  available surface and is built ONLY from the existing per-surface calculators so
+  it can never diverge from the DTO `.Available` arrays. Two gotchas: (1) the two
+  resource-conversion projects (heat->temp, plants->greenery) are NOT in the
+  standard-project registry (they are resource buttons), so the aggregator iterates
+  the pack-filtered registry AND explicitly checks `conversionStandardProjects`;
+  (2) `g.HasAnyPendingSelection` does NOT cover `ForcedFirstAction` (stored at the
+  Game level, gated on `!Completed`) — both must be checked separately to treat
+  pending/forced as "not stuck".
