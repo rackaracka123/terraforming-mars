@@ -9,9 +9,11 @@ import (
 
 	baseaction "terraforming-mars-backend/internal/action"
 	colonyaction "terraforming-mars-backend/internal/action/colony"
+	"terraforming-mars-backend/internal/action/turn_management"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/shared"
 )
 
 // ConfirmColonyPlacementAction handles confirming a colony placement from a card effect
@@ -92,6 +94,17 @@ func (a *ConfirmColonyPlacementAction) Execute(ctx context.Context, gameID strin
 
 	log.Info("Colony placed from card effect",
 		zap.String("colony_id", colonyID))
+
+	if phase := g.CurrentPhase(); phase == shared.GamePhaseInitApplyCorp || phase == shared.GamePhaseInitApplyPrelude {
+		advanced, err := turn_management.AdvanceInitPhaseAfterForcedAction(ctx, g, log)
+		if err != nil {
+			return fmt.Errorf("failed to advance init phase after forced colony placement: %w", err)
+		}
+		if advanced {
+			log.Debug("Advanced init phase after forced colony placement",
+				zap.String("colony_id", colonyID))
+		}
+	}
 
 	return nil
 }
