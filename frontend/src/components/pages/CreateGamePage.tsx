@@ -8,6 +8,7 @@ import LoadingOverlay from "../game/view/LoadingOverlay.tsx";
 import InfoTooltip from "../ui/display/InfoTooltip.tsx";
 import BackButton from "../ui/buttons/BackButton.tsx";
 import { Z_INDEX } from "@/constants/zIndex.ts";
+import { MAX_PLAYER_NAME_LENGTH } from "@/constants/gameConstants";
 import GameButton from "../ui/buttons/GameButton.tsx";
 import { useNotifications } from "../../contexts/NotificationContext.tsx";
 
@@ -188,7 +189,7 @@ const CreateGamePage: React.FC = () => {
                   autoCorrect="off"
                   className="flex-1 bg-transparent border-none py-5 px-6 text-white text-lg outline-none placeholder:text-white/50 disabled:opacity-60"
                   autoFocus
-                  maxLength={50}
+                  maxLength={MAX_PLAYER_NAME_LENGTH}
                 />
 
                 <button
