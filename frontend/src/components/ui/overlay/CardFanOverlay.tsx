@@ -12,9 +12,18 @@ import { Z_INDEX } from "@/constants/zIndex.ts";
 import BlurredOverlay from "./BlurredOverlay.tsx";
 import { PlayerCardDto } from "@/types/generated/api-types.ts";
 import { useSoundEffects } from "@/hooks/useSoundEffects.ts";
+import { useCardDragStore } from "@/stores/cardDragStore.ts";
+import { isTilePlacement } from "@/types/resourceConditions.ts";
 
 function clamp(n: number, min: number, max: number): number {
   return Math.min(Math.max(n, min), max);
+}
+
+function isTilePlacementCard(card: PlayerCardDto): boolean {
+  if (card.available !== true) {
+    return false;
+  }
+  return (card.behaviors ?? []).some((b) => (b.outputs ?? []).some(isTilePlacement));
 }
 
 // --- Fan layout constants ---
@@ -110,8 +119,12 @@ const CardFanOverlay = forwardRef<CardFanOverlayHandle, CardFanOverlayProps>(
     const dragIntentRef = useRef(false);
     const capturedCardRef = useRef<HTMLDivElement | null>(null);
     const lastPointerXRef = useRef(0);
+    const draggingTileCardRef = useRef(false);
 
     const { playCardHoverSound } = useSoundEffects();
+    const startTileCardDrag = useCardDragStore((s) => s.startTileCardDrag);
+    const updatePointer = useCardDragStore((s) => s.updatePointer);
+    const endTileCardDrag = useCardDragStore((s) => s.endTileCardDrag);
 
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     const [windowHeight, setWindowHeight] = useState(window.innerHeight);
@@ -393,9 +406,18 @@ const CardFanOverlay = forwardRef<CardFanOverlayHandle, CardFanOverlayProps>(
 
         if (!dragIntentRef.current && movedDist > DRAG_THRESHOLD) {
           dragIntentRef.current = true;
+          const cardData = cardsRef.current.find((c) => c.id === draggedCard);
+          if (cardData && isTilePlacementCard(cardData)) {
+            draggingTileCardRef.current = true;
+            startTileCardDrag({ x: e.clientX, y: e.clientY });
+          }
         }
 
         if (!dragIntentRef.current) return;
+
+        if (draggingTileCardRef.current) {
+          updatePointer({ x: e.clientX, y: e.clientY });
+        }
 
         lastPointerXRef.current = e.clientX;
         setDragPosition({ x: e.clientX, y: e.clientY });
@@ -406,7 +428,7 @@ const CardFanOverlay = forwardRef<CardFanOverlayHandle, CardFanOverlayProps>(
         const isUpward = deltaY < THROW_Y_THRESHOLD;
         setIsInThrowZone(throwDist > THROW_DISTANCE_THRESHOLD && isUpward);
       },
-      [draggedCard, dragStartPosition, tryReorder],
+      [draggedCard, dragStartPosition, tryReorder, startTileCardDrag, updatePointer],
     );
 
     const handlePointerUp = useCallback(
@@ -421,6 +443,11 @@ const CardFanOverlay = forwardRef<CardFanOverlayHandle, CardFanOverlayProps>(
 
         const wasDrag = dragIntentRef.current;
         dragIntentRef.current = false;
+
+        if (draggingTileCardRef.current) {
+          draggingTileCardRef.current = false;
+          endTileCardDrag();
+        }
 
         if (!wasDrag) {
           // This was a click, not a drag
@@ -506,8 +533,18 @@ const CardFanOverlay = forwardRef<CardFanOverlayHandle, CardFanOverlayProps>(
         onPlayCard,
         onCardSelect,
         playCardHoverSound,
+        endTileCardDrag,
       ],
     );
+
+    useEffect(() => {
+      return () => {
+        if (draggingTileCardRef.current) {
+          draggingTileCardRef.current = false;
+          endTileCardDrag();
+        }
+      };
+    }, [endTileCardDrag]);
 
     // --- Click outside to deselect ---
     useEffect(() => {
@@ -526,6 +563,12 @@ const CardFanOverlay = forwardRef<CardFanOverlayHandle, CardFanOverlayProps>(
 
     const activeCullRadius = isExpanded ? expandedCullRadius : CULL_RADIUS;
     const activeVisibleRadius = isExpanded ? expandedCullRadius : VISIBLE_RADIUS;
+
+    const showRightScrollHint = !isExpanded && cardOrder.length - 1 - scrollPos > VISIBLE_RADIUS;
+    const showLeftScrollHint = !isExpanded && scrollPos > VISIBLE_RADIUS;
+
+    const scrollHintEdgeX = (VISIBLE_RADIUS * SPACING + CARD_WIDTH / 2) * fanScale;
+    const scrollHintOffsetY = (BASE_Y_OFFSET - CARD_HEIGHT / 2) * fanScale;
 
     return (
       <>
@@ -686,6 +729,48 @@ const CardFanOverlay = forwardRef<CardFanOverlayHandle, CardFanOverlayProps>(
             </div>
           )}
 
+          {showLeftScrollHint && (
+            <div
+              className="card-fan-scroll-hint card-fan-scroll-hint--left"
+              style={{
+                transform: `translate(calc(-50% + ${-scrollHintEdgeX}px), ${scrollHintOffsetY}px)`,
+                zIndex: Z_INDEX.CARD_FAN_SCROLL_HINT,
+              }}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </div>
+          )}
+
+          {showRightScrollHint && (
+            <div
+              className="card-fan-scroll-hint card-fan-scroll-hint--right"
+              style={{
+                transform: `translate(calc(-50% + ${scrollHintEdgeX}px), ${scrollHintOffsetY}px)`,
+                zIndex: Z_INDEX.CARD_FAN_SCROLL_HINT,
+              }}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+          )}
+
           <style>{`
         .card-fan-overlay {
           position: fixed;
@@ -751,6 +836,43 @@ const CardFanOverlay = forwardRef<CardFanOverlayHandle, CardFanOverlayProps>(
         }
 
 
+
+        .card-fan-scroll-hint {
+          position: absolute;
+          bottom: 0;
+          left: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: default;
+          pointer-events: none;
+        }
+
+        .card-fan-scroll-hint svg {
+          width: 40px;
+          height: 40px;
+          color: rgba(255, 255, 255, 0.85);
+          filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+        }
+
+        .card-fan-scroll-hint::before {
+          content: "";
+          position: absolute;
+          top: -120px;
+          bottom: -40px;
+          width: 120px;
+          pointer-events: none;
+        }
+
+        .card-fan-scroll-hint--left::before {
+          left: -20px;
+          background: linear-gradient(to right, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0));
+        }
+
+        .card-fan-scroll-hint--right::before {
+          right: -20px;
+          background: linear-gradient(to left, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0));
+        }
 
         .card-fan-error-panel {
           position: absolute;

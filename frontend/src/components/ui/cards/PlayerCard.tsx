@@ -143,6 +143,10 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   const isExited = player.isExited;
   const hasUnlimitedActions = player.availableActions === -1;
   const actionsRemaining = player.availableActions;
+  const hasNoAvailableActions =
+    "hasAvailableActions" in player && player.hasAvailableActions === false;
+  const showStuckIndicator =
+    isCurrentPlayer && isCurrentTurn && isActionPhase && hasNoAvailableActions;
 
   const [shouldFlash, setShouldFlash] = useState(false);
   const prevIsCurrentTurnRef = useRef(isCurrentTurn);
@@ -357,6 +361,11 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                 ERROR
               </span>
             )}
+            {showStuckIndicator && (
+              <span className="px-1.5 py-0.5 text-[8px] font-bold font-orbitron uppercase tracking-[0.5px] bg-[rgba(180,140,50,0.6)] text-[rgb(255,220,140)] border border-[rgba(180,140,50,0.7)] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
+                No actions available
+              </span>
+            )}
             {hasPendingTile && (
               <span className="px-1.5 py-0.5 text-[8px] font-bold font-orbitron uppercase tracking-[0.5px] bg-[rgba(180,140,50,0.6)] text-[rgb(255,220,140)] border border-[rgba(180,140,50,0.7)] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
                 TILE
@@ -411,6 +420,10 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               isBlocked
                 ? "bg-[rgba(40,40,45,0.9)] text-[rgb(100,100,110)] border border-[rgba(60,60,70,0.5)] cursor-default"
                 : "bg-[rgba(50,100,160,0.95)] text-white border border-[rgba(80,140,200,0.8)] cursor-pointer hover:bg-[rgba(60,120,180,1)] hover:border-[rgba(100,160,220,0.9)]"
+            } ${
+              showStuckIndicator && !isBlocked
+                ? "ring-1 ring-[rgba(255,210,120,0.9)] shadow-[0_0_12px_rgba(255,200,100,0.7)] animate-pulse"
+                : ""
             }`}
             onClick={(e) => {
               e.stopPropagation();

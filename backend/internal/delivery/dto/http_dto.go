@@ -30,7 +30,7 @@ type CreateGameResponse struct {
 
 // JoinGameRequest represents the request body for joining a game
 type JoinGameRequest struct {
-	PlayerName string `json:"playerName" binding:"required,min=1,max=50"`
+	PlayerName string `json:"playerName"`
 }
 
 // JoinGameResponse represents the response for joining a game

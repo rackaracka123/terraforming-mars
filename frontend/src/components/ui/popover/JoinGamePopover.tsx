@@ -4,6 +4,7 @@ import GameButton from "../buttons/GameButton.tsx";
 import { GameDto } from "@/types/generated/api-types";
 import { useJoinGame } from "@/hooks/useJoinGame";
 import LoadingOverlay from "../../game/view/LoadingOverlay";
+import { MAX_PLAYER_NAME_LENGTH } from "@/constants/gameConstants";
 
 interface JoinGamePopoverProps {
   isVisible: boolean;
@@ -44,7 +45,7 @@ const JoinGamePopover: React.FC<JoinGamePopoverProps> = ({
             spellCheck={false}
             autoComplete="off"
             autoCorrect="off"
-            maxLength={50}
+            maxLength={MAX_PLAYER_NAME_LENGTH}
             autoFocus
             className="flex-1 min-w-0 bg-black/50 border border-white/20 rounded-lg py-3 px-4 text-white text-base outline-none placeholder:text-white/50 focus:border-white/60 focus:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-200 disabled:opacity-60"
           />

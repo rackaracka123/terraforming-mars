@@ -6,6 +6,7 @@ import (
 
 	"slices"
 
+	"terraforming-mars-backend/internal/action"
 	colonyAction "terraforming-mars-backend/internal/action/colony"
 	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
@@ -14,7 +15,6 @@ import (
 	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/board"
 	gamecards "terraforming-mars-backend/internal/game/cards"
-	"terraforming-mars-backend/internal/game/milestone"
 	"terraforming-mars-backend/internal/game/player"
 	pfDomain "terraforming-mars-backend/internal/game/projectfunding"
 	"terraforming-mars-backend/internal/game/shared"
@@ -312,56 +312,6 @@ func convertTileBonuses(bonuses []board.TileBonus) []TileBonusDto {
 	return dtos
 }
 
-func filterMilestones(allDefs []milestone.MilestoneDefinition, selectedIDs []string, settings shared.GameSettings) []milestone.MilestoneDefinition {
-	if len(selectedIDs) > 0 {
-		selectedSet := make(map[string]bool, len(selectedIDs))
-		for _, id := range selectedIDs {
-			selectedSet[id] = true
-		}
-		var filtered []milestone.MilestoneDefinition
-		for _, def := range allDefs {
-			if selectedSet[def.ID] {
-				filtered = append(filtered, def)
-			}
-		}
-		return filtered
-	}
-	enabledPacks := settings.EnabledPacks()
-	var filtered []milestone.MilestoneDefinition
-	for _, def := range allDefs {
-		if def.Pack != "" && !enabledPacks[def.Pack] {
-			continue
-		}
-		filtered = append(filtered, def)
-	}
-	return filtered
-}
-
-func filterAwards(allDefs []award.AwardDefinition, selectedIDs []string, settings shared.GameSettings) []award.AwardDefinition {
-	if len(selectedIDs) > 0 {
-		selectedSet := make(map[string]bool, len(selectedIDs))
-		for _, id := range selectedIDs {
-			selectedSet[id] = true
-		}
-		var filtered []award.AwardDefinition
-		for _, def := range allDefs {
-			if selectedSet[def.ID] {
-				filtered = append(filtered, def)
-			}
-		}
-		return filtered
-	}
-	enabledPacks := settings.EnabledPacks()
-	var filtered []award.AwardDefinition
-	for _, def := range allDefs {
-		if def.Pack != "" && !enabledPacks[def.Pack] {
-			continue
-		}
-		filtered = append(filtered, def)
-	}
-	return filtered
-}
-
 // ToMilestonesDto converts all milestones to DTOs including claim status and per-player progress
 func ToMilestonesDto(g *game.Game, cardRegistry cards.CardRegistry, milestoneRegistry milestones.MilestoneRegistry) []MilestoneDto {
 	if milestoneRegistry == nil {
@@ -371,7 +321,7 @@ func ToMilestonesDto(g *game.Game, cardRegistry cards.CardRegistry, milestoneReg
 	players := g.GetAllPlayers()
 	b := g.Board()
 
-	filteredDefs := filterMilestones(milestoneRegistry.GetAll(), g.SelectedMilestones(), g.Settings())
+	filteredDefs := action.FilterMilestones(milestoneRegistry.GetAll(), g.SelectedMilestones(), g.Settings())
 
 	dtos := make([]MilestoneDto, len(filteredDefs))
 	for i, def := range filteredDefs {
@@ -445,7 +395,7 @@ func ToAwardsDto(g *game.Game, cardRegistry cards.CardRegistry, awardRegistry aw
 	players := g.GetAllPlayers()
 	b := g.Board()
 
-	filteredDefs := filterAwards(awardRegistry.GetAll(), g.SelectedAwards(), g.Settings())
+	filteredDefs := action.FilterAwards(awardRegistry.GetAll(), g.SelectedAwards(), g.Settings())
 
 	dtos := make([]AwardDto, len(filteredDefs))
 	fundedCount := gameAwards.FundedCount()

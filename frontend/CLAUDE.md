@@ -251,6 +251,21 @@ WebSocket service in `services/` handles real-time game state sync.
 **Outbound**: `join-game`, `player-reconnect`, `select-corporation`, `skip-action`, `start-game`
 **Inbound**: `game-updated`, `player-connected`, `player-reconnected`, `player-disconnected`
 
+## Testing & Pre-Commit Gate
+
+**CRITICAL**: There is NO frontend unit-test runner. `package.json` exposes only
+`dev`, `build`, `lint` (oxlint), `typecheck` (tsc --noEmit), and `format`/`format:write`
+(oxfmt) — there is no `test` script. The authoritative gate for any frontend-only
+change is, all four passing:
+
+```bash
+bun run typecheck && bun run lint && bun run format && bun run build
+```
+
+Do NOT look for or invent a `bun run test` / `vitest` / `jest` command. The end-to-end
+"does it actually work" check is a **human visual smoke** (or Playwright MCP), not an
+automated assertion — call it out explicitly at sign-off.
+
 ## Testing with Playwright
 
 Use Playwright MCP tools for live debugging:

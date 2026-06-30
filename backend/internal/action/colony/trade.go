@@ -10,7 +10,6 @@ import (
 	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
-	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 
@@ -26,11 +25,19 @@ const (
 	TradePaymentTitanium TradePaymentType = "titanium"
 )
 
-const (
-	TradeCreditsCost  = 9
-	TradeEnergyCost   = 3
-	TradeTitaniumCost = 3
-)
+// tradePaymentResource maps a payment type to the resource it spends.
+func tradePaymentResource(paymentType TradePaymentType) (shared.ResourceType, bool) {
+	switch paymentType {
+	case TradePaymentCredits:
+		return shared.ResourceCredit, true
+	case TradePaymentEnergy:
+		return shared.ResourceEnergy, true
+	case TradePaymentTitanium:
+		return shared.ResourceTitanium, true
+	default:
+		return "", false
+	}
+}
 
 // TradeAction handles the business logic for trading with a colony tile
 type TradeAction struct {
@@ -105,29 +112,23 @@ func (a *TradeAction) Execute(ctx context.Context, gameID string, playerID strin
 		return fmt.Errorf("colony tile already traded this generation")
 	}
 
-	// Calculate effective trade costs with discounts (e.g., Rim Freighters)
-	calc := gamecards.NewRequirementModifierCalculator(a.cardRegistry)
-	tradeDiscounts := calc.CalculateActionDiscounts(traderPlayer, shared.ActionColonyTrade)
-	effectiveCreditsCost := max(TradeCreditsCost-tradeDiscounts[shared.ResourceCredit], 0)
-	effectiveEnergyCost := max(TradeEnergyCost-tradeDiscounts[shared.ResourceEnergy], 0)
-	effectiveTitaniumCost := max(TradeTitaniumCost-tradeDiscounts[shared.ResourceTitanium], 0)
+	// Derive the effective cost for the chosen payment type from the single
+	// source of truth (applies discounts like Rim Freighters).
+	paymentResource, ok := tradePaymentResource(paymentType)
+	if !ok {
+		return fmt.Errorf("invalid trade payment type: %s", paymentType)
+	}
+	effectiveCosts, _ := baseaction.CalculateEffectiveTradeCosts(traderPlayer, a.cardRegistry)
+	effectiveCost := effectiveCosts[string(paymentResource)]
 
 	resources := traderPlayer.Resources().Get()
-	switch paymentType {
-	case TradePaymentCredits:
-		if resources.Credits < effectiveCreditsCost {
-			return fmt.Errorf("insufficient credits: need %d, have %d", effectiveCreditsCost, resources.Credits)
-		}
-	case TradePaymentEnergy:
-		if resources.Energy < effectiveEnergyCost {
-			return fmt.Errorf("insufficient energy: need %d, have %d", effectiveEnergyCost, resources.Energy)
-		}
-	case TradePaymentTitanium:
-		if resources.Titanium < effectiveTitaniumCost {
-			return fmt.Errorf("insufficient titanium: need %d, have %d", effectiveTitaniumCost, resources.Titanium)
-		}
-	default:
-		return fmt.Errorf("invalid trade payment type: %s", paymentType)
+	available := map[shared.ResourceType]int{
+		shared.ResourceCredit:   resources.Credits,
+		shared.ResourceEnergy:   resources.Energy,
+		shared.ResourceTitanium: resources.Titanium,
+	}[paymentResource]
+	if available < effectiveCost {
+		return fmt.Errorf("insufficient %s: need %d, have %d", paymentResource, effectiveCost, available)
 	}
 
 	definition, err := a.colonyRegistry.GetByID(colonyID)
@@ -135,21 +136,9 @@ func (a *TradeAction) Execute(ctx context.Context, gameID string, playerID strin
 		return fmt.Errorf("colony definition not found: %w", err)
 	}
 
-	// Deduct trade cost
-	switch paymentType {
-	case TradePaymentCredits:
-		traderPlayer.Resources().Add(map[shared.ResourceType]int{
-			shared.ResourceCredit: -effectiveCreditsCost,
-		})
-	case TradePaymentEnergy:
-		traderPlayer.Resources().Add(map[shared.ResourceType]int{
-			shared.ResourceEnergy: -effectiveEnergyCost,
-		})
-	case TradePaymentTitanium:
-		traderPlayer.Resources().Add(map[shared.ResourceType]int{
-			shared.ResourceTitanium: -effectiveTitaniumCost,
-		})
-	}
+	traderPlayer.Resources().Add(map[shared.ResourceType]int{
+		paymentResource: -effectiveCost,
+	})
 
 	// Apply trade step bonus from cards like Trade Envoys (advance marker before calculating income)
 	tradeStepBonus := CountTradeStepBonus(traderPlayer, a.cardRegistry)

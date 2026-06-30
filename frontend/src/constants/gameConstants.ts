@@ -1,4 +1,10 @@
 /**
+ * Maximum allowed length for a player name. Single source of truth for all
+ * player-name inputs.
+ */
+export const MAX_PLAYER_NAME_LENGTH = 45;
+
+/**
  * Game VP values - centralized constants for victory point calculations.
  */
 export const VP_VALUES = {

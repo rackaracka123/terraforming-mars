@@ -61,6 +61,16 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 	standardProjects := mapPlayerStandardProjects(p, g, cardRegistry, stdProjRegistry)
 	milestones := mapPlayerMilestones(p, g, cardRegistry, milestoneRegistry)
 	awards := mapPlayerAwards(p, g, awardRegistry)
+
+	// Only the WebSocket broadcast path supplies every action registry. When any is
+	// nil (the HTTP player_handler.go path), leave the pointer nil so the field is
+	// omitted: an honest "unknown", never a fabricated false.
+	var hasAvailableActions *bool
+	if stdProjRegistry != nil && awardRegistry != nil && milestoneRegistry != nil {
+		has := action.HasAvailableActions(g, p, cardRegistry, stdProjRegistry, milestoneRegistry, awardRegistry)
+		hasAvailableActions = &has
+	}
+
 	var pendingTileSelection *PendingTileSelectionDto
 	var forcedFirstAction *ForcedFirstActionDto
 	currentTurn := g.CurrentTurn()
@@ -127,6 +137,7 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 		VPGranters:                     toVPGranterDtos(p.VPGranters().GetAll()),
 		BonusTags:                      convertBonusTags(p.BonusTags()),
 		ActionCosts:                    mapPlayerActionCosts(p, g, cardRegistry),
+		HasAvailableActions:            hasAvailableActions,
 	}
 }
 
@@ -905,7 +916,7 @@ func mapPlayerMilestones(p *player.Player, g *game.Game, cardRegistry cards.Card
 	if milestoneRegistry == nil {
 		return nil
 	}
-	filteredDefs := filterMilestones(milestoneRegistry.GetAll(), g.SelectedMilestones(), g.Settings())
+	filteredDefs := action.FilterMilestones(milestoneRegistry.GetAll(), g.SelectedMilestones(), g.Settings())
 
 	result := make([]PlayerMilestoneDto, 0, len(filteredDefs))
 	gameMilestones := g.Milestones()
@@ -977,7 +988,7 @@ func mapPlayerAwards(p *player.Player, g *game.Game, awardRegistry awards.AwardR
 	if awardRegistry == nil {
 		return nil
 	}
-	filteredDefs := filterAwards(awardRegistry.GetAll(), g.SelectedAwards(), g.Settings())
+	filteredDefs := action.FilterAwards(awardRegistry.GetAll(), g.SelectedAwards(), g.Settings())
 
 	result := make([]PlayerAwardDto, 0, len(filteredDefs))
 	gameAwards := g.Awards()
@@ -1044,26 +1055,24 @@ func mapPlayerActionCosts(p *player.Player, g *game.Game, cardRegistry cards.Car
 	}
 
 	if g.HasColonies() {
-		tradeDiscounts := calc.CalculateActionDiscounts(p, shared.ActionColonyTrade)
-		tradeCosts := []ActionCostEntryDto{
-			{
-				Resource:      string(shared.ResourceCredit),
-				BaseCost:      9,
-				EffectiveCost: max(9-tradeDiscounts[shared.ResourceCredit], 0),
-				Discount:      tradeDiscounts[shared.ResourceCredit],
-			},
-			{
-				Resource:      string(shared.ResourceEnergy),
-				BaseCost:      3,
-				EffectiveCost: max(3-tradeDiscounts[shared.ResourceEnergy], 0),
-				Discount:      tradeDiscounts[shared.ResourceEnergy],
-			},
-			{
-				Resource:      string(shared.ResourceTitanium),
-				BaseCost:      3,
-				EffectiveCost: max(3-tradeDiscounts[shared.ResourceTitanium], 0),
-				Discount:      tradeDiscounts[shared.ResourceTitanium],
-			},
+		effectiveTradeCosts, _ := action.CalculateEffectiveTradeCosts(p, cardRegistry)
+		tradeBaseCosts := []struct {
+			resource shared.ResourceType
+			baseCost int
+		}{
+			{shared.ResourceCredit, action.TradeCreditsCost},
+			{shared.ResourceEnergy, action.TradeEnergyCost},
+			{shared.ResourceTitanium, action.TradeTitaniumCost},
+		}
+		tradeCosts := make([]ActionCostEntryDto, 0, len(tradeBaseCosts))
+		for _, bc := range tradeBaseCosts {
+			effective := effectiveTradeCosts[string(bc.resource)]
+			tradeCosts = append(tradeCosts, ActionCostEntryDto{
+				Resource:      string(bc.resource),
+				BaseCost:      bc.baseCost,
+				EffectiveCost: effective,
+				Discount:      bc.baseCost - effective,
+			})
 		}
 		result = append(result, ActionCostDto{
 			ActionType: shared.ActionColonyTrade,

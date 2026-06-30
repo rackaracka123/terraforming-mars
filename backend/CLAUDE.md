@@ -317,6 +317,13 @@ DTO structs in `internal/delivery/dto/` generate TypeScript interfaces via `tygo
 - `//tygo:emit <code>` — emits literal TypeScript before a struct (used for union type aliases)
 - `ts:"..."` — **ignored by tygo**, do not use
 
+**ALWAYS run `make format` after `make generate`.** `make generate` runs only
+`tygo generate`, which emits UNFORMATTED `frontend/src/types/generated/api-types.ts`
+(e.g. `int */}` vs the committed `int */ }`, unwrapped long literals). The committed
+file is the post-`make format` version, so a bare `make generate` produces a large
+whitespace-only diff even when no Go DTO changed. Never commit that raw drift —
+`make format`, then verify the remaining diff reflects only your actual DTO change.
+
 ### Behavior Condition System
 
 Card behaviors use a discriminated union pattern. See `internal/game/shared/CLAUDE.md` for the full type system.
