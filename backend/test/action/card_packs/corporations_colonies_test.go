@@ -9,7 +9,9 @@ import (
 	"terraforming-mars-backend/internal/action/admin"
 	"terraforming-mars-backend/internal/action/confirmation"
 	resconvaction "terraforming-mars-backend/internal/action/resource_conversion"
+	turnAction "terraforming-mars-backend/internal/action/turn_management"
 	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/events"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
@@ -878,4 +880,205 @@ func TestStormcraft_StateCalculatorShowsUnaffordableWithoutEnoughFloaters(t *tes
 
 	testutil.AssertTrue(t, len(state.Errors) > 0,
 		"Convert heat should be unaffordable with only 5 heat equivalent")
+}
+
+func TestPoseidon_ForcedColonyDoesNotBlockInitAdvance_Repro568(t *testing.T) {
+	broadcaster := testutil.NewMockBroadcaster()
+	testGame, repo := testutil.CreateTestGameWithPlayers(t, 2, broadcaster)
+	logger := testutil.TestLogger()
+	cardRegistry := testutil.CreateTestCardRegistry()
+	ctx := context.Background()
+
+	colonyDefs, err := colonies.LoadColoniesFromJSON("../../../assets/terraforming_mars_colonies.json")
+	testutil.AssertNoError(t, err, "Failed to load colonies")
+	colonyRegistry := colonies.NewInMemoryColonyRegistry(colonyDefs)
+
+	testGame.UpdateSettings(ctx, shared.GameSettings{
+		MaxPlayers: 4,
+		CardPacks:  []string{"base-game", string(shared.PackColonies)},
+	})
+
+	err = testGame.UpdateStatus(ctx, shared.GameStatusActive)
+	testutil.AssertNoError(t, err, "Failed to set active status")
+	err = testGame.UpdatePhase(ctx, shared.GamePhaseStartingSelection)
+	testutil.AssertNoError(t, err, "Failed to set starting selection phase")
+
+	addColony(testGame, "luna", 1, nil)
+	addColony(testGame, "io", 1, nil)
+	addColony(testGame, "ganymede", 1, nil)
+
+	players := testGame.GetAllPlayers()
+	playerID1, playerID2 := players[0].ID(), players[1].ID()
+	err = testGame.SetTurnOrder(ctx, []string{playerID1, playerID2})
+	testutil.AssertNoError(t, err, "Failed to set turn order")
+
+	for _, p := range players {
+		testutil.SetPlayerCredits(ctx, p, 100)
+	}
+
+	err = testGame.SetSelectCorporationPhase(ctx, playerID1, &shared.SelectCorporationPhase{
+		AvailableCorporations: []string{"B01"},
+	})
+	testutil.AssertNoError(t, err, "Failed to set corp phase for player 1")
+
+	poseidonID := testutil.CardID("Poseidon")
+	err = testGame.SetSelectCorporationPhase(ctx, playerID2, &shared.SelectCorporationPhase{
+		AvailableCorporations: []string{poseidonID},
+	})
+	testutil.AssertNoError(t, err, "Failed to set corp phase for player 2 (Poseidon)")
+
+	deck := testGame.Deck()
+	for _, p := range players {
+		projectCards, drawErr := deck.DrawProjectCards(ctx, 10)
+		testutil.AssertNoError(t, drawErr, "Failed to draw project cards")
+		err = testGame.SetSelectStartingCardsPhase(ctx, p.ID(), &shared.SelectStartingCardsPhase{
+			AvailableCards: projectCards,
+		})
+		testutil.AssertNoError(t, err, "Failed to set starting cards phase")
+	}
+
+	selectAction := turnAction.NewSelectStartingChoicesAction(repo, cardRegistry, nil, logger)
+
+	err = selectAction.Execute(ctx, testGame.ID(), playerID1, "B01", []string{}, []string{})
+	testutil.AssertNoError(t, err, "Player 1 selection")
+
+	err = selectAction.Execute(ctx, testGame.ID(), playerID2, poseidonID, []string{}, []string{})
+	testutil.AssertNoError(t, err, "Player 2 (Poseidon) selection")
+
+	testutil.AssertEqual(t, shared.GamePhaseInitApplyCorp, testGame.CurrentPhase(), "Should be in init_apply_corp")
+
+	confirmAction := turnAction.NewConfirmInitAdvanceAction(repo, cardRegistry, nil, nil, logger)
+	confirmColony := confirmation.NewConfirmColonyPlacementAction(repo, cardRegistry, colonyRegistry, logger)
+
+	err = confirmAction.Execute(ctx, testGame.ID(), playerID1)
+	testutil.AssertNoError(t, err, "Apply player 1 corp")
+
+	err = confirmAction.Execute(ctx, testGame.ID(), playerID1)
+	testutil.AssertNoError(t, err, "Advance to player 2")
+
+	err = confirmAction.Execute(ctx, testGame.ID(), playerID2)
+	testutil.AssertNoError(t, err, "Apply player 2 corp (Poseidon)")
+
+	forcedAction := testGame.GetForcedFirstAction(playerID2)
+	testutil.AssertTrue(t, forcedAction != nil, "Poseidon should have a forced colony placement action")
+	testutil.AssertEqual(t, "colony-placement", forcedAction.ActionType, "Forced action should be colony-placement")
+
+	p2, _ := testGame.GetPlayer(playerID2)
+	colonySelection := p2.Selection().GetPendingColonySelection()
+	testutil.AssertTrue(t, colonySelection != nil, "Poseidon should have a pending colony selection")
+	testutil.AssertTrue(t, len(colonySelection.AvailableColonyIDs) > 0, "Should have placeable colonies")
+
+	err = confirmAction.Execute(ctx, testGame.ID(), playerID2)
+	testutil.AssertError(t, err, "Confirm should be blocked while colony placement is pending")
+
+	err = confirmColony.Execute(ctx, testGame.ID(), playerID2, colonySelection.AvailableColonyIDs[0])
+	testutil.AssertNoError(t, err, "Player 2 should be able to place the forced colony")
+
+	testutil.AssertTrue(t, testGame.GetForcedFirstAction(playerID2) == nil,
+		"Forced colony action should be cleared after placement")
+	testutil.AssertTrue(t, p2.Selection().GetPendingColonySelection() == nil,
+		"Pending colony selection should be cleared after placement")
+
+	testutil.AssertEqual(t, shared.GamePhaseAction, testGame.CurrentPhase(),
+		"Init phase should advance to action phase after Poseidon's forced colony is placed")
+	testutil.AssertTrue(t, testGame.CurrentTurn() != nil, "Current turn should be set after init advance")
+}
+
+func TestPoseidon_ForcedColonyInitAdvance_FourPlayerPrelude_Repro568(t *testing.T) {
+	broadcaster := testutil.NewMockBroadcaster()
+	testGame, repo := testutil.CreateTestGameWithPlayers(t, 4, broadcaster)
+	logger := testutil.TestLogger()
+	cardRegistry := testutil.CreateTestCardRegistry()
+	ctx := context.Background()
+
+	colonyDefs, err := colonies.LoadColoniesFromJSON("../../../assets/terraforming_mars_colonies.json")
+	testutil.AssertNoError(t, err, "Failed to load colonies")
+	colonyRegistry := colonies.NewInMemoryColonyRegistry(colonyDefs)
+
+	testGame.UpdateSettings(ctx, shared.GameSettings{
+		MaxPlayers: 5,
+		CardPacks:  []string{"base-game", "prelude", string(shared.PackColonies)},
+	})
+
+	err = testGame.UpdateStatus(ctx, shared.GameStatusActive)
+	testutil.AssertNoError(t, err, "Failed to set active status")
+	err = testGame.UpdatePhase(ctx, shared.GamePhaseStartingSelection)
+	testutil.AssertNoError(t, err, "Failed to set starting selection phase")
+
+	addColony(testGame, "luna", 1, nil)
+	addColony(testGame, "io", 1, nil)
+	addColony(testGame, "ganymede", 1, nil)
+	addColony(testGame, "europa", 1, nil)
+
+	players := testGame.GetAllPlayers()
+	ids := make([]string, len(players))
+	for i, p := range players {
+		ids[i] = p.ID()
+		testutil.SetPlayerCredits(ctx, p, 100)
+	}
+	err = testGame.SetTurnOrder(ctx, ids)
+	testutil.AssertNoError(t, err, "Failed to set turn order")
+
+	poseidonID := testutil.CardID("Poseidon")
+	corpForPlayer := []string{"B01", poseidonID, "B02", "B03"}
+	preludePool := []string{"P01", "P03", "P04", "P07"}
+
+	deck := testGame.Deck()
+	for i, p := range players {
+		err = testGame.SetSelectCorporationPhase(ctx, p.ID(), &shared.SelectCorporationPhase{
+			AvailableCorporations: []string{corpForPlayer[i]},
+		})
+		testutil.AssertNoError(t, err, "Failed to set corp phase")
+
+		err = testGame.SetSelectPreludeCardsPhase(ctx, p.ID(), &shared.SelectPreludeCardsPhase{
+			AvailablePreludes: preludePool,
+			MaxSelectable:     2,
+		})
+		testutil.AssertNoError(t, err, "Failed to set prelude phase")
+
+		projectCards, drawErr := deck.DrawProjectCards(ctx, 10)
+		testutil.AssertNoError(t, drawErr, "Failed to draw project cards")
+		err = testGame.SetSelectStartingCardsPhase(ctx, p.ID(), &shared.SelectStartingCardsPhase{
+			AvailableCards: projectCards,
+		})
+		testutil.AssertNoError(t, err, "Failed to set starting cards phase")
+	}
+
+	selectAction := turnAction.NewSelectStartingChoicesAction(repo, cardRegistry, nil, logger)
+	for i, p := range players {
+		err = selectAction.Execute(ctx, testGame.ID(), p.ID(), corpForPlayer[i], []string{"P01", "P03"}, []string{})
+		testutil.AssertNoError(t, err, "selection for player "+p.ID())
+	}
+
+	testutil.AssertEqual(t, shared.GamePhaseInitApplyCorp, testGame.CurrentPhase(), "Should be in init_apply_corp")
+
+	confirmAction := turnAction.NewConfirmInitAdvanceAction(repo, cardRegistry, nil, nil, logger)
+	confirmColony := confirmation.NewConfirmColonyPlacementAction(repo, cardRegistry, colonyRegistry, logger)
+
+	turnOrder := testGame.TurnOrder()
+	for _, pid := range turnOrder {
+		err = confirmAction.Execute(ctx, testGame.ID(), pid)
+		testutil.AssertNoError(t, err, "apply corp for "+pid)
+
+		if sel := players[indexOf(ids, pid)].Selection().GetPendingColonySelection(); sel != nil {
+			err = confirmColony.Execute(ctx, testGame.ID(), pid, sel.AvailableColonyIDs[0])
+			testutil.AssertNoError(t, err, "place forced colony for "+pid)
+			continue
+		}
+
+		err = confirmAction.Execute(ctx, testGame.ID(), pid)
+		testutil.AssertNoError(t, err, "advance past "+pid)
+	}
+
+	testutil.AssertEqual(t, shared.GamePhaseInitApplyPrelude, testGame.CurrentPhase(),
+		"After all corps applied, should advance to init_apply_prelude (NOT stuck in init_apply_corp)")
+}
+
+func indexOf(ss []string, s string) int {
+	for i, v := range ss {
+		if v == s {
+			return i
+		}
+	}
+	return -1
 }
