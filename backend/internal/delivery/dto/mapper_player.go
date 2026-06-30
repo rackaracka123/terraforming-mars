@@ -1044,26 +1044,24 @@ func mapPlayerActionCosts(p *player.Player, g *game.Game, cardRegistry cards.Car
 	}
 
 	if g.HasColonies() {
-		tradeDiscounts := calc.CalculateActionDiscounts(p, shared.ActionColonyTrade)
-		tradeCosts := []ActionCostEntryDto{
-			{
-				Resource:      string(shared.ResourceCredit),
-				BaseCost:      9,
-				EffectiveCost: max(9-tradeDiscounts[shared.ResourceCredit], 0),
-				Discount:      tradeDiscounts[shared.ResourceCredit],
-			},
-			{
-				Resource:      string(shared.ResourceEnergy),
-				BaseCost:      3,
-				EffectiveCost: max(3-tradeDiscounts[shared.ResourceEnergy], 0),
-				Discount:      tradeDiscounts[shared.ResourceEnergy],
-			},
-			{
-				Resource:      string(shared.ResourceTitanium),
-				BaseCost:      3,
-				EffectiveCost: max(3-tradeDiscounts[shared.ResourceTitanium], 0),
-				Discount:      tradeDiscounts[shared.ResourceTitanium],
-			},
+		effectiveTradeCosts, _ := action.CalculateEffectiveTradeCosts(p, cardRegistry)
+		tradeBaseCosts := []struct {
+			resource shared.ResourceType
+			baseCost int
+		}{
+			{shared.ResourceCredit, action.TradeCreditsCost},
+			{shared.ResourceEnergy, action.TradeEnergyCost},
+			{shared.ResourceTitanium, action.TradeTitaniumCost},
+		}
+		tradeCosts := make([]ActionCostEntryDto, 0, len(tradeBaseCosts))
+		for _, bc := range tradeBaseCosts {
+			effective := effectiveTradeCosts[string(bc.resource)]
+			tradeCosts = append(tradeCosts, ActionCostEntryDto{
+				Resource:      string(bc.resource),
+				BaseCost:      bc.baseCost,
+				EffectiveCost: effective,
+				Discount:      bc.baseCost - effective,
+			})
 		}
 		result = append(result, ActionCostDto{
 			ActionType: shared.ActionColonyTrade,
