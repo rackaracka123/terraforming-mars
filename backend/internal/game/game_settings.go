@@ -11,4 +11,7 @@ const (
 	DefaultOxygen      = global_parameters.MinOxygen      // 0%
 	DefaultOceans      = global_parameters.MinOceans      // 0
 	DefaultVenus       = global_parameters.MinVenus       // 0%
+
+	// MaxPlayerNameLength is the maximum number of runes allowed in a player name.
+	MaxPlayerNameLength = 45
 )

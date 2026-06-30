@@ -2,6 +2,7 @@ package game_lifecycle_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	gameAction "terraforming-mars-backend/internal/action/game"
@@ -141,6 +142,55 @@ func TestJoinGameAction_MaxPlayersReached(t *testing.T) {
 
 	// Assert
 	testutil.AssertError(t, err, "Should not allow joining when max players reached")
+}
+
+func TestJoinGameAction_MaxPlayerNameLengthConst(t *testing.T) {
+	testutil.AssertEqual(t, 45, game.MaxPlayerNameLength, "MaxPlayerNameLength should be 45")
+}
+
+func TestJoinGameAction_RejectsOverLengthName(t *testing.T) {
+	// Setup
+	broadcaster := testutil.NewMockBroadcaster()
+	testGame, repo := testutil.CreateTestGameWithPlayers(t, 0, broadcaster)
+	cardRegistry := testutil.CreateTestCardRegistry()
+	logger := testutil.TestLogger()
+
+	joinAction := gameAction.NewJoinGameAction(repo, cardRegistry, logger)
+
+	// Execute with a 46-rune name (one over the cap)
+	name := strings.Repeat("a", 46)
+	playerID := uuid.New().String()
+	_, err := joinAction.Execute(context.Background(), testGame.ID(), name, playerID)
+
+	// Assert - rejected loudly, no player added
+	testutil.AssertError(t, err, "Should reject name longer than the cap")
+
+	fetchedGame, _ := repo.Get(context.Background(), testGame.ID())
+	players := fetchedGame.GetAllPlayers()
+	testutil.AssertEqual(t, 0, len(players), "Should not add a player with an over-length name")
+}
+
+func TestJoinGameAction_AcceptsMaxLengthName(t *testing.T) {
+	// Setup
+	broadcaster := testutil.NewMockBroadcaster()
+	testGame, repo := testutil.CreateTestGameWithPlayers(t, 0, broadcaster)
+	cardRegistry := testutil.CreateTestCardRegistry()
+	logger := testutil.TestLogger()
+
+	joinAction := gameAction.NewJoinGameAction(repo, cardRegistry, logger)
+
+	// Execute with a name of exactly the maximum length
+	name := strings.Repeat("a", 45)
+	playerID := uuid.New().String()
+	_, err := joinAction.Execute(context.Background(), testGame.ID(), name, playerID)
+
+	// Assert - accepted, player added
+	testutil.AssertNoError(t, err, "Should accept name of exactly the maximum length")
+
+	fetchedGame, _ := repo.Get(context.Background(), testGame.ID())
+	players := fetchedGame.GetAllPlayers()
+	testutil.AssertEqual(t, 1, len(players), "Should add a player with a max-length name")
+	testutil.AssertEqual(t, name, players[0].Name(), "Player name should match")
 }
 
 func TestJoinGameAction_SetHostForFirstPlayer(t *testing.T) {

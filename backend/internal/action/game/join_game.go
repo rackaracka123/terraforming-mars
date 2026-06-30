@@ -3,6 +3,8 @@ package game
 import (
 	"context"
 	"fmt"
+	"unicode/utf8"
+
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
@@ -83,7 +85,14 @@ func (a *JoinGameAction) Execute(
 		}, nil
 	}
 
-	// 3. Validate game is in lobby status (only for new joins)
+	// 3. Validate player name length (only for new joins)
+	if utf8.RuneCountInString(playerName) > game.MaxPlayerNameLength {
+		log.Warn("Player name exceeds maximum length",
+			zap.Int("max_length", game.MaxPlayerNameLength))
+		return nil, fmt.Errorf("player name exceeds maximum length of %d characters", game.MaxPlayerNameLength)
+	}
+
+	// 4. Validate game is in lobby status (only for new joins)
 	if g.Status() != shared.GameStatusLobby {
 		log.Warn("Game is not in lobby", zap.String("status", string(g.Status())))
 		return nil, fmt.Errorf("game is not in lobby: %s", g.Status())
