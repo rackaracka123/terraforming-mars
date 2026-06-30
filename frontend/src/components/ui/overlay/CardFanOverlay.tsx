@@ -12,9 +12,18 @@ import { Z_INDEX } from "@/constants/zIndex.ts";
 import BlurredOverlay from "./BlurredOverlay.tsx";
 import { PlayerCardDto } from "@/types/generated/api-types.ts";
 import { useSoundEffects } from "@/hooks/useSoundEffects.ts";
+import { useCardDragStore } from "@/stores/cardDragStore.ts";
+import { isTilePlacement } from "@/types/resourceConditions.ts";
 
 function clamp(n: number, min: number, max: number): number {
   return Math.min(Math.max(n, min), max);
+}
+
+function isTilePlacementCard(card: PlayerCardDto): boolean {
+  if (card.available !== true) {
+    return false;
+  }
+  return (card.behaviors ?? []).some((b) => (b.outputs ?? []).some(isTilePlacement));
 }
 
 // --- Fan layout constants ---
@@ -110,8 +119,12 @@ const CardFanOverlay = forwardRef<CardFanOverlayHandle, CardFanOverlayProps>(
     const dragIntentRef = useRef(false);
     const capturedCardRef = useRef<HTMLDivElement | null>(null);
     const lastPointerXRef = useRef(0);
+    const draggingTileCardRef = useRef(false);
 
     const { playCardHoverSound } = useSoundEffects();
+    const startTileCardDrag = useCardDragStore((s) => s.startTileCardDrag);
+    const updatePointer = useCardDragStore((s) => s.updatePointer);
+    const endTileCardDrag = useCardDragStore((s) => s.endTileCardDrag);
 
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     const [windowHeight, setWindowHeight] = useState(window.innerHeight);
@@ -393,9 +406,18 @@ const CardFanOverlay = forwardRef<CardFanOverlayHandle, CardFanOverlayProps>(
 
         if (!dragIntentRef.current && movedDist > DRAG_THRESHOLD) {
           dragIntentRef.current = true;
+          const cardData = cardsRef.current.find((c) => c.id === draggedCard);
+          if (cardData && isTilePlacementCard(cardData)) {
+            draggingTileCardRef.current = true;
+            startTileCardDrag({ x: e.clientX, y: e.clientY });
+          }
         }
 
         if (!dragIntentRef.current) return;
+
+        if (draggingTileCardRef.current) {
+          updatePointer({ x: e.clientX, y: e.clientY });
+        }
 
         lastPointerXRef.current = e.clientX;
         setDragPosition({ x: e.clientX, y: e.clientY });
@@ -406,7 +428,7 @@ const CardFanOverlay = forwardRef<CardFanOverlayHandle, CardFanOverlayProps>(
         const isUpward = deltaY < THROW_Y_THRESHOLD;
         setIsInThrowZone(throwDist > THROW_DISTANCE_THRESHOLD && isUpward);
       },
-      [draggedCard, dragStartPosition, tryReorder],
+      [draggedCard, dragStartPosition, tryReorder, startTileCardDrag, updatePointer],
     );
 
     const handlePointerUp = useCallback(
@@ -421,6 +443,11 @@ const CardFanOverlay = forwardRef<CardFanOverlayHandle, CardFanOverlayProps>(
 
         const wasDrag = dragIntentRef.current;
         dragIntentRef.current = false;
+
+        if (draggingTileCardRef.current) {
+          draggingTileCardRef.current = false;
+          endTileCardDrag();
+        }
 
         if (!wasDrag) {
           // This was a click, not a drag
@@ -506,8 +533,18 @@ const CardFanOverlay = forwardRef<CardFanOverlayHandle, CardFanOverlayProps>(
         onPlayCard,
         onCardSelect,
         playCardHoverSound,
+        endTileCardDrag,
       ],
     );
+
+    useEffect(() => {
+      return () => {
+        if (draggingTileCardRef.current) {
+          draggingTileCardRef.current = false;
+          endTileCardDrag();
+        }
+      };
+    }, [endTileCardDrag]);
 
     // --- Click outside to deselect ---
     useEffect(() => {
