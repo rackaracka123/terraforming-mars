@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"terraforming-mars-backend/internal/action"
+	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
@@ -68,8 +69,10 @@ func setupStuckPlayer(t *testing.T) (*game.Game, *player.Player, cards.CardRegis
 	settings := shared.GameSettings{
 		MaxPlayers:      5,
 		DevelopmentMode: true,
+		CardPacks:       []string{shared.PackBaseGame},
 		// Colonies and Venus left disabled: no colony-trade action surface exists,
-		// matching a default base game.
+		// matching a default base game. Base game IS enabled so the base-game standard
+		// projects (PowerPlant, etc.) are real surfaces, exactly as in a live game.
 	}
 	ds, err := datastore.NewDataStore()
 	if err != nil {
@@ -346,6 +349,71 @@ func TestHasAvailableActions_TrueViaColonyTrade(t *testing.T) {
 
 	if !action.HasAvailableActions(g, p, cardRegistry, stdProjRegistry, milestoneRegistry, awardRegistry) {
 		t.Fatalf("expected HasAvailableActions to be TRUE via the colony-trade surface")
+	}
+}
+
+// TestHasAvailableActions_IgnoresUnselectedMilestone is the regression guard for the
+// milestone/award selection bug: every game exposes only the selected subset of
+// milestones (start_game selects 5 of the full set), and the per-milestone calculator
+// does NOT itself check selection. A player who qualifies for and can afford a milestone
+// that is NOT in the selected set must therefore still be reported as stuck -- the
+// aggregator must filter by selection exactly like the DTO mapper does, otherwise the
+// #571 indicator shows "actions available" while the UI shows no claimable milestone.
+func TestHasAvailableActions_IgnoresUnselectedMilestone(t *testing.T) {
+	g, p, cardRegistry := setupStuckPlayer(t)
+	stdProjRegistry := loadStandardProjectRegistry571(t)
+	milestoneRegistry := testutil.CreateTestMilestoneRegistry()
+	awardRegistry := testutil.CreateTestAwardRegistry()
+
+	// Awards have no qualification requirement -- funding one only needs credits -- so a
+	// player with credits could always fund an award. To isolate the milestone surface,
+	// fund the maximum number of awards up front, closing the award surface entirely.
+	closeAwardSurface(t, g, awardRegistry)
+
+	// Make the Terraformer milestone genuinely claimable: TR >= 35 satisfies the
+	// requirement, and 8 credits covers the claim cost. The per-milestone calculator
+	// will now report it as Available. Energy is set just below the PowerPlant cost so
+	// no standard project is affordable either.
+	p.Resources().SetTerraformRating(35)
+	p.Resources().Set(shared.Resources{Credits: 8})
+
+	// Sanity: the milestone really is available at the per-entity level.
+	if !action.CalculateMilestoneState(shared.MilestoneType("terraformer"), p, g, cardRegistry, milestoneRegistry).Available() {
+		t.Fatalf("precondition: Terraformer should be claimable with TR 35 and 8 credits")
+	}
+
+	// Selection EXCLUDES Terraformer. The player can claim it at the calculator level,
+	// but it is not in play this game, so the aggregator must still report stuck.
+	g.SetSelectedMilestones([]string{"mayor", "gardener", "builder", "planner", "tactician"})
+
+	if action.HasAvailableActions(g, p, cardRegistry, stdProjRegistry, milestoneRegistry, awardRegistry) {
+		t.Fatalf("expected HasAvailableActions to be FALSE: Terraformer is claimable but NOT selected for this game")
+	}
+
+	// Now select Terraformer: the same claimable milestone becomes a real action surface,
+	// and the aggregator must flip to true.
+	g.SetSelectedMilestones([]string{"terraformer", "mayor", "gardener", "builder", "planner"})
+
+	if !action.HasAvailableActions(g, p, cardRegistry, stdProjRegistry, milestoneRegistry, awardRegistry) {
+		t.Fatalf("expected HasAvailableActions to be TRUE once Terraformer is in the selected set")
+	}
+}
+
+// closeAwardSurface funds the maximum number of awards so the award action surface is
+// unavailable regardless of the player's credits, letting a test isolate other surfaces.
+func closeAwardSurface(t *testing.T, g *game.Game, awardRegistry awards.AwardRegistry) {
+	t.Helper()
+	ctx := context.Background()
+	defs := awardRegistry.GetAll()
+	if len(defs) < game.MaxFundedAwards {
+		t.Fatalf("award registry has fewer than %d awards", game.MaxFundedAwards)
+	}
+	for i := 0; i < game.MaxFundedAwards; i++ {
+		def := defs[i]
+		cost := def.GetCostForFundedCount(g.Awards().FundedCount())
+		if err := g.Awards().FundAward(ctx, shared.AwardType(def.ID), "filler-player", cost); err != nil {
+			t.Fatalf("failed to fund award %s: %v", def.ID, err)
+		}
 	}
 }
 

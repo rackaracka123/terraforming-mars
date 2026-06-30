@@ -81,3 +81,27 @@ Notes on the corp/prelude application phase (`GamePhaseInitApplyCorp`,
   (2) `g.HasAnyPendingSelection` does NOT cover `ForcedFirstAction` (stored at the
   Game level, gated on `!Completed`) — both must be checked separately to treat
   pending/forced as "not stuck".
+- 2026-06-30: #571 c2 SELECTION-FILTER GOTCHA (recurred in review). The
+  milestone/award action surfaces are NOT just "every definition the calculator
+  says is claimable". Every game exposes only the SELECTED subset
+  (`g.SelectedMilestones()` / `g.SelectedAwards()`, 5 of 16 milestones), and
+  `CalculateMilestoneState` / `CalculateAwardState` do NOT check selection
+  themselves. The DTO mapper filters via `filterMilestones` / `filterAwards`
+  BEFORE calling the calculators, so the aggregator MUST filter identically or it
+  reports false "actions available" (e.g. `generalist` has no requirement, so any
+  player with 8 credits "can claim" it; awards need only credits, no
+  qualification). Fix: extracted the filter into the cycle-free `package action`
+  as exported `FilterMilestones` / `FilterAwards`; both the aggregator and the DTO
+  mapper now call the SAME function (single source of truth, cannot diverge). The
+  old per-package `filterMilestones`/`filterAwards` in `dto` were deleted.
+  DETERMINISTIC GUARD: `TestHasAvailableActions_IgnoresUnselectedMilestone`
+  asserts a claimable-but-unselected `terraformer` keeps `HasAvailableActions`
+  false, then flips true once selected.
+- 2026-06-30: #571 c2 TEST-SETUP GOTCHA. Standard projects carry
+  `pack == "base-game"`, and the pack filter (`def.Pack != "" &&
+  !enabledPacks[def.Pack]`) drops them unless `CardPacks` includes `base-game`.
+  `EnabledPacks()` does NOT implicitly add base-game. A test game built with empty
+  `CardPacks` therefore has NO standard-project surface — an earlier repro test
+  only "passed" because the unfiltered milestone surface false-positived on
+  `generalist`. Real games always set `CardPacks: ["base-game"]`; the repro
+  fixture now does too, so PowerPlant is a genuine surface.

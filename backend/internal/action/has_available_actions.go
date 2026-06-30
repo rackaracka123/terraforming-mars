@@ -4,6 +4,8 @@ import (
 	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/award"
+	"terraforming-mars-backend/internal/game/milestone"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/milestones"
@@ -66,7 +68,7 @@ func HasAvailableActions(
 		return true
 	}
 
-	for _, def := range milestoneRegistry.GetAll() {
+	for _, def := range FilterMilestones(milestoneRegistry.GetAll(), g.SelectedMilestones(), g.Settings()) {
 		state := CalculateMilestoneState(
 			shared.MilestoneType(def.ID), p, g, cardRegistry, milestoneRegistry,
 		)
@@ -75,7 +77,7 @@ func HasAvailableActions(
 		}
 	}
 
-	for _, def := range awardRegistry.GetAll() {
+	for _, def := range FilterAwards(awardRegistry.GetAll(), g.SelectedAwards(), g.Settings()) {
 		if CalculateAwardState(shared.AwardType(def.ID), p, g, awardRegistry).Available() {
 			return true
 		}
@@ -100,14 +102,7 @@ func hasAvailableStandardProject(
 	cardRegistry cards.CardRegistry,
 	stdProjRegistry standardprojects.StandardProjectRegistry,
 ) bool {
-	settings := g.Settings()
-	enabledPacks := make(map[string]bool, len(settings.CardPacks))
-	for _, pack := range settings.CardPacks {
-		enabledPacks[pack] = true
-	}
-	if settings.VenusNextEnabled {
-		enabledPacks[shared.PackVenus] = true
-	}
+	enabledPacks := g.Settings().EnabledPacks()
 
 	for _, def := range stdProjRegistry.GetAll() {
 		if def.Pack != "" && !enabledPacks[def.Pack] {
@@ -125,4 +120,62 @@ func hasAvailableStandardProject(
 	}
 
 	return false
+}
+
+// FilterMilestones reduces the full milestone definition set to the ones actually
+// in play this game: the explicitly selected set when one exists, otherwise every
+// definition whose pack is enabled. It is the single source of truth for "which
+// milestones does this game expose", shared by the DTO mapper and the
+// HasAvailableActions aggregator so the two can never diverge.
+func FilterMilestones(allDefs []milestone.MilestoneDefinition, selectedIDs []string, settings shared.GameSettings) []milestone.MilestoneDefinition {
+	if len(selectedIDs) > 0 {
+		selectedSet := make(map[string]bool, len(selectedIDs))
+		for _, id := range selectedIDs {
+			selectedSet[id] = true
+		}
+		filtered := make([]milestone.MilestoneDefinition, 0, len(selectedIDs))
+		for _, def := range allDefs {
+			if selectedSet[def.ID] {
+				filtered = append(filtered, def)
+			}
+		}
+		return filtered
+	}
+	enabledPacks := settings.EnabledPacks()
+	var filtered []milestone.MilestoneDefinition
+	for _, def := range allDefs {
+		if def.Pack != "" && !enabledPacks[def.Pack] {
+			continue
+		}
+		filtered = append(filtered, def)
+	}
+	return filtered
+}
+
+// FilterAwards reduces the full award definition set to the ones actually in play
+// this game, mirroring FilterMilestones. It is shared by the DTO mapper and the
+// HasAvailableActions aggregator so the two can never diverge.
+func FilterAwards(allDefs []award.AwardDefinition, selectedIDs []string, settings shared.GameSettings) []award.AwardDefinition {
+	if len(selectedIDs) > 0 {
+		selectedSet := make(map[string]bool, len(selectedIDs))
+		for _, id := range selectedIDs {
+			selectedSet[id] = true
+		}
+		filtered := make([]award.AwardDefinition, 0, len(selectedIDs))
+		for _, def := range allDefs {
+			if selectedSet[def.ID] {
+				filtered = append(filtered, def)
+			}
+		}
+		return filtered
+	}
+	enabledPacks := settings.EnabledPacks()
+	var filtered []award.AwardDefinition
+	for _, def := range allDefs {
+		if def.Pack != "" && !enabledPacks[def.Pack] {
+			continue
+		}
+		filtered = append(filtered, def)
+	}
+	return filtered
 }

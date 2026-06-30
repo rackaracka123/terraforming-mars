@@ -905,7 +905,7 @@ func mapPlayerMilestones(p *player.Player, g *game.Game, cardRegistry cards.Card
 	if milestoneRegistry == nil {
 		return nil
 	}
-	filteredDefs := filterMilestones(milestoneRegistry.GetAll(), g.SelectedMilestones(), g.Settings())
+	filteredDefs := action.FilterMilestones(milestoneRegistry.GetAll(), g.SelectedMilestones(), g.Settings())
 
 	result := make([]PlayerMilestoneDto, 0, len(filteredDefs))
 	gameMilestones := g.Milestones()
@@ -977,7 +977,7 @@ func mapPlayerAwards(p *player.Player, g *game.Game, awardRegistry awards.AwardR
 	if awardRegistry == nil {
 		return nil
 	}
-	filteredDefs := filterAwards(awardRegistry.GetAll(), g.SelectedAwards(), g.Settings())
+	filteredDefs := action.FilterAwards(awardRegistry.GetAll(), g.SelectedAwards(), g.Settings())
 
 	result := make([]PlayerAwardDto, 0, len(filteredDefs))
 	gameAwards := g.Awards()
