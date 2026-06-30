@@ -85,12 +85,6 @@ func (a *ConfirmInitAdvanceAction) Execute(ctx context.Context, gameID string, p
 		return fmt.Errorf("current player has incomplete forced first action")
 	}
 
-	if err := g.SetInitPhaseWaitingForConfirm(ctx, false); err != nil {
-		return fmt.Errorf("failed to clear waiting for confirm: %w", err)
-	}
-
-	allPlayers := g.GetAllPlayers()
-
 	// Check if the current player's effects have already been applied.
 	choices := g.GetDeferredStartingChoices(currentPlayerID)
 	needsApply := false
@@ -104,10 +98,64 @@ func (a *ConfirmInitAdvanceAction) Execute(ctx context.Context, gameID string, p
 	}
 
 	if needsApply {
+		if err := g.SetInitPhaseWaitingForConfirm(ctx, false); err != nil {
+			return fmt.Errorf("failed to clear waiting for confirm: %w", err)
+		}
 		return a.applyCurrentPlayer(ctx, g, phase, currentPlayerID, log)
 	}
 
-	return a.advanceToNextPlayer(ctx, g, phase, currentIndex, turnOrder, allPlayers, log)
+	if _, err := AdvanceInitPhaseAfterForcedAction(ctx, g, log); err != nil {
+		return err
+	}
+	return nil
+}
+
+// AdvanceInitPhaseAfterForcedAction advances the init phase to the next player when the
+// current init player's effects have already been applied and all per-player gates are
+// satisfied. It is the single source of truth for the already-applied advance path,
+// shared between the confirm flow and backend auto-advance after a forced action.
+//
+// It returns (true, nil) when it cleared the waiting-for-confirm flag and advanced.
+// It returns (false, nil) without mutating state when advancement is not applicable:
+// when the phase is not an init-apply phase, when not waiting for confirm, when the
+// init player index is out of range, or when the current init player still has a pending
+// selection, a pending tile queue, or an incomplete forced first action.
+func AdvanceInitPhaseAfterForcedAction(ctx context.Context, g *game.Game, log *zap.Logger) (bool, error) {
+	phase := g.CurrentPhase()
+	if phase != shared.GamePhaseInitApplyCorp && phase != shared.GamePhaseInitApplyPrelude {
+		return false, nil
+	}
+
+	if !g.InitPhaseWaitingForConfirm() {
+		return false, nil
+	}
+
+	turnOrder := g.TurnOrder()
+	currentIndex := g.InitPhasePlayerIndex()
+	if currentIndex >= len(turnOrder) {
+		return false, nil
+	}
+
+	currentPlayerID := turnOrder[currentIndex]
+
+	if g.HasAnyPendingSelection(currentPlayerID) {
+		return false, nil
+	}
+	if g.GetPendingTileSelectionQueue(currentPlayerID) != nil {
+		return false, nil
+	}
+	if fa := g.GetForcedFirstAction(currentPlayerID); fa != nil && !fa.Completed {
+		return false, nil
+	}
+
+	if err := g.SetInitPhaseWaitingForConfirm(ctx, false); err != nil {
+		return false, fmt.Errorf("failed to clear waiting for confirm: %w", err)
+	}
+
+	if err := advanceToNextPlayer(ctx, g, phase, currentIndex, turnOrder, g.GetAllPlayers(), log); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (a *ConfirmInitAdvanceAction) applyCurrentPlayer(ctx context.Context, g *game.Game, phase shared.GamePhase, currentPlayerID string, log *zap.Logger) error {
@@ -132,7 +180,7 @@ func (a *ConfirmInitAdvanceAction) applyCurrentPlayer(ctx context.Context, g *ga
 	return nil
 }
 
-func (a *ConfirmInitAdvanceAction) advanceToNextPlayer(ctx context.Context, g *game.Game, phase shared.GamePhase, currentIndex int, turnOrder []string, allPlayers []*player.Player, log *zap.Logger) error {
+func advanceToNextPlayer(ctx context.Context, g *game.Game, phase shared.GamePhase, currentIndex int, turnOrder []string, allPlayers []*player.Player, log *zap.Logger) error {
 	nextPlayerID := findNextActivePlayer(g, turnOrder, currentIndex+1)
 
 	if nextPlayerID != "" {
