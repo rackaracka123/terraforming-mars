@@ -115,3 +115,14 @@ Notes on the corp/prelude application phase (`GamePhaseInitApplyCorp`,
   with "do not open a PR" cannot turn CI green by itself — that is expected, not a
   failure. Local `make` (build + go test ./test/... + format-check + lint +
   typecheck) is the authoritative pre-PR gate in this situation.
+- 2026-06-30: GENERATE-NON-IDEMPOTENCE GOTCHA. `make generate` runs ONLY
+  `tygo generate`, whose `frontend/src/types/generated/api-types.ts` output is
+  UNFORMATTED (e.g. `int */}` not `int */ }`, and long literals on one line). The
+  committed file is the POST-`make format` (prettier/oxlint) version, so a bare
+  `make generate` always shows a large whitespace-only diff vs the committed file
+  even when the Go DTOs are unchanged. Do NOT commit that raw drift: after
+  `make generate`, run `make format` (or just verify the only diff is whitespace
+  and `git checkout` the file if the DTO content is identical). Concretely on this
+  run, `hasAvailableActions?: boolean;` was already present and content-correct;
+  the 163-line diff was pure formatting and was reverted. ENFORCED-BY: rule line
+  added to backend/CLAUDE.md "Go to TypeScript" section.
