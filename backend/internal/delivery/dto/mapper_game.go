@@ -32,6 +32,7 @@ type Registries struct {
 	StandardProjectRegistry standardprojects.StandardProjectRegistry
 	AwardRegistry           awards.AwardRegistry
 	MilestoneRegistry       milestones.MilestoneRegistry
+	AvailableMaps           []MapInfoDto
 }
 
 func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string, colonyRegistry ...colonies.ColonyRegistry) GameDto {
@@ -76,13 +77,16 @@ func ToGameDtoFull(g *game.Game, cardRegistry cards.CardRegistry, playerID strin
 	settings := g.Settings()
 	settingsDto := GameSettingsDto{
 		MaxPlayers:            settings.MaxPlayers,
+		MapID:                 settings.MapID,
 		VenusNextEnabled:      settings.VenusNextEnabled,
 		DevelopmentMode:       settings.DevelopmentMode,
 		DemoGame:              settings.DemoGame,
+		AllowRandomBuy:        settings.AllowRandomBuy,
 		CardPacks:             settings.CardPacks,
 		HasClaudeAPIKey:       settings.ClaudeAPIKey != "",
 		ClaudeModel:           settings.ClaudeModel,
 		AvailablePlayerColors: shared.PlayerColors,
+		AvailableMaps:         registries.AvailableMaps,
 		Temperature:           settings.Temperature,
 		Oxygen:                settings.Oxygen,
 		Oceans:                settings.Oceans,

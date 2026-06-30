@@ -860,17 +860,40 @@ export interface ProductionPhaseOtherPlayerDto {
  */
 export interface GameSettingsDto {
   maxPlayers: number /* int */;
+  mapId: string;
   venusNextEnabled: boolean;
   developmentMode: boolean;
   demoGame: boolean;
+  allowRandomBuy: boolean;
   cardPacks?: string[];
   hasClaudeApiKey: boolean;
   claudeModel?: string;
   availablePlayerColors: string[];
+  availableMaps: MapInfoDto[];
   temperature?: number /* int */;
   oxygen?: number /* int */;
   oceans?: number /* int */;
   generation?: number /* int */;
+}
+/**
+ * MapInfoDto contains basic map info for the frontend
+ */
+export interface MapInfoDto {
+  id: string;
+  name: string;
+  description: string;
+  tiles: MapPreviewTile[];
+}
+/**
+ * MapPreviewTile contains minimal tile data for map preview
+ */
+export interface MapPreviewTile {
+  q: number /* int */;
+  r: number /* int */;
+  s: number /* int */;
+  type: string;
+  volcanic?: boolean;
+  tags?: string[];
 }
 /**
  * PendingDemoChoicesDto contains a player's demo lobby card selections
@@ -1793,17 +1816,27 @@ export interface GetGameHistoryResponse {
 // source: http_dto.go
 
 /**
- * CreateGameRequest represents the request body for creating a game
+ * CreateGameRequest represents the request body for creating a game.
+ * All fields are optional — defaults are applied server-side and settings are
+ * edited from the lobby via UpdateGameSettingsRequest.
  */
 export interface CreateGameRequest {
-  maxPlayers: number /* int */;
-  venusNextEnabled: boolean;
-  developmentMode: boolean;
-  demoGame: boolean;
+  playerName?: string;
+}
+/**
+ * UpdateGameSettingsRequest represents a partial settings update sent from the
+ * lobby. Pointer fields distinguish "leave alone" from "set to zero value".
+ */
+export interface UpdateGameSettingsRequest {
+  maxPlayers?: number /* int */;
+  mapId?: string;
+  venusNextEnabled?: boolean;
+  developmentMode?: boolean;
+  demoGame?: boolean;
+  allowRandomBuy?: boolean;
   cardPacks?: string[];
   claudeApiKey?: string;
-  selectedMilestones?: string[];
-  selectedAwards?: string[];
+  claudeModel?: string;
 }
 /**
  * CreateGameResponse represents the response for creating a game
@@ -1921,6 +1954,7 @@ export interface Registries {
   StandardProjectRegistry: any /* standardprojects.StandardProjectRegistry */;
   AwardRegistry: any /* awards.AwardRegistry */;
   MilestoneRegistry: any /* milestones.MilestoneRegistry */;
+  AvailableMaps: MapInfoDto[];
 }
 
 //////////
@@ -1998,6 +2032,7 @@ export const MessageTypePlayerKicked: MessageType = "player-kicked";
 export const MessageTypeConvertToBot: MessageType = "convert-to-bot";
 export const MessageTypeEndGame: MessageType = "end-game";
 export const MessageTypeGameEnded: MessageType = "game-ended";
+export const MessageTypeUpdateGameSettings: MessageType = "update-game-settings";
 export const MessageTypeSetPlayerColor: MessageType = "set-player-color";
 export const MessageTypeSpectatorConnect: MessageType = "spectator-connect";
 export const MessageTypeSpectatorConnected: MessageType = "spectator-connected";

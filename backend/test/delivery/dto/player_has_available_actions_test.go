@@ -9,6 +9,7 @@ import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/board"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/datastore"
 	"terraforming-mars-backend/internal/game/player"
@@ -45,7 +46,7 @@ func setupStuckPlayerGame(t *testing.T) (*game.Game, *player.Player, cards.CardR
 	if err != nil {
 		t.Fatalf("Failed to create datastore: %v", err)
 	}
-	g := game.NewGame(ds, "dto-571-game", "player1", settings)
+	g := game.NewGame(ds, "dto-571-game", "player1", settings, board.GenerateMarsBoard(false))
 
 	ctx := context.Background()
 	p, err := g.AddNewPlayer(ctx, "player1", "Stuck Player")

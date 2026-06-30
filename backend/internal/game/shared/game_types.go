@@ -32,6 +32,7 @@ const (
 // GameSettings contains configurable game parameters
 type GameSettings struct {
 	MaxPlayers         int
+	MapID              string
 	Temperature        *int
 	Oxygen             *int
 	Oceans             *int
@@ -39,6 +40,7 @@ type GameSettings struct {
 	VenusNextEnabled   bool
 	DevelopmentMode    bool
 	DemoGame           bool
+	AllowRandomBuy     bool
 	CardPacks          []string
 	Generation         *int
 	ClaudeAPIKey       string
@@ -50,7 +52,6 @@ type GameSettings struct {
 // Card pack constants
 const (
 	PackBaseGame       = "base-game"
-	PackFuture         = "future"
 	PackPrelude        = "prelude"
 	PackVenus          = "venus-next"
 	PackExperimental   = "experimental"

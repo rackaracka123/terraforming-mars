@@ -42,6 +42,7 @@ func RegisterHandlers(
 	joinGameAction *gameAction.JoinGameAction,
 	addBotAction *gameAction.AddBotAction,
 	selectDemoChoicesAction *gameAction.SelectDemoChoicesAction,
+	updateGameSettingsAction *gameAction.UpdateGameSettingsAction,
 	playCardAction *cardAction.PlayCardAction,
 	useCardActionAction *cardAction.UseCardActionAction,
 	executeStandardProjectAction *stdprojAction.ExecuteStandardProjectAction,
@@ -102,6 +103,9 @@ func RegisterHandlers(
 
 	selectDemoChoicesHandler := game.NewSelectDemoChoicesHandler(selectDemoChoicesAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionSelectDemoChoices, selectDemoChoicesHandler)
+
+	updateGameSettingsHandler := game.NewUpdateGameSettingsHandler(updateGameSettingsAction, broadcaster)
+	hub.RegisterHandler(dto.MessageTypeUpdateGameSettings, updateGameSettingsHandler)
 
 	playCardHandler := card.NewPlayCardHandler(playCardAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionPlayCard, playCardHandler)
