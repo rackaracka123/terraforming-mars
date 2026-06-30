@@ -1252,6 +1252,13 @@ export interface PlayerDto {
   vpGranters: VPGranterDto[];
   bonusTags: { [key: string]: number /* int */ };
   actionCosts: ActionCostDto[];
+  /**
+   * HasAvailableActions reports whether the player has any legal move this turn.
+   * Populated only on the WebSocket broadcast path where every action registry is
+   * present; omitted (nil) on the HTTP path that lacks registries, so the field is
+   * an explicit "unknown" rather than a misleading false.
+   */
+  hasAvailableActions?: boolean;
 }
 /**
  * ActionCostDto represents the costs for a specific action type (e.g., card-buying, colony-trade)

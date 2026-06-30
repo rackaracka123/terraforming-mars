@@ -912,6 +912,12 @@ type PlayerDto struct {
 	VPGranters                     []VPGranterDto                     `json:"vpGranters"`
 	BonusTags                      map[string]int                     `json:"bonusTags"`
 	ActionCosts                    []ActionCostDto                    `json:"actionCosts"`
+
+	// HasAvailableActions reports whether the player has any legal move this turn.
+	// Populated only on the WebSocket broadcast path where every action registry is
+	// present; omitted (nil) on the HTTP path that lacks registries, so the field is
+	// an explicit "unknown" rather than a misleading false.
+	HasAvailableActions *bool `json:"hasAvailableActions,omitempty"`
 }
 
 // ActionCostDto represents the costs for a specific action type (e.g., card-buying, colony-trade)

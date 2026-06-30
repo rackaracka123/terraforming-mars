@@ -61,6 +61,16 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 	standardProjects := mapPlayerStandardProjects(p, g, cardRegistry, stdProjRegistry)
 	milestones := mapPlayerMilestones(p, g, cardRegistry, milestoneRegistry)
 	awards := mapPlayerAwards(p, g, awardRegistry)
+
+	// Only the WebSocket broadcast path supplies every action registry. When any is
+	// nil (the HTTP player_handler.go path), leave the pointer nil so the field is
+	// omitted: an honest "unknown", never a fabricated false.
+	var hasAvailableActions *bool
+	if stdProjRegistry != nil && awardRegistry != nil && milestoneRegistry != nil {
+		has := action.HasAvailableActions(g, p, cardRegistry, stdProjRegistry, milestoneRegistry, awardRegistry)
+		hasAvailableActions = &has
+	}
+
 	var pendingTileSelection *PendingTileSelectionDto
 	var forcedFirstAction *ForcedFirstActionDto
 	currentTurn := g.CurrentTurn()
@@ -127,6 +137,7 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 		VPGranters:                     toVPGranterDtos(p.VPGranters().GetAll()),
 		BonusTags:                      convertBonusTags(p.BonusTags()),
 		ActionCosts:                    mapPlayerActionCosts(p, g, cardRegistry),
+		HasAvailableActions:            hasAvailableActions,
 	}
 }
 
