@@ -527,6 +527,12 @@ const CardFanOverlay = forwardRef<CardFanOverlayHandle, CardFanOverlayProps>(
     const activeCullRadius = isExpanded ? expandedCullRadius : CULL_RADIUS;
     const activeVisibleRadius = isExpanded ? expandedCullRadius : VISIBLE_RADIUS;
 
+    const showRightScrollHint = !isExpanded && cardOrder.length - 1 - scrollPos > VISIBLE_RADIUS;
+    const showLeftScrollHint = !isExpanded && scrollPos > VISIBLE_RADIUS;
+
+    const scrollHintEdgeX = (VISIBLE_RADIUS * SPACING + CARD_WIDTH / 2) * fanScale;
+    const scrollHintOffsetY = (BASE_Y_OFFSET - CARD_HEIGHT / 2) * fanScale;
+
     return (
       <>
         <BlurredOverlay visible={isExpanded} onClose={() => handleCollapse()} zIndex={20200}>
@@ -686,6 +692,48 @@ const CardFanOverlay = forwardRef<CardFanOverlayHandle, CardFanOverlayProps>(
             </div>
           )}
 
+          {showLeftScrollHint && (
+            <div
+              className="card-fan-scroll-hint card-fan-scroll-hint--left"
+              style={{
+                transform: `translate(calc(-50% + ${-scrollHintEdgeX}px), ${scrollHintOffsetY}px)`,
+                zIndex: Z_INDEX.CARD_FAN_SCROLL_HINT,
+              }}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </div>
+          )}
+
+          {showRightScrollHint && (
+            <div
+              className="card-fan-scroll-hint card-fan-scroll-hint--right"
+              style={{
+                transform: `translate(calc(-50% + ${scrollHintEdgeX}px), ${scrollHintOffsetY}px)`,
+                zIndex: Z_INDEX.CARD_FAN_SCROLL_HINT,
+              }}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+          )}
+
           <style>{`
         .card-fan-overlay {
           position: fixed;
@@ -751,6 +799,43 @@ const CardFanOverlay = forwardRef<CardFanOverlayHandle, CardFanOverlayProps>(
         }
 
 
+
+        .card-fan-scroll-hint {
+          position: absolute;
+          bottom: 0;
+          left: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: default;
+          pointer-events: none;
+        }
+
+        .card-fan-scroll-hint svg {
+          width: 40px;
+          height: 40px;
+          color: rgba(255, 255, 255, 0.85);
+          filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+        }
+
+        .card-fan-scroll-hint::before {
+          content: "";
+          position: absolute;
+          top: -120px;
+          bottom: -40px;
+          width: 120px;
+          pointer-events: none;
+        }
+
+        .card-fan-scroll-hint--left::before {
+          left: -20px;
+          background: linear-gradient(to right, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0));
+        }
+
+        .card-fan-scroll-hint--right::before {
+          right: -20px;
+          background: linear-gradient(to left, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0));
+        }
 
         .card-fan-error-panel {
           position: absolute;
