@@ -150,3 +150,32 @@ Notes on the corp/prelude application phase (`GamePhaseInitApplyCorp`,
   scattered `45` literal on the backend, leaving `game.MaxPlayerNameLength` as
   the single source of truth referenced by the real guard in
   JoinGameAction.Execute.
+
+# Card-fan scroll affordance (#569)
+
+- 2026-06-30: Issue #569 — collapsed hand gave no hint that cards exist beyond
+  the visible window. Fix lives entirely in `CardFanOverlay.tsx` + `zIndex.ts`
+  (2 files only). The visibility predicate reuses the EXISTING fan math, not a
+  new measurement: `showRightScrollHint = !isExpanded && cardOrder.length - 1 -
+  scrollPos > VISIBLE_RADIUS` and `showLeftScrollHint = !isExpanded && scrollPos
+  > VISIBLE_RADIUS`. `VISIBLE_RADIUS` is the same constant that already drives
+  per-card `edgeOpacity` culling, so the chevron appears exactly when the
+  outermost card on that side is faded out — no divergence between "card is
+  hidden" and "hint is shown".
+- 2026-06-30: The chevron SVG is the SAME inline markup as `BackButton.tsx`
+  (`viewBox 0 0 24 24`, `strokeWidth 2.5`, `polyline points="15 18 9 12 15 6"`
+  for left); the right hint is the horizontal mirror (`9 18 15 12 9 6`). Do NOT
+  import BackButton itself — it is a GameButton (interactive, bg/border); the
+  hint must be decorative (`pointer-events:none`, `cursor:default`), so only the
+  raw polyline pattern is reused, not the component.
+- 2026-06-30: Z-INDEX. Added named `Z_INDEX.CARD_FAN_SCROLL_HINT = 1500` to
+  zIndex.ts rather than copying the pre-existing hardcoded `1100` of the
+  per-card index band. 1500 sits above that band but below highlighted (2000)
+  and dragged (3000) cards, so a lifted/dragged card always paints over the
+  hint. frontend/CLAUDE.md z-index policy forbids inline hardcoded values.
+- 2026-06-30: SMOKE = HUMAN VISUAL CHECK only. There is NO frontend unit-test
+  runner in this repo (`frontend/package.json` scripts are dev/build/lint/
+  typecheck/format — no `test`). The authoritative pre-sign-off gate for a
+  frontend-only change is `bun run typecheck && bun run lint && bun run format &&
+  bun run build` (all pass here); the "off-screen cards are discoverable"
+  verification is a manual look at a hand of 8+ cards.
