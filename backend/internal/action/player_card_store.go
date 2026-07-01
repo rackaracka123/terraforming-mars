@@ -1,7 +1,6 @@
 package action
 
 import (
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
@@ -14,7 +13,7 @@ import (
 // SetupPlayerCardStore wires event-driven state calculation for a player's hand cards.
 // Subscribes to game events so that EntityState for each hand card is automatically
 // computed and kept in sync. Must be called once per player after creation.
-func SetupPlayerCardStore(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry, colonyBonusLookup ...gamecards.ColonyBonusLookup) {
+func SetupPlayerCardStore(p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry, colonyBonusLookup ...gamecards.ColonyBonusLookup) {
 	eventBus := g.EventBus()
 	store := p.CardStateStore()
 

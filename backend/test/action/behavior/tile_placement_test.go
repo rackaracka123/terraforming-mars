@@ -6,7 +6,6 @@ import (
 
 	"terraforming-mars-backend/internal/action"
 	cardAction "terraforming-mars-backend/internal/action/card"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game/board"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
@@ -52,7 +51,7 @@ func TestUrbanizedArea_CityAdjacentTo2Cities(t *testing.T) {
 		},
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{urbanizedArea})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{urbanizedArea})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -192,7 +191,7 @@ func TestEcologicalZone_GreeneryAdjacentToGreenery(t *testing.T) {
 		},
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{ecologicalZone})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{ecologicalZone})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -348,7 +347,7 @@ func TestUrbanizedArea_StateCalculatorReturnsErrorWhenNoPlacements(t *testing.T)
 	p.Resources().AddProduction(map[shared.ResourceType]int{shared.ResourceEnergyProduction: 1})
 
 	urbanizedArea := makeUrbanizedAreaCard()
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{urbanizedArea})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{urbanizedArea})
 
 	// Only 1 city on the board — Urbanized Area requires adjacent to 2 cities
 	city1 := shared.HexPosition{Q: 0, R: 0, S: 0}
@@ -389,7 +388,7 @@ func TestUrbanizedArea_PlayCardRejectedWhenNoPlacements(t *testing.T) {
 	p.Resources().AddProduction(map[shared.ResourceType]int{shared.ResourceEnergyProduction: 1})
 
 	urbanizedArea := makeUrbanizedAreaCard()
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{urbanizedArea})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{urbanizedArea})
 	p.Hand().AddCard("card-urbanized-area")
 
 	// Only 1 city — cannot satisfy adjacency requirement
@@ -436,7 +435,7 @@ func TestPlantation_GreeneryAdjacentToOwnedTiles(t *testing.T) {
 	ctx := context.Background()
 
 	plantation := makePlantationCard()
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{plantation})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{plantation})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -488,7 +487,7 @@ func TestPlantation_FallbackWhenNoOwnedTiles(t *testing.T) {
 	ctx := context.Background()
 
 	plantation := makePlantationCard()
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{plantation})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{plantation})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -552,7 +551,7 @@ func TestMangrove_NotAffectedByAdjacentToOwned(t *testing.T) {
 	ctx := context.Background()
 
 	mangrove := makeMangroveCard()
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{mangrove})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{mangrove})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -640,7 +639,7 @@ func TestNaturalPreserve_TilePlacementWithNoAdjacency(t *testing.T) {
 		},
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{naturalPreserve})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{naturalPreserve})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -758,7 +757,7 @@ func TestNuclearZone_TilePlacementOnNormalLand(t *testing.T) {
 		},
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{nuclearZone})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{nuclearZone})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -816,7 +815,7 @@ func TestMoholeArea_TilePlacementOnOceanSpace(t *testing.T) {
 		},
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{moholeArea})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{moholeArea})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -1018,7 +1017,7 @@ func TestMangrove_GreeneryOnOceanTileRestriction(t *testing.T) {
 		},
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{mangrove})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{mangrove})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -1068,7 +1067,7 @@ func TestLandClaim_CreatesLandClaimTileSelection(t *testing.T) {
 		},
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{landClaim})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{landClaim})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -1124,7 +1123,7 @@ func TestArtificialLake_OceanPlacement(t *testing.T) {
 		},
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{artificialLake})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{artificialLake})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -1178,7 +1177,7 @@ func TestArtificialLake_FailsWithoutTemperatureRequirement(t *testing.T) {
 		},
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{artificialLake})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{artificialLake})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]

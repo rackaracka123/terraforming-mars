@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"terraforming-mars-backend/internal/action/query"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/logger"
 
 	"github.com/gorilla/mux"

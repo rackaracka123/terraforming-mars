@@ -7,7 +7,6 @@ import (
 
 	cardAction "terraforming-mars-backend/internal/action/card"
 	tileAction "terraforming-mars-backend/internal/action/tile"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/board"
 	gamecards "terraforming-mars-backend/internal/game/cards"
@@ -811,7 +810,7 @@ func TestCEOsFavoriteProject_AddsMicrobeToTargetCard(t *testing.T) {
 		Tags:            []shared.CardTag{shared.TagMicrobe},
 		ResourceStorage: &gamecards.ResourceStorage{Type: shared.ResourceMicrobe},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{ceosFavorite, targetCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{ceosFavorite, targetCard})
 	players := testGame.GetAllPlayers()
 	p := players[0]
 	p.SetCorporationID(testutil.CardID("Tharsis Republic"))
@@ -853,7 +852,7 @@ func TestCEOsFavoriteProject_FailsWithoutTargetCard(t *testing.T) {
 		Tags:            []shared.CardTag{shared.TagAnimal},
 		ResourceStorage: &gamecards.ResourceStorage{Type: shared.ResourceAnimal},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{ceosFavorite, targetCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{ceosFavorite, targetCard})
 	players := testGame.GetAllPlayers()
 	p := players[0]
 	p.SetCorporationID(testutil.CardID("Tharsis Republic"))

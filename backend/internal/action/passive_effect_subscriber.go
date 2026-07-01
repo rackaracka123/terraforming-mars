@@ -6,7 +6,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
@@ -22,9 +21,9 @@ func SubscribePassiveEffectToEvents(
 	p *player.Player,
 	effect shared.CardEffect,
 	log *zap.Logger,
-	cardRegistry ...cards.CardRegistry,
+	cardRegistry ...gamecards.CardRegistry,
 ) {
-	var cr cards.CardRegistry
+	var cr gamecards.CardRegistry
 	if len(cardRegistry) > 0 {
 		cr = cardRegistry[0]
 	}
@@ -100,7 +99,7 @@ func subscribePlacementBonusEffect(
 	effect shared.CardEffect,
 	trigger shared.Trigger,
 	log *zap.Logger,
-	cr cards.CardRegistry,
+	cr gamecards.CardRegistry,
 ) events.SubscriptionID {
 	subID := events.Subscribe(g.EventBus(), func(event events.PlacementBonusGainedEvent) {
 		// Only process if event is for this game and player
@@ -168,7 +167,7 @@ func subscribeCityPlacedEffect(
 	effect shared.CardEffect,
 	trigger shared.Trigger,
 	log *zap.Logger,
-	cr cards.CardRegistry,
+	cr gamecards.CardRegistry,
 ) events.SubscriptionID {
 	subID := events.Subscribe(g.EventBus(), func(event events.TilePlacedEvent) {
 		// Only process if event is for this game
@@ -294,7 +293,7 @@ func subscribeTagPlayedEffect(
 	effect shared.CardEffect,
 	trigger shared.Trigger,
 	log *zap.Logger,
-	cr cards.CardRegistry,
+	cr gamecards.CardRegistry,
 ) events.SubscriptionID {
 	subID := events.Subscribe(g.EventBus(), func(event events.TagPlayedEvent) {
 		if event.GameID != g.ID() {
@@ -382,7 +381,7 @@ func subscribeCardPlayedEffect(
 	effect shared.CardEffect,
 	trigger shared.Trigger,
 	log *zap.Logger,
-	cr cards.CardRegistry,
+	cr gamecards.CardRegistry,
 ) events.SubscriptionID {
 	subID := events.Subscribe(g.EventBus(), func(event events.CardPlayedEvent) {
 		if event.GameID != g.ID() {
@@ -449,7 +448,7 @@ func subscribeStandardProjectPlayedEffect(
 	effect shared.CardEffect,
 	trigger shared.Trigger,
 	log *zap.Logger,
-	cr cards.CardRegistry,
+	cr gamecards.CardRegistry,
 ) events.SubscriptionID {
 	subID := events.Subscribe(g.EventBus(), func(event events.StandardProjectPlayedEvent) {
 		if event.GameID != g.ID() {
@@ -522,7 +521,7 @@ func subscribeTilePlacedEffect(
 	effect shared.CardEffect,
 	trigger shared.Trigger,
 	log *zap.Logger,
-	cr cards.CardRegistry,
+	cr gamecards.CardRegistry,
 ) events.SubscriptionID {
 	subID := events.Subscribe(g.EventBus(), func(event events.PlacementBonusGainedEvent) {
 		if event.GameID != g.ID() {
@@ -584,7 +583,7 @@ func subscribeGlobalParameterRaisedEffect(
 	effect shared.CardEffect,
 	_ shared.Trigger,
 	log *zap.Logger,
-	cr cards.CardRegistry,
+	cr gamecards.CardRegistry,
 ) events.SubscriptionID {
 	globalParams := getGlobalParametersFromSelectors(effect.Behavior.Triggers)
 
@@ -721,7 +720,7 @@ func subscribeProductionIncreasedEffect(
 	effect shared.CardEffect,
 	trigger shared.Trigger,
 	log *zap.Logger,
-	cr cards.CardRegistry,
+	cr gamecards.CardRegistry,
 ) events.SubscriptionID {
 	subID := events.Subscribe(g.EventBus(), func(event events.ProductionChangedEvent) {
 		if event.GameID != g.ID() {
@@ -806,7 +805,7 @@ func subscribeColonyPlacedEffect(
 	effect shared.CardEffect,
 	trigger shared.Trigger,
 	log *zap.Logger,
-	cr cards.CardRegistry,
+	cr gamecards.CardRegistry,
 ) events.SubscriptionID {
 	subID := events.Subscribe(g.EventBus(), func(event events.ColonyBuiltEvent) {
 		if event.GameID != g.ID() {

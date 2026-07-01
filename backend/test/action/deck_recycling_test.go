@@ -7,7 +7,6 @@ import (
 
 	"terraforming-mars-backend/internal/action/confirmation"
 	"terraforming-mars-backend/internal/action/turn_management"
-	"terraforming-mars-backend/internal/cards"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/deck"
 	"terraforming-mars-backend/internal/game/shared"
@@ -265,7 +264,7 @@ func TestDeckRecycling_RealDeckNeverDealsPreludeOrCorporation(t *testing.T) {
 	ctx := context.Background()
 	registry := testutil.GetCardDB()
 
-	projectCardIDs, corpIDs, preludeIDs := cards.GetCardIDsByPacks(registry, []string{"base-game", "prelude"})
+	projectCardIDs, corpIDs, preludeIDs := gamecards.GetCardIDsByPacks(registry, []string{"base-game", "prelude"})
 	testutil.AssertTrue(t, len(projectCardIDs) > 0, "should have project cards")
 	testutil.AssertTrue(t, len(preludeIDs) > 0, "should have prelude cards")
 	testutil.AssertTrue(t, len(corpIDs) > 0, "should have corporation cards")

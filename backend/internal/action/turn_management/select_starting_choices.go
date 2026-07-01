@@ -9,7 +9,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
@@ -22,7 +21,7 @@ import (
 // Selections are validated and stored but effects are NOT applied until the init_apply phases.
 type SelectStartingChoicesAction struct {
 	gameRepo      game.GameRepository
-	cardRegistry  cards.CardRegistry
+	cardRegistry  gamecards.CardRegistry
 	awardRegistry award.AwardRegistry
 	corpProc      *gamecards.CorporationProcessor
 	logger        *zap.Logger
@@ -31,7 +30,7 @@ type SelectStartingChoicesAction struct {
 // NewSelectStartingChoicesAction creates a new select starting choices action
 func NewSelectStartingChoicesAction(
 	gameRepo game.GameRepository,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	awardRegistry award.AwardRegistry,
 	logger *zap.Logger,
 ) *SelectStartingChoicesAction {
@@ -241,7 +240,7 @@ func (a *SelectStartingChoicesAction) validateStartingCards(g *game.Game, p *pla
 }
 
 // getCardBuyCost returns the per-card buy cost accounting for corporation effects (e.g., Polyphemos pays 5 instead of 3)
-func getCardBuyCost(cardRegistry cards.CardRegistry, corporationID string) int {
+func getCardBuyCost(cardRegistry gamecards.CardRegistry, corporationID string) int {
 	baseCost := 3
 	corpCard, err := cardRegistry.GetByID(corporationID)
 	if err != nil {
@@ -257,7 +256,7 @@ func getCardBuyCost(cardRegistry cards.CardRegistry, corporationID string) int {
 
 // getCorpStartingCredits calculates the starting credits a corporation provides
 // by examining its auto-corporation-start behaviors
-func getCorpStartingCredits(cardRegistry cards.CardRegistry, corporationID string) int {
+func getCorpStartingCredits(cardRegistry gamecards.CardRegistry, corporationID string) int {
 	corpCard, err := cardRegistry.GetByID(corporationID)
 	if err != nil {
 		return 0
@@ -321,7 +320,7 @@ func (a *SelectStartingChoicesAction) checkAndAdvanceToInitApplyCorp(ctx context
 // ApplyCorpForPlayer applies corporation effects for a single player during init_apply_corp phase.
 // This includes starting effects, auto effects, registering triggers/actions,
 // and purchasing project cards.
-func ApplyCorpForPlayer(ctx context.Context, g *game.Game, playerID string, cardRegistry cards.CardRegistry, corpProc *gamecards.CorporationProcessor, log *zap.Logger) error {
+func ApplyCorpForPlayer(ctx context.Context, g *game.Game, playerID string, cardRegistry gamecards.CardRegistry, corpProc *gamecards.CorporationProcessor, log *zap.Logger) error {
 	choices := g.GetDeferredStartingChoices(playerID)
 	if choices == nil {
 		return fmt.Errorf("no deferred starting choices for player %s", playerID)
@@ -444,7 +443,7 @@ func ApplyCorpForPlayer(ctx context.Context, g *game.Game, playerID string, card
 
 // ApplyPreludesForPlayer applies all prelude card effects for a single player
 // during the init_apply_prelude phase.
-func ApplyPreludesForPlayer(ctx context.Context, g *game.Game, playerID string, cardRegistry cards.CardRegistry, stateRepo game.GameStateRepository, log *zap.Logger) error {
+func ApplyPreludesForPlayer(ctx context.Context, g *game.Game, playerID string, cardRegistry gamecards.CardRegistry, stateRepo game.GameStateRepository, log *zap.Logger) error {
 	choices := g.GetDeferredStartingChoices(playerID)
 	if choices == nil {
 		return fmt.Errorf("no deferred starting choices for player %s", playerID)
@@ -477,7 +476,7 @@ func ApplyPreludesForPlayer(ctx context.Context, g *game.Game, playerID string, 
 
 // ApplyPreludeCard applies a single prelude card's effects: adds to played cards,
 // processes auto behaviors, registers trigger effects and manual actions.
-func ApplyPreludeCard(ctx context.Context, g *game.Game, p *player.Player, preludeID string, cardRegistry cards.CardRegistry, stateRepo game.GameStateRepository, log *zap.Logger) error {
+func ApplyPreludeCard(ctx context.Context, g *game.Game, p *player.Player, preludeID string, cardRegistry gamecards.CardRegistry, stateRepo game.GameStateRepository, log *zap.Logger) error {
 	card, err := cardRegistry.GetByID(preludeID)
 	if err != nil {
 		return fmt.Errorf("prelude card not found: %s", preludeID)

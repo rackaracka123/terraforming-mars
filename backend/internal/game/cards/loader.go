@@ -4,18 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-
-	"terraforming-mars-backend/internal/game/cards"
 )
 
 // LoadCardsFromJSON loads cards from a JSON file
-func LoadCardsFromJSON(filepath string) ([]cards.Card, error) {
+func LoadCardsFromJSON(filepath string) ([]Card, error) {
 	data, err := os.ReadFile(filepath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read card file: %w", err)
 	}
 
-	var cards []cards.Card
+	var cards []Card
 	if err := json.Unmarshal(data, &cards); err != nil {
 		return nil, fmt.Errorf("failed to parse card JSON: %w", err)
 	}

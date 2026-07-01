@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"go.uber.org/zap"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/cards"
+
+	"go.uber.org/zap"
 )
 
 // PlayerTakeoverAction handles the business logic for taking over a disconnected player

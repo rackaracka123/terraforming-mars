@@ -8,7 +8,6 @@ import (
 	"terraforming-mars-backend/internal/action"
 	cardAction "terraforming-mars-backend/internal/action/card"
 	confirmAction "terraforming-mars-backend/internal/action/confirmation"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
@@ -32,7 +31,7 @@ func TestRoverConstruction_GainCreditsOnAnyCityPlacement(t *testing.T) {
 		Cost: 8,
 		Tags: []shared.CardTag{shared.TagBuilding},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{roverCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{roverCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -96,7 +95,7 @@ func TestRoverConstruction_TriggersOnSelfCityToo(t *testing.T) {
 		Type: gamecards.CardTypeActive,
 		Cost: 8,
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{roverCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{roverCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -155,7 +154,7 @@ func TestRoverConstruction_DoesNotTriggerOnGreenery(t *testing.T) {
 		Type: gamecards.CardTypeActive,
 		Cost: 8,
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{roverCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{roverCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -223,7 +222,7 @@ func TestOlympusConference_AddScienceOnScienceTagPlayed(t *testing.T) {
 			Starting: 0,
 		},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{olympusConference})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{olympusConference})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -288,7 +287,7 @@ func TestOlympusConference_DoesNotTriggerOnNonScienceTag(t *testing.T) {
 		Type: gamecards.CardTypeActive,
 		Cost: 10,
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{olympusConference})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{olympusConference})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -388,7 +387,7 @@ func TestOlympusConference_TriggeredChoice_CreatesPendingSelection(t *testing.T)
 			Starting: 0,
 		},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{olympusConference})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{olympusConference})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -442,7 +441,7 @@ func TestOlympusConference_Choice0_AddScience(t *testing.T) {
 			Starting: 0,
 		},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{olympusConference})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{olympusConference})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -500,7 +499,7 @@ func TestOlympusConference_Choice1_RemoveScienceToDrawCard(t *testing.T) {
 			Starting: 0,
 		},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{olympusConference})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{olympusConference})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -562,7 +561,7 @@ func TestOlympusConference_Choice1_FailsWithoutScience(t *testing.T) {
 			Starting: 0,
 		},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{olympusConference})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{olympusConference})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -619,7 +618,7 @@ func TestViralEnhancers_GainPlantOnPlantTagPlayed(t *testing.T) {
 		Cost: 0,
 		Tags: []shared.CardTag{shared.TagPlant},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{viralEnhancers, plantCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{viralEnhancers, plantCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -694,7 +693,7 @@ func TestViralEnhancers_DoesNotTriggerOnBuildingTag(t *testing.T) {
 		Cost: 0,
 		Tags: []shared.CardTag{shared.TagBuilding},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{viralEnhancers, buildingCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{viralEnhancers, buildingCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -764,7 +763,7 @@ func TestArcticAlgae_GainPlantsOnAnyOceanPlacement(t *testing.T) {
 		Cost: 12,
 		Tags: []shared.CardTag{shared.TagPlant},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{arcticAlgaeCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{arcticAlgaeCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -824,7 +823,7 @@ func TestArcticAlgae_TriggersOnSelfOceanToo(t *testing.T) {
 		Type: gamecards.CardTypeActive,
 		Cost: 12,
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{arcticAlgaeCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{arcticAlgaeCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -882,7 +881,7 @@ func TestArcticAlgae_DoesNotTriggerOnCityPlacement(t *testing.T) {
 		Type: gamecards.CardTypeActive,
 		Cost: 12,
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{arcticAlgaeCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{arcticAlgaeCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -945,7 +944,7 @@ func TestPets_GainsAnimalWhenOtherPlayerPlacesCity(t *testing.T) {
 		Tags:            []shared.CardTag{shared.TagAnimal, shared.TagEarth},
 		ResourceStorage: &gamecards.ResourceStorage{Type: shared.ResourceAnimal, Starting: 0},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{petsCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{petsCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -1009,7 +1008,7 @@ func TestPets_GainsAnimalWhenSelfPlacesCity(t *testing.T) {
 		Tags:            []shared.CardTag{shared.TagAnimal, shared.TagEarth},
 		ResourceStorage: &gamecards.ResourceStorage{Type: shared.ResourceAnimal, Starting: 0},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{petsCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{petsCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -1071,7 +1070,7 @@ func TestPets_DoesNotTriggerOnGreeneryPlacement(t *testing.T) {
 		Tags:            []shared.CardTag{shared.TagAnimal, shared.TagEarth},
 		ResourceStorage: &gamecards.ResourceStorage{Type: shared.ResourceAnimal, Starting: 0},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{petsCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{petsCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -1133,7 +1132,7 @@ func TestPets_DoesNotTriggerOnOceanPlacement(t *testing.T) {
 		Tags:            []shared.CardTag{shared.TagAnimal, shared.TagEarth},
 		ResourceStorage: &gamecards.ResourceStorage{Type: shared.ResourceAnimal, Starting: 0},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{petsCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{petsCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -1193,7 +1192,7 @@ func TestPets_AccumulatesAnimalsFromMultipleCities(t *testing.T) {
 		Tags:            []shared.CardTag{shared.TagAnimal, shared.TagEarth},
 		ResourceStorage: &gamecards.ResourceStorage{Type: shared.ResourceAnimal, Starting: 0},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{petsCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{petsCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -1261,7 +1260,7 @@ func TestPets_DoesNotTriggerForWrongGameID(t *testing.T) {
 		Tags:            []shared.CardTag{shared.TagAnimal, shared.TagEarth},
 		ResourceStorage: &gamecards.ResourceStorage{Type: shared.ResourceAnimal, Starting: 0},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{petsCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{petsCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]

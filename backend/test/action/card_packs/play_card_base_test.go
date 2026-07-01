@@ -8,7 +8,6 @@ import (
 	cardAction "terraforming-mars-backend/internal/action/card"
 	confirmAction "terraforming-mars-backend/internal/action/confirmation"
 	tileAction "terraforming-mars-backend/internal/action/tile"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
@@ -4817,7 +4816,7 @@ func TestSatellites_CreditProductionPerSpaceTag(t *testing.T) {
 	satellites := testutil.GetCardByName("Satellites")
 	spaceCard1 := gamecards.Card{ID: "card-space-1-b4", Name: "Space Card 1", Type: gamecards.CardTypeAutomated, Tags: []shared.CardTag{shared.TagSpace}, Cost: 0}
 	spaceCard2 := gamecards.Card{ID: "card-space-2-b4", Name: "Space Card 2", Type: gamecards.CardTypeAutomated, Tags: []shared.CardTag{shared.TagSpace}, Cost: 0}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{satellites, spaceCard1, spaceCard2})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{satellites, spaceCard1, spaceCard2})
 	players := testGame.GetAllPlayers()
 	p := players[0]
 	p.SetCorporationID(testutil.CardID("Tharsis Republic"))
@@ -5178,7 +5177,7 @@ func TestMedicalLab_CreditProductionPerTwoBuildingTags(t *testing.T) {
 	buildingCard1 := gamecards.Card{ID: "card-building-1-b4", Name: "Building Card 1", Type: gamecards.CardTypeAutomated, Tags: []shared.CardTag{shared.TagBuilding}, Cost: 0}
 	buildingCard2 := gamecards.Card{ID: "card-building-2-b4", Name: "Building Card 2", Type: gamecards.CardTypeAutomated, Tags: []shared.CardTag{shared.TagBuilding}, Cost: 0}
 	buildingCard3 := gamecards.Card{ID: "card-building-3-b4", Name: "Building Card 3", Type: gamecards.CardTypeAutomated, Tags: []shared.CardTag{shared.TagBuilding}, Cost: 0}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{medicalLab, buildingCard1, buildingCard2, buildingCard3})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{medicalLab, buildingCard1, buildingCard2, buildingCard3})
 	players := testGame.GetAllPlayers()
 	p := players[0]
 	p.SetCorporationID(testutil.CardID("Tharsis Republic"))
@@ -5211,7 +5210,7 @@ func TestMedicalLab_OddNumberOfBuildingTags(t *testing.T) {
 	medicalLab := testutil.GetCardByName("Medical Lab")
 	buildingCard1 := gamecards.Card{ID: "card-building-odd-1", Name: "Building Card Odd 1", Type: gamecards.CardTypeAutomated, Tags: []shared.CardTag{shared.TagBuilding}, Cost: 0}
 	buildingCard2 := gamecards.Card{ID: "card-building-odd-2", Name: "Building Card Odd 2", Type: gamecards.CardTypeAutomated, Tags: []shared.CardTag{shared.TagBuilding}, Cost: 0}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{medicalLab, buildingCard1, buildingCard2})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{medicalLab, buildingCard1, buildingCard2})
 	players := testGame.GetAllPlayers()
 	p := players[0]
 	p.SetCorporationID(testutil.CardID("Tharsis Republic"))

@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	resconvAction "terraforming-mars-backend/internal/action/resource_conversion"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/global_parameters"
 	"terraforming-mars-backend/test/testutil"
 )

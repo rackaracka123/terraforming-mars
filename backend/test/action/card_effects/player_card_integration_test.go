@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/board"
 	gamecards "terraforming-mars-backend/internal/game/cards"
@@ -53,7 +52,7 @@ func TestPlayerCard_EventDrivenStateUpdate(t *testing.T) {
 		}},
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{*card})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{*card})
 
 	// Give player enough credits
 	p.Resources().Add(map[shared.ResourceType]int{
@@ -149,7 +148,7 @@ func TestPlayerCard_ResourceChangeEventUpdate(t *testing.T) {
 		Cost: 50,
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{*card})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{*card})
 
 	// Give player insufficient credits initially
 	p.Resources().Add(map[shared.ResourceType]int{
@@ -239,7 +238,7 @@ func TestPlayerCard_PhaseChangeEventUpdate(t *testing.T) {
 		Cost: 10,
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{*card})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{*card})
 
 	// Give player credits
 	p.Resources().Add(map[shared.ResourceType]int{
@@ -329,7 +328,7 @@ func TestPlayerCard_CleanupPreventsMemoryLeak(t *testing.T) {
 		Cost: 10,
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{*card})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{*card})
 
 	// Give player credits
 	p.Resources().Add(map[shared.ResourceType]int{
@@ -438,7 +437,7 @@ func TestPlayerCard_MultipleCardsIndependentState(t *testing.T) {
 		}},
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{*card1, *card2})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{*card1, *card2})
 
 	// Give player credits
 	p.Resources().Add(map[shared.ResourceType]int{

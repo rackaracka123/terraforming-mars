@@ -7,7 +7,6 @@ import (
 
 	baseaction "terraforming-mars-backend/internal/action"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
@@ -27,7 +26,7 @@ type ExecuteStandardProjectAction struct {
 // NewExecuteStandardProjectAction creates a new unified standard project action
 func NewExecuteStandardProjectAction(
 	gameRepo game.GameRepository,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	standardProjectRegistry standardproject.StandardProjectRegistry,
 	stateRepo game.GameStateRepository,
 	logger *zap.Logger,

@@ -3,7 +3,6 @@ package dto
 import (
 	"go.uber.org/zap"
 
-	"terraforming-mars-backend/internal/cards"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
@@ -42,7 +41,7 @@ func toResourceSetDto(rs shared.ResourceSet) ResourceSet {
 }
 
 // getCorporationCard fetches the corporation card for a player using the card registry
-func getCorporationCard(p *player.Player, cardRegistry cards.CardRegistry) *CardDto {
+func getCorporationCard(p *player.Player, cardRegistry gamecards.CardRegistry) *CardDto {
 	if p.CorporationID() == "" {
 		return nil
 	}
@@ -62,7 +61,7 @@ func getCorporationCard(p *player.Player, cardRegistry cards.CardRegistry) *Card
 }
 
 // getPlayedCards converts a slice of card IDs to CardDto objects using the card registry
-func getPlayedCards(cardIDs []string, cardRegistry cards.CardRegistry) []CardDto {
+func getPlayedCards(cardIDs []string, cardRegistry gamecards.CardRegistry) []CardDto {
 	cardDtos := make([]CardDto, 0, len(cardIDs))
 	log := logger.Get()
 

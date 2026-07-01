@@ -3,7 +3,6 @@ package action
 import (
 	"time"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
@@ -43,7 +42,7 @@ var tradePaymentCosts = []tradePaymentCost{
 func CalculateColonyTradeState(
 	p *player.Player,
 	g *game.Game,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 ) player.EntityState {
 	var errors []player.StateError
 	metadata := make(map[string]any)
@@ -95,7 +94,7 @@ func CalculateColonyTradeState(
 // by trade execution, the DTO mapper, and CalculateColonyTradeState.
 func CalculateEffectiveTradeCosts(
 	p *player.Player,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 ) (effectiveCosts map[string]int, discounts map[string]int) {
 	calc := gamecards.NewRequirementModifierCalculator(cardRegistry)
 	tradeDiscounts := calc.CalculateActionDiscounts(p, shared.ActionColonyTrade)

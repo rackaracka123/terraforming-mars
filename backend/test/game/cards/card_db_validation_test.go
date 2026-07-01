@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/game/cards"
 )
 
 func TestNoStealTargetsInInputs(t *testing.T) {

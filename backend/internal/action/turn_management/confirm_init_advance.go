@@ -6,7 +6,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
 	gamecards "terraforming-mars-backend/internal/game/cards"
@@ -18,7 +17,7 @@ import (
 // The frontend sends this after displaying effects and completing any required tile placements.
 type ConfirmInitAdvanceAction struct {
 	gameRepo      game.GameRepository
-	cardRegistry  cards.CardRegistry
+	cardRegistry  gamecards.CardRegistry
 	awardRegistry award.AwardRegistry
 	stateRepo     game.GameStateRepository
 	corpProc      *gamecards.CorporationProcessor
@@ -28,7 +27,7 @@ type ConfirmInitAdvanceAction struct {
 // NewConfirmInitAdvanceAction creates a new confirm init advance action
 func NewConfirmInitAdvanceAction(
 	gameRepo game.GameRepository,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	awardRegistry award.AwardRegistry,
 	stateRepo game.GameStateRepository,
 	logger *zap.Logger,

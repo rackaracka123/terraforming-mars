@@ -10,8 +10,8 @@ import (
 	baseaction "terraforming-mars-backend/internal/action"
 	colonyaction "terraforming-mars-backend/internal/action/colony"
 	"terraforming-mars-backend/internal/action/turn_management"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/colony"
 	"terraforming-mars-backend/internal/game/shared"
 )

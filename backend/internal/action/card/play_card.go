@@ -9,7 +9,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
@@ -28,7 +27,7 @@ type PlayCardAction struct {
 // NewPlayCardAction creates a new play card action
 func NewPlayCardAction(
 	gameRepo game.GameRepository,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	stateRepo game.GameStateRepository,
 	logger *zap.Logger,
 	colonyBonusLookup ...gamecards.ColonyBonusLookup,
@@ -303,7 +302,7 @@ func (a *PlayCardAction) Execute(
 
 // validateCardRequirements validates that the player and game state meet all card requirements.
 // Uses RequirementModifierCalculator to include global parameter lenience from temporary effects.
-func validateCardRequirements(card *gamecards.Card, g *game.Game, player *player.Player, calculator *gamecards.RequirementModifierCalculator, cardRegistry cards.CardRegistry) error {
+func validateCardRequirements(card *gamecards.Card, g *game.Game, player *player.Player, calculator *gamecards.RequirementModifierCalculator, cardRegistry gamecards.CardRegistry) error {
 	if card.Requirements == nil || len(card.Requirements.Items) == 0 {
 		return nil // No requirements to validate
 	}
@@ -865,7 +864,7 @@ func removePrePlayTemporaryEffects(p *player.Player, cardIDs []string, log *zap.
 }
 
 // validateChoiceRequirements checks if a choice's requirements are met by the player.
-func validateChoiceRequirements(reqs *shared.ChoiceRequirements, p *player.Player, g *game.Game, cardRegistry cards.CardRegistry) error {
+func validateChoiceRequirements(reqs *shared.ChoiceRequirements, p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry) error {
 	if reqs == nil || len(reqs.Items) == 0 {
 		return nil
 	}
@@ -879,7 +878,7 @@ func validateChoiceRequirements(reqs *shared.ChoiceRequirements, p *player.Playe
 }
 
 // checkChoiceRequirement validates a single choice requirement.
-func checkChoiceRequirement(req shared.ChoiceRequirement, p *player.Player, g *game.Game, cardRegistry cards.CardRegistry) error {
+func checkChoiceRequirement(req shared.ChoiceRequirement, p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry) error {
 	switch req.Type {
 	case "tags":
 		if req.Tag == nil {

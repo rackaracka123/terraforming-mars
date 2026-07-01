@@ -4,28 +4,27 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/game"
-	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
 )
 
 // CardRegistry provides lookup functionality for card data
 type CardRegistry interface {
 	// GetByID retrieves a card by its ID
-	GetByID(cardID string) (*gamecards.Card, error)
+	GetByID(cardID string) (*Card, error)
 
 	// GetAll returns all cards in the registry
-	GetAll() []gamecards.Card
+	GetAll() []Card
 }
 
 // InMemoryCardRegistry implements CardRegistry with an in-memory map
 type InMemoryCardRegistry struct {
-	cards map[string]gamecards.Card
+	cards map[string]Card
 	order []string // preserves load (JSON) order so GetAll is deterministic
 }
 
 // NewInMemoryCardRegistry creates a new card registry from a slice of cards
-func NewInMemoryCardRegistry(cardList []gamecards.Card) *InMemoryCardRegistry {
-	cardMap := make(map[string]gamecards.Card, len(cardList))
+func NewInMemoryCardRegistry(cardList []Card) *InMemoryCardRegistry {
+	cardMap := make(map[string]Card, len(cardList))
 	order := make([]string, 0, len(cardList))
 	for _, card := range cardList {
 		if _, exists := cardMap[card.ID]; !exists {
@@ -41,7 +40,7 @@ func NewInMemoryCardRegistry(cardList []gamecards.Card) *InMemoryCardRegistry {
 }
 
 // GetByID retrieves a card by its ID, returning a copy to prevent mutation
-func (r *InMemoryCardRegistry) GetByID(cardID string) (*gamecards.Card, error) {
+func (r *InMemoryCardRegistry) GetByID(cardID string) (*Card, error) {
 	card, exists := r.cards[cardID]
 	if !exists {
 		return nil, fmt.Errorf("card not found: %s", cardID)
@@ -54,8 +53,8 @@ func (r *InMemoryCardRegistry) GetByID(cardID string) (*gamecards.Card, error) {
 
 // GetAll returns all cards in the registry, in their original load (JSON) order
 // so that deck construction is deterministic for a given seed.
-func (r *InMemoryCardRegistry) GetAll() []gamecards.Card {
-	cardList := make([]gamecards.Card, 0, len(r.order))
+func (r *InMemoryCardRegistry) GetAll() []Card {
+	cardList := make([]Card, 0, len(r.order))
 	for _, id := range r.order {
 		cardList = append(cardList, r.cards[id].DeepCopy())
 	}
@@ -78,9 +77,9 @@ func GetCardIDsByPacks(registry CardRegistry, packs []string) (projectCards, cor
 		}
 
 		switch card.Type {
-		case gamecards.CardTypeCorporation:
+		case CardTypeCorporation:
 			corps = append(corps, card.ID)
-		case gamecards.CardTypePrelude:
+		case CardTypePrelude:
 			preludes = append(preludes, card.ID)
 		default:
 			projectCards = append(projectCards, card.ID)
@@ -122,7 +121,7 @@ func (a *VPCardLookupAdapter) LookupVPCard(cardID string) (*game.VPCardInfo, err
 	}, nil
 }
 
-func convertVPCondition(vc gamecards.VictoryPointCondition) shared.VPCondition {
+func convertVPCondition(vc VictoryPointCondition) shared.VPCondition {
 	cond := shared.VPCondition{
 		Amount:     vc.Amount,
 		Condition:  string(vc.Condition),

@@ -3,7 +3,7 @@ package cards_test
 import (
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
 )
 

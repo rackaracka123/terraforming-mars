@@ -7,7 +7,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
@@ -19,7 +18,7 @@ import (
 // FinalScoringAction handles the business logic for calculating final scores and ending the game
 type FinalScoringAction struct {
 	gameRepo          game.GameRepository
-	cardRegistry      cards.CardRegistry
+	cardRegistry      gamecards.CardRegistry
 	awardRegistry     award.AwardRegistry
 	milestoneRegistry milestone.MilestoneRegistry
 	logger            *zap.Logger
@@ -28,7 +27,7 @@ type FinalScoringAction struct {
 // NewFinalScoringAction creates a new final scoring action
 func NewFinalScoringAction(
 	gameRepo game.GameRepository,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	awardRegistry award.AwardRegistry,
 	milestoneRegistry milestone.MilestoneRegistry,
 	logger *zap.Logger,

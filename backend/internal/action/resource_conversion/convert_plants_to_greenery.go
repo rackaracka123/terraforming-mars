@@ -5,11 +5,11 @@ import (
 	"fmt"
 	baseaction "terraforming-mars-backend/internal/action"
 
-	"go.uber.org/zap"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
+
+	"go.uber.org/zap"
 )
 
 const (
@@ -21,13 +21,13 @@ const (
 // Uses RequirementModifierCalculator to apply card discounts (e.g., Ecoline: 7 plants instead of 8)
 type ConvertPlantsToGreeneryAction struct {
 	baseaction.BaseAction
-	cardRegistry cards.CardRegistry
+	cardRegistry gamecards.CardRegistry
 }
 
 // NewConvertPlantsToGreeneryAction creates a new convert plants to greenery action
 func NewConvertPlantsToGreeneryAction(
 	gameRepo game.GameRepository,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	stateRepo game.GameStateRepository,
 	logger *zap.Logger,
 ) *ConvertPlantsToGreeneryAction {

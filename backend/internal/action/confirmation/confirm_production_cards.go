@@ -7,12 +7,12 @@ import (
 	gameaction "terraforming-mars-backend/internal/action/game"
 	"terraforming-mars-backend/internal/action/resource_conversion"
 
-	"go.uber.org/zap"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	playerPkg "terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
+
+	"go.uber.org/zap"
 )
 
 // ConfirmProductionCardsAction handles the business logic for confirming production card selection
@@ -24,7 +24,7 @@ type ConfirmProductionCardsAction struct {
 // NewConfirmProductionCardsAction creates a new confirm production cards action
 func NewConfirmProductionCardsAction(
 	gameRepo game.GameRepository,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	finalScoringAction *gameaction.FinalScoringAction,
 	logger *zap.Logger,
 ) *ConfirmProductionCardsAction {
@@ -261,7 +261,7 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 // one greenery conversion (plants → greenery).
 func autoPassPlayersForFinalPhase(
 	players []*playerPkg.Player,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	log *zap.Logger,
 ) {
 	calculator := gamecards.NewRequirementModifierCalculator(cardRegistry)

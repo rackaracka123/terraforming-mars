@@ -6,7 +6,6 @@ import (
 	"runtime"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/board"
@@ -34,7 +33,7 @@ func loadStandardProjectRegistryDto(t *testing.T) standardproject.StandardProjec
 // setupStuckPlayerGame builds a single-player base game in the action phase where the
 // player has no legal move: empty hand, zero of every resource, no played-card actions,
 // colonies disabled. It mirrors the #571 repro fixture at the DTO layer.
-func setupStuckPlayerGame(t *testing.T) (*game.Game, *player.Player, cards.CardRegistry) {
+func setupStuckPlayerGame(t *testing.T) (*game.Game, *player.Player, gamecards.CardRegistry) {
 	t.Helper()
 
 	settings := shared.GameSettings{
@@ -54,7 +53,7 @@ func setupStuckPlayerGame(t *testing.T) (*game.Game, *player.Player, cards.CardR
 		t.Fatalf("Failed to add player: %v", err)
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{})
 
 	p.Resources().Set(shared.Resources{})
 	p.Actions().SetActions([]shared.CardAction{})

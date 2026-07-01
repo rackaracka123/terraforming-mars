@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
 	gamecards "terraforming-mars-backend/internal/game/cards"
@@ -22,7 +21,7 @@ func CalculatePlayerCardState(
 	card *gamecards.Card,
 	p *player.Player,
 	g *game.Game,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	colonyBonusLookup ...gamecards.ColonyBonusLookup,
 ) player.EntityState {
 	var errors []player.StateError
@@ -80,7 +79,7 @@ func CalculatePendingCardPlayability(
 	card *gamecards.Card,
 	p *player.Player,
 	g *game.Game,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 ) player.EntityState {
 	var errors []player.StateError
 	var warnings []player.StateWarning
@@ -125,7 +124,7 @@ func CalculatePlayerCardActionState(
 	timesUsedThisGeneration int,
 	p *player.Player,
 	g *game.Game,
-	cardRegistry ...cards.CardRegistry,
+	cardRegistry ...gamecards.CardRegistry,
 ) player.EntityState {
 	var errors []player.StateError
 
@@ -216,7 +215,7 @@ func CalculatePlayerCardActionState(
 	for _, outputBC := range behavior.Outputs {
 		if outputBC.GetTarget() == "steal-from-any-card" {
 			totalAvailable := 0
-			var reg cards.CardRegistry
+			var reg gamecards.CardRegistry
 			if len(cardRegistry) > 0 {
 				reg = cardRegistry[0]
 			}
@@ -263,7 +262,7 @@ func CalculatePlayerCardActionState(
 		warnings = append(warnings, validateGlobalParamWarnings(choice.Outputs, g)...)
 	}
 
-	var reg cards.CardRegistry
+	var reg gamecards.CardRegistry
 	if len(cardRegistry) > 0 {
 		reg = cardRegistry[0]
 	}
@@ -284,7 +283,7 @@ func CalculatePlayerStandardProjectState(
 	projectType shared.StandardProject,
 	p *player.Player,
 	g *game.Game,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 ) player.EntityState {
 	var errors []player.StateError
 	var warnings []player.StateWarning
@@ -556,7 +555,7 @@ func validateRequirements(
 	card *gamecards.Card,
 	p *player.Player,
 	g *game.Game,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 ) []player.StateError {
 	if card.Requirements == nil || len(card.Requirements.Items) == 0 {
 		return nil
@@ -732,7 +731,7 @@ func validateNegativeResourceOutputs(
 func validateCardResourceOutputs(
 	card *gamecards.Card,
 	p *player.Player,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 ) []player.StateError {
 	if len(card.Behaviors) == 0 || cardRegistry == nil {
 		return nil
@@ -793,7 +792,7 @@ func validateColonyBonusStorageTargets(
 	card *gamecards.Card,
 	p *player.Player,
 	g *game.Game,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	colonyBonusLookup gamecards.ColonyBonusLookup,
 ) []player.StateWarning {
 	if colonyBonusLookup == nil || g == nil || !g.HasColonies() {
@@ -1118,7 +1117,7 @@ func checkRequirement(
 	req gamecards.Requirement,
 	p *player.Player,
 	g *game.Game,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	calculator *gamecards.RequirementModifierCalculator,
 ) *player.StateError {
 	switch req.Type {
@@ -1324,7 +1323,7 @@ func checkRequirement(
 // calculateEffectiveCost computes cost with discounts using RequirementModifierCalculator.
 // Returns the effective cost map (resource type -> amount) and discounts map (resource type -> discount amount).
 // Cards typically only cost credits, so the map will usually just have {"credits": X}.
-func calculateEffectiveCost(card *gamecards.Card, p *player.Player, cardRegistry cards.CardRegistry) (map[string]int, map[string]int) {
+func calculateEffectiveCost(card *gamecards.Card, p *player.Player, cardRegistry gamecards.CardRegistry) (map[string]int, map[string]int) {
 	baseCost := card.Cost
 
 	// Calculate discounts using RequirementModifierCalculator
@@ -1714,7 +1713,7 @@ func CalculateMilestoneState(
 	milestoneType shared.MilestoneType,
 	p *player.Player,
 	g *game.Game,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	milestoneRegistry milestone.MilestoneRegistry,
 ) player.EntityState {
 	var errors []player.StateError
@@ -1858,7 +1857,7 @@ func CalculateAwardState(
 
 // CalculateChoiceErrors validates a single choice's requirements against the player/game state.
 // Returns a list of errors explaining why the choice is unavailable (empty if available).
-func CalculateChoiceErrors(choice shared.Choice, p *player.Player, g *game.Game, cardRegistry cards.CardRegistry) []player.StateError {
+func CalculateChoiceErrors(choice shared.Choice, p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry) []player.StateError {
 	var errors []player.StateError
 
 	if choice.Requirements != nil && len(choice.Requirements.Items) > 0 {
@@ -1908,7 +1907,7 @@ func CalculateChoiceErrors(choice shared.Choice, p *player.Player, g *game.Game,
 }
 
 // checkChoiceRequirement validates a single choice requirement and returns a StateError if not met.
-func checkChoiceRequirement(req shared.ChoiceRequirement, p *player.Player, g *game.Game, cardRegistry cards.CardRegistry) *player.StateError {
+func checkChoiceRequirement(req shared.ChoiceRequirement, p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry) *player.StateError {
 	switch req.Type {
 	case "tags":
 		if req.Tag == nil {
@@ -2049,7 +2048,7 @@ func computeBehaviorValues(
 	sourceCardID string,
 	p *player.Player,
 	g *game.Game,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	colonyBonusLookup gamecards.ColonyBonusLookup,
 ) []player.ComputedBehaviorValue {
 	var result []player.ComputedBehaviorValue

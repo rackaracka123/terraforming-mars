@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
@@ -14,7 +13,7 @@ import (
 )
 
 // applyOutputs applies outputs directly via BehaviorApplier without card play.
-func applyOutputs(t *testing.T, p *player.Player, g *game.Game, registry cards.CardRegistry, outputs ...shared.BehaviorCondition) {
+func applyOutputs(t *testing.T, p *player.Player, g *game.Game, registry gamecards.CardRegistry, outputs ...shared.BehaviorCondition) {
 	t.Helper()
 	applier := gamecards.NewBehaviorApplier(p, g, "test", testutil.TestLogger()).
 		WithCardRegistry(registry)
@@ -37,7 +36,7 @@ type applyOptions struct {
 	targetPlayerID    string
 	stealSourceCardID string
 	selectedAmount    int
-	cardRegistry      cards.CardRegistry
+	cardRegistry      gamecards.CardRegistry
 }
 
 // applyOutputsWithOptions applies outputs with additional applier configuration.

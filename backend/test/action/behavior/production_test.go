@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	cardAction "terraforming-mars-backend/internal/action/card"
-	"terraforming-mars-backend/internal/cards"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/test/testutil"
@@ -52,7 +51,7 @@ func TestMirandaResort_CreditProductionPerEarthTag(t *testing.T) {
 	earthCard3 := gamecards.Card{ID: "card-earth-3", Name: "Earth Card 3", Type: gamecards.CardTypeAutomated, Tags: []shared.CardTag{shared.TagEarth}, Cost: 0}
 	nonEarthCard := gamecards.Card{ID: "card-non-earth", Name: "Non-Earth Card", Type: gamecards.CardTypeAutomated, Tags: []shared.CardTag{shared.TagBuilding}, Cost: 0}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{mirandaResort, earthCard1, earthCard2, earthCard3, nonEarthCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{mirandaResort, earthCard1, earthCard2, earthCard3, nonEarthCard})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -118,7 +117,7 @@ func TestMirandaResort_ZeroEarthTags(t *testing.T) {
 		},
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{mirandaResort})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{mirandaResort})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -184,7 +183,7 @@ func TestTerraformingGanymede_TRPerJovianTag(t *testing.T) {
 	jovianCard1 := gamecards.Card{ID: "card-jovian-1", Name: "Jovian Card 1", Type: gamecards.CardTypeAutomated, Tags: []shared.CardTag{shared.TagJovian}, Cost: 0}
 	jovianCard2 := gamecards.Card{ID: "card-jovian-2", Name: "Jovian Card 2", Type: gamecards.CardTypeAutomated, Tags: []shared.CardTag{shared.TagJovian}, Cost: 0}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{terraformingGanymede, jovianCard1, jovianCard2})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{terraformingGanymede, jovianCard1, jovianCard2})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -251,7 +250,7 @@ func TestTerraformingGanymede_OnlyCountsSelfPlayerTags(t *testing.T) {
 
 	jovianCard := gamecards.Card{ID: "card-jovian-other", Name: "Jovian Other", Type: gamecards.CardTypeAutomated, Tags: []shared.CardTag{shared.TagJovian}, Cost: 0}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{terraformingGanymede, jovianCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{terraformingGanymede, jovianCard})
 
 	players := testGame.GetAllPlayers()
 	attacker := players[0]
@@ -323,7 +322,7 @@ func TestImportedNitrogen_MultipleAnyCardTargets(t *testing.T) {
 		ResourceStorage: &gamecards.ResourceStorage{Type: shared.ResourceAnimal, Starting: 0},
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{importedNitrogen, microbeCard, animalCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{importedNitrogen, microbeCard, animalCard})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -406,7 +405,7 @@ func TestWorms_OneMicrobeTagBefore_GainsOnePlantProduction(t *testing.T) {
 		Tags: []shared.CardTag{shared.TagMicrobe}, Cost: 0,
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{worms, microbeCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{worms, microbeCard})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -443,7 +442,7 @@ func TestWorms_ZeroMicrobeTagsBefore_GainsZeroPlantProduction(t *testing.T) {
 	ctx := context.Background()
 
 	worms := makeWormsCard()
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{worms})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{worms})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -482,7 +481,7 @@ func TestWorms_ThreeMicrobeTagsBefore_GainsTwoPlantProduction(t *testing.T) {
 	microbeCard2 := gamecards.Card{ID: "card-m2", Name: "Microbe 2", Type: gamecards.CardTypeAutomated, Tags: []shared.CardTag{shared.TagMicrobe}, Cost: 0}
 	microbeCard3 := gamecards.Card{ID: "card-m3", Name: "Microbe 3", Type: gamecards.CardTypeAutomated, Tags: []shared.CardTag{shared.TagMicrobe}, Cost: 0}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{worms, microbeCard1, microbeCard2, microbeCard3})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{worms, microbeCard1, microbeCard2, microbeCard3})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -523,7 +522,7 @@ func TestWorms_TwoMicrobeTagsBefore_RoundsDown(t *testing.T) {
 	microbeCard1 := gamecards.Card{ID: "card-m1", Name: "Microbe 1", Type: gamecards.CardTypeAutomated, Tags: []shared.CardTag{shared.TagMicrobe}, Cost: 0}
 	microbeCard2 := gamecards.Card{ID: "card-m2", Name: "Microbe 2", Type: gamecards.CardTypeAutomated, Tags: []shared.CardTag{shared.TagMicrobe}, Cost: 0}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{worms, microbeCard1, microbeCard2})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{worms, microbeCard1, microbeCard2})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]

@@ -7,7 +7,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
@@ -23,7 +22,7 @@ type UseCardActionAction struct {
 // NewUseCardActionAction creates a new use card action action
 func NewUseCardActionAction(
 	gameRepo game.GameRepository,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	stateRepo game.GameStateRepository,
 	logger *zap.Logger,
 ) *UseCardActionAction {

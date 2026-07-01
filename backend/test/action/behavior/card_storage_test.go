@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	cardAction "terraforming-mars-backend/internal/action/card"
-	"terraforming-mars-backend/internal/cards"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/test/testutil"
@@ -45,7 +44,7 @@ func TestCardResource_CEOsFavoriteProject_AddsToAnimalCard(t *testing.T) {
 		ResourceStorage: &gamecards.ResourceStorage{Type: shared.ResourceAnimal, Starting: 0},
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{ceosFavorite, animalCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{ceosFavorite, animalCard})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -106,7 +105,7 @@ func TestCardResource_CEOsFavoriteProject_AddsToMicrobeCard(t *testing.T) {
 		ResourceStorage: &gamecards.ResourceStorage{Type: shared.ResourceMicrobe, Starting: 0},
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{ceosFavorite, microbeCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{ceosFavorite, microbeCard})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -175,7 +174,7 @@ func TestCardResource_CorroderSuits_AddsToVenusCard(t *testing.T) {
 		ResourceStorage: &gamecards.ResourceStorage{Type: shared.ResourceFloater, Starting: 0},
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{corroderSuits, venusFloaterCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{corroderSuits, venusFloaterCard})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -255,7 +254,7 @@ func TestCardResource_MaxwellBase_ActionAddsToVenusCard(t *testing.T) {
 		ResourceStorage: &gamecards.ResourceStorage{Type: shared.ResourceMicrobe, Starting: 0},
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{maxwellBase, venusMicrobeCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{maxwellBase, venusMicrobeCard})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -325,7 +324,7 @@ func TestCardResource_FailsWithoutTargetCard(t *testing.T) {
 		ResourceStorage: &gamecards.ResourceStorage{Type: shared.ResourceAnimal, Starting: 0},
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{ceosFavorite, animalCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{ceosFavorite, animalCard})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -380,7 +379,7 @@ func TestCardResource_FailsWhenTargetHasNoStorage(t *testing.T) {
 		ID: "card-no-storage", Name: "No Storage Card", Type: gamecards.CardTypeAutomated, Cost: 0,
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{ceosFavorite, noStorageCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{ceosFavorite, noStorageCard})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -446,7 +445,7 @@ func TestCardResource_AnyCardTarget_SkipsWhenNoTargetCard(t *testing.T) {
 		},
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{hydrogenToVenus})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{hydrogenToVenus})
 
 	players := testGame.GetAllPlayers()
 	p := players[0]
