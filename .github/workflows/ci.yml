@@ -1,0 +1,184 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  GO_VERSION: '1.21'
+
+jobs:
+  format-check:
+    runs-on: ubuntu-latest
+    name: Format Check
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: backend/go.sum
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Download Go modules
+        working-directory: ./backend
+        run: go mod download
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: bun install --frozen-lockfile
+
+      - name: Check formatting
+        run: make format-check
+
+  backend-tests:
+    runs-on: ubuntu-latest
+    name: Backend Tests
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: backend/go.sum
+
+      - name: Download Go modules
+        working-directory: ./backend
+        run: go mod download
+
+      - name: Run all backend tests
+        run: make test
+
+  frontend-lint:
+    runs-on: ubuntu-latest
+    name: Frontend Lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: bun install --frozen-lockfile
+
+      - name: Run frontend lint
+        run: make lint-frontend
+
+  frontend-typecheck:
+    runs-on: ubuntu-latest
+    name: Frontend TypeCheck
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: bun install --frozen-lockfile
+
+      - name: Run TypeScript type check
+        working-directory: ./frontend
+        run: bun run typecheck
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    name: Frontend Build
+    needs: [frontend-lint, frontend-typecheck]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: bun install --frozen-lockfile
+
+      - name: Build frontend for production
+        run: make build-frontend
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/build/
+          retention-days: 7
+
+  coverage:
+    runs-on: ubuntu-latest
+    name: Coverage Report
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: backend/go.sum
+
+      - name: Run tests with coverage
+        working-directory: backend
+        run: go test -coverprofile=coverage.out -coverpkg=./internal/... ./test/...
+
+      - name: Generate HTML report
+        working-directory: backend
+        run: go tool cover -html=coverage.out -o coverage.html
+
+      - name: Assemble Pages content
+        working-directory: backend
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "Coverage: ${COVERAGE}%"
+          mkdir -p pages
+          cp coverage.html pages/index.html
+
+          if (( $(echo "$COVERAGE >= 80" | bc -l) )); then
+            COLOR="brightgreen"
+          elif (( $(echo "$COVERAGE >= 60" | bc -l) )); then
+            COLOR="green"
+          elif (( $(echo "$COVERAGE >= 40" | bc -l) )); then
+            COLOR="yellow"
+          else
+            COLOR="red"
+          fi
+
+          echo "{\"schemaVersion\":1,\"label\":\"coverage\",\"message\":\"${COVERAGE}%\",\"color\":\"${COLOR}\"}" > pages/coverage.json
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: backend/pages
+
+  # Publish the coverage report to GitHub Pages, but only for pushes to main.
+  deploy-coverage-pages:
+    needs: coverage
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    name: Publish Coverage to Pages
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
