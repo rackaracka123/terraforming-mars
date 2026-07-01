@@ -34,12 +34,12 @@ import (
 	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/datastore"
 	msLoader "terraforming-mars-backend/internal/game/milestone"
+	pfLoader "terraforming-mars-backend/internal/game/projectfunding"
 	"terraforming-mars-backend/internal/game/shared"
 	stdprojLoader "terraforming-mars-backend/internal/game/standardproject"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/maps"
 	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
-	pfLoader "terraforming-mars-backend/internal/projectfunding"
 	"terraforming-mars-backend/internal/service/bot"
 	"terraforming-mars-backend/internal/service/bugreport"
 

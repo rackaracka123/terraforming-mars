@@ -11,9 +11,9 @@ import (
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/milestone"
+	pfRegistry "terraforming-mars-backend/internal/game/projectfunding"
 	"terraforming-mars-backend/internal/game/standardproject"
 	"terraforming-mars-backend/internal/logger"
-	pfRegistry "terraforming-mars-backend/internal/projectfunding"
 
 	"go.uber.org/zap"
 )

@@ -19,7 +19,6 @@ import (
 	pfDomain "terraforming-mars-backend/internal/game/projectfunding"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/game/standardproject"
-	pfRegistry "terraforming-mars-backend/internal/projectfunding"
 )
 
 // ToGameDto converts Game to GameDto with personalized view
@@ -27,7 +26,7 @@ import (
 // Registries bundles optional expansion registries for DTO mapping
 type Registries struct {
 	ColonyRegistry          colonies.ColonyRegistry
-	ProjectFundingRegistry  pfRegistry.ProjectFundingRegistry
+	ProjectFundingRegistry  pfDomain.ProjectFundingRegistry
 	StandardProjectRegistry standardproject.StandardProjectRegistry
 	AwardRegistry           award.AwardRegistry
 	MilestoneRegistry       milestone.MilestoneRegistry
@@ -812,7 +811,7 @@ func toColonyDtos(g *game.Game, colonyRegistry colonies.ColonyRegistry, cardRegi
 	return dtos
 }
 
-func toProjectFundingDtos(g *game.Game, registry pfRegistry.ProjectFundingRegistry, playerID string) []ProjectFundingDto {
+func toProjectFundingDtos(g *game.Game, registry pfDomain.ProjectFundingRegistry, playerID string) []ProjectFundingDto {
 	states := g.ProjectFundingStates()
 	if len(states) == 0 {
 		return nil

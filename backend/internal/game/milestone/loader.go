@@ -1,21 +1,19 @@
-package milestones
+package milestone
 
 import (
 	"encoding/json"
 	"fmt"
 	"os"
-
-	"terraforming-mars-backend/internal/game/milestone"
 )
 
 // LoadMilestonesFromJSON loads milestone definitions from a JSON file
-func LoadMilestonesFromJSON(filepath string) ([]milestone.MilestoneDefinition, error) {
+func LoadMilestonesFromJSON(filepath string) ([]MilestoneDefinition, error) {
 	data, err := os.ReadFile(filepath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read milestones file: %w", err)
 	}
 
-	var defs []milestone.MilestoneDefinition
+	var defs []MilestoneDefinition
 	if err := json.Unmarshal(data, &defs); err != nil {
 		return nil, fmt.Errorf("failed to parse milestones JSON: %w", err)
 	}

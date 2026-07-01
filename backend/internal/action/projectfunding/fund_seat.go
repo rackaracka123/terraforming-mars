@@ -11,7 +11,6 @@ import (
 	"terraforming-mars-backend/internal/game/player"
 	pf "terraforming-mars-backend/internal/game/projectfunding"
 	"terraforming-mars-backend/internal/game/shared"
-	pfRegistry "terraforming-mars-backend/internal/projectfunding"
 
 	"go.uber.org/zap"
 )
@@ -26,13 +25,13 @@ type FundSeatPayment struct {
 // FundSeatAction handles the business logic for purchasing a project funding seat
 type FundSeatAction struct {
 	baseaction.BaseAction
-	pfRegistry pfRegistry.ProjectFundingRegistry
+	pfRegistry pf.ProjectFundingRegistry
 }
 
 // NewFundSeatAction creates a new fund seat action
 func NewFundSeatAction(
 	gameRepo game.GameRepository,
-	pfReg pfRegistry.ProjectFundingRegistry,
+	pfReg pf.ProjectFundingRegistry,
 	stateRepo game.GameStateRepository,
 ) *FundSeatAction {
 	return &FundSeatAction{

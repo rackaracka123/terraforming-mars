@@ -16,7 +16,6 @@ import (
 	playerPkg "terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/projectfunding"
 	"terraforming-mars-backend/internal/game/shared"
-	pfRegistry "terraforming-mars-backend/internal/projectfunding"
 )
 
 // BotStarter starts bot sessions when a game begins.
@@ -29,7 +28,7 @@ type BotStarter interface {
 type StartGameAction struct {
 	gameRepo               game.GameRepository
 	colonyRegistry         colonies.ColonyRegistry
-	projectFundingRegistry pfRegistry.ProjectFundingRegistry
+	projectFundingRegistry projectfunding.ProjectFundingRegistry
 	milestoneRegistry      milestone.MilestoneRegistry
 	awardRegistry          award.AwardRegistry
 	botStarter             BotStarter
@@ -40,7 +39,7 @@ type StartGameAction struct {
 func NewStartGameAction(
 	gameRepo game.GameRepository,
 	colonyRegistry colonies.ColonyRegistry,
-	projectFundingRegistry pfRegistry.ProjectFundingRegistry,
+	projectFundingRegistry projectfunding.ProjectFundingRegistry,
 	milestoneRegistry milestone.MilestoneRegistry,
 	awardRegistry award.AwardRegistry,
 	botStarter BotStarter,
