@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  GO_VERSION: '1.21'
+  GO_VERSION: '1.24'
 
 jobs:
   format-check:
@@ -38,6 +38,26 @@ jobs:
 
       - name: Check formatting
         run: make format-check
+
+  backend-arch-lint:
+    runs-on: ubuntu-latest
+    name: Backend Architecture Guardrail
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: backend/go.sum
+
+      - name: Run architecture guardrail (depguard)
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v2.12.2
+          working-directory: backend
 
   backend-tests:
     runs-on: ubuntu-latest

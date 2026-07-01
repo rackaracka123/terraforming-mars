@@ -1,1 +1,7 @@
 tmp/
+
+# Compiled binaries / test binaries (should never be committed)
+/server
+/cmd/server/server
+/integration.test
+*.test
