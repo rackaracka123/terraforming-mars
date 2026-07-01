@@ -1,4 +1,4 @@
-package maps
+package board
 
 import (
 	"encoding/json"
@@ -6,7 +6,6 @@ import (
 	"os"
 	"slices"
 
-	"terraforming-mars-backend/internal/game/board"
 	"terraforming-mars-backend/internal/game/shared"
 )
 
@@ -107,8 +106,8 @@ func DefaultMapID() string {
 
 // GenerateBoardFromMap converts a map definition to board tiles with cube coordinates.
 // The row pattern is [5,6,7,8,9,8,7,6,5] matching the standard Mars hex grid.
-func GenerateBoardFromMap(mapDef *MapDefinition, includeVenus bool) []board.Tile {
-	tiles := []board.Tile{}
+func GenerateBoardFromMap(mapDef *MapDefinition, includeVenus bool) []Tile {
+	tiles := []Tile{}
 	radius := 4
 
 	for rowIdx, row := range mapDef.Rows {
@@ -128,7 +127,7 @@ func GenerateBoardFromMap(mapDef *MapDefinition, includeVenus bool) []board.Tile
 				tags = []string{}
 			}
 			if tileDef.Volcanic {
-				tags = appendIfMissing(tags, board.BoardTagVolcanic)
+				tags = appendIfMissing(tags, BoardTagVolcanic)
 			}
 
 			var displayName *string
@@ -137,10 +136,10 @@ func GenerateBoardFromMap(mapDef *MapDefinition, includeVenus bool) []board.Tile
 				displayName = &name
 			}
 
-			tiles = append(tiles, board.Tile{
+			tiles = append(tiles, Tile{
 				Coordinates: pos,
 				Type:        tileType,
-				Location:    board.TileLocationMars,
+				Location:    TileLocationMars,
 				Tags:        tags,
 				DisplayName: displayName,
 				Bonuses:     bonuses,
@@ -153,16 +152,16 @@ func GenerateBoardFromMap(mapDef *MapDefinition, includeVenus bool) []board.Tile
 		Pos         shared.HexPosition
 		Tags        []string
 		DisplayName string
-		Location    board.TileLocation
+		Location    TileLocation
 	}{
-		{shared.HexPosition{Q: 500, R: 0, S: -500}, []string{board.BoardTagPhobosSpaceHaven}, "Phobos Space Haven", board.TileLocationPhobos},
-		{shared.HexPosition{Q: 400, R: 0, S: -400}, []string{board.BoardTagDawnCity}, "Dawn City", board.TileLocationMercury},
-		{shared.HexPosition{Q: 200, R: 0, S: -200}, []string{board.BoardTagGanymedeColony}, "Ganymede Colony", board.TileLocationGanymede},
-		{shared.HexPosition{Q: 300, R: 0, S: -300}, []string{board.BoardTagLunaMetropolis}, "Luna Metropolis", board.TileLocationLuna},
+		{shared.HexPosition{Q: 500, R: 0, S: -500}, []string{BoardTagPhobosSpaceHaven}, "Phobos Space Haven", TileLocationPhobos},
+		{shared.HexPosition{Q: 400, R: 0, S: -400}, []string{BoardTagDawnCity}, "Dawn City", TileLocationMercury},
+		{shared.HexPosition{Q: 200, R: 0, S: -200}, []string{BoardTagGanymedeColony}, "Ganymede Colony", TileLocationGanymede},
+		{shared.HexPosition{Q: 300, R: 0, S: -300}, []string{BoardTagLunaMetropolis}, "Luna Metropolis", TileLocationLuna},
 	}
 	for _, ct := range celestialTiles {
 		displayName := ct.DisplayName
-		tiles = append(tiles, board.Tile{
+		tiles = append(tiles, Tile{
 			Coordinates: ct.Pos,
 			Type:        shared.ResourceLandTile,
 			Location:    ct.Location,
@@ -180,15 +179,15 @@ func GenerateBoardFromMap(mapDef *MapDefinition, includeVenus bool) []board.Tile
 		Tags        []string
 		DisplayName string
 	}{
-		{shared.HexPosition{Q: 100, R: 0, S: -100}, []string{board.BoardTagMaxwellBase}, "Maxwell Base"},
-		{shared.HexPosition{Q: 102, R: 0, S: -102}, []string{board.BoardTagStratopolis}, "Stratopolis"},
+		{shared.HexPosition{Q: 100, R: 0, S: -100}, []string{BoardTagMaxwellBase}, "Maxwell Base"},
+		{shared.HexPosition{Q: 102, R: 0, S: -102}, []string{BoardTagStratopolis}, "Stratopolis"},
 	}
 	for _, vt := range venusTiles {
 		displayName := vt.DisplayName
-		tiles = append(tiles, board.Tile{
+		tiles = append(tiles, Tile{
 			Coordinates: vt.Pos,
 			Type:        shared.ResourceLandTile,
-			Location:    board.TileLocationVenus,
+			Location:    TileLocationVenus,
 			Tags:        vt.Tags,
 			DisplayName: &displayName,
 		})
@@ -212,13 +211,13 @@ func mapTileType(t string) shared.ResourceType {
 	}
 }
 
-func mapBonuses(bonuses []TileBonusJSON) []board.TileBonus {
+func mapBonuses(bonuses []TileBonusJSON) []TileBonus {
 	if len(bonuses) == 0 {
 		return nil
 	}
-	result := make([]board.TileBonus, len(bonuses))
+	result := make([]TileBonus, len(bonuses))
 	for i, b := range bonuses {
-		result[i] = board.TileBonus{
+		result[i] = TileBonus{
 			Type:   shared.ResourceType(b.Type),
 			Amount: b.Amount,
 		}

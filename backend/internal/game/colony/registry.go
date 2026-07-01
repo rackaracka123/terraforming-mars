@@ -1,25 +1,23 @@
-package colonies
+package colony
 
 import (
 	"fmt"
-
-	"terraforming-mars-backend/internal/game/colony"
 )
 
 // ColonyRegistry provides lookup functionality for colony tile definitions
 type ColonyRegistry interface {
-	GetByID(colonyID string) (*colony.ColonyDefinition, error)
-	GetAll() []colony.ColonyDefinition
+	GetByID(colonyID string) (*ColonyDefinition, error)
+	GetAll() []ColonyDefinition
 }
 
 // InMemoryColonyRegistry implements ColonyRegistry with an in-memory map
 type InMemoryColonyRegistry struct {
-	colonies map[string]colony.ColonyDefinition
+	colonies map[string]ColonyDefinition
 }
 
 // NewInMemoryColonyRegistry creates a new colony registry from a slice of definitions
-func NewInMemoryColonyRegistry(colonyList []colony.ColonyDefinition) *InMemoryColonyRegistry {
-	colonyMap := make(map[string]colony.ColonyDefinition, len(colonyList))
+func NewInMemoryColonyRegistry(colonyList []ColonyDefinition) *InMemoryColonyRegistry {
+	colonyMap := make(map[string]ColonyDefinition, len(colonyList))
 	for _, c := range colonyList {
 		colonyMap[c.ID] = c
 	}
@@ -27,7 +25,7 @@ func NewInMemoryColonyRegistry(colonyList []colony.ColonyDefinition) *InMemoryCo
 }
 
 // GetByID retrieves a colony tile definition by ID
-func (r *InMemoryColonyRegistry) GetByID(colonyID string) (*colony.ColonyDefinition, error) {
+func (r *InMemoryColonyRegistry) GetByID(colonyID string) (*ColonyDefinition, error) {
 	c, exists := r.colonies[colonyID]
 	if !exists {
 		return nil, fmt.Errorf("colony not found: %s", colonyID)
@@ -36,8 +34,8 @@ func (r *InMemoryColonyRegistry) GetByID(colonyID string) (*colony.ColonyDefinit
 }
 
 // GetAll returns all colony tile definitions
-func (r *InMemoryColonyRegistry) GetAll() []colony.ColonyDefinition {
-	result := make([]colony.ColonyDefinition, 0, len(r.colonies))
+func (r *InMemoryColonyRegistry) GetAll() []ColonyDefinition {
+	result := make([]ColonyDefinition, 0, len(r.colonies))
 	for _, c := range r.colonies {
 		result = append(result, c)
 	}

@@ -31,6 +31,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
+	"terraforming-mars-backend/internal/game/board"
 	"terraforming-mars-backend/internal/game/colony"
 	"terraforming-mars-backend/internal/game/datastore"
 	msLoader "terraforming-mars-backend/internal/game/milestone"
@@ -38,7 +39,6 @@ import (
 	"terraforming-mars-backend/internal/game/shared"
 	stdprojLoader "terraforming-mars-backend/internal/game/standardproject"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/maps"
 	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
 	"terraforming-mars-backend/internal/service/bot"
 	"terraforming-mars-backend/internal/service/bugreport"
@@ -154,7 +154,7 @@ func main() {
 	mapPath := filepath.Join(wd, "assets", "terraforming_mars_maps.json")
 	log.Debug("Loading maps from", zap.String("path", mapPath))
 
-	mapRegistry, err := maps.LoadMapsFromJSON(mapPath)
+	mapRegistry, err := board.LoadMapsFromJSON(mapPath)
 	if err != nil {
 		log.Fatal("Failed to load maps", zap.Error(err))
 	}
@@ -198,7 +198,7 @@ func main() {
 	availableMaps := make([]dto.MapInfoDto, 0)
 	for _, m := range mapRegistry.ListMaps() {
 		mapDef, _ := mapRegistry.GetMap(m.ID)
-		tiles := maps.GenerateBoardFromMap(mapDef, false)
+		tiles := board.GenerateBoardFromMap(mapDef, false)
 		previewTiles := make([]dto.MapPreviewTile, 0)
 		for _, t := range tiles {
 			if t.Location != "mars" || string(t.Type) == "empty" {

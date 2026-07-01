@@ -10,15 +10,15 @@ import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/board"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/maps"
 )
 
 // UpdateGameSettingsAction handles editing game settings during the lobby phase.
 type UpdateGameSettingsAction struct {
 	gameRepo     game.GameRepository
 	cardRegistry cards.CardRegistry
-	mapRegistry  *maps.MapRegistry
+	mapRegistry  *board.MapRegistry
 	logger       *zap.Logger
 }
 
@@ -26,7 +26,7 @@ type UpdateGameSettingsAction struct {
 func NewUpdateGameSettingsAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
-	mapRegistry *maps.MapRegistry,
+	mapRegistry *board.MapRegistry,
 	logger *zap.Logger,
 ) *UpdateGameSettingsAction {
 	return &UpdateGameSettingsAction{
@@ -159,7 +159,7 @@ func (a *UpdateGameSettingsAction) Execute(
 
 	if mapChanged || venusChanged {
 		mapDef, _ := a.mapRegistry.GetMap(settings.MapID)
-		initialTiles := maps.GenerateBoardFromMap(mapDef, settings.VenusNextEnabled)
+		initialTiles := board.GenerateBoardFromMap(mapDef, settings.VenusNextEnabled)
 		g.ReplaceBoard(ctx, initialTiles)
 		log.Debug("Board rebuilt", zap.String("map_id", settings.MapID))
 	}

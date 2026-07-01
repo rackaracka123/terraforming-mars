@@ -10,15 +10,15 @@ import (
 
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/board"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/maps"
 )
 
 // CreateGameAction handles the business logic for creating new games
 type CreateGameAction struct {
 	gameRepo     game.GameRepository
 	cardRegistry cards.CardRegistry
-	mapRegistry  *maps.MapRegistry
+	mapRegistry  *board.MapRegistry
 	logger       *zap.Logger
 }
 
@@ -26,7 +26,7 @@ type CreateGameAction struct {
 func NewCreateGameAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
-	mapRegistry *maps.MapRegistry,
+	mapRegistry *board.MapRegistry,
 	logger *zap.Logger,
 ) *CreateGameAction {
 	return &CreateGameAction{
@@ -56,7 +56,7 @@ func (a *CreateGameAction) Execute(
 		settings.MaxPlayers = game.DefaultMaxPlayers
 	}
 	if settings.MapID == "" {
-		settings.MapID = maps.DefaultMapID()
+		settings.MapID = board.DefaultMapID()
 	}
 	if len(settings.CardPacks) == 0 {
 		settings.CardPacks = shared.DefaultCardPacks()
@@ -70,7 +70,7 @@ func (a *CreateGameAction) Execute(
 	if !ok {
 		return nil, fmt.Errorf("unknown map: %s", settings.MapID)
 	}
-	initialTiles := maps.GenerateBoardFromMap(mapDef, settings.VenusNextEnabled)
+	initialTiles := board.GenerateBoardFromMap(mapDef, settings.VenusNextEnabled)
 
 	// 4. Create game entity
 	newGame := game.NewGame(a.gameRepo.DataStore(), gameID, "", settings, initialTiles)

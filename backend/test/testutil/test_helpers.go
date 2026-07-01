@@ -21,7 +21,6 @@ import (
 	"terraforming-mars-backend/internal/game/milestone"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/maps"
 )
 
 // TestContext provides a reusable test context
@@ -305,10 +304,10 @@ func TagPtr(v shared.CardTag) *shared.CardTag { return &v }
 func ResourceTypePtr(v shared.ResourceType) *shared.ResourceType { return &v }
 
 // CreateTestMapRegistry returns a MapRegistry loaded from the JSON database.
-func CreateTestMapRegistry() *maps.MapRegistry {
+func CreateTestMapRegistry() *board.MapRegistry {
 	_, currentFile, _, _ := runtime.Caller(0)
 	jsonPath := filepath.Join(filepath.Dir(currentFile), "..", "..", "assets", "terraforming_mars_maps.json")
-	registry, err := maps.LoadMapsFromJSON(jsonPath)
+	registry, err := board.LoadMapsFromJSON(jsonPath)
 	if err != nil {
 		panic(fmt.Sprintf("failed to load map DB for tests: %v", err))
 	}
