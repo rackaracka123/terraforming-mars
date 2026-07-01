@@ -10,7 +10,6 @@ import (
 	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	playerPkg "terraforming-mars-backend/internal/game/player"
@@ -32,7 +31,7 @@ type BotHealthChecker interface {
 // BotBroadcaster broadcasts game state and chat updates.
 type BotBroadcaster interface {
 	BroadcastGameState(gameID string, playerIDs []string)
-	BroadcastChatMessage(gameID string, chatMsg dto.ChatMessageDto)
+	BroadcastChatMessage(gameID string, chatMsg shared.ChatMessage)
 }
 
 // AddBotAction handles adding a bot player to a game lobby
@@ -48,7 +47,6 @@ type AddBotAction struct {
 // AddBotResult contains the result of adding a bot
 type AddBotResult struct {
 	PlayerID string
-	GameDto  dto.GameDto
 }
 
 // NewAddBotAction creates a new add bot action
@@ -136,11 +134,7 @@ func (a *AddBotAction) Execute(ctx context.Context, gameID string, botName strin
 		go a.runHealthCheck(gameID, botID, botName, difficulty, settings.ClaudeAPIKey, settings.ClaudeModel, log)
 	}
 
-	gameDto := dto.ToGameDto(g, a.cardRegistry, botID)
-	return &AddBotResult{
-		PlayerID: botID,
-		GameDto:  gameDto,
-	}, nil
+	return &AddBotResult{PlayerID: botID}, nil
 }
 
 func (a *AddBotAction) runHealthCheck(gameID, botID, botName, difficulty, apiKey, model string, log *zap.Logger) {
@@ -183,13 +177,7 @@ func (a *AddBotAction) runHealthCheck(gameID, botID, botName, difficulty, apiKey
 			Timestamp:   time.Now(),
 		}
 		g.AddChatMessage(ctx, chatMsg)
-		a.broadcaster.BroadcastChatMessage(gameID, dto.ChatMessageDto{
-			SenderID:    chatMsg.SenderID,
-			SenderName:  chatMsg.SenderName,
-			SenderColor: chatMsg.SenderColor,
-			Message:     chatMsg.Message,
-			Timestamp:   chatMsg.Timestamp.Format(time.RFC3339),
-		})
+		a.broadcaster.BroadcastChatMessage(gameID, chatMsg)
 	}
 }
 

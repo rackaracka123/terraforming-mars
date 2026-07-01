@@ -7,12 +7,26 @@ import (
 
 	"go.uber.org/zap"
 
-	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/board"
 	"terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
 )
+
+// SettingsPatch is the domain-level, transport-agnostic patch of editable lobby
+// settings. The delivery layer maps its request DTO onto this so the action does not
+// depend on delivery/dto.
+type SettingsPatch struct {
+	MaxPlayers       *int
+	MapID            *string
+	VenusNextEnabled *bool
+	DevelopmentMode  *bool
+	DemoGame         *bool
+	AllowRandomBuy   *bool
+	CardPacks        *[]string
+	ClaudeAPIKey     *string
+	ClaudeModel      *string
+}
 
 // UpdateGameSettingsAction handles editing game settings during the lobby phase.
 type UpdateGameSettingsAction struct {
@@ -42,7 +56,7 @@ func (a *UpdateGameSettingsAction) Execute(
 	ctx context.Context,
 	gameID string,
 	playerID string,
-	patch *dto.UpdateGameSettingsRequest,
+	patch *SettingsPatch,
 ) error {
 	log := a.logger.With(
 		zap.String("game_id", gameID),

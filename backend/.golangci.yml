@@ -30,6 +30,12 @@ linters:
               desc: "domain (internal/game) must not depend on zap — log via stdlib log/slog"
             - pkg: terraforming-mars-backend/internal/logger
               desc: "domain (internal/game) must not depend on the logger package — log via stdlib log/slog"
+        usecases:
+          files:
+            - "**/internal/action/**"
+          deny:
+            - pkg: terraforming-mars-backend/internal/delivery
+              desc: "action (use cases) must not import the delivery layer — keep action <- delivery direction"
 
 issues:
   max-issues-per-linter: 0

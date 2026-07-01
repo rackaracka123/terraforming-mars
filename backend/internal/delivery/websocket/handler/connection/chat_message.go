@@ -2,12 +2,12 @@ package connection
 
 import (
 	"context"
-	"time"
 
 	connaction "terraforming-mars-backend/internal/action/connection"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/logger"
 
 	"go.uber.org/zap"
@@ -23,7 +23,7 @@ type ChatMessageHandler struct {
 
 // ChatBroadcaster defines the broadcasting interface needed by the chat handler.
 type ChatBroadcaster interface {
-	BroadcastChatMessage(gameID string, chatMsg dto.ChatMessageDto)
+	BroadcastChatMessage(gameID string, chatMsg shared.ChatMessage)
 }
 
 // NewChatMessageHandler creates a new chat message handler.
@@ -105,16 +105,7 @@ func (h *ChatMessageHandler) HandleMessage(ctx context.Context, connection *core
 		return
 	}
 
-	chatDto := dto.ChatMessageDto{
-		SenderID:    chatMsg.SenderID,
-		SenderName:  chatMsg.SenderName,
-		SenderColor: chatMsg.SenderColor,
-		Message:     chatMsg.Message,
-		Timestamp:   chatMsg.Timestamp.Format(time.RFC3339),
-		IsSpectator: chatMsg.IsSpectator,
-	}
-
-	h.broadcaster.BroadcastChatMessage(gameID, chatDto)
+	h.broadcaster.BroadcastChatMessage(gameID, *chatMsg)
 	log.Debug("Chat message broadcast")
 }
 

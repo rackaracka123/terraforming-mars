@@ -31,7 +31,6 @@ func TestJoinGameAction_Success(t *testing.T) {
 	// Assert
 	testutil.AssertNoError(t, err, "Failed to join game")
 	testutil.AssertEqual(t, playerID, result.PlayerID, "Player ID should match")
-	testutil.AssertNotEqual(t, "", result.GameDto.ID, "Game DTO should have ID")
 
 	// Verify player was added to game
 	fetchedGame, _ := repo.Get(context.Background(), testGame.ID())

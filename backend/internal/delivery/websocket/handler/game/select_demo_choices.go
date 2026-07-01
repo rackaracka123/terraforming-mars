@@ -7,6 +7,7 @@ import (
 	gameaction "terraforming-mars-backend/internal/action/game"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
+	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/logger"
 
 	"go.uber.org/zap"
@@ -56,7 +57,38 @@ func (h *SelectDemoChoicesHandler) HandleMessage(ctx context.Context, connection
 		return
 	}
 
-	err = h.action.Execute(ctx, connection.GameID, connection.PlayerID, &request)
+	choices := gameaction.DemoChoices{
+		CorporationID: request.CorporationID,
+		PreludeIDs:    request.PreludeIDs,
+		CardIDs:       request.CardIDs,
+		Resources: shared.Resources{
+			Credits:  request.Resources.Credits,
+			Steel:    request.Resources.Steel,
+			Titanium: request.Resources.Titanium,
+			Plants:   request.Resources.Plants,
+			Energy:   request.Resources.Energy,
+			Heat:     request.Resources.Heat,
+		},
+		Production: shared.Production{
+			Credits:  request.Production.Credits,
+			Steel:    request.Production.Steel,
+			Titanium: request.Production.Titanium,
+			Plants:   request.Production.Plants,
+			Energy:   request.Production.Energy,
+			Heat:     request.Production.Heat,
+		},
+		TerraformRating: request.TerraformRating,
+		Generation:      request.Generation,
+	}
+	if request.GlobalParameters != nil {
+		choices.GlobalParameters = &gameaction.DemoGlobalParameters{
+			Temperature: request.GlobalParameters.Temperature,
+			Oxygen:      request.GlobalParameters.Oxygen,
+			Oceans:      request.GlobalParameters.Oceans,
+		}
+	}
+
+	err = h.action.Execute(ctx, connection.GameID, connection.PlayerID, &choices)
 	if err != nil {
 		log.Error("Failed to execute select demo choices action", zap.Error(err))
 		h.sendError(connection, err.Error())

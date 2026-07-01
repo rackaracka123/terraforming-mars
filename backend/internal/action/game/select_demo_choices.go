@@ -6,11 +6,31 @@ import (
 
 	"go.uber.org/zap"
 
-	"terraforming-mars-backend/internal/delivery/dto"
 	internalgame "terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
 )
+
+// DemoGlobalParameters is the host-only global-parameter override for a demo game.
+type DemoGlobalParameters struct {
+	Temperature int
+	Oxygen      int
+	Oceans      int
+}
+
+// DemoChoices is the domain-level, transport-agnostic demo lobby selection. The
+// delivery layer maps its request DTO onto this so the action does not depend on
+// delivery/dto.
+type DemoChoices struct {
+	CorporationID    string
+	PreludeIDs       []string
+	CardIDs          []string
+	Resources        shared.Resources
+	Production       shared.Production
+	TerraformRating  int
+	GlobalParameters *DemoGlobalParameters // host only
+	Generation       *int                  // host only
+}
 
 // SelectDemoChoicesAction handles a player selecting cards during the demo lobby phase
 type SelectDemoChoicesAction struct {
@@ -37,7 +57,7 @@ func (a *SelectDemoChoicesAction) Execute(
 	ctx context.Context,
 	gameID string,
 	playerID string,
-	request *dto.SelectDemoChoicesRequest,
+	request *DemoChoices,
 ) error {
 	log := a.logger.With(
 		zap.String("game_id", gameID),
@@ -104,25 +124,11 @@ func (a *SelectDemoChoicesAction) Execute(
 	}
 
 	p.SetPendingDemoChoices(&shared.PendingDemoChoices{
-		CorporationID: request.CorporationID,
-		PreludeIDs:    request.PreludeIDs,
-		CardIDs:       request.CardIDs,
-		Resources: shared.Resources{
-			Credits:  request.Resources.Credits,
-			Steel:    request.Resources.Steel,
-			Titanium: request.Resources.Titanium,
-			Plants:   request.Resources.Plants,
-			Energy:   request.Resources.Energy,
-			Heat:     request.Resources.Heat,
-		},
-		Production: shared.Production{
-			Credits:  request.Production.Credits,
-			Steel:    request.Production.Steel,
-			Titanium: request.Production.Titanium,
-			Plants:   request.Production.Plants,
-			Energy:   request.Production.Energy,
-			Heat:     request.Production.Heat,
-		},
+		CorporationID:   request.CorporationID,
+		PreludeIDs:      request.PreludeIDs,
+		CardIDs:         request.CardIDs,
+		Resources:       request.Resources,
+		Production:      request.Production,
 		TerraformRating: request.TerraformRating,
 	})
 
