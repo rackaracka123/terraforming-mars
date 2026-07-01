@@ -1,13 +1,11 @@
 package player
 
 import (
+	"log/slog"
 	"time"
-
-	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game/datastore"
-	"terraforming-mars-backend/internal/logger"
 )
 
 // PlayedCards manages all cards a player has played.
@@ -29,13 +27,13 @@ func newPlayedCards(ds *datastore.DataStore, eventBus *events.EventBusImpl, game
 
 func (pc *PlayedCards) update(fn func(s *datastore.PlayerState)) {
 	if err := pc.ds.UpdatePlayer(pc.gameID, pc.playerID, fn); err != nil {
-		logger.Get().Warn("Failed to update player state", zap.String("game_id", pc.gameID), zap.String("player_id", pc.playerID), zap.Error(err))
+		slog.Default().Warn("Failed to update player state", slog.String("game_id", pc.gameID), slog.String("player_id", pc.playerID), slog.Any("error", err))
 	}
 }
 
 func (pc *PlayedCards) read(fn func(s *datastore.PlayerState)) {
 	if err := pc.ds.ReadPlayer(pc.gameID, pc.playerID, fn); err != nil {
-		logger.Get().Warn("Failed to read player state", zap.String("game_id", pc.gameID), zap.String("player_id", pc.playerID), zap.Error(err))
+		slog.Default().Warn("Failed to read player state", slog.String("game_id", pc.gameID), slog.String("player_id", pc.playerID), slog.Any("error", err))
 	}
 }
 

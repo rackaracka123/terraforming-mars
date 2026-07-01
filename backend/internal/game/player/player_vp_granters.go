@@ -1,14 +1,12 @@
 package player
 
 import (
+	"log/slog"
 	"time"
-
-	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game/datastore"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/logger"
 )
 
 // VPRecalculationContext provides data needed to recalculate VP
@@ -42,13 +40,13 @@ func NewVPGranters(ds *datastore.DataStore, eventBus *events.EventBusImpl, gameI
 
 func (vg *VPGranters) update(fn func(s *datastore.PlayerState)) {
 	if err := vg.ds.UpdatePlayer(vg.gameID, vg.playerID, fn); err != nil {
-		logger.Get().Warn("Failed to update player state", zap.String("game_id", vg.gameID), zap.String("player_id", vg.playerID), zap.Error(err))
+		slog.Default().Warn("Failed to update player state", slog.String("game_id", vg.gameID), slog.String("player_id", vg.playerID), slog.Any("error", err))
 	}
 }
 
 func (vg *VPGranters) read(fn func(s *datastore.PlayerState)) {
 	if err := vg.ds.ReadPlayer(vg.gameID, vg.playerID, fn); err != nil {
-		logger.Get().Warn("Failed to read player state", zap.String("game_id", vg.gameID), zap.String("player_id", vg.playerID), zap.Error(err))
+		slog.Default().Warn("Failed to read player state", slog.String("game_id", vg.gameID), slog.String("player_id", vg.playerID), slog.Any("error", err))
 	}
 }
 

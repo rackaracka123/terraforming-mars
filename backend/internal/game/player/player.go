@@ -1,12 +1,10 @@
 package player
 
 import (
-	"go.uber.org/zap"
-
+	"log/slog"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game/datastore"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/logger"
 )
 
 // PlayerType represents the type of player (human or bot)
@@ -85,13 +83,13 @@ func NewPlayer(ds *datastore.DataStore, gameID string, playerID string, eventBus
 
 func (p *Player) update(fn func(s *datastore.PlayerState)) {
 	if err := p.ds.UpdatePlayer(p.gameID, p.playerID, fn); err != nil {
-		logger.Get().Warn("Failed to update player state", zap.String("game_id", p.gameID), zap.String("player_id", p.playerID), zap.Error(err))
+		slog.Default().Warn("Failed to update player state", slog.String("game_id", p.gameID), slog.String("player_id", p.playerID), slog.Any("error", err))
 	}
 }
 
 func (p *Player) read(fn func(s *datastore.PlayerState)) {
 	if err := p.ds.ReadPlayer(p.gameID, p.playerID, fn); err != nil {
-		logger.Get().Warn("Failed to read player state", zap.String("game_id", p.gameID), zap.String("player_id", p.playerID), zap.Error(err))
+		slog.Default().Warn("Failed to read player state", slog.String("game_id", p.gameID), slog.String("player_id", p.playerID), slog.Any("error", err))
 	}
 }
 

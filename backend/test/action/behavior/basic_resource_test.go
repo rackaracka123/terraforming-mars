@@ -2,6 +2,7 @@ package behavior_test
 
 import (
 	"context"
+	"log/slog"
 	"testing"
 
 	cardAction "terraforming-mars-backend/internal/action/card"
@@ -337,7 +338,7 @@ func TestBasicResource_DeferredStealWithAdjacentRestriction(t *testing.T) {
 		TargetRestriction: &shared.TargetRestriction{Adjacent: "self-card"},
 	}
 
-	applier := gamecards.NewBehaviorApplier(p, testGame, "test", testutil.TestLogger()).
+	applier := gamecards.NewBehaviorApplier(p, testGame, "test", slog.Default()).
 		WithCardRegistry(cardRegistry).
 		WithTargetPlayerID(targetPlayerID)
 	err := applier.ApplyOutputs(context.Background(), []shared.BehaviorCondition{stealOutput})

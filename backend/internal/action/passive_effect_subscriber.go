@@ -2,6 +2,7 @@ package action
 
 import (
 	"context"
+	"log/slog"
 	"slices"
 
 	"go.uber.org/zap"
@@ -142,7 +143,7 @@ func subscribePlacementBonusEffect(
 			zap.String("trigger_type", trigger.Condition.Type),
 			zap.Any("resources_gained", event.Resources))
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, slog.Default()).
 			WithSourceCardID(effect.CardID).
 			WithCardRegistry(cr).
 			WithSourceType(shared.SourceTypePassiveEffect)
@@ -209,7 +210,7 @@ func subscribeCityPlacedEffect(
 			zap.String("placed_by", event.PlayerID),
 			zap.String("tile_type", event.TileType))
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, slog.Default()).
 			WithSourceCardID(effect.CardID).
 			WithCardRegistry(cr).
 			WithSourceType(shared.SourceTypePassiveEffect)
@@ -269,7 +270,7 @@ func subscribeOceanPlacedEffect(
 			zap.String("placed_by", event.PlayerID),
 			zap.String("tile_type", event.TileType))
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, slog.Default()).
 			WithSourceCardID(effect.CardID).
 			WithCardRegistry(cr).
 			WithSourceType(shared.SourceTypePassiveEffect)
@@ -357,7 +358,7 @@ func subscribeTagPlayedEffect(
 			return
 		}
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, slog.Default()).
 			WithSourceCardID(effect.CardID).
 			WithCardRegistry(cr).
 			WithSourceType(shared.SourceTypePassiveEffect)
@@ -424,7 +425,7 @@ func subscribeCardPlayedEffect(
 			return
 		}
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, slog.Default()).
 			WithSourceCardID(effect.CardID).
 			WithCardRegistry(cr).
 			WithSourceType(shared.SourceTypePassiveEffect)
@@ -497,7 +498,7 @@ func subscribeStandardProjectPlayedEffect(
 			zap.String("project_type", event.ProjectType),
 			zap.Int("project_cost", event.ProjectCost))
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, slog.Default()).
 			WithSourceCardID(effect.CardID).
 			WithCardRegistry(cr).
 			WithSourceType(shared.SourceTypePassiveEffect)
@@ -559,7 +560,7 @@ func subscribeTilePlacedEffect(
 			zap.String("trigger_type", trigger.Condition.Type),
 			zap.Any("bonus_resources", event.Resources))
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, slog.Default()).
 			WithSourceCardID(effect.CardID).
 			WithCardRegistry(cr).
 			WithSourceType(shared.SourceTypePassiveEffect)
@@ -598,7 +599,7 @@ func subscribeGlobalParameterRaisedEffect(
 			zap.Int("steps", steps))
 
 		for i := 0; i < steps; i++ {
-			applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+			applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, slog.Default()).
 				WithSourceCardID(effect.CardID).
 				WithCardRegistry(cr).
 				WithSourceType(shared.SourceTypePassiveEffect)
@@ -766,7 +767,7 @@ func subscribeProductionIncreasedEffect(
 			zap.String("resource_type", event.ResourceType),
 			zap.Int("increase", increase))
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, slog.Default()).
 			WithSourceCardID(effect.CardID).
 			WithCardRegistry(cr).
 			WithSourceType(shared.SourceTypePassiveEffect)
@@ -827,7 +828,7 @@ func subscribeColonyPlacedEffect(
 			zap.String("placed_by", event.PlayerID),
 			zap.String("colony_id", event.ColonyID))
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, slog.Default()).
 			WithSourceCardID(effect.CardID).
 			WithCardRegistry(cr).
 			WithSourceType(shared.SourceTypePassiveEffect)

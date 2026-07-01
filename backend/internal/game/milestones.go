@@ -3,14 +3,12 @@ package game
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
-
-	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game/datastore"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/logger"
 )
 
 const (
@@ -33,13 +31,13 @@ func NewMilestones(ds *datastore.DataStore, gameID string, eventBus *events.Even
 
 func (m *Milestones) update(fn func(s *datastore.GameState)) {
 	if err := m.ds.UpdateGame(m.gameID, fn); err != nil {
-		logger.Get().Warn("Failed to update game state", zap.String("game_id", m.gameID), zap.Error(err))
+		slog.Default().Warn("Failed to update game state", slog.String("game_id", m.gameID), slog.Any("error", err))
 	}
 }
 
 func (m *Milestones) read(fn func(s *datastore.GameState)) {
 	if err := m.ds.ReadGame(m.gameID, fn); err != nil {
-		logger.Get().Warn("Failed to read game state", zap.String("game_id", m.gameID), zap.Error(err))
+		slog.Default().Warn("Failed to read game state", slog.String("game_id", m.gameID), slog.Any("error", err))
 	}
 }
 

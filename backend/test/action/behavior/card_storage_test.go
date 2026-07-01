@@ -2,6 +2,7 @@ package behavior_test
 
 import (
 	"context"
+	"log/slog"
 	"testing"
 
 	cardAction "terraforming-mars-backend/internal/action/card"
@@ -726,7 +727,7 @@ func TestCardStorage_VariableAmountInput(t *testing.T) {
 		VariableAmount: true,
 	}
 
-	applier := gamecards.NewBehaviorApplier(p, testGame, "test", testutil.TestLogger()).
+	applier := gamecards.NewBehaviorApplier(p, testGame, "test", slog.Default()).
 		WithSelectedAmount(2).
 		WithSourceCardID(cardID)
 	err := applier.ApplyInputs(context.Background(), []shared.BehaviorCondition{input})

@@ -3,6 +3,7 @@ package admin
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	baseaction "terraforming-mars-backend/internal/action"
@@ -34,7 +35,7 @@ func NewSetCorporationAction(
 		gameRepo:      gameRepo,
 		cardRegistry:  cardRegistry,
 		awardRegistry: awardRegistry,
-		corpProc:      gamecards.NewCorporationProcessor(cardRegistry, awardRegistry, logger),
+		corpProc:      gamecards.NewCorporationProcessor(cardRegistry, awardRegistry, slog.Default()),
 		logger:        logger,
 	}
 }

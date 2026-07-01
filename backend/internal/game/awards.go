@@ -3,14 +3,12 @@ package game
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
-
-	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game/datastore"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/logger"
 )
 
 // MaxFundedAwards is the maximum number of awards that can be funded in a game
@@ -34,13 +32,13 @@ func NewAwards(ds *datastore.DataStore, gameID string, eventBus *events.EventBus
 
 func (a *Awards) update(fn func(s *datastore.GameState)) {
 	if err := a.ds.UpdateGame(a.gameID, fn); err != nil {
-		logger.Get().Warn("Failed to update game state", zap.String("game_id", a.gameID), zap.Error(err))
+		slog.Default().Warn("Failed to update game state", slog.String("game_id", a.gameID), slog.Any("error", err))
 	}
 }
 
 func (a *Awards) read(fn func(s *datastore.GameState)) {
 	if err := a.ds.ReadGame(a.gameID, fn); err != nil {
-		logger.Get().Warn("Failed to read game state", zap.String("game_id", a.gameID), zap.Error(err))
+		slog.Default().Warn("Failed to read game state", slog.String("game_id", a.gameID), slog.Any("error", err))
 	}
 }
 

@@ -3,6 +3,7 @@ package turn_management
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"go.uber.org/zap"
 
@@ -37,7 +38,7 @@ func NewConfirmInitAdvanceAction(
 		cardRegistry:  cardRegistry,
 		awardRegistry: awardRegistry,
 		stateRepo:     stateRepo,
-		corpProc:      gamecards.NewCorporationProcessor(cardRegistry, awardRegistry, logger),
+		corpProc:      gamecards.NewCorporationProcessor(cardRegistry, awardRegistry, slog.Default()),
 		logger:        logger,
 	}
 }

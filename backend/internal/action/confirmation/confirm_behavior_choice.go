@@ -3,6 +3,7 @@ package confirmation
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	baseaction "terraforming-mars-backend/internal/action"
 
 	"terraforming-mars-backend/internal/game"
@@ -69,7 +70,7 @@ func (a *ConfirmBehaviorChoiceAction) Execute(ctx context.Context, gameID string
 		return fmt.Errorf("choice %d requirements not met: %s", choiceIndex, choiceErrors[0].Message)
 	}
 
-	applier := gamecards.NewBehaviorApplier(p, g, selection.Source, log).
+	applier := gamecards.NewBehaviorApplier(p, g, selection.Source, slog.Default()).
 		WithSourceCardID(selection.SourceCardID).
 		WithCardRegistry(a.CardRegistry()).
 		WithSourceType(shared.SourceTypePassiveEffect)

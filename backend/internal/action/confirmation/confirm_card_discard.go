@@ -3,6 +3,7 @@ package confirmation
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"slices"
 	baseaction "terraforming-mars-backend/internal/action"
 
@@ -186,7 +187,7 @@ func (a *ConfirmCardDiscardAction) applyPendingOutputs(
 		}
 
 		// For non-card-draw outputs, use the behavior applier
-		applier := gamecards.NewBehaviorApplier(p, g, selection.Source, log).
+		applier := gamecards.NewBehaviorApplier(p, g, selection.Source, slog.Default()).
 			WithSourceCardID(selection.SourceCardID).
 			WithCardRegistry(a.CardRegistry()).
 			WithSourceType(shared.SourceTypePassiveEffect)

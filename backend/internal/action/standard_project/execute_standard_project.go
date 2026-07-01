@@ -3,6 +3,7 @@ package standard_project
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	baseaction "terraforming-mars-backend/internal/action"
@@ -124,7 +125,7 @@ func (a *ExecuteStandardProjectAction) Execute(
 	}
 
 	// Apply behavior outputs via BehaviorApplier
-	applier := gamecards.NewBehaviorApplier(player, g, definition.Name, log).
+	applier := gamecards.NewBehaviorApplier(player, g, definition.Name, slog.Default()).
 		WithSourceType(shared.SourceTypeStandardProject)
 	if a.CardRegistry() != nil {
 		applier = applier.WithCardRegistry(a.CardRegistry())

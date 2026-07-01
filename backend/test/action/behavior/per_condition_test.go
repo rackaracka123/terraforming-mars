@@ -2,6 +2,7 @@ package behavior_test
 
 import (
 	"context"
+	"log/slog"
 	"testing"
 
 	"terraforming-mars-backend/internal/game/board"
@@ -16,7 +17,6 @@ func TestPerCondition_CityTileMarsLocation(t *testing.T) {
 	g, _ := testutil.CreateTestGameWithPlayers(t, 1, broadcaster)
 	p := g.GetAllPlayers()[0]
 	ctx := context.Background()
-	log := testutil.TestLogger()
 
 	// Place 3 city tiles on mars
 	tiles := g.Board().Tiles()
@@ -47,7 +47,7 @@ func TestPerCondition_CityTileMarsLocation(t *testing.T) {
 		},
 	}
 
-	applier := gamecards.NewBehaviorApplier(p, g, "Martian Rails", log)
+	applier := gamecards.NewBehaviorApplier(p, g, "Martian Rails", slog.Default())
 	err := applier.ApplyOutputs(ctx, outputs)
 	testutil.AssertNoError(t, err, "applying outputs")
 
@@ -60,7 +60,6 @@ func TestPerCondition_CityTileAnywhereLocation(t *testing.T) {
 	g, _ := testutil.CreateTestGameWithPlayers(t, 1, broadcaster)
 	p := g.GetAllPlayers()[0]
 	ctx := context.Background()
-	log := testutil.TestLogger()
 
 	// Place 2 city tiles on mars
 	tiles := g.Board().Tiles()
@@ -87,7 +86,7 @@ func TestPerCondition_CityTileAnywhereLocation(t *testing.T) {
 		},
 	}
 
-	applier := gamecards.NewBehaviorApplier(p, g, "Greenhouses", log)
+	applier := gamecards.NewBehaviorApplier(p, g, "Greenhouses", slog.Default())
 	err := applier.ApplyOutputs(ctx, outputs)
 	testutil.AssertNoError(t, err, "applying outputs")
 
@@ -100,7 +99,6 @@ func TestPerCondition_TagSelfPlayer(t *testing.T) {
 	g, _ := testutil.CreateTestGameWithPlayers(t, 1, broadcaster)
 	p := g.GetAllPlayers()[0]
 	ctx := context.Background()
-	log := testutil.TestLogger()
 	cardRegistry := testutil.CreateTestCardRegistry()
 
 	// Add cards with earth tags to played cards
@@ -122,7 +120,7 @@ func TestPerCondition_TagSelfPlayer(t *testing.T) {
 		},
 	}
 
-	applier := gamecards.NewBehaviorApplier(p, g, "Test Card", log).
+	applier := gamecards.NewBehaviorApplier(p, g, "Test Card", slog.Default()).
 		WithCardRegistry(cardRegistry)
 	err := applier.ApplyOutputs(ctx, outputs)
 	testutil.AssertNoError(t, err, "applying outputs")
@@ -138,7 +136,6 @@ func TestPerCondition_TagAnyPlayer(t *testing.T) {
 	p1 := players[0]
 	p2 := players[1]
 	ctx := context.Background()
-	log := testutil.TestLogger()
 	cardRegistry := testutil.CreateTestCardRegistry()
 
 	// Player 1 has 2 earth tags
@@ -164,7 +161,7 @@ func TestPerCondition_TagAnyPlayer(t *testing.T) {
 		},
 	}
 
-	applier := gamecards.NewBehaviorApplier(p1, g, "Galilean Waystation", log).
+	applier := gamecards.NewBehaviorApplier(p1, g, "Galilean Waystation", slog.Default()).
 		WithCardRegistry(cardRegistry)
 	err := applier.ApplyOutputs(ctx, outputs)
 	testutil.AssertNoError(t, err, "applying outputs")
@@ -178,7 +175,6 @@ func TestPerCondition_CardResourceSelfCard(t *testing.T) {
 	g, _ := testutil.CreateTestGameWithPlayers(t, 1, broadcaster)
 	p := g.GetAllPlayers()[0]
 	ctx := context.Background()
-	log := testutil.TestLogger()
 
 	// Add 5 floaters to a card
 	sourceCardID := testutil.CardID("Saturn Surfing")
@@ -198,7 +194,7 @@ func TestPerCondition_CardResourceSelfCard(t *testing.T) {
 		},
 	}
 
-	applier := gamecards.NewBehaviorApplier(p, g, "Saturn Surfing", log).
+	applier := gamecards.NewBehaviorApplier(p, g, "Saturn Surfing", slog.Default()).
 		WithSourceCardID(sourceCardID)
 	err := applier.ApplyOutputs(ctx, outputs)
 	testutil.AssertNoError(t, err, "applying outputs")
@@ -212,7 +208,6 @@ func TestPerCondition_IntegerDivision(t *testing.T) {
 	g, _ := testutil.CreateTestGameWithPlayers(t, 1, broadcaster)
 	p := g.GetAllPlayers()[0]
 	ctx := context.Background()
-	log := testutil.TestLogger()
 
 	// Place 5 city tiles
 	tiles := g.Board().Tiles()
@@ -239,7 +234,7 @@ func TestPerCondition_IntegerDivision(t *testing.T) {
 		},
 	}
 
-	applier := gamecards.NewBehaviorApplier(p, g, "Test Card", log)
+	applier := gamecards.NewBehaviorApplier(p, g, "Test Card", slog.Default())
 	err := applier.ApplyOutputs(ctx, outputs)
 	testutil.AssertNoError(t, err, "applying outputs")
 
@@ -252,7 +247,6 @@ func TestPerCondition_ZeroMultiplierSkipsOutput(t *testing.T) {
 	g, _ := testutil.CreateTestGameWithPlayers(t, 1, broadcaster)
 	p := g.GetAllPlayers()[0]
 	ctx := context.Background()
-	log := testutil.TestLogger()
 
 	// No cities placed
 	testutil.SetPlayerCredits(ctx, p, 10)
@@ -267,7 +261,7 @@ func TestPerCondition_ZeroMultiplierSkipsOutput(t *testing.T) {
 		},
 	}
 
-	applier := gamecards.NewBehaviorApplier(p, g, "Test Card", log)
+	applier := gamecards.NewBehaviorApplier(p, g, "Test Card", slog.Default())
 	err := applier.ApplyOutputs(ctx, outputs)
 	testutil.AssertNoError(t, err, "applying outputs")
 
@@ -346,7 +340,6 @@ func TestPerCondition_NilPerProceedsNormally(t *testing.T) {
 	g, _ := testutil.CreateTestGameWithPlayers(t, 1, broadcaster)
 	p := g.GetAllPlayers()[0]
 	ctx := context.Background()
-	log := testutil.TestLogger()
 
 	testutil.SetPlayerCredits(ctx, p, 0)
 
@@ -357,7 +350,7 @@ func TestPerCondition_NilPerProceedsNormally(t *testing.T) {
 		},
 	}
 
-	applier := gamecards.NewBehaviorApplier(p, g, "Test Card", log)
+	applier := gamecards.NewBehaviorApplier(p, g, "Test Card", slog.Default())
 	err := applier.ApplyOutputs(ctx, outputs)
 	testutil.AssertNoError(t, err, "applying outputs")
 
@@ -370,7 +363,6 @@ func TestPerCondition_FloaterLeasing(t *testing.T) {
 	g, _ := testutil.CreateTestGameWithPlayers(t, 1, broadcaster)
 	p := g.GetAllPlayers()[0]
 	ctx := context.Background()
-	log := testutil.TestLogger()
 	cardRegistry := testutil.CreateTestCardRegistry()
 
 	// Add two cards with floater storage and put floaters on them
@@ -396,7 +388,7 @@ func TestPerCondition_FloaterLeasing(t *testing.T) {
 		},
 	}
 
-	applier := gamecards.NewBehaviorApplier(p, g, "Floater Leasing", log).
+	applier := gamecards.NewBehaviorApplier(p, g, "Floater Leasing", slog.Default()).
 		WithCardRegistry(cardRegistry)
 	_, err := applier.ApplyOutputsAndGetCalculated(ctx, outputs)
 	testutil.AssertNoError(t, err, "applying floater leasing outputs")
@@ -416,7 +408,6 @@ func TestPerCondition_ColonyCount(t *testing.T) {
 	players := g.GetAllPlayers()
 	p := players[0]
 	ctx := context.Background()
-	log := testutil.TestLogger()
 
 	// Set up colony states with some colonies placed
 	g.Colonies().SetStates([]*colony.ColonyState{
@@ -455,7 +446,7 @@ func TestPerCondition_ColonyCount(t *testing.T) {
 		},
 	}
 
-	applier := gamecards.NewBehaviorApplier(p, g, "Molecular Printing", log)
+	applier := gamecards.NewBehaviorApplier(p, g, "Molecular Printing", slog.Default())
 	_, err := applier.ApplyOutputsAndGetCalculated(ctx, outputs)
 	testutil.AssertNoError(t, err, "applying colony count outputs")
 
@@ -468,7 +459,6 @@ func TestPerCondition_ColonyCountEmpty(t *testing.T) {
 	g, _ := testutil.CreateTestGameWithPlayers(t, 1, broadcaster)
 	p := g.GetAllPlayers()[0]
 	ctx := context.Background()
-	log := testutil.TestLogger()
 
 	// No colonies set up
 	testutil.SetPlayerCredits(ctx, p, 0)
@@ -483,7 +473,7 @@ func TestPerCondition_ColonyCountEmpty(t *testing.T) {
 		},
 	}
 
-	applier := gamecards.NewBehaviorApplier(p, g, "Molecular Printing", log)
+	applier := gamecards.NewBehaviorApplier(p, g, "Molecular Printing", slog.Default())
 	_, err := applier.ApplyOutputsAndGetCalculated(ctx, outputs)
 	testutil.AssertNoError(t, err, "applying colony count outputs with no colonies")
 
@@ -496,7 +486,6 @@ func TestPerCondition_PerAmountZero_NoScaling(t *testing.T) {
 
 	p, _ := testGame.GetPlayer(playerID)
 	ctx := context.Background()
-	log := testutil.TestLogger()
 
 	testutil.SetPlayerCredits(ctx, p, 0)
 
@@ -512,7 +501,7 @@ func TestPerCondition_PerAmountZero_NoScaling(t *testing.T) {
 		},
 	}
 
-	applier := gamecards.NewBehaviorApplier(p, testGame, "Test Card", log).
+	applier := gamecards.NewBehaviorApplier(p, testGame, "Test Card", slog.Default()).
 		WithCardRegistry(cardRegistry)
 	err := applier.ApplyOutputs(ctx, outputs)
 	testutil.AssertNoError(t, err, "applying outputs with per.Amount=0")

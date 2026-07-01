@@ -3,6 +3,7 @@ package turn_management
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	baseaction "terraforming-mars-backend/internal/action"
@@ -38,7 +39,7 @@ func NewSelectStartingChoicesAction(
 		gameRepo:      gameRepo,
 		cardRegistry:  cardRegistry,
 		awardRegistry: awardRegistry,
-		corpProc:      gamecards.NewCorporationProcessor(cardRegistry, awardRegistry, logger),
+		corpProc:      gamecards.NewCorporationProcessor(cardRegistry, awardRegistry, slog.Default()),
 		logger:        logger,
 	}
 }
@@ -499,7 +500,7 @@ func ApplyPreludeCard(ctx context.Context, g *game.Game, p *player.Player, prelu
 
 		_, outputs := behavior.ExtractInputsOutputs(nil)
 
-		applier := gamecards.NewBehaviorApplier(p, g, card.Name, log).
+		applier := gamecards.NewBehaviorApplier(p, g, card.Name, slog.Default()).
 			WithSourceCardID(card.ID).
 			WithCardRegistry(cardRegistry).
 			WithSourceType(shared.SourceTypeCardPlay)

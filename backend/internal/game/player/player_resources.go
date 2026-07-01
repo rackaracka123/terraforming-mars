@@ -1,14 +1,12 @@
 package player
 
 import (
+	"log/slog"
 	"time"
-
-	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game/datastore"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/logger"
 )
 
 // PlayerResources manages player resources, production, and scoring.
@@ -30,13 +28,13 @@ func newResources(ds *datastore.DataStore, eventBus *events.EventBusImpl, gameID
 
 func (r *PlayerResources) update(fn func(s *datastore.PlayerState)) {
 	if err := r.ds.UpdatePlayer(r.gameID, r.playerID, fn); err != nil {
-		logger.Get().Warn("Failed to update player state", zap.String("game_id", r.gameID), zap.String("player_id", r.playerID), zap.Error(err))
+		slog.Default().Warn("Failed to update player state", slog.String("game_id", r.gameID), slog.String("player_id", r.playerID), slog.Any("error", err))
 	}
 }
 
 func (r *PlayerResources) read(fn func(s *datastore.PlayerState)) {
 	if err := r.ds.ReadPlayer(r.gameID, r.playerID, fn); err != nil {
-		logger.Get().Warn("Failed to read player state", zap.String("game_id", r.gameID), zap.String("player_id", r.playerID), zap.Error(err))
+		slog.Default().Warn("Failed to read player state", slog.String("game_id", r.gameID), slog.String("player_id", r.playerID), slog.Any("error", err))
 	}
 }
 

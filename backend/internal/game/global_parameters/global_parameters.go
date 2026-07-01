@@ -2,12 +2,10 @@ package global_parameters
 
 import (
 	"context"
-
-	"go.uber.org/zap"
+	"log/slog"
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game/datastore"
-	"terraforming-mars-backend/internal/logger"
 )
 
 const (
@@ -34,13 +32,13 @@ func NewGlobalParameters(ds *datastore.DataStore, gameID string, eventBus *event
 
 func (gp *GlobalParameters) update(fn func(s *datastore.GameState)) {
 	if err := gp.ds.UpdateGame(gp.gameID, fn); err != nil {
-		logger.Get().Warn("Failed to update game state", zap.String("game_id", gp.gameID), zap.Error(err))
+		slog.Default().Warn("Failed to update game state", slog.String("game_id", gp.gameID), slog.Any("error", err))
 	}
 }
 
 func (gp *GlobalParameters) read(fn func(s *datastore.GameState)) {
 	if err := gp.ds.ReadGame(gp.gameID, fn); err != nil {
-		logger.Get().Warn("Failed to read game state", zap.String("game_id", gp.gameID), zap.Error(err))
+		slog.Default().Warn("Failed to read game state", slog.String("game_id", gp.gameID), slog.Any("error", err))
 	}
 }
 

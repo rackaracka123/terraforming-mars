@@ -3,12 +3,10 @@ package deck
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	rand "math/rand/v2"
 
-	"go.uber.org/zap"
-
 	"terraforming-mars-backend/internal/game/datastore"
-	"terraforming-mars-backend/internal/logger"
 )
 
 // deckRNGStream separates deck randomness from other per-game RNG streams. The
@@ -45,7 +43,7 @@ func NewDeck(ds *datastore.DataStore, gameID string, seed uint64, projectCardIDs
 		s.DrawnCardCount = 0
 		s.ShuffleCount = 0
 	}); err != nil {
-		logger.Get().Error("Failed to initialize deck state", zap.String("game_id", gameID), zap.Error(err))
+		slog.Default().Error("Failed to initialize deck state", slog.String("game_id", gameID), slog.Any("error", err))
 	}
 
 	return &Deck{ds: ds, gameID: gameID}
@@ -57,13 +55,13 @@ func NewDeckView(ds *datastore.DataStore, gameID string) *Deck {
 
 func (d *Deck) update(fn func(s *datastore.GameState)) {
 	if err := d.ds.UpdateGame(d.gameID, fn); err != nil {
-		logger.Get().Warn("Failed to update game state", zap.String("game_id", d.gameID), zap.Error(err))
+		slog.Default().Warn("Failed to update game state", slog.String("game_id", d.gameID), slog.Any("error", err))
 	}
 }
 
 func (d *Deck) read(fn func(s *datastore.GameState)) {
 	if err := d.ds.ReadGame(d.gameID, fn); err != nil {
-		logger.Get().Warn("Failed to read game state", zap.String("game_id", d.gameID), zap.Error(err))
+		slog.Default().Warn("Failed to read game state", slog.String("game_id", d.gameID), slog.Any("error", err))
 	}
 }
 

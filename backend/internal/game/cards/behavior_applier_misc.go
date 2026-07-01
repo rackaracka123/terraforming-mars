@@ -3,13 +3,12 @@ package cards
 import (
 	"context"
 	"fmt"
-
-	"go.uber.org/zap"
+	"log/slog"
 
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-func (a *BehaviorApplier) applyColonyOutput(ctx context.Context, o *shared.ColonyCondition, amount int, log *zap.Logger) error {
+func (a *BehaviorApplier) applyColonyOutput(ctx context.Context, o *shared.ColonyCondition, amount int, log *slog.Logger) error {
 	switch o.ResourceType {
 	case shared.ResourceColony:
 		if a.game == nil || a.player == nil {
@@ -31,7 +30,7 @@ func (a *BehaviorApplier) applyColonyOutput(ctx context.Context, o *shared.Colon
 			SourceCardID:               a.sourceCardID,
 		})
 		log.Debug("Set pending colony selection",
-			zap.Int("available_colonies", len(colonyIDs)), zap.Bool("allow_duplicate", o.AllowDuplicatePlayerColony))
+			slog.Int("available_colonies", len(colonyIDs)), slog.Bool("allow_duplicate", o.AllowDuplicatePlayerColony))
 
 	case shared.ResourceColonyBonus:
 		if a.game == nil || a.player == nil {
@@ -47,15 +46,15 @@ func (a *BehaviorApplier) applyColonyOutput(ctx context.Context, o *shared.Colon
 		a.applyColonyBonuses(ctx, log)
 
 	case shared.ResourceColonyCount, shared.ResourceColonyTrackStep:
-		log.Debug("Colony count/track output (informational)", zap.String("type", string(o.ResourceType)), zap.Int("amount", amount))
+		log.Debug("Colony count/track output (informational)", slog.String("type", string(o.ResourceType)), slog.Int("amount", amount))
 
 	default:
-		log.Warn("Unhandled colony type", zap.String("type", string(o.ResourceType)))
+		log.Warn("Unhandled colony type", slog.String("type", string(o.ResourceType)))
 	}
 	return nil
 }
 
-func (a *BehaviorApplier) applyMiscOutput(ctx context.Context, o *shared.MiscCondition, amount int, log *zap.Logger) error {
+func (a *BehaviorApplier) applyMiscOutput(ctx context.Context, o *shared.MiscCondition, amount int, log *slog.Logger) error {
 	switch o.ResourceType {
 	case shared.ResourceExtraActions:
 		if a.game == nil {
@@ -65,7 +64,7 @@ func (a *BehaviorApplier) applyMiscOutput(ctx context.Context, o *shared.MiscCon
 		if currentTurn != nil {
 			currentTurn.AddExtraActions(amount)
 		}
-		log.Debug("Granted extra actions", zap.Int("amount", amount))
+		log.Debug("Granted extra actions", slog.Int("amount", amount))
 
 	case shared.ResourceBonusTags:
 		if a.player == nil {
@@ -86,8 +85,8 @@ func (a *BehaviorApplier) applyMiscOutput(ctx context.Context, o *shared.MiscCon
 				a.player.AddBonusTags(tagToGrant, bonusCount)
 			}
 			log.Debug("Added bonus tags",
-				zap.String("tag_type", string(tagToGrant)), zap.Int("count", bonusCount),
-				zap.String("per_tag", string(tagToCount)), zap.Int("tag_count", tagCount))
+				slog.String("tag_type", string(tagToGrant)), slog.Int("count", bonusCount),
+				slog.String("per_tag", string(tagToCount)), slog.Int("tag_count", tagCount))
 		}
 
 	case shared.ResourceFreeTrade:
@@ -112,16 +111,16 @@ func (a *BehaviorApplier) applyMiscOutput(ctx context.Context, o *shared.MiscCon
 			Source:             a.source,
 			SourceCardID:       a.sourceCardID,
 		})
-		log.Debug("Set pending free trade selection", zap.Int("available_colonies", len(tradeableColonyIDs)))
+		log.Debug("Set pending free trade selection", slog.Int("available_colonies", len(tradeableColonyIDs)))
 
 	case shared.ResourceWorldTreeTile:
-		log.Debug("World tree tile output", zap.Int("amount", amount))
+		log.Debug("World tree tile output", slog.Int("amount", amount))
 
 	case shared.ResourceAwardFund:
-		log.Debug("Award fund output", zap.Int("amount", amount))
+		log.Debug("Award fund output", slog.Int("amount", amount))
 
 	default:
-		log.Warn("Unhandled misc output type", zap.String("type", string(o.ResourceType)))
+		log.Warn("Unhandled misc output type", slog.String("type", string(o.ResourceType)))
 	}
 	return nil
 }

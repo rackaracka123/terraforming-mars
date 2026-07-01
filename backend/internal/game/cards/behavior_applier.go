@@ -3,8 +3,7 @@ package cards
 import (
 	"context"
 	"fmt"
-
-	"go.uber.org/zap"
+	"log/slog"
 
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/board"
@@ -36,7 +35,7 @@ type BehaviorApplier struct {
 	sourceType        shared.SourceType     // Source type for triggered effect classification
 	colonyBonusLookup ColonyBonusLookup
 	deferredSteal     shared.BehaviorCondition
-	logger            *zap.Logger
+	logger            *slog.Logger
 }
 
 // DeferredSteal returns the deferred steal output, if any (for post-tile-placement processing)
@@ -50,7 +49,7 @@ func NewBehaviorApplier(
 	p *player.Player,
 	g *game.Game,
 	source string,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *BehaviorApplier {
 	return &BehaviorApplier{
 		player: p,
@@ -147,8 +146,8 @@ func (a *BehaviorApplier) ApplyInputs(
 	}
 
 	log := a.logger.With(
-		zap.String("source", a.source),
-		zap.Int("input_count", len(inputs)),
+		slog.String("source", a.source),
+		slog.Int("input_count", len(inputs)),
 	)
 
 	log.Debug("Processing behavior inputs")
@@ -204,9 +203,9 @@ func (a *BehaviorApplier) ApplyInputs(
 		if input.GetTarget() == "self-card" && IsStorageResourceType(rt) {
 			a.player.Resources().AddToStorage(a.sourceCardID, -effectiveAmount)
 			log.Debug("Deducted from card storage",
-				zap.String("card_id", a.sourceCardID),
-				zap.String("resource_type", string(rt)),
-				zap.Int("amount", effectiveAmount))
+				slog.String("card_id", a.sourceCardID),
+				slog.String("resource_type", string(rt)),
+				slog.Int("amount", effectiveAmount))
 			continue
 		}
 
@@ -218,10 +217,10 @@ func (a *BehaviorApplier) ApplyInputs(
 
 		if shared.IsProductionResourceType(rt) {
 			a.player.Resources().AddProduction(map[shared.ResourceType]int{rt: -effectiveAmount})
-			log.Debug("Deducted production", zap.String("type", string(rt)), zap.Int("amount", effectiveAmount))
+			log.Debug("Deducted production", slog.String("type", string(rt)), slog.Int("amount", effectiveAmount))
 		} else {
 			a.player.Resources().Add(map[shared.ResourceType]int{rt: -effectiveAmount})
-			log.Debug("Deducted resource", zap.String("type", string(rt)), zap.Int("amount", effectiveAmount))
+			log.Debug("Deducted resource", slog.String("type", string(rt)), slog.Int("amount", effectiveAmount))
 		}
 	}
 
@@ -271,7 +270,7 @@ func (a *BehaviorApplier) validateInputAmount(rt shared.ResourceType, amount int
 func (a *BehaviorApplier) validateActionPayment(
 	requiredAmount int,
 	paymentAllowed []shared.ResourceType,
-	log *zap.Logger,
+	log *slog.Logger,
 ) error {
 	if a.actionPayment == nil {
 		// No payment provided — fall back to checking if player has enough credits
@@ -329,11 +328,11 @@ func (a *BehaviorApplier) validateActionPayment(
 	}
 
 	log.Debug("Validated action payment",
-		zap.Int("required", requiredAmount),
-		zap.Int("credits", payment.Credits),
-		zap.Int("titanium", payment.Titanium),
-		zap.Int("steel", payment.Steel),
-		zap.Int("total_value", totalValue))
+		slog.Int("required", requiredAmount),
+		slog.Int("credits", payment.Credits),
+		slog.Int("titanium", payment.Titanium),
+		slog.Int("steel", payment.Steel),
+		slog.Int("total_value", totalValue))
 
 	return nil
 }
@@ -341,14 +340,14 @@ func (a *BehaviorApplier) validateActionPayment(
 // applyActionPayment deducts resources according to the action payment
 func (a *BehaviorApplier) applyActionPayment(
 	requiredAmount int,
-	log *zap.Logger,
+	log *slog.Logger,
 ) {
 	if a.actionPayment == nil {
 		// No payment struct — just deduct credits
 		a.player.Resources().Add(map[shared.ResourceType]int{
 			shared.ResourceCredit: -requiredAmount,
 		})
-		log.Debug("Deducted credits (no action payment)", zap.Int("amount", requiredAmount))
+		log.Debug("Deducted credits (no action payment)", slog.Int("amount", requiredAmount))
 		return
 	}
 
@@ -358,19 +357,19 @@ func (a *BehaviorApplier) applyActionPayment(
 		a.player.Resources().Add(map[shared.ResourceType]int{
 			shared.ResourceCredit: -payment.Credits,
 		})
-		log.Debug("Deducted credits from action payment", zap.Int("amount", payment.Credits))
+		log.Debug("Deducted credits from action payment", slog.Int("amount", payment.Credits))
 	}
 	if payment.Titanium > 0 {
 		a.player.Resources().Add(map[shared.ResourceType]int{
 			shared.ResourceTitanium: -payment.Titanium,
 		})
-		log.Debug("Deducted titanium from action payment", zap.Int("amount", payment.Titanium))
+		log.Debug("Deducted titanium from action payment", slog.Int("amount", payment.Titanium))
 	}
 	if payment.Steel > 0 {
 		a.player.Resources().Add(map[shared.ResourceType]int{
 			shared.ResourceSteel: -payment.Steel,
 		})
-		log.Debug("Deducted steel from action payment", zap.Int("amount", payment.Steel))
+		log.Debug("Deducted steel from action payment", slog.Int("amount", payment.Steel))
 	}
 }
 
@@ -418,8 +417,8 @@ func (a *BehaviorApplier) ApplyOutputsAndGetCalculated(
 	}
 
 	log := a.logger.With(
-		zap.String("source", a.source),
-		zap.Int("output_count", len(outputs)),
+		slog.String("source", a.source),
+		slog.Int("output_count", len(outputs)),
 	)
 
 	log.Debug("Processing behavior outputs")
@@ -442,11 +441,11 @@ func (a *BehaviorApplier) ApplyOutputsAndGetCalculated(
 				actualAmount = baseAmount * multiplier
 				isScaled = true
 				log.Debug("Calculated scaled output",
-					zap.String("resource_type", string(rt)),
-					zap.Int("base_amount", baseAmount),
-					zap.Int("count", count),
-					zap.Int("per_amount", per.Amount),
-					zap.Int("calculated_amount", actualAmount))
+					slog.String("resource_type", string(rt)),
+					slog.Int("base_amount", baseAmount),
+					slog.Int("count", count),
+					slog.Int("per_amount", per.Amount),
+					slog.Int("calculated_amount", actualAmount))
 			}
 		}
 
@@ -455,10 +454,10 @@ func (a *BehaviorApplier) ApplyOutputsAndGetCalculated(
 			actualAmount = baseAmount * a.selectedAmount
 			isScaled = true
 			log.Debug("Applied variable amount",
-				zap.String("resource_type", string(rt)),
-				zap.Int("base_amount", baseAmount),
-				zap.Int("selected_amount", a.selectedAmount),
-				zap.Int("calculated_amount", actualAmount))
+				slog.String("resource_type", string(rt)),
+				slog.Int("base_amount", baseAmount),
+				slog.Int("selected_amount", a.selectedAmount),
+				slog.Int("calculated_amount", actualAmount))
 		}
 
 		if err := a.applyOutput(ctx, output, actualAmount, log); err != nil {
@@ -549,8 +548,8 @@ func (a *BehaviorApplier) ApplyCardDrawOutputs(
 	outputs []shared.BehaviorCondition,
 ) (bool, error) {
 	log := a.logger.With(
-		zap.String("source", a.source),
-		zap.String("method", "ApplyCardDrawOutputs"),
+		slog.String("source", a.source),
+		slog.String("method", "ApplyCardDrawOutputs"),
 	)
 
 	// Scan outputs for card-peek, card-take, card-buy
@@ -595,11 +594,11 @@ func (a *BehaviorApplier) ApplyCardDrawOutputs(
 	}
 
 	log.Debug("Drew cards for peek selection",
-		zap.Int("peek_amount", peekAmount),
-		zap.Int("take_amount", takeAmount),
-		zap.Int("buy_amount", buyAmount),
-		zap.Bool("is_prelude", isPrelude),
-		zap.Strings("drawn_cards", drawnCards))
+		slog.Int("peek_amount", peekAmount),
+		slog.Int("take_amount", takeAmount),
+		slog.Int("buy_amount", buyAmount),
+		slog.Bool("is_prelude", isPrelude),
+		slog.Any("drawn_cards", drawnCards))
 
 	// Calculate card buy cost (accounts for discounts like Polyphemos)
 	cardBuyCost := 3
@@ -625,12 +624,12 @@ func (a *BehaviorApplier) ApplyCardDrawOutputs(
 	a.player.Selection().SetPendingCardDrawSelection(selection)
 
 	log.Debug("Created pending card draw selection",
-		zap.String("source", a.source),
-		zap.String("source_card_id", a.sourceCardID),
-		zap.Int("source_behavior_index", a.sourceBehaviorIdx),
-		zap.Int("available_cards", len(drawnCards)),
-		zap.Int("free_take", takeAmount),
-		zap.Int("max_buy", buyAmount))
+		slog.String("source", a.source),
+		slog.String("source_card_id", a.sourceCardID),
+		slog.Int("source_behavior_index", a.sourceBehaviorIdx),
+		slog.Int("available_cards", len(drawnCards)),
+		slog.Int("free_take", takeAmount),
+		slog.Int("max_buy", buyAmount))
 
 	return true, nil
 }
@@ -639,11 +638,11 @@ func (a *BehaviorApplier) ApplyCardDrawOutputs(
 func (a *BehaviorApplier) stealAnyPlayerResource(
 	resourceType shared.ResourceType,
 	amount int,
-	log *zap.Logger,
+	log *slog.Logger,
 ) error {
 	if a.targetPlayerID == "" {
 		log.Debug("Skipping steal: no target player (solo mode)",
-			zap.String("resource_type", string(resourceType)))
+			slog.String("resource_type", string(resourceType)))
 		return nil
 	}
 	if a.game == nil {
@@ -686,10 +685,10 @@ func (a *BehaviorApplier) stealAnyPlayerResource(
 	}
 
 	log.Debug("Stole resource from target player",
-		zap.String("target_player_id", a.targetPlayerID),
-		zap.String("resource_type", string(resourceType)),
-		zap.Int("requested", amount),
-		zap.Int("stolen", stolenAmount))
+		slog.String("target_player_id", a.targetPlayerID),
+		slog.String("resource_type", string(resourceType)),
+		slog.Int("requested", amount),
+		slog.Int("stolen", stolenAmount))
 	return nil
 }
 
@@ -697,11 +696,11 @@ func (a *BehaviorApplier) stealAnyPlayerResource(
 func (a *BehaviorApplier) applyAnyPlayerResource(
 	resourceType shared.ResourceType,
 	amount int,
-	log *zap.Logger,
+	log *slog.Logger,
 ) error {
 	if a.targetPlayerID == "" {
 		log.Debug("Skipping any-player resource removal: no target player (solo mode)",
-			zap.String("resource_type", string(resourceType)))
+			slog.String("resource_type", string(resourceType)))
 		return nil
 	}
 	if a.game == nil {
@@ -745,10 +744,10 @@ func (a *BehaviorApplier) applyAnyPlayerResource(
 	}
 
 	log.Debug("Removed resource from target player",
-		zap.String("target_player_id", a.targetPlayerID),
-		zap.String("resource_type", string(resourceType)),
-		zap.Int("requested", absAmount),
-		zap.Int("removed", removeAmount))
+		slog.String("target_player_id", a.targetPlayerID),
+		slog.String("resource_type", string(resourceType)),
+		slog.Int("requested", absAmount),
+		slog.Int("removed", removeAmount))
 	return nil
 }
 
@@ -758,11 +757,11 @@ func (a *BehaviorApplier) applyAnyPlayerResource(
 func (a *BehaviorApplier) applyAnyPlayerProduction(
 	productionType shared.ResourceType,
 	amount int,
-	log *zap.Logger,
+	log *slog.Logger,
 ) error {
 	if a.targetPlayerID == "" {
 		log.Debug("Skipping any-player production change: no target player (solo mode)",
-			zap.String("production_type", string(productionType)))
+			slog.String("production_type", string(productionType)))
 		return nil
 	}
 	if a.game == nil {
@@ -778,9 +777,9 @@ func (a *BehaviorApplier) applyAnyPlayerProduction(
 	})
 
 	log.Debug("Applied production change to target player",
-		zap.String("target_player_id", a.targetPlayerID),
-		zap.String("production_type", string(productionType)),
-		zap.Int("amount", amount))
+		slog.String("target_player_id", a.targetPlayerID),
+		slog.String("production_type", string(productionType)),
+		slog.Int("amount", amount))
 	return nil
 }
 
@@ -790,7 +789,7 @@ func (a *BehaviorApplier) applyOutput(
 	ctx context.Context,
 	output shared.BehaviorCondition,
 	amount int,
-	log *zap.Logger,
+	log *slog.Logger,
 ) error {
 	switch o := output.(type) {
 	case *shared.BasicResourceCondition:
@@ -820,7 +819,7 @@ func (a *BehaviorApplier) applyOutput(
 
 // applyColonyBonuses applies all colony bonuses for the player.
 // Card-targeted resources (microbe, animal, floater) are queued for player selection.
-func (a *BehaviorApplier) applyColonyBonuses(_ context.Context, log *zap.Logger) {
+func (a *BehaviorApplier) applyColonyBonuses(_ context.Context, log *slog.Logger) {
 	bonuses := CollectColonyBonuses(a.player.ID(), a.game.Colonies().States(), a.colonyBonusLookup)
 
 	pendingByType := map[string]int{}
@@ -837,16 +836,16 @@ func (a *BehaviorApplier) applyColonyBonuses(_ context.Context, log *zap.Logger)
 			a.player.Resources().Add(map[shared.ResourceType]int{rt: b.Amount})
 		}
 		log.Debug("Applied colony bonus",
-			zap.String("type", b.ResourceType),
-			zap.Int("amount", b.Amount))
+			slog.String("type", b.ResourceType),
+			slog.Int("amount", b.Amount))
 	}
 
 	for _, rt := range pendingOrder {
 		amount := pendingByType[rt]
 		if !HasEligibleStorageCard(a.player, shared.ResourceType(rt), a.cardRegistry) {
 			log.Debug("No eligible storage card for colony bonus, resources lost",
-				zap.String("resource_type", rt),
-				zap.Int("amount", amount))
+				slog.String("resource_type", rt),
+				slog.Int("amount", amount))
 			continue
 		}
 		a.player.Selection().AppendPendingColonyResource(shared.PendingColonyResourceSelection{
@@ -858,7 +857,7 @@ func (a *BehaviorApplier) applyColonyBonuses(_ context.Context, log *zap.Logger)
 	}
 }
 
-func (a *BehaviorApplier) collectColonyBonusOutputs(_ *zap.Logger) []shared.CalculatedOutput {
+func (a *BehaviorApplier) collectColonyBonusOutputs(_ *slog.Logger) []shared.CalculatedOutput {
 	if a.game == nil || a.player == nil || a.colonyBonusLookup == nil {
 		return nil
 	}

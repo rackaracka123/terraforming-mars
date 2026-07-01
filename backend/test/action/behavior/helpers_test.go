@@ -3,6 +3,7 @@ package behavior_test
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"testing"
 
 	"terraforming-mars-backend/internal/game"
@@ -15,7 +16,7 @@ import (
 // applyOutputs applies outputs directly via BehaviorApplier without card play.
 func applyOutputs(t *testing.T, p *player.Player, g *game.Game, registry gamecards.CardRegistry, outputs ...shared.BehaviorCondition) {
 	t.Helper()
-	applier := gamecards.NewBehaviorApplier(p, g, "test", testutil.TestLogger()).
+	applier := gamecards.NewBehaviorApplier(p, g, "test", slog.Default()).
 		WithCardRegistry(registry)
 	err := applier.ApplyOutputs(context.Background(), outputs)
 	testutil.AssertNoError(t, err, "ApplyOutputs failed")
@@ -24,7 +25,7 @@ func applyOutputs(t *testing.T, p *player.Player, g *game.Game, registry gamecar
 // applyInputs applies inputs directly via BehaviorApplier without card play.
 func applyInputs(t *testing.T, p *player.Player, g *game.Game, inputs ...shared.BehaviorCondition) {
 	t.Helper()
-	applier := gamecards.NewBehaviorApplier(p, g, "test", testutil.TestLogger())
+	applier := gamecards.NewBehaviorApplier(p, g, "test", slog.Default())
 	err := applier.ApplyInputs(context.Background(), inputs)
 	testutil.AssertNoError(t, err, "ApplyInputs failed")
 }
@@ -42,7 +43,7 @@ type applyOptions struct {
 // applyOutputsWithOptions applies outputs with additional applier configuration.
 func applyOutputsWithOptions(t *testing.T, p *player.Player, g *game.Game, opts applyOptions, outputs ...shared.BehaviorCondition) {
 	t.Helper()
-	applier := gamecards.NewBehaviorApplier(p, g, "test", testutil.TestLogger())
+	applier := gamecards.NewBehaviorApplier(p, g, "test", slog.Default())
 	if opts.sourceCardID != "" {
 		applier = applier.WithSourceCardID(opts.sourceCardID)
 	}

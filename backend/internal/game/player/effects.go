@@ -1,12 +1,10 @@
 package player
 
 import (
-	"go.uber.org/zap"
-
+	"log/slog"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game/datastore"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/logger"
 )
 
 // Effects manages passive effects from played cards.
@@ -31,13 +29,13 @@ func NewEffects(ds *datastore.DataStore, eventBus *events.EventBusImpl, gameID, 
 
 func (e *Effects) update(fn func(s *datastore.PlayerState)) {
 	if err := e.ds.UpdatePlayer(e.gameID, e.playerID, fn); err != nil {
-		logger.Get().Warn("Failed to update player state", zap.String("game_id", e.gameID), zap.String("player_id", e.playerID), zap.Error(err))
+		slog.Default().Warn("Failed to update player state", slog.String("game_id", e.gameID), slog.String("player_id", e.playerID), slog.Any("error", err))
 	}
 }
 
 func (e *Effects) read(fn func(s *datastore.PlayerState)) {
 	if err := e.ds.ReadPlayer(e.gameID, e.playerID, fn); err != nil {
-		logger.Get().Warn("Failed to read player state", zap.String("game_id", e.gameID), zap.String("player_id", e.playerID), zap.Error(err))
+		slog.Default().Warn("Failed to read player state", slog.String("game_id", e.gameID), slog.String("player_id", e.playerID), slog.Any("error", err))
 	}
 }
 

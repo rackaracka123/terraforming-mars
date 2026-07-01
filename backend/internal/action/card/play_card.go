@@ -3,6 +3,7 @@ package card
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	baseaction "terraforming-mars-backend/internal/action"
@@ -505,7 +506,7 @@ func (a *PlayCardAction) applyCardBehaviors(
 				zap.Int("output_count", len(outputs)))
 
 			// Use BehaviorApplier for consistent output handling
-			applier := gamecards.NewBehaviorApplier(p, g, card.Name, log).
+			applier := gamecards.NewBehaviorApplier(p, g, card.Name, slog.Default()).
 				WithSourceCardID(card.ID).
 				WithCardRegistry(a.CardRegistry()).
 				WithSourceType(shared.SourceTypeCardPlay)

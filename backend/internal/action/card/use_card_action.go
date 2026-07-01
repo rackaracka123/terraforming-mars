@@ -3,6 +3,7 @@ package card
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	baseaction "terraforming-mars-backend/internal/action"
 
 	"go.uber.org/zap"
@@ -120,7 +121,7 @@ func (a *UseCardActionAction) Execute(
 		}
 	}
 
-	applier := gamecards.NewBehaviorApplier(p, g, cardAction.CardName, log).
+	applier := gamecards.NewBehaviorApplier(p, g, cardAction.CardName, slog.Default()).
 		WithSourceCardID(cardID).
 		WithSourceBehaviorIndex(behaviorIndex).
 		WithCardRegistry(a.CardRegistry()).
@@ -304,7 +305,7 @@ func (a *UseCardActionAction) executeReuse(
 		}
 	}
 
-	applier := gamecards.NewBehaviorApplier(p, g, targetAction.CardName, log).
+	applier := gamecards.NewBehaviorApplier(p, g, targetAction.CardName, slog.Default()).
 		WithSourceCardID(targetCardID).
 		WithSourceBehaviorIndex(targetBehaviorIndex).
 		WithCardRegistry(a.CardRegistry()).

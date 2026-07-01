@@ -3,13 +3,12 @@ package cards
 import (
 	"context"
 	"fmt"
-
-	"go.uber.org/zap"
+	"log/slog"
 
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-func (a *BehaviorApplier) applyTilePlacementOutput(ctx context.Context, o *shared.TilePlacementCondition, amount int, log *zap.Logger) error {
+func (a *BehaviorApplier) applyTilePlacementOutput(ctx context.Context, o *shared.TilePlacementCondition, amount int, log *slog.Logger) error {
 	if a.game == nil {
 		return fmt.Errorf("cannot apply tile placement: no game context")
 	}
@@ -28,7 +27,7 @@ func (a *BehaviorApplier) applyTilePlacementOutput(ctx context.Context, o *share
 		if err := a.game.AppendToPendingTileSelectionQueue(ctx, a.player.ID(), tileTypes, a.source, a.sourceCardID, nil); err != nil {
 			return fmt.Errorf("failed to append land claim to pending tile selection queue: %w", err)
 		}
-		log.Debug("Added land claim tile selection to queue", zap.Int("count", amount))
+		log.Debug("Added land claim tile selection to queue", slog.Int("count", amount))
 		return nil
 	}
 
@@ -46,7 +45,7 @@ func (a *BehaviorApplier) applyTilePlacementOutput(ctx context.Context, o *share
 			return fmt.Errorf("failed to append to pending tile selection queue: %w", err)
 		}
 		log.Debug("Added special tile placements to queue",
-			zap.String("tile_type", o.TileType), zap.Int("count", amount), zap.Any("tile_restrictions", restrictions))
+			slog.String("tile_type", o.TileType), slog.Int("count", amount), slog.Any("tile_restrictions", restrictions))
 		return nil
 	}
 
@@ -85,7 +84,7 @@ func (a *BehaviorApplier) applyTilePlacementOutput(ctx context.Context, o *share
 		return fmt.Errorf("failed to append to pending tile selection queue: %w", err)
 	}
 	log.Debug("Added tile placements to queue",
-		zap.String("tile_type", tileType), zap.Int("count", amount), zap.Any("tile_restrictions", restrictions))
+		slog.String("tile_type", tileType), slog.Int("count", amount), slog.Any("tile_restrictions", restrictions))
 	return nil
 }
 
@@ -112,7 +111,7 @@ func copyTileRestrictions(tr *shared.TileRestrictions) *shared.TileRestrictions 
 	return &result
 }
 
-func (a *BehaviorApplier) applyTileModificationOutput(ctx context.Context, o *shared.TileModificationCondition, amount int, log *zap.Logger) error {
+func (a *BehaviorApplier) applyTileModificationOutput(ctx context.Context, o *shared.TileModificationCondition, amount int, log *slog.Logger) error {
 	if a.game == nil {
 		return fmt.Errorf("cannot apply tile modification: no game context")
 	}
@@ -139,7 +138,7 @@ func (a *BehaviorApplier) applyTileModificationOutput(ctx context.Context, o *sh
 		if err := a.game.AppendToPendingTileSelectionQueue(ctx, a.player.ID(), tileTypes, a.source, a.sourceCardID, nil); err != nil {
 			return fmt.Errorf("failed to append tile replacement to queue: %w", err)
 		}
-		log.Debug("Added tile replacement selection to queue", zap.String("replacement_tile", o.TileType))
+		log.Debug("Added tile replacement selection to queue", slog.String("replacement_tile", o.TileType))
 	}
 	return nil
 }

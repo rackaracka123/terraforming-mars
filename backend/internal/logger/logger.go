@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"log/slog"
 	"os"
 
 	"go.uber.org/zap"
@@ -8,6 +9,26 @@ import (
 )
 
 var globalLogger *zap.Logger
+
+// configureSlogDefault wires the stdlib log/slog default logger so the domain layer
+// (internal/game/**) can log via slog without importing zap or this package. This
+// keeps domain code free of infrastructure while output stays consistent with the
+// configured level.
+func configureSlogDefault(level zapcore.Level) {
+	var slogLevel slog.Level
+	switch level {
+	case zap.DebugLevel:
+		slogLevel = slog.LevelDebug
+	case zap.WarnLevel:
+		slogLevel = slog.LevelWarn
+	case zap.ErrorLevel:
+		slogLevel = slog.LevelError
+	default:
+		slogLevel = slog.LevelInfo
+	}
+	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slogLevel})
+	slog.SetDefault(slog.New(handler))
+}
 
 // Init initializes the global logger
 func Init(logLevel *string) error {
@@ -51,6 +72,7 @@ func Init(logLevel *string) error {
 		globalLogger = zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))
 	}
 
+	configureSlogDefault(level)
 	return nil
 }
 

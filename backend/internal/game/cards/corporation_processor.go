@@ -3,8 +3,7 @@ package cards
 import (
 	"context"
 	"fmt"
-
-	"go.uber.org/zap"
+	"log/slog"
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
@@ -17,11 +16,11 @@ import (
 type CorporationProcessor struct {
 	cardRegistry  CardRegistryInterface
 	awardRegistry award.AwardRegistry
-	logger        *zap.Logger
+	logger        *slog.Logger
 }
 
 // NewCorporationProcessor creates a new corporation processor
-func NewCorporationProcessor(cardRegistry CardRegistryInterface, awardRegistry award.AwardRegistry, logger *zap.Logger) *CorporationProcessor {
+func NewCorporationProcessor(cardRegistry CardRegistryInterface, awardRegistry award.AwardRegistry, logger *slog.Logger) *CorporationProcessor {
 	return &CorporationProcessor{
 		cardRegistry:  cardRegistry,
 		awardRegistry: awardRegistry,
@@ -38,9 +37,9 @@ func (p *CorporationProcessor) ApplyStartingEffects(
 	g *game.Game,
 ) error {
 	log := p.logger.With(
-		zap.String("corporation_id", card.ID),
-		zap.String("corporation_name", card.Name),
-		zap.String("player_id", pl.ID()),
+		slog.String("corporation_id", card.ID),
+		slog.String("corporation_name", card.Name),
+		slog.String("player_id", pl.ID()),
 	)
 
 	log.Debug("Applying corporation starting effects")
@@ -54,7 +53,7 @@ func (p *CorporationProcessor) ApplyStartingEffects(
 		for _, trigger := range behavior.Triggers {
 			if trigger.Type == string(ResourceTriggerAutoCorporationStart) {
 				log.Debug("Found auto-corporation-start behavior",
-					zap.Int("outputs", len(behavior.Outputs)))
+					slog.Int("outputs", len(behavior.Outputs)))
 
 				if err := applier.ApplyOutputs(ctx, behavior.Outputs); err != nil {
 					return fmt.Errorf("failed to apply starting effects: %w", err)
@@ -76,9 +75,9 @@ func (p *CorporationProcessor) ApplyAutoEffects(
 	g *game.Game,
 ) error {
 	log := p.logger.With(
-		zap.String("corporation_id", card.ID),
-		zap.String("corporation_name", card.Name),
-		zap.String("player_id", pl.ID()),
+		slog.String("corporation_id", card.ID),
+		slog.String("corporation_name", card.Name),
+		slog.String("player_id", pl.ID()),
 	)
 
 	log.Debug("Applying corporation auto effects")
@@ -94,7 +93,7 @@ func (p *CorporationProcessor) ApplyAutoEffects(
 			// Auto triggers WITH conditions are passive effects handled separately
 			if trigger.Type == string(ResourceTriggerAuto) && trigger.Condition == nil {
 				log.Debug("Found auto behavior (no condition)",
-					zap.Int("outputs", len(behavior.Outputs)))
+					slog.Int("outputs", len(behavior.Outputs)))
 
 				if err := applier.ApplyOutputs(ctx, behavior.Outputs); err != nil {
 					return fmt.Errorf("failed to apply auto effects: %w", err)
@@ -115,9 +114,9 @@ func (p *CorporationProcessor) SetupForcedFirstAction(
 	playerID string,
 ) error {
 	log := p.logger.With(
-		zap.String("corporation_id", card.ID),
-		zap.String("corporation_name", card.Name),
-		zap.String("player_id", playerID),
+		slog.String("corporation_id", card.ID),
+		slog.String("corporation_name", card.Name),
+		slog.String("player_id", playerID),
 	)
 
 	log.Debug("Checking for forced first action")
@@ -127,7 +126,7 @@ func (p *CorporationProcessor) SetupForcedFirstAction(
 		for _, trigger := range behavior.Triggers {
 			if trigger.Type == string(ResourceTriggerAutoCorporationFirstAction) {
 				log.Debug("Found auto-corporation-first-action behavior",
-					zap.Int("outputs", len(behavior.Outputs)))
+					slog.Int("outputs", len(behavior.Outputs)))
 
 				// Check if this behavior has card-peek/card-take outputs (e.g. Valley Trust)
 				if p.hasCardDrawOutputs(behavior) {
@@ -243,7 +242,7 @@ func (p *CorporationProcessor) applyCardDrawForcedAction(
 	card *Card,
 	g *game.Game,
 	playerID string,
-	log *zap.Logger,
+	log *slog.Logger,
 ) error {
 	pl, err := g.GetPlayer(playerID)
 	if err != nil {
@@ -271,7 +270,7 @@ func (p *CorporationProcessor) applyCardDrawForcedAction(
 	}
 
 	log.Debug("Set forced card draw selection action",
-		zap.String("description", action.Description))
+		slog.String("description", action.Description))
 
 	return nil
 }
@@ -285,7 +284,7 @@ func (p *CorporationProcessor) createForcedAction(
 	card *Card,
 	g *game.Game,
 	playerID string,
-	log *zap.Logger,
+	log *slog.Logger,
 ) error {
 	inStartingSelection := g.CurrentPhase() == shared.GamePhaseStartingSelection
 
@@ -302,7 +301,7 @@ func (p *CorporationProcessor) createForcedAction(
 			return fmt.Errorf("failed to set forced city placement action: %w", err)
 		}
 		log.Debug("Set forced city placement action",
-			zap.String("description", action.Description))
+			slog.String("description", action.Description))
 
 		if !inStartingSelection {
 			queue := &shared.PendingTileSelectionQueue{
@@ -331,7 +330,7 @@ func (p *CorporationProcessor) createForcedAction(
 			return fmt.Errorf("failed to set forced greenery placement action: %w", err)
 		}
 		log.Debug("Set forced greenery placement action",
-			zap.String("description", action.Description))
+			slog.String("description", action.Description))
 
 		if !inStartingSelection {
 			queue := &shared.PendingTileSelectionQueue{
@@ -360,7 +359,7 @@ func (p *CorporationProcessor) createForcedAction(
 			return fmt.Errorf("failed to set forced ocean placement action: %w", err)
 		}
 		log.Debug("Set forced ocean placement action",
-			zap.String("description", action.Description))
+			slog.String("description", action.Description))
 
 		if !inStartingSelection {
 			queue := &shared.PendingTileSelectionQueue{
@@ -389,7 +388,7 @@ func (p *CorporationProcessor) createForcedAction(
 			return fmt.Errorf("failed to set forced award fund action: %w", err)
 		}
 		log.Debug("Set forced award fund action",
-			zap.String("description", forcedAction.Description))
+			slog.String("description", forcedAction.Description))
 
 		var availableAwards []string
 		for _, def := range p.awardRegistry.GetAll() {
@@ -407,7 +406,7 @@ func (p *CorporationProcessor) createForcedAction(
 			Source:          "corporation-starting-action",
 		})
 		log.Debug("Set pending award fund selection",
-			zap.Int("available_awards", len(availableAwards)))
+			slog.Int("available_awards", len(availableAwards)))
 
 	case shared.ResourceCardDraw:
 		pl, err := g.GetPlayer(playerID)
@@ -423,7 +422,7 @@ func (p *CorporationProcessor) createForcedAction(
 			return fmt.Errorf("failed to apply card-draw output: %w", err)
 		}
 		log.Debug("Applied card-draw forced action",
-			zap.Int("amount", outputBC.GetAmount()))
+			slog.Int("amount", outputBC.GetAmount()))
 
 	case shared.ResourceColony:
 		action := &shared.ForcedFirstAction{
@@ -437,7 +436,7 @@ func (p *CorporationProcessor) createForcedAction(
 			return fmt.Errorf("failed to set forced colony placement action: %w", err)
 		}
 		log.Debug("Set forced colony placement action",
-			zap.String("description", action.Description))
+			slog.String("description", action.Description))
 
 		allowDuplicate := false
 		if cc, ok := outputBC.(*shared.ColonyCondition); ok {
@@ -458,7 +457,7 @@ func (p *CorporationProcessor) createForcedAction(
 					SourceCardID:               card.ID,
 				})
 				log.Debug("Set pending colony selection for forced action",
-					zap.Int("available_colonies", len(colonyIDs)))
+					slog.Int("available_colonies", len(colonyIDs)))
 			}
 		} else {
 			log.Debug("Deferred colony selection to action phase")
@@ -468,7 +467,7 @@ func (p *CorporationProcessor) createForcedAction(
 
 	default:
 		log.Warn("Unhandled forced action type",
-			zap.String("type", string(outputBC.GetResourceType())))
+			slog.String("type", string(outputBC.GetResourceType())))
 	}
 
 	return nil
@@ -481,7 +480,7 @@ func (p *CorporationProcessor) subscribeForcedActionCompletion(
 	g *game.Game,
 	playerID string,
 	source string,
-	log *zap.Logger,
+	log *slog.Logger,
 ) {
 	eventBus := g.EventBus()
 	if eventBus == nil {
@@ -497,8 +496,8 @@ func (p *CorporationProcessor) subscribeForcedActionCompletion(
 		}
 
 		log.Debug("Received TilePlacedEvent for forced action check",
-			zap.String("player_id", event.PlayerID),
-			zap.String("tile_type", event.TileType))
+			slog.String("player_id", event.PlayerID),
+			slog.String("tile_type", event.TileType))
 
 		// Check if there's a forced first action for this player
 		forcedAction := g.GetForcedFirstAction(playerID)
@@ -511,23 +510,23 @@ func (p *CorporationProcessor) subscribeForcedActionCompletion(
 		queue := g.GetPendingTileSelectionQueue(playerID)
 		if queue != nil && len(queue.Items) > 0 {
 			log.Debug("Tile queue still has items, waiting for more tiles",
-				zap.Int("remaining_tiles", len(queue.Items)))
+				slog.Int("remaining_tiles", len(queue.Items)))
 			return
 		}
 
 		log.Debug("Forced first action completed (free action)",
-			zap.String("action_type", forcedAction.ActionType),
-			zap.String("corporation_id", forcedAction.CorporationID))
+			slog.String("action_type", forcedAction.ActionType),
+			slog.String("corporation_id", forcedAction.CorporationID))
 
 		if err := g.SetForcedFirstAction(ctx, playerID, nil); err != nil {
-			log.Error("Failed to clear forced first action", zap.Error(err))
+			log.Error("Failed to clear forced first action", slog.Any("error", err))
 		}
 		eventBus.Unsubscribe(subID)
 	})
 
 	log.Debug("Subscribed to TilePlacedEvent for forced action completion",
-		zap.String("player_id", playerID),
-		zap.String("source", source))
+		slog.String("player_id", playerID),
+		slog.String("source", source))
 }
 
 // subscribeColonyForcedActionCompletion subscribes to ColonyBuiltEvent to handle forced colony placement completion
@@ -536,7 +535,7 @@ func (p *CorporationProcessor) subscribeColonyForcedActionCompletion(
 	g *game.Game,
 	playerID string,
 	source string,
-	log *zap.Logger,
+	log *slog.Logger,
 ) {
 	eventBus := g.EventBus()
 	if eventBus == nil {
@@ -556,16 +555,16 @@ func (p *CorporationProcessor) subscribeColonyForcedActionCompletion(
 		}
 
 		log.Debug("Forced colony placement completed",
-			zap.String("corporation_id", forcedAction.CorporationID),
-			zap.String("colony_id", event.ColonyID))
+			slog.String("corporation_id", forcedAction.CorporationID),
+			slog.String("colony_id", event.ColonyID))
 
 		if err := g.SetForcedFirstAction(ctx, playerID, nil); err != nil {
-			log.Error("Failed to clear forced colony placement action", zap.Error(err))
+			log.Error("Failed to clear forced colony placement action", slog.Any("error", err))
 		}
 		eventBus.Unsubscribe(subID)
 	})
 
 	log.Debug("Subscribed to ColonyBuiltEvent for forced colony placement completion",
-		zap.String("player_id", playerID),
-		zap.String("source", source))
+		slog.String("player_id", playerID),
+		slog.String("source", source))
 }
