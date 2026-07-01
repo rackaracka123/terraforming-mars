@@ -20,17 +20,23 @@ type CardRegistry interface {
 // InMemoryCardRegistry implements CardRegistry with an in-memory map
 type InMemoryCardRegistry struct {
 	cards map[string]gamecards.Card
+	order []string // preserves load (JSON) order so GetAll is deterministic
 }
 
 // NewInMemoryCardRegistry creates a new card registry from a slice of cards
 func NewInMemoryCardRegistry(cardList []gamecards.Card) *InMemoryCardRegistry {
 	cardMap := make(map[string]gamecards.Card, len(cardList))
+	order := make([]string, 0, len(cardList))
 	for _, card := range cardList {
+		if _, exists := cardMap[card.ID]; !exists {
+			order = append(order, card.ID)
+		}
 		cardMap[card.ID] = card
 	}
 
 	return &InMemoryCardRegistry{
 		cards: cardMap,
+		order: order,
 	}
 }
 
@@ -46,11 +52,12 @@ func (r *InMemoryCardRegistry) GetByID(cardID string) (*gamecards.Card, error) {
 	return &cardCopy, nil
 }
 
-// GetAll returns all cards in the registry
+// GetAll returns all cards in the registry, in their original load (JSON) order
+// so that deck construction is deterministic for a given seed.
 func (r *InMemoryCardRegistry) GetAll() []gamecards.Card {
-	cardList := make([]gamecards.Card, 0, len(r.cards))
-	for _, card := range r.cards {
-		cardList = append(cardList, card.DeepCopy())
+	cardList := make([]gamecards.Card, 0, len(r.order))
+	for _, id := range r.order {
+		cardList = append(cardList, r.cards[id].DeepCopy())
 	}
 	return cardList
 }

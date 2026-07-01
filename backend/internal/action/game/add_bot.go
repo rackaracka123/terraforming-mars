@@ -3,7 +3,7 @@ package game
 import (
 	"context"
 	"fmt"
-	"math/rand"
+	rand "math/rand/v2"
 	"time"
 
 	"github.com/google/uuid"
@@ -109,7 +109,7 @@ func (a *AddBotAction) Execute(ctx context.Context, gameID string, botName strin
 	}
 
 	if botName == "" {
-		botName = a.generateBotName(existingPlayers)
+		botName = a.generateBotName(g, existingPlayers)
 	}
 
 	botDifficulty := playerPkg.BotDifficulty(difficulty)
@@ -194,14 +194,19 @@ func (a *AddBotAction) runHealthCheck(gameID, botID, botName, difficulty, apiKey
 	}
 }
 
-func (a *AddBotAction) generateBotName(existingPlayers []*playerPkg.Player) string {
+// botNameRNGStream keeps deterministic bot-name selection independent of the deck
+// and setup RNG streams; offsetting by the current player count varies each bot.
+const botNameRNGStream uint64 = 0xB07
+
+func (a *AddBotAction) generateBotName(g *game.Game, existingPlayers []*playerPkg.Player) string {
 	taken := make(map[string]bool, len(existingPlayers))
 	for _, p := range existingPlayers {
 		taken[p.Name()] = true
 	}
 
-	// Shuffle and pick the first available name
-	perm := rand.Perm(len(botNames))
+	// Shuffle and pick the first available name (deterministic from the game Seed)
+	rng := rand.New(rand.NewPCG(g.Seed(), botNameRNGStream+uint64(len(existingPlayers))))
+	perm := rng.Perm(len(botNames))
 	for _, i := range perm {
 		if !taken[botNames[i]] {
 			return botNames[i]

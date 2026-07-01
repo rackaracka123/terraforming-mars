@@ -18,6 +18,11 @@ type GameState struct {
 	Settings     shared.GameSettings
 	HostPlayerID string
 
+	// Seed is the master RNG seed for this game. All randomness (deck shuffles,
+	// turn order, milestone/award/colony selection) is derived deterministically
+	// from it, so a game can be reproduced from (Seed + the sequence of actions).
+	Seed uint64
+
 	CurrentPhase shared.GamePhase
 	Generation   int
 

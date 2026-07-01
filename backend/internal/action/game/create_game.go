@@ -92,7 +92,10 @@ func (a *CreateGameAction) Execute(
 		return nil, err
 	}
 
-	log.Info("Game created", zap.String("game_id", gameID))
+	// Log the master RNG seed so a reported game can be reproduced deterministically
+	// (seed + action sequence) via the replay harness. Kept out of the client DTO on
+	// purpose: exposing it would let players predict the deck shuffle.
+	log.Info("Game created", zap.String("game_id", gameID), zap.Uint64("seed", newGame.Seed()))
 	return newGame, nil
 }
 

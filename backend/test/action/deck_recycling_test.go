@@ -187,7 +187,7 @@ func TestDeckRecycling_AutoShuffleOnEmptyDrawPile(t *testing.T) {
 
 	// Create a deck with only 2 project cards in draw pile
 	ds := testutil.NewTestDataStoreWithGame(t, "test-game")
-	gameDeck := deck.NewDeck(ds, "test-game", []string{"card-a", "card-b"}, nil, nil)
+	gameDeck := deck.NewDeck(ds, "test-game", 42, []string{"card-a", "card-b"}, nil, nil)
 
 	// Draw all cards to empty the draw pile
 	drawn, err := gameDeck.DrawProjectCards(ctx, 2)
@@ -215,7 +215,7 @@ func TestDeckRecycling_PreludeCardsNeverReshuffledIntoProjectDeck(t *testing.T) 
 	projectCards := []string{"card-a", "card-b"}
 	preludeCards := []string{"P01", "P02", "P03", "P04"}
 	ds2 := testutil.NewTestDataStoreWithGame(t, "test-game")
-	gameDeck := deck.NewDeck(ds2, "test-game", projectCards, nil, preludeCards)
+	gameDeck := deck.NewDeck(ds2, "test-game", 42, projectCards, nil, preludeCards)
 
 	// Draw all project cards to empty the draw pile
 	drawn, err := gameDeck.DrawProjectCards(ctx, 2)
@@ -250,7 +250,7 @@ func TestDeckRecycling_AutoShuffleFailsWhenBothPilesEmpty(t *testing.T) {
 
 	// Create a deck with only 1 project card
 	ds3 := testutil.NewTestDataStoreWithGame(t, "test-game")
-	gameDeck := deck.NewDeck(ds3, "test-game", []string{"card-a"}, nil, nil)
+	gameDeck := deck.NewDeck(ds3, "test-game", 42, []string{"card-a"}, nil, nil)
 
 	// Draw the only card
 	_, err := gameDeck.DrawProjectCards(ctx, 1)
@@ -271,7 +271,7 @@ func TestDeckRecycling_RealDeckNeverDealsPreludeOrCorporation(t *testing.T) {
 	testutil.AssertTrue(t, len(corpIDs) > 0, "should have corporation cards")
 
 	ds4 := testutil.NewTestDataStoreWithGame(t, "test-game")
-	gameDeck := deck.NewDeck(ds4, "test-game", projectCardIDs, corpIDs, preludeIDs)
+	gameDeck := deck.NewDeck(ds4, "test-game", 42, projectCardIDs, corpIDs, preludeIDs)
 
 	// Build lookup sets for non-project card types
 	preludeSet := make(map[string]bool, len(preludeIDs))
