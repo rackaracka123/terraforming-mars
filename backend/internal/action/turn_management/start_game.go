@@ -12,10 +12,10 @@ import (
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/colony"
+	"terraforming-mars-backend/internal/game/milestone"
 	playerPkg "terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/projectfunding"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/milestones"
 	pfRegistry "terraforming-mars-backend/internal/projectfunding"
 )
 
@@ -30,7 +30,7 @@ type StartGameAction struct {
 	gameRepo               game.GameRepository
 	colonyRegistry         colonies.ColonyRegistry
 	projectFundingRegistry pfRegistry.ProjectFundingRegistry
-	milestoneRegistry      milestones.MilestoneRegistry
+	milestoneRegistry      milestone.MilestoneRegistry
 	awardRegistry          award.AwardRegistry
 	botStarter             BotStarter
 	logger                 *zap.Logger
@@ -41,7 +41,7 @@ func NewStartGameAction(
 	gameRepo game.GameRepository,
 	colonyRegistry colonies.ColonyRegistry,
 	projectFundingRegistry pfRegistry.ProjectFundingRegistry,
-	milestoneRegistry milestones.MilestoneRegistry,
+	milestoneRegistry milestone.MilestoneRegistry,
 	awardRegistry award.AwardRegistry,
 	botStarter BotStarter,
 	logger *zap.Logger,

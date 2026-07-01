@@ -18,10 +18,10 @@ import (
 	"terraforming-mars-backend/internal/game/board"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/datastore"
+	"terraforming-mars-backend/internal/game/milestone"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/maps"
-	"terraforming-mars-backend/internal/milestones"
 )
 
 // TestContext provides a reusable test context
@@ -77,14 +77,14 @@ func CreateTestAwardRegistry() award.AwardRegistry {
 }
 
 // CreateTestMilestoneRegistry returns a milestone registry loaded from the JSON database.
-func CreateTestMilestoneRegistry() milestones.MilestoneRegistry {
+func CreateTestMilestoneRegistry() milestone.MilestoneRegistry {
 	_, currentFile, _, _ := runtime.Caller(0)
 	jsonPath := filepath.Join(filepath.Dir(currentFile), "..", "..", "assets", "terraforming_mars_milestones.json")
-	milestoneList, err := milestones.LoadMilestonesFromJSON(jsonPath)
+	milestoneList, err := milestone.LoadMilestonesFromJSON(jsonPath)
 	if err != nil {
 		panic(fmt.Sprintf("failed to load milestone DB for tests: %v", err))
 	}
-	return milestones.NewInMemoryMilestoneRegistry(milestoneList)
+	return milestone.NewInMemoryMilestoneRegistry(milestoneList)
 }
 
 // CreateTestCardRegistryWithAdditionalCards creates a card registry with real cards plus additional synthetic cards.

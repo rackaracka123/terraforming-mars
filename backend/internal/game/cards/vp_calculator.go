@@ -5,9 +5,9 @@ import (
 
 	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/board"
+	"terraforming-mars-backend/internal/game/milestone"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/milestones"
 )
 
 // BoardContext provides board and colony data for VP calculation.
@@ -93,7 +93,7 @@ func CalculatePlayerVP(
 	allPlayers []*player.Player,
 	cardRegistry CardRegistryInterface,
 	awardRegistry award.AwardRegistry,
-	milestoneRegistry milestones.MilestoneRegistry,
+	milestoneRegistry milestone.MilestoneRegistry,
 ) VPBreakdown {
 	b := bc.Board()
 	breakdown := VPBreakdown{}
@@ -262,7 +262,7 @@ func getPerConditionTypeName(per *shared.PerCondition) string {
 }
 
 // calculateMilestoneVP calculates VP from claimed milestones using per-milestone reward VP
-func calculateMilestoneVP(playerID string, claimedMilestones []ClaimedMilestoneInfo, milestoneRegistry milestones.MilestoneRegistry) int {
+func calculateMilestoneVP(playerID string, claimedMilestones []ClaimedMilestoneInfo, milestoneRegistry milestone.MilestoneRegistry) int {
 	vp := 0
 	for _, ms := range claimedMilestones {
 		if ms.PlayerID != playerID {

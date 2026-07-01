@@ -14,11 +14,11 @@ import (
 	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/board"
 	gamecards "terraforming-mars-backend/internal/game/cards"
+	"terraforming-mars-backend/internal/game/milestone"
 	"terraforming-mars-backend/internal/game/player"
 	pfDomain "terraforming-mars-backend/internal/game/projectfunding"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/game/standardproject"
-	"terraforming-mars-backend/internal/milestones"
 	pfRegistry "terraforming-mars-backend/internal/projectfunding"
 )
 
@@ -30,7 +30,7 @@ type Registries struct {
 	ProjectFundingRegistry  pfRegistry.ProjectFundingRegistry
 	StandardProjectRegistry standardproject.StandardProjectRegistry
 	AwardRegistry           award.AwardRegistry
-	MilestoneRegistry       milestones.MilestoneRegistry
+	MilestoneRegistry       milestone.MilestoneRegistry
 	AvailableMaps           []MapInfoDto
 }
 
@@ -312,7 +312,7 @@ func convertTileBonuses(bonuses []board.TileBonus) []TileBonusDto {
 }
 
 // ToMilestonesDto converts all milestones to DTOs including claim status and per-player progress
-func ToMilestonesDto(g *game.Game, cardRegistry cards.CardRegistry, milestoneRegistry milestones.MilestoneRegistry) []MilestoneDto {
+func ToMilestonesDto(g *game.Game, cardRegistry cards.CardRegistry, milestoneRegistry milestone.MilestoneRegistry) []MilestoneDto {
 	if milestoneRegistry == nil {
 		return nil
 	}

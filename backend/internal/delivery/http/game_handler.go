@@ -11,9 +11,9 @@ import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/game/award"
+	"terraforming-mars-backend/internal/game/milestone"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/milestones"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -28,7 +28,7 @@ type GameHandler struct {
 	listGamesAction      *query.ListGamesAction
 	listCardsAction      *query.ListCardsAction
 	cardRegistry         cards.CardRegistry
-	milestoneRegistry    milestones.MilestoneRegistry
+	milestoneRegistry    milestone.MilestoneRegistry
 	awardRegistry        award.AwardRegistry
 }
 
@@ -41,7 +41,7 @@ func NewGameHandler(
 	listGamesAction *query.ListGamesAction,
 	listCardsAction *query.ListCardsAction,
 	cardRegistry cards.CardRegistry,
-	milestoneRegistry milestones.MilestoneRegistry,
+	milestoneRegistry milestone.MilestoneRegistry,
 	awardRegistry award.AwardRegistry,
 ) *GameHandler {
 	return &GameHandler{

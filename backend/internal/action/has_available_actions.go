@@ -8,7 +8,6 @@ import (
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/game/standardproject"
-	"terraforming-mars-backend/internal/milestones"
 )
 
 // conversionStandardProjects are the two resource-conversion "standard projects"
@@ -34,7 +33,7 @@ func HasAvailableActions(
 	p *player.Player,
 	cardRegistry cards.CardRegistry,
 	stdProjRegistry standardproject.StandardProjectRegistry,
-	milestoneRegistry milestones.MilestoneRegistry,
+	milestoneRegistry milestone.MilestoneRegistry,
 	awardRegistry award.AwardRegistry,
 ) bool {
 	if g.HasAnyPendingSelection(p.ID()) {

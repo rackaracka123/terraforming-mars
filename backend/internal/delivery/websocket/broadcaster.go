@@ -10,9 +10,9 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
+	"terraforming-mars-backend/internal/game/milestone"
 	"terraforming-mars-backend/internal/game/standardproject"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/milestones"
 	pfRegistry "terraforming-mars-backend/internal/projectfunding"
 
 	"go.uber.org/zap"
@@ -34,7 +34,7 @@ type Broadcaster struct {
 	projectFundingRegistry  pfRegistry.ProjectFundingRegistry
 	standardProjectRegistry standardproject.StandardProjectRegistry
 	awardRegistry           award.AwardRegistry
-	milestoneRegistry       milestones.MilestoneRegistry
+	milestoneRegistry       milestone.MilestoneRegistry
 	availableMaps           []dto.MapInfoDto
 	botNotifier             BotNotifier
 	logger                  *zap.Logger
@@ -52,7 +52,7 @@ func NewBroadcaster(
 	pfReg pfRegistry.ProjectFundingRegistry,
 	stdProjReg standardproject.StandardProjectRegistry,
 	awardReg award.AwardRegistry,
-	msReg milestones.MilestoneRegistry,
+	msReg milestone.MilestoneRegistry,
 	availableMaps []dto.MapInfoDto,
 ) *Broadcaster {
 	broadcaster := &Broadcaster{

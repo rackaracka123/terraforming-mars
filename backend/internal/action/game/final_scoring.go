@@ -12,8 +12,8 @@ import (
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
 	gamecards "terraforming-mars-backend/internal/game/cards"
+	"terraforming-mars-backend/internal/game/milestone"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/milestones"
 )
 
 // FinalScoringAction handles the business logic for calculating final scores and ending the game
@@ -21,7 +21,7 @@ type FinalScoringAction struct {
 	gameRepo          game.GameRepository
 	cardRegistry      cards.CardRegistry
 	awardRegistry     award.AwardRegistry
-	milestoneRegistry milestones.MilestoneRegistry
+	milestoneRegistry milestone.MilestoneRegistry
 	logger            *zap.Logger
 }
 
@@ -30,7 +30,7 @@ func NewFinalScoringAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
 	awardRegistry award.AwardRegistry,
-	milestoneRegistry milestones.MilestoneRegistry,
+	milestoneRegistry milestone.MilestoneRegistry,
 	logger *zap.Logger,
 ) *FinalScoringAction {
 	return &FinalScoringAction{

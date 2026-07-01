@@ -7,8 +7,8 @@ import (
 	"terraforming-mars-backend/internal/action/query"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game/award"
+	"terraforming-mars-backend/internal/game/milestone"
 	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
-	"terraforming-mars-backend/internal/milestones"
 	"terraforming-mars-backend/internal/service/bugreport"
 
 	"github.com/gorilla/mux"
@@ -25,7 +25,7 @@ func SetupRouter(
 	listCardsAction *query.ListCardsAction,
 	getPlayerAction *query.GetPlayerAction,
 	cardRegistry cards.CardRegistry,
-	milestoneRegistry milestones.MilestoneRegistry,
+	milestoneRegistry milestone.MilestoneRegistry,
 	awardRegistry award.AwardRegistry,
 	bugReportService *bugreport.Service,
 ) *mux.Router {

@@ -1,26 +1,24 @@
-package standardprojects
+package standardproject
 
 import (
 	"fmt"
-
-	"terraforming-mars-backend/internal/game/standardproject"
 )
 
 // StandardProjectRegistry provides lookup functionality for standard project definitions
 type StandardProjectRegistry interface {
-	GetByID(projectID string) (*standardproject.StandardProjectDefinition, error)
-	GetAll() []standardproject.StandardProjectDefinition
+	GetByID(projectID string) (*StandardProjectDefinition, error)
+	GetAll() []StandardProjectDefinition
 }
 
 // InMemoryStandardProjectRegistry implements StandardProjectRegistry with an in-memory map
 type InMemoryStandardProjectRegistry struct {
-	projects map[string]standardproject.StandardProjectDefinition
+	projects map[string]StandardProjectDefinition
 	order    []string
 }
 
 // NewInMemoryStandardProjectRegistry creates a new registry from a slice of definitions
-func NewInMemoryStandardProjectRegistry(projectList []standardproject.StandardProjectDefinition) *InMemoryStandardProjectRegistry {
-	projectMap := make(map[string]standardproject.StandardProjectDefinition, len(projectList))
+func NewInMemoryStandardProjectRegistry(projectList []StandardProjectDefinition) *InMemoryStandardProjectRegistry {
+	projectMap := make(map[string]StandardProjectDefinition, len(projectList))
 	order := make([]string, 0, len(projectList))
 	for _, p := range projectList {
 		projectMap[p.ID] = p
@@ -30,7 +28,7 @@ func NewInMemoryStandardProjectRegistry(projectList []standardproject.StandardPr
 }
 
 // GetByID retrieves a standard project definition by ID
-func (r *InMemoryStandardProjectRegistry) GetByID(projectID string) (*standardproject.StandardProjectDefinition, error) {
+func (r *InMemoryStandardProjectRegistry) GetByID(projectID string) (*StandardProjectDefinition, error) {
 	p, exists := r.projects[projectID]
 	if !exists {
 		return nil, fmt.Errorf("standard project not found: %s", projectID)
@@ -39,8 +37,8 @@ func (r *InMemoryStandardProjectRegistry) GetByID(projectID string) (*standardpr
 }
 
 // GetAll returns all standard project definitions in their original JSON order
-func (r *InMemoryStandardProjectRegistry) GetAll() []standardproject.StandardProjectDefinition {
-	result := make([]standardproject.StandardProjectDefinition, 0, len(r.order))
+func (r *InMemoryStandardProjectRegistry) GetAll() []StandardProjectDefinition {
+	result := make([]StandardProjectDefinition, 0, len(r.order))
 	for _, id := range r.order {
 		result = append(result, r.projects[id])
 	}
