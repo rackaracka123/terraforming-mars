@@ -10,10 +10,10 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
+	"terraforming-mars-backend/internal/game/standardproject"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/milestones"
 	pfRegistry "terraforming-mars-backend/internal/projectfunding"
-	"terraforming-mars-backend/internal/standardprojects"
 
 	"go.uber.org/zap"
 )
@@ -32,7 +32,7 @@ type Broadcaster struct {
 	cardRegistry            cards.CardRegistry
 	colonyRegistry          colonies.ColonyRegistry
 	projectFundingRegistry  pfRegistry.ProjectFundingRegistry
-	standardProjectRegistry standardprojects.StandardProjectRegistry
+	standardProjectRegistry standardproject.StandardProjectRegistry
 	awardRegistry           award.AwardRegistry
 	milestoneRegistry       milestones.MilestoneRegistry
 	availableMaps           []dto.MapInfoDto
@@ -50,7 +50,7 @@ func NewBroadcaster(
 	cardRegistry cards.CardRegistry,
 	colonyRegistry colonies.ColonyRegistry,
 	pfReg pfRegistry.ProjectFundingRegistry,
-	stdProjReg standardprojects.StandardProjectRegistry,
+	stdProjReg standardproject.StandardProjectRegistry,
 	awardReg award.AwardRegistry,
 	msReg milestones.MilestoneRegistry,
 	availableMaps []dto.MapInfoDto,

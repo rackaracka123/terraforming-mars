@@ -8,8 +8,8 @@ import (
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
+	"terraforming-mars-backend/internal/game/standardproject"
 	"terraforming-mars-backend/internal/milestones"
-	"terraforming-mars-backend/internal/standardprojects"
 )
 
 // toResourcesDto converts shared.Resources to ResourcesDto.
@@ -49,7 +49,7 @@ func calculateResourceDelta(before, after shared.Resources) ResourcesDto {
 }
 
 // ToPlayerDto converts Player to PlayerDto
-func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry, stdProjRegistry standardprojects.StandardProjectRegistry, awardRegistry award.AwardRegistry, milestoneRegistry milestones.MilestoneRegistry) PlayerDto {
+func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry, stdProjRegistry standardproject.StandardProjectRegistry, awardRegistry award.AwardRegistry, milestoneRegistry milestones.MilestoneRegistry) PlayerDto {
 	resourcesComponent := p.Resources()
 	resources := resourcesComponent.Get()
 	production := resourcesComponent.Production()
@@ -851,7 +851,7 @@ func mapPlayerCards(p *player.Player, g *game.Game, cardRegistry cards.CardRegis
 // Uses the state calculator to compute availability and effective costs for each project.
 // NOTE: Conversion projects (plants→greenery, heat→temperature) are NOT included here - they
 // are handled separately via resource buttons in the bottom bar.
-func mapPlayerStandardProjects(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry, stdProjRegistry standardprojects.StandardProjectRegistry) []PlayerStandardProjectDto {
+func mapPlayerStandardProjects(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry, stdProjRegistry standardproject.StandardProjectRegistry) []PlayerStandardProjectDto {
 	if stdProjRegistry == nil {
 		return nil
 	}

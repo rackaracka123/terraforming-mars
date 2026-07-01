@@ -9,22 +9,22 @@ import (
 	spAction "terraforming-mars-backend/internal/action/standard_project"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
-	"terraforming-mars-backend/internal/standardprojects"
+	"terraforming-mars-backend/internal/game/standardproject"
 	"terraforming-mars-backend/test/testutil"
 )
 
-func loadStandardProjectRegistry(t *testing.T) standardprojects.StandardProjectRegistry {
+func loadStandardProjectRegistry(t *testing.T) standardproject.StandardProjectRegistry {
 	t.Helper()
 	_, currentFile, _, _ := runtime.Caller(0)
 	stdProjPath := filepath.Join(filepath.Dir(currentFile), "..", "..", "assets", "terraforming_mars_standard_projects.json")
-	stdProjData, err := standardprojects.LoadStandardProjectsFromJSON(stdProjPath)
+	stdProjData, err := standardproject.LoadStandardProjectsFromJSON(stdProjPath)
 	if err != nil {
 		t.Fatalf("Failed to load standard projects JSON: %v", err)
 	}
-	return standardprojects.NewInMemoryStandardProjectRegistry(stdProjData)
+	return standardproject.NewInMemoryStandardProjectRegistry(stdProjData)
 }
 
-func setupStandardProjectTest(t *testing.T) (*game.Game, game.GameRepository, cards.CardRegistry, standardprojects.StandardProjectRegistry, string) {
+func setupStandardProjectTest(t *testing.T) (*game.Game, game.GameRepository, cards.CardRegistry, standardproject.StandardProjectRegistry, string) {
 	t.Helper()
 	testGame, repo, cardRegistry, playerID, _ := testutil.SetupTwoPlayerGame(t)
 	stdProjRegistry := loadStandardProjectRegistry(t)

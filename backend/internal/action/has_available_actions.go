@@ -7,8 +7,8 @@ import (
 	"terraforming-mars-backend/internal/game/milestone"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
+	"terraforming-mars-backend/internal/game/standardproject"
 	"terraforming-mars-backend/internal/milestones"
-	"terraforming-mars-backend/internal/standardprojects"
 )
 
 // conversionStandardProjects are the two resource-conversion "standard projects"
@@ -33,7 +33,7 @@ func HasAvailableActions(
 	g *game.Game,
 	p *player.Player,
 	cardRegistry cards.CardRegistry,
-	stdProjRegistry standardprojects.StandardProjectRegistry,
+	stdProjRegistry standardproject.StandardProjectRegistry,
 	milestoneRegistry milestones.MilestoneRegistry,
 	awardRegistry award.AwardRegistry,
 ) bool {
@@ -99,7 +99,7 @@ func hasAvailableStandardProject(
 	g *game.Game,
 	p *player.Player,
 	cardRegistry cards.CardRegistry,
-	stdProjRegistry standardprojects.StandardProjectRegistry,
+	stdProjRegistry standardproject.StandardProjectRegistry,
 ) bool {
 	enabledPacks := g.Settings().EnabledPacks()
 

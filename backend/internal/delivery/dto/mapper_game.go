@@ -17,9 +17,9 @@ import (
 	"terraforming-mars-backend/internal/game/player"
 	pfDomain "terraforming-mars-backend/internal/game/projectfunding"
 	"terraforming-mars-backend/internal/game/shared"
+	"terraforming-mars-backend/internal/game/standardproject"
 	"terraforming-mars-backend/internal/milestones"
 	pfRegistry "terraforming-mars-backend/internal/projectfunding"
-	"terraforming-mars-backend/internal/standardprojects"
 )
 
 // ToGameDto converts Game to GameDto with personalized view
@@ -28,7 +28,7 @@ import (
 type Registries struct {
 	ColonyRegistry          colonies.ColonyRegistry
 	ProjectFundingRegistry  pfRegistry.ProjectFundingRegistry
-	StandardProjectRegistry standardprojects.StandardProjectRegistry
+	StandardProjectRegistry standardproject.StandardProjectRegistry
 	AwardRegistry           award.AwardRegistry
 	MilestoneRegistry       milestones.MilestoneRegistry
 	AvailableMaps           []MapInfoDto
