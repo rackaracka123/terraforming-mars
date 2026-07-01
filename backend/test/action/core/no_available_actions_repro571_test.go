@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/board"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/datastore"
@@ -402,7 +402,7 @@ func TestHasAvailableActions_IgnoresUnselectedMilestone(t *testing.T) {
 
 // closeAwardSurface funds the maximum number of awards so the award action surface is
 // unavailable regardless of the player's credits, letting a test isolate other surfaces.
-func closeAwardSurface(t *testing.T, g *game.Game, awardRegistry awards.AwardRegistry) {
+func closeAwardSurface(t *testing.T, g *game.Game, awardRegistry award.AwardRegistry) {
 	t.Helper()
 	ctx := context.Background()
 	defs := awardRegistry.GetAll()

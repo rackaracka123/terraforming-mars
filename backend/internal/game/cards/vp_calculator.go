@@ -3,7 +3,7 @@ package cards
 import (
 	"fmt"
 
-	"terraforming-mars-backend/internal/awards"
+	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/board"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
@@ -92,7 +92,7 @@ func CalculatePlayerVP(
 	fundedAwards []FundedAwardInfo,
 	allPlayers []*player.Player,
 	cardRegistry CardRegistryInterface,
-	awardRegistry awards.AwardRegistry,
+	awardRegistry award.AwardRegistry,
 	milestoneRegistry milestones.MilestoneRegistry,
 ) VPBreakdown {
 	b := bc.Board()
@@ -286,7 +286,7 @@ func calculateAwardVP(
 	allPlayers []*player.Player,
 	b *board.Board,
 	cardRegistry CardRegistryInterface,
-	awardRegistry awards.AwardRegistry,
+	awardRegistry award.AwardRegistry,
 ) int {
 	totalVP := 0
 

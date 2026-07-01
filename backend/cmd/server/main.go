@@ -24,7 +24,6 @@ import (
 	stdprojAction "terraforming-mars-backend/internal/action/standard_project"
 	tileAction "terraforming-mars-backend/internal/action/tile"
 	turnAction "terraforming-mars-backend/internal/action/turn_management"
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/delivery/dto"
@@ -32,6 +31,7 @@ import (
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/datastore"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/logger"
@@ -132,11 +132,11 @@ func main() {
 	awardPath := filepath.Join(wd, "assets", "terraforming_mars_awards.json")
 	log.Debug("Loading awards from", zap.String("path", awardPath))
 
-	awardData, err := awards.LoadAwardsFromJSON(awardPath)
+	awardData, err := award.LoadAwardsFromJSON(awardPath)
 	if err != nil {
 		log.Fatal("Failed to load awards", zap.Error(err))
 	}
-	awardRegistry := awards.NewInMemoryAwardRegistry(awardData)
+	awardRegistry := award.NewInMemoryAwardRegistry(awardData)
 	log.Debug("Award registry initialized", zap.Int("award_count", len(awardData)))
 
 	// ========== Initialize Milestone Registry ==========

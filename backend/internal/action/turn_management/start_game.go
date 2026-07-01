@@ -8,9 +8,9 @@ import (
 
 	"go.uber.org/zap"
 
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/colony"
 	playerPkg "terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/projectfunding"
@@ -31,7 +31,7 @@ type StartGameAction struct {
 	colonyRegistry         colonies.ColonyRegistry
 	projectFundingRegistry pfRegistry.ProjectFundingRegistry
 	milestoneRegistry      milestones.MilestoneRegistry
-	awardRegistry          awards.AwardRegistry
+	awardRegistry          award.AwardRegistry
 	botStarter             BotStarter
 	logger                 *zap.Logger
 }
@@ -42,7 +42,7 @@ func NewStartGameAction(
 	colonyRegistry colonies.ColonyRegistry,
 	projectFundingRegistry pfRegistry.ProjectFundingRegistry,
 	milestoneRegistry milestones.MilestoneRegistry,
-	awardRegistry awards.AwardRegistry,
+	awardRegistry award.AwardRegistry,
 	botStarter BotStarter,
 	logger *zap.Logger,
 ) *StartGameAction {

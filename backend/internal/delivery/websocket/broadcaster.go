@@ -4,12 +4,12 @@ import (
 	"context"
 	"sync"
 
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/milestones"
 	pfRegistry "terraforming-mars-backend/internal/projectfunding"
@@ -33,7 +33,7 @@ type Broadcaster struct {
 	colonyRegistry          colonies.ColonyRegistry
 	projectFundingRegistry  pfRegistry.ProjectFundingRegistry
 	standardProjectRegistry standardprojects.StandardProjectRegistry
-	awardRegistry           awards.AwardRegistry
+	awardRegistry           award.AwardRegistry
 	milestoneRegistry       milestones.MilestoneRegistry
 	availableMaps           []dto.MapInfoDto
 	botNotifier             BotNotifier
@@ -51,7 +51,7 @@ func NewBroadcaster(
 	colonyRegistry colonies.ColonyRegistry,
 	pfReg pfRegistry.ProjectFundingRegistry,
 	stdProjReg standardprojects.StandardProjectRegistry,
-	awardReg awards.AwardRegistry,
+	awardReg award.AwardRegistry,
 	msReg milestones.MilestoneRegistry,
 	availableMaps []dto.MapInfoDto,
 ) *Broadcaster {

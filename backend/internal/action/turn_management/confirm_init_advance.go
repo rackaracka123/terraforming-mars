@@ -6,9 +6,9 @@ import (
 
 	"go.uber.org/zap"
 
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/award"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
@@ -19,7 +19,7 @@ import (
 type ConfirmInitAdvanceAction struct {
 	gameRepo      game.GameRepository
 	cardRegistry  cards.CardRegistry
-	awardRegistry awards.AwardRegistry
+	awardRegistry award.AwardRegistry
 	stateRepo     game.GameStateRepository
 	corpProc      *gamecards.CorporationProcessor
 	logger        *zap.Logger
@@ -29,7 +29,7 @@ type ConfirmInitAdvanceAction struct {
 func NewConfirmInitAdvanceAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
-	awardRegistry awards.AwardRegistry,
+	awardRegistry award.AwardRegistry,
 	stateRepo game.GameStateRepository,
 	logger *zap.Logger,
 ) *ConfirmInitAdvanceAction {

@@ -8,23 +8,23 @@ import (
 	"go.uber.org/zap"
 
 	baseaction "terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/shared"
 )
 
 // ConfirmAwardFundAction handles confirming a free award fund selection (e.g., Vitor)
 type ConfirmAwardFundAction struct {
 	baseaction.BaseAction
-	awardRegistry awards.AwardRegistry
+	awardRegistry award.AwardRegistry
 }
 
 // NewConfirmAwardFundAction creates a new confirm award fund action
 func NewConfirmAwardFundAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
-	awardRegistry awards.AwardRegistry,
+	awardRegistry award.AwardRegistry,
 	logger *zap.Logger,
 ) *ConfirmAwardFundAction {
 	return &ConfirmAwardFundAction{

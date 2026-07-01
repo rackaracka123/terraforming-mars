@@ -1,7 +1,6 @@
 package action
 
 import (
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
@@ -36,7 +35,7 @@ func HasAvailableActions(
 	cardRegistry cards.CardRegistry,
 	stdProjRegistry standardprojects.StandardProjectRegistry,
 	milestoneRegistry milestones.MilestoneRegistry,
-	awardRegistry awards.AwardRegistry,
+	awardRegistry award.AwardRegistry,
 ) bool {
 	if g.HasAnyPendingSelection(p.ID()) {
 		return true

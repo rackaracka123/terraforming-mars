@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"testing"
 
-	"terraforming-mars-backend/internal/awards"
+	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/test/testutil"
 )
 
@@ -15,7 +15,7 @@ func jsonPath() string {
 }
 
 func TestLoadAwardsFromJSON(t *testing.T) {
-	defs, err := awards.LoadAwardsFromJSON(jsonPath())
+	defs, err := award.LoadAwardsFromJSON(jsonPath())
 	testutil.AssertNoError(t, err, "Should load awards from JSON")
 	testutil.AssertEqual(t, 16, len(defs), "Should have exactly 16 awards")
 
@@ -32,9 +32,9 @@ func TestLoadAwardsFromJSON(t *testing.T) {
 }
 
 func TestRegistryGetByID(t *testing.T) {
-	defs, err := awards.LoadAwardsFromJSON(jsonPath())
+	defs, err := award.LoadAwardsFromJSON(jsonPath())
 	testutil.AssertNoError(t, err, "Should load awards from JSON")
-	registry := awards.NewInMemoryAwardRegistry(defs)
+	registry := award.NewInMemoryAwardRegistry(defs)
 
 	def, err := registry.GetByID("landlord")
 	testutil.AssertNoError(t, err, "Should find landlord award")
@@ -45,9 +45,9 @@ func TestRegistryGetByID(t *testing.T) {
 }
 
 func TestRegistryGetAllOrder(t *testing.T) {
-	defs, err := awards.LoadAwardsFromJSON(jsonPath())
+	defs, err := award.LoadAwardsFromJSON(jsonPath())
 	testutil.AssertNoError(t, err, "Should load awards from JSON")
-	registry := awards.NewInMemoryAwardRegistry(defs)
+	registry := award.NewInMemoryAwardRegistry(defs)
 
 	all := registry.GetAll()
 	testutil.AssertEqual(t, 16, len(all), "GetAll should return 16 awards")

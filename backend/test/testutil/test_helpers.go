@@ -12,9 +12,9 @@ import (
 	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/board"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/datastore"
@@ -66,14 +66,14 @@ func CreateTestCardRegistry() cards.CardRegistry {
 }
 
 // CreateTestAwardRegistry returns an award registry loaded from the JSON database.
-func CreateTestAwardRegistry() awards.AwardRegistry {
+func CreateTestAwardRegistry() award.AwardRegistry {
 	_, currentFile, _, _ := runtime.Caller(0)
 	jsonPath := filepath.Join(filepath.Dir(currentFile), "..", "..", "assets", "terraforming_mars_awards.json")
-	awardList, err := awards.LoadAwardsFromJSON(jsonPath)
+	awardList, err := award.LoadAwardsFromJSON(jsonPath)
 	if err != nil {
 		panic(fmt.Sprintf("failed to load award DB for tests: %v", err))
 	}
-	return awards.NewInMemoryAwardRegistry(awardList)
+	return award.NewInMemoryAwardRegistry(awardList)
 }
 
 // CreateTestMilestoneRegistry returns a milestone registry loaded from the JSON database.

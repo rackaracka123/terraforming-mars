@@ -8,7 +8,6 @@ import (
 
 	"terraforming-mars-backend/internal/action"
 	colonyAction "terraforming-mars-backend/internal/action/colony"
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/game"
@@ -30,7 +29,7 @@ type Registries struct {
 	ColonyRegistry          colonies.ColonyRegistry
 	ProjectFundingRegistry  pfRegistry.ProjectFundingRegistry
 	StandardProjectRegistry standardprojects.StandardProjectRegistry
-	AwardRegistry           awards.AwardRegistry
+	AwardRegistry           award.AwardRegistry
 	MilestoneRegistry       milestones.MilestoneRegistry
 	AvailableMaps           []MapInfoDto
 }
@@ -387,7 +386,7 @@ func buildMilestoneRewardDtos(rewards []award.RewardOutput) []AwardRewardDto {
 }
 
 // ToAwardsDto converts all awards to DTOs including funding status and per-player scores
-func ToAwardsDto(g *game.Game, cardRegistry cards.CardRegistry, awardRegistry awards.AwardRegistry) []AwardDto {
+func ToAwardsDto(g *game.Game, cardRegistry cards.CardRegistry, awardRegistry award.AwardRegistry) []AwardDto {
 	if awardRegistry == nil {
 		return nil
 	}
@@ -462,7 +461,7 @@ func ToAwardsDto(g *game.Game, cardRegistry cards.CardRegistry, awardRegistry aw
 }
 
 // ToAwardResultsDto converts funded awards to placement results
-func ToAwardResultsDto(g *game.Game, cardRegistry cards.CardRegistry, awardRegistry awards.AwardRegistry) []AwardResultDto {
+func ToAwardResultsDto(g *game.Game, cardRegistry cards.CardRegistry, awardRegistry award.AwardRegistry) []AwardResultDto {
 	if awardRegistry == nil {
 		return nil
 	}

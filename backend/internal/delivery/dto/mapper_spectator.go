@@ -1,9 +1,9 @@
 package dto
 
 import (
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/board"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/milestones"
@@ -11,7 +11,7 @@ import (
 
 // ToSpectatorGameDto creates a GameDto for spectators where all players are shown
 // as OtherPlayerDto (no hidden information like hand cards or pending selections).
-func ToSpectatorGameDto(g *game.Game, cardRegistry cards.CardRegistry, awardRegistry awards.AwardRegistry, milestoneRegistry milestones.MilestoneRegistry) GameDto {
+func ToSpectatorGameDto(g *game.Game, cardRegistry cards.CardRegistry, awardRegistry award.AwardRegistry, milestoneRegistry milestones.MilestoneRegistry) GameDto {
 	players := g.GetAllPlayers()
 
 	otherPlayers := make([]OtherPlayerDto, 0, len(players))
