@@ -11,9 +11,9 @@ import (
 	resconvaction "terraforming-mars-backend/internal/action/resource_conversion"
 	turnAction "terraforming-mars-backend/internal/action/turn_management"
 	"terraforming-mars-backend/internal/cards"
-	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/events"
 	gamecards "terraforming-mars-backend/internal/game/cards"
+	"terraforming-mars-backend/internal/game/colony"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/test/testutil"
 )
@@ -889,9 +889,9 @@ func TestPoseidon_ForcedColonyDoesNotBlockInitAdvance_Repro568(t *testing.T) {
 	cardRegistry := testutil.CreateTestCardRegistry()
 	ctx := context.Background()
 
-	colonyDefs, err := colonies.LoadColoniesFromJSON("../../../assets/terraforming_mars_colonies.json")
+	colonyDefs, err := colony.LoadColoniesFromJSON("../../../assets/terraforming_mars_colonies.json")
 	testutil.AssertNoError(t, err, "Failed to load colonies")
-	colonyRegistry := colonies.NewInMemoryColonyRegistry(colonyDefs)
+	colonyRegistry := colony.NewInMemoryColonyRegistry(colonyDefs)
 
 	testGame.UpdateSettings(ctx, shared.GameSettings{
 		MaxPlayers: 4,
@@ -991,9 +991,9 @@ func TestPoseidon_ForcedColonyInitAdvance_FourPlayerPrelude_Repro568(t *testing.
 	cardRegistry := testutil.CreateTestCardRegistry()
 	ctx := context.Background()
 
-	colonyDefs, err := colonies.LoadColoniesFromJSON("../../../assets/terraforming_mars_colonies.json")
+	colonyDefs, err := colony.LoadColoniesFromJSON("../../../assets/terraforming_mars_colonies.json")
 	testutil.AssertNoError(t, err, "Failed to load colonies")
-	colonyRegistry := colonies.NewInMemoryColonyRegistry(colonyDefs)
+	colonyRegistry := colony.NewInMemoryColonyRegistry(colonyDefs)
 
 	testGame.UpdateSettings(ctx, shared.GameSettings{
 		MaxPlayers: 5,

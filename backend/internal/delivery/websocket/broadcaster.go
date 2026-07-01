@@ -5,11 +5,11 @@ import (
 	"sync"
 
 	"terraforming-mars-backend/internal/cards"
-	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
+	"terraforming-mars-backend/internal/game/colony"
 	"terraforming-mars-backend/internal/game/milestone"
 	pfRegistry "terraforming-mars-backend/internal/game/projectfunding"
 	"terraforming-mars-backend/internal/game/standardproject"
@@ -30,7 +30,7 @@ type Broadcaster struct {
 	stateRepo               game.GameStateRepository
 	hub                     *core.Hub
 	cardRegistry            cards.CardRegistry
-	colonyRegistry          colonies.ColonyRegistry
+	colonyRegistry          colony.ColonyRegistry
 	projectFundingRegistry  pfRegistry.ProjectFundingRegistry
 	standardProjectRegistry standardproject.StandardProjectRegistry
 	awardRegistry           award.AwardRegistry
@@ -48,7 +48,7 @@ func NewBroadcaster(
 	stateRepo game.GameStateRepository,
 	hub *core.Hub,
 	cardRegistry cards.CardRegistry,
-	colonyRegistry colonies.ColonyRegistry,
+	colonyRegistry colony.ColonyRegistry,
 	pfReg pfRegistry.ProjectFundingRegistry,
 	stdProjReg standardproject.StandardProjectRegistry,
 	awardReg award.AwardRegistry,

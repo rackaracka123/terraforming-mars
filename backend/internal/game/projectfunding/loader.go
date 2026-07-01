@@ -4,18 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-
-	"terraforming-mars-backend/internal/game/projectfunding"
 )
 
 // LoadProjectsFromJSON loads project funding definitions from a JSON file
-func LoadProjectsFromJSON(filepath string) ([]projectfunding.ProjectDefinition, error) {
+func LoadProjectsFromJSON(filepath string) ([]ProjectDefinition, error) {
 	data, err := os.ReadFile(filepath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read project funding file: %w", err)
 	}
 
-	var projects []projectfunding.ProjectDefinition
+	var projects []ProjectDefinition
 	if err := json.Unmarshal(data, &projects); err != nil {
 		return nil, fmt.Errorf("failed to parse project funding JSON: %w", err)
 	}

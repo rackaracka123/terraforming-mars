@@ -9,11 +9,11 @@ import (
 	"terraforming-mars-backend/internal/action"
 	colonyAction "terraforming-mars-backend/internal/action/colony"
 	"terraforming-mars-backend/internal/cards"
-	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/board"
 	gamecards "terraforming-mars-backend/internal/game/cards"
+	"terraforming-mars-backend/internal/game/colony"
 	"terraforming-mars-backend/internal/game/milestone"
 	"terraforming-mars-backend/internal/game/player"
 	pfDomain "terraforming-mars-backend/internal/game/projectfunding"
@@ -25,7 +25,7 @@ import (
 // The playerID parameter determines which player is "currentPlayer" vs "otherPlayers"
 // Registries bundles optional expansion registries for DTO mapping
 type Registries struct {
-	ColonyRegistry          colonies.ColonyRegistry
+	ColonyRegistry          colony.ColonyRegistry
 	ProjectFundingRegistry  pfDomain.ProjectFundingRegistry
 	StandardProjectRegistry standardproject.StandardProjectRegistry
 	AwardRegistry           award.AwardRegistry
@@ -33,13 +33,13 @@ type Registries struct {
 	AvailableMaps           []MapInfoDto
 }
 
-func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string, colonyRegistry ...colonies.ColonyRegistry) GameDto {
+func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string, colonyRegistry ...colony.ColonyRegistry) GameDto {
 	return ToGameDtoFull(g, cardRegistry, playerID, Registries{
 		ColonyRegistry: firstOrNil(colonyRegistry),
 	})
 }
 
-func firstOrNil(regs []colonies.ColonyRegistry) colonies.ColonyRegistry {
+func firstOrNil(regs []colony.ColonyRegistry) colony.ColonyRegistry {
 	if len(regs) > 0 {
 		return regs[0]
 	}
@@ -680,7 +680,7 @@ func buildGlobalParameterBonuses(venusEnabled bool) []GlobalParameterBonusDto {
 	return bonuses
 }
 
-func toColonyDtos(g *game.Game, colonyRegistry colonies.ColonyRegistry, cardRegistry cards.CardRegistry, playerID string) []ColonyDto {
+func toColonyDtos(g *game.Game, colonyRegistry colony.ColonyRegistry, cardRegistry cards.CardRegistry, playerID string) []ColonyDto {
 	tileStates := g.Colonies().States()
 	if len(tileStates) == 0 {
 		return nil

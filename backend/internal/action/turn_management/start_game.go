@@ -8,7 +8,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/colony"
@@ -27,7 +26,7 @@ type BotStarter interface {
 // NOTE: Deck initialization is handled separately before calling this action
 type StartGameAction struct {
 	gameRepo               game.GameRepository
-	colonyRegistry         colonies.ColonyRegistry
+	colonyRegistry         colony.ColonyRegistry
 	projectFundingRegistry projectfunding.ProjectFundingRegistry
 	milestoneRegistry      milestone.MilestoneRegistry
 	awardRegistry          award.AwardRegistry
@@ -38,7 +37,7 @@ type StartGameAction struct {
 // NewStartGameAction creates a new start game action
 func NewStartGameAction(
 	gameRepo game.GameRepository,
-	colonyRegistry colonies.ColonyRegistry,
+	colonyRegistry colony.ColonyRegistry,
 	projectFundingRegistry projectfunding.ProjectFundingRegistry,
 	milestoneRegistry milestone.MilestoneRegistry,
 	awardRegistry award.AwardRegistry,

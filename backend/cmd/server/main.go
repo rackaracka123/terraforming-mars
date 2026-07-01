@@ -25,13 +25,13 @@ import (
 	tileAction "terraforming-mars-backend/internal/action/tile"
 	turnAction "terraforming-mars-backend/internal/action/turn_management"
 	"terraforming-mars-backend/internal/cards"
-	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/delivery/dto"
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
+	"terraforming-mars-backend/internal/game/colony"
 	"terraforming-mars-backend/internal/game/datastore"
 	msLoader "terraforming-mars-backend/internal/game/milestone"
 	pfLoader "terraforming-mars-backend/internal/game/projectfunding"
@@ -99,11 +99,11 @@ func main() {
 	colonyPath := filepath.Join(wd, "assets", "terraforming_mars_colonies.json")
 	log.Debug("Loading colonies from", zap.String("path", colonyPath))
 
-	colonyData, err := colonies.LoadColoniesFromJSON(colonyPath)
+	colonyData, err := colony.LoadColoniesFromJSON(colonyPath)
 	if err != nil {
 		log.Fatal("Failed to load colonies", zap.Error(err))
 	}
-	colonyRegistry := colonies.NewInMemoryColonyRegistry(colonyData)
+	colonyRegistry := colony.NewInMemoryColonyRegistry(colonyData)
 	log.Debug("Colony registry initialized", zap.Int("colony_count", len(colonyData)))
 
 	// ========== Initialize Project Funding Registry ==========

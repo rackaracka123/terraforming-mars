@@ -7,9 +7,9 @@ import (
 
 	baseaction "terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/cards"
-	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/colony"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 
@@ -42,14 +42,14 @@ func tradePaymentResource(paymentType TradePaymentType) (shared.ResourceType, bo
 // TradeAction handles the business logic for trading with a colony tile
 type TradeAction struct {
 	baseaction.BaseAction
-	colonyRegistry colonies.ColonyRegistry
+	colonyRegistry colony.ColonyRegistry
 	cardRegistry   cards.CardRegistry
 }
 
 // NewTradeAction creates a new trade action
 func NewTradeAction(
 	gameRepo game.GameRepository,
-	colonyRegistry colonies.ColonyRegistry,
+	colonyRegistry colony.ColonyRegistry,
 	cardRegistry cards.CardRegistry,
 	stateRepo game.GameStateRepository,
 	logger *zap.Logger,

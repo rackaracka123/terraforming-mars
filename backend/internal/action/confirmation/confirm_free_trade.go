@@ -11,23 +11,23 @@ import (
 	baseaction "terraforming-mars-backend/internal/action"
 	colonyaction "terraforming-mars-backend/internal/action/colony"
 	"terraforming-mars-backend/internal/cards"
-	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/colony"
 	"terraforming-mars-backend/internal/game/shared"
 )
 
 // ConfirmFreeTradeAction handles confirming a free trade from a card effect
 type ConfirmFreeTradeAction struct {
 	baseaction.BaseAction
-	colonyRegistry colonies.ColonyRegistry
+	colonyRegistry colony.ColonyRegistry
 }
 
 // NewConfirmFreeTradeAction creates a new confirm free trade action
 func NewConfirmFreeTradeAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
-	colonyRegistry colonies.ColonyRegistry,
+	colonyRegistry colony.ColonyRegistry,
 	stateRepo game.GameStateRepository,
 ) *ConfirmFreeTradeAction {
 	return &ConfirmFreeTradeAction{
