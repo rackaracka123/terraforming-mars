@@ -210,8 +210,9 @@
         "maxTrigger": 1,
         "per": {
           "type": "science",
-          "amount": 3,
-          "location": "anywhere"
+          "amount": 1,
+          "location": "anywhere",
+          "target": "self-card"
         },
         "description": "3 VP if you have science resources here."
       }
