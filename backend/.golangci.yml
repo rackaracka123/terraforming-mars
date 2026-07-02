@@ -1,0 +1,32 @@
+version: "2"
+
+# Architecture guardrail. This config intentionally enables ONLY depguard so it can
+# be wired into `make lint`/CI without surfacing unrelated lint findings. It encodes
+# the layer dependency direction the codebase already follows, so the compiler's
+# native cycle rejection is backed by a machine-checked direction rule.
+#
+#   game (domain)  <-  action (use cases)  <-  delivery (transport)
+#
+# The domain must never import outward layers. (The domain-purity rule that also
+# forbids zap/logger is added in Phase 2, once the 23 domain logger call-sites are
+# migrated.)
+
+linters:
+  default: none
+  enable:
+    - depguard
+  settings:
+    depguard:
+      rules:
+        domain:
+          files:
+            - "**/internal/game/**"
+          deny:
+            - pkg: terraforming-mars-backend/internal/action
+              desc: "domain (internal/game) must not import the action layer — keep game <- action direction"
+            - pkg: terraforming-mars-backend/internal/delivery
+              desc: "domain (internal/game) must not import the delivery layer — keep game <- delivery direction"
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
