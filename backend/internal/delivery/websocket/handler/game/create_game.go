@@ -2,21 +2,20 @@ package game
 
 import (
 	"context"
+	"log/slog"
 
 	gameaction "terraforming-mars-backend/internal/action/game"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // CreateGameHandler handles create game requests.
 type CreateGameHandler struct {
 	createGameAction *gameaction.CreateGameAction
 	broadcaster      Broadcaster
-	logger           *zap.Logger
+	logger           *slog.Logger
 }
 
 // Broadcaster interface for explicit broadcasting
@@ -37,8 +36,8 @@ func NewCreateGameHandler(createGameAction *gameaction.CreateGameAction, broadca
 // HandleMessage implements the MessageHandler interface
 func (h *CreateGameHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing create game request")
@@ -47,13 +46,13 @@ func (h *CreateGameHandler) HandleMessage(ctx context.Context, connection *core.
 	// the rest and hosts edit them from the lobby via UpdateGameSettingsAction.
 	game, err := h.createGameAction.Execute(ctx, shared.GameSettings{DevelopmentMode: true})
 	if err != nil {
-		log.Error("Failed to execute create game action", zap.Error(err))
+		log.Error("Failed to execute create game action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}
 
 	log.Debug("Game created",
-		zap.String("game_id", game.ID()))
+		slog.String("game_id", game.ID()))
 
 	h.broadcaster.BroadcastGameState(game.ID(), nil)
 	log.Debug("Broadcasted game state to all players")

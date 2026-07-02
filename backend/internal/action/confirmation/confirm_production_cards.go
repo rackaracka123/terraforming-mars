@@ -3,6 +3,7 @@ package confirmation
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	baseaction "terraforming-mars-backend/internal/action"
 	gameaction "terraforming-mars-backend/internal/action/game"
 	"terraforming-mars-backend/internal/action/resource_conversion"
@@ -11,8 +12,6 @@ import (
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	playerPkg "terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
-
-	"go.uber.org/zap"
 )
 
 // ConfirmProductionCardsAction handles the business logic for confirming production card selection
@@ -26,7 +25,7 @@ func NewConfirmProductionCardsAction(
 	gameRepo game.GameRepository,
 	cardRegistry gamecards.CardRegistry,
 	finalScoringAction *gameaction.FinalScoringAction,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *ConfirmProductionCardsAction {
 	return &ConfirmProductionCardsAction{
 		BaseAction:         baseaction.NewBaseAction(gameRepo, cardRegistry),
@@ -39,28 +38,28 @@ func NewConfirmProductionCardsAction(
 // drawn from the deck and bought (subject to the AllowRandomBuy setting).
 func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID string, playerID string, selectedCardIDs []string, randomBuy bool) error {
 	log := a.InitLogger(gameID, playerID).With(
-		zap.String("action", "confirm_production_cards"),
-		zap.Strings("selected_card_ids", selectedCardIDs),
-		zap.Bool("random_buy", randomBuy),
+		slog.String("action", "confirm_production_cards"),
+		slog.Any("selected_card_ids", selectedCardIDs),
+		slog.Bool("random_buy", randomBuy),
 	)
 	log.Debug("Player confirming production card selection")
 
 	g, err := a.GameRepository().Get(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
+		log.Error("Failed to get game", slog.Any("error", err))
 		return fmt.Errorf("game not found: %s", gameID)
 	}
 
 	if g.CurrentPhase() != shared.GamePhaseProductionAndCardDraw {
 		log.Warn("Game is not in production phase",
-			zap.String("current_phase", string(g.CurrentPhase())),
-			zap.String("expected_phase", string(shared.GamePhaseProductionAndCardDraw)))
+			slog.String("current_phase", string(g.CurrentPhase())),
+			slog.String("expected_phase", string(shared.GamePhaseProductionAndCardDraw)))
 		return fmt.Errorf("game is not in production phase")
 	}
 
 	player, err := g.GetPlayer(playerID)
 	if err != nil {
-		log.Error("Player not found in game", zap.Error(err))
+		log.Error("Player not found in game", slog.Any("error", err))
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
@@ -84,11 +83,11 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		}
 		drawn, err := g.Deck().DrawProjectCards(ctx, 1)
 		if err != nil || len(drawn) == 0 {
-			log.Error("Failed to draw random card from deck", zap.Error(err))
+			log.Error("Failed to draw random card from deck", slog.Any("error", err))
 			return fmt.Errorf("failed to draw random card: %w", err)
 		}
 		selectedCardIDs = drawn
-		log.Debug("Random buy drew card from deck", zap.String("card_id", drawn[0]))
+		log.Debug("Random buy drew card from deck", slog.String("card_id", drawn[0]))
 	} else {
 		availableSet := make(map[string]bool)
 		for _, id := range productionPhase.AvailableCards {
@@ -96,7 +95,7 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		}
 		for _, cardID := range selectedCardIDs {
 			if !availableSet[cardID] {
-				log.Error("Selected card not available", zap.String("card_id", cardID))
+				log.Error("Selected card not available", slog.String("card_id", cardID))
 				return fmt.Errorf("card %s not available for selection", cardID)
 			}
 		}
@@ -110,8 +109,8 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 	resources := player.Resources().Get()
 	if resources.Credits < cost {
 		log.Error("Insufficient credits",
-			zap.Int("cost", cost),
-			zap.Int("available", resources.Credits))
+			slog.Int("cost", cost),
+			slog.Int("available", resources.Credits))
 		return fmt.Errorf("insufficient credits: need %d, have %d", cost, resources.Credits)
 	}
 
@@ -121,24 +120,24 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 
 	resources = player.Resources().Get()
 	log.Debug("Resources updated",
-		zap.Int("cost", cost),
-		zap.Int("remaining_credits", resources.Credits))
+		slog.Int("cost", cost),
+		slog.Int("remaining_credits", resources.Credits))
 
 	log.Debug("Adding cards to player hand",
-		zap.Strings("card_ids", selectedCardIDs),
-		zap.Int("count", len(selectedCardIDs)))
+		slog.Any("card_ids", selectedCardIDs),
+		slog.Int("count", len(selectedCardIDs)))
 
 	for _, cardID := range selectedCardIDs {
 		player.Hand().AddCard(cardID)
 	}
 
 	log.Debug("Cards added to hand",
-		zap.Strings("card_ids_added", selectedCardIDs),
-		zap.Int("card_count", len(selectedCardIDs)))
+		slog.Any("card_ids_added", selectedCardIDs),
+		slog.Int("card_count", len(selectedCardIDs)))
 
 	productionPhase.SelectionComplete = true
 	if err := g.SetProductionPhase(ctx, playerID, productionPhase); err != nil {
-		log.Error("Failed to update production phase", zap.Error(err))
+		log.Error("Failed to update production phase", slog.Any("error", err))
 		return fmt.Errorf("failed to update production phase: %w", err)
 	}
 
@@ -161,8 +160,8 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		for _, p := range allPlayers {
 			if err := g.SetProductionPhase(ctx, p.ID(), nil); err != nil {
 				log.Warn("Failed to clear production phase",
-					zap.String("player_id", p.ID()),
-					zap.Error(err))
+					slog.String("player_id", p.ID()),
+					slog.Any("error", err))
 			}
 		}
 
@@ -170,7 +169,7 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 			log.Debug("All global parameters maxed after final production - entering final phase")
 
 			if err := g.UpdatePhase(ctx, shared.GamePhaseFinalPhase); err != nil {
-				log.Error("Failed to transition to final phase", zap.Error(err))
+				log.Error("Failed to transition to final phase", slog.Any("error", err))
 				return fmt.Errorf("failed to transition to final phase: %w", err)
 			}
 
@@ -192,7 +191,7 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 			if activeCount == 0 {
 				log.Debug("All players auto-passed in final phase - triggering final scoring")
 				if err := a.finalScoringAction.Execute(ctx, gameID); err != nil {
-					log.Error("Failed to execute final scoring", zap.Error(err))
+					log.Error("Failed to execute final scoring", slog.Any("error", err))
 					return fmt.Errorf("failed to execute final scoring: %w", err)
 				}
 				log.Info("Game ended, final scores calculated")
@@ -204,7 +203,7 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 				availableActions = -1
 			}
 			if err := g.SetCurrentTurn(ctx, firstPlayerID, availableActions); err != nil {
-				log.Error("Failed to set current turn for final phase", zap.Error(err))
+				log.Error("Failed to set current turn for final phase", slog.Any("error", err))
 				return fmt.Errorf("failed to set current turn: %w", err)
 			}
 
@@ -215,7 +214,7 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		log.Debug("All players completed production selection, advancing to action phase")
 
 		if err := g.UpdatePhase(ctx, shared.GamePhaseAction); err != nil {
-			log.Error("Failed to transition game phase", zap.Error(err))
+			log.Error("Failed to transition game phase", slog.Any("error", err))
 			return fmt.Errorf("failed to transition game phase: %w", err)
 		}
 
@@ -237,12 +236,12 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 				availableActions = -1
 			}
 			if err := g.SetCurrentTurn(ctx, firstPlayerID, availableActions); err != nil {
-				log.Error("Failed to set current turn", zap.Error(err))
+				log.Error("Failed to set current turn", slog.Any("error", err))
 				return fmt.Errorf("failed to set current turn: %w", err)
 			}
 			log.Debug("Set first player turn with actions",
-				zap.String("player_id", firstPlayerID),
-				zap.Int("available_actions", availableActions))
+				slog.String("player_id", firstPlayerID),
+				slog.Int("available_actions", availableActions))
 		}
 
 		for _, p := range allPlayers {
@@ -262,7 +261,7 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 func autoPassPlayersForFinalPhase(
 	players []*playerPkg.Player,
 	cardRegistry gamecards.CardRegistry,
-	log *zap.Logger,
+	log *slog.Logger,
 ) {
 	calculator := gamecards.NewRequirementModifierCalculator(cardRegistry)
 
@@ -273,7 +272,7 @@ func autoPassPlayersForFinalPhase(
 		if !canAffordGreenery(p, calculator) {
 			p.SetPassed(true)
 			log.Debug("Auto-passed player in final phase (no available actions)",
-				zap.String("player_id", p.ID()))
+				slog.String("player_id", p.ID()))
 		}
 	}
 }

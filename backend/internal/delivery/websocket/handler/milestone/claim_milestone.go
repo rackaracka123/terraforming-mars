@@ -3,13 +3,12 @@ package milestone
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 
 	milestoneaction "terraforming-mars-backend/internal/action/milestone"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // Broadcaster defines the interface for broadcasting game state
@@ -21,7 +20,7 @@ type Broadcaster interface {
 type ClaimMilestoneHandler struct {
 	action      *milestoneaction.ClaimMilestoneAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewClaimMilestoneHandler creates a new claim milestone handler
@@ -41,8 +40,8 @@ type ClaimMilestonePayload struct {
 // HandleMessage implements the MessageHandler interface
 func (h *ClaimMilestoneHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing claim milestone request")
@@ -55,14 +54,14 @@ func (h *ClaimMilestoneHandler) HandleMessage(ctx context.Context, connection *c
 
 	payloadBytes, err := json.Marshal(message.Payload)
 	if err != nil {
-		log.Error("Failed to marshal payload", zap.Error(err))
+		log.Error("Failed to marshal payload", slog.Any("error", err))
 		h.sendError(connection, "Invalid payload format")
 		return
 	}
 
 	var payload ClaimMilestonePayload
 	if err := json.Unmarshal(payloadBytes, &payload); err != nil {
-		log.Error("Failed to unmarshal payload", zap.Error(err))
+		log.Error("Failed to unmarshal payload", slog.Any("error", err))
 		h.sendError(connection, "Invalid payload format")
 		return
 	}
@@ -75,13 +74,13 @@ func (h *ClaimMilestoneHandler) HandleMessage(ctx context.Context, connection *c
 
 	err = h.action.Execute(ctx, connection.GameID, connection.PlayerID, payload.MilestoneType)
 	if err != nil {
-		log.Error("Failed to execute claim milestone action", zap.Error(err))
+		log.Error("Failed to execute claim milestone action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}
 
 	log.Debug("Milestone claimed",
-		zap.String("milestone_type", payload.MilestoneType))
+		slog.String("milestone_type", payload.MilestoneType))
 
 	h.broadcaster.BroadcastGameState(connection.GameID, nil)
 	log.Debug("Broadcasted game state to all players")

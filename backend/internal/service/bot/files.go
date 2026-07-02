@@ -5,24 +5,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
-
-	"go.uber.org/zap"
 )
 
 // HistoryWriter appends messages to a log file for Claude to verify command results.
 type HistoryWriter struct {
 	file   *os.File
 	mu     sync.Mutex
-	logger *zap.Logger
+	logger *slog.Logger
 }
 
 // NewHistoryWriter creates a new history writer that truncates the log file.
-func NewHistoryWriter(path string, logger *zap.Logger) (*HistoryWriter, error) {
+func NewHistoryWriter(path string, logger *slog.Logger) (*HistoryWriter, error) {
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("open history file: %w", err)
@@ -47,7 +46,7 @@ func (h *HistoryWriter) write(direction, msgType string, data json.RawMessage) {
 	ts := time.Now().Format("15:04:05.000")
 	line := fmt.Sprintf("[%s] %s %s %s\n", ts, direction, msgType, string(data))
 	if _, err := h.file.WriteString(line); err != nil {
-		h.logger.Error("Failed to write history", zap.Error(err))
+		h.logger.Error("Failed to write history", slog.Any("error", err))
 	}
 }
 
@@ -84,11 +83,11 @@ type CommandReader struct {
 	commands chan json.RawMessage
 	done     chan struct{}
 	offset   int64
-	logger   *zap.Logger
+	logger   *slog.Logger
 }
 
 // NewCommandReader creates a new command reader.
-func NewCommandReader(path string, logger *zap.Logger) *CommandReader {
+func NewCommandReader(path string, logger *slog.Logger) *CommandReader {
 	return &CommandReader{
 		path:     path,
 		commands: make(chan json.RawMessage, 32),
@@ -107,7 +106,7 @@ func (r *CommandReader) Start() error {
 		return fmt.Errorf("create command file: %w", err)
 	}
 	if err := f.Close(); err != nil {
-		r.logger.Warn("Failed to close command file after creation", zap.Error(err))
+		r.logger.Warn("Failed to close command file after creation", slog.Any("error", err))
 	}
 
 	go r.watch()
@@ -131,7 +130,7 @@ func (r *CommandReader) Reset() error {
 		return fmt.Errorf("reset command file: %w", err)
 	}
 	if err := f.Close(); err != nil {
-		r.logger.Warn("Failed to close command file after reset", zap.Error(err))
+		r.logger.Warn("Failed to close command file after reset", slog.Any("error", err))
 	}
 	r.offset = 0
 	return nil
@@ -158,7 +157,7 @@ func (r *CommandReader) readNewLines() {
 	}
 	defer func() {
 		if err := f.Close(); err != nil {
-			r.logger.Warn("Failed to close command file after reading", zap.Error(err))
+			r.logger.Warn("Failed to close command file after reading", slog.Any("error", err))
 		}
 	}()
 
@@ -175,7 +174,7 @@ func (r *CommandReader) readNewLines() {
 
 		var raw json.RawMessage
 		if err := json.Unmarshal([]byte(line), &raw); err != nil {
-			r.logger.Warn("Invalid JSON line in command file", zap.String("line", line))
+			r.logger.Warn("Invalid JSON line in command file", slog.String("line", line))
 			continue
 		}
 

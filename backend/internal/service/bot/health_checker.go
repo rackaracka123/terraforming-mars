@@ -3,12 +3,11 @@ package bot
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
-
-	"go.uber.org/zap"
 )
 
 var greetingPersonalities = map[string]string{
@@ -19,11 +18,11 @@ var greetingPersonalities = map[string]string{
 
 // HealthChecker verifies that a Claude API key is valid by generating a greeting.
 type HealthChecker struct {
-	logger *zap.Logger
+	logger *slog.Logger
 }
 
 // NewHealthChecker creates a new health checker.
-func NewHealthChecker(logger *zap.Logger) *HealthChecker {
+func NewHealthChecker(logger *slog.Logger) *HealthChecker {
 	return &HealthChecker{logger: logger}
 }
 
@@ -59,12 +58,12 @@ func (hc *HealthChecker) CheckHealth(ctx context.Context, apiKey, model, botName
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		hc.logger.Error("Health check failed",
-			zap.Error(err),
-			zap.String("output", string(output)))
+			slog.Any("error", err),
+			slog.String("output", string(output)))
 		return "", fmt.Errorf("claude health check failed: %w", err)
 	}
 
 	greeting := strings.TrimSpace(string(output))
-	hc.logger.Debug("Health check passed", zap.String("greeting", greeting))
+	hc.logger.Debug("Health check passed", slog.String("greeting", greeting))
 	return greeting, nil
 }

@@ -2,20 +2,19 @@ package connection
 
 import (
 	"context"
+	"log/slog"
 
 	connaction "terraforming-mars-backend/internal/action/connection"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // PlayerTakeoverHandler handles player takeover requests
 type PlayerTakeoverHandler struct {
 	action      *connaction.PlayerTakeoverAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewPlayerTakeoverHandler creates a new player takeover handler
@@ -30,8 +29,8 @@ func NewPlayerTakeoverHandler(action *connaction.PlayerTakeoverAction, broadcast
 // HandleMessage implements the MessageHandler interface
 func (h *PlayerTakeoverHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing player takeover request")
@@ -59,12 +58,12 @@ func (h *PlayerTakeoverHandler) HandleMessage(ctx context.Context, connection *c
 	}
 
 	log.Debug("Parsed takeover request",
-		zap.String("game_id", gameID),
-		zap.String("target_player_id", targetPlayerID))
+		slog.String("game_id", gameID),
+		slog.String("target_player_id", targetPlayerID))
 
 	result, err := h.action.Execute(ctx, gameID, targetPlayerID)
 	if err != nil {
-		log.Error("Failed to execute player takeover action", zap.Error(err))
+		log.Error("Failed to execute player takeover action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}
@@ -72,8 +71,8 @@ func (h *PlayerTakeoverHandler) HandleMessage(ctx context.Context, connection *c
 	connection.SetPlayer(targetPlayerID, gameID)
 
 	log.Debug("Player takeover completed",
-		zap.String("player_id", result.PlayerID),
-		zap.String("player_name", result.PlayerName))
+		slog.String("player_id", result.PlayerID),
+		slog.String("player_name", result.PlayerName))
 
 	h.broadcaster.BroadcastGameState(gameID, nil)
 	log.Debug("Broadcasted game state to all players")

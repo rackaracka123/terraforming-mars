@@ -2,20 +2,19 @@ package confirmation
 
 import (
 	"context"
+	"log/slog"
 
 	confirmaction "terraforming-mars-backend/internal/action/confirmation"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // ConfirmStealTargetHandler handles confirm steal target requests
 type ConfirmStealTargetHandler struct {
 	action      *confirmaction.ConfirmStealTargetAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewConfirmStealTargetHandler creates a new confirm steal target handler
@@ -30,8 +29,8 @@ func NewConfirmStealTargetHandler(action *confirmaction.ConfirmStealTargetAction
 // HandleMessage implements the MessageHandler interface
 func (h *ConfirmStealTargetHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing confirm steal target request")
@@ -52,11 +51,11 @@ func (h *ConfirmStealTargetHandler) HandleMessage(ctx context.Context, connectio
 	targetPlayerId, _ := payloadMap["targetPlayerId"].(string)
 
 	log.Debug("Parsed confirm steal target request",
-		zap.String("target_player_id", targetPlayerId))
+		slog.String("target_player_id", targetPlayerId))
 
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, targetPlayerId)
 	if err != nil {
-		log.Error("Failed to execute confirm steal target action", zap.Error(err))
+		log.Error("Failed to execute confirm steal target action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}

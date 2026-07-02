@@ -3,136 +3,88 @@ package logger
 import (
 	"log/slog"
 	"os"
-
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
-var globalLogger *zap.Logger
+// globalLevel holds the active log level; adjusting it reconfigures the default
+// logger without rebuilding the handler.
+var globalLevel = new(slog.LevelVar)
 
-// configureSlogDefault wires the stdlib log/slog default logger so the domain layer
-// (internal/game/**) can log via slog without importing zap or this package. This
-// keeps domain code free of infrastructure while output stays consistent with the
-// configured level.
-func configureSlogDefault(level zapcore.Level) {
-	var slogLevel slog.Level
-	switch level {
-	case zap.DebugLevel:
-		slogLevel = slog.LevelDebug
-	case zap.WarnLevel:
-		slogLevel = slog.LevelWarn
-	case zap.ErrorLevel:
-		slogLevel = slog.LevelError
-	default:
-		slogLevel = slog.LevelInfo
-	}
-	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slogLevel})
-	slog.SetDefault(slog.New(handler))
-}
-
-// Init initializes the global logger
+// Init initializes the process-wide slog default logger. In production it emits
+// JSON; otherwise it uses the pretty colored console handler. The whole backend
+// — domain, action, delivery, service — logs through slog.Default().
 func Init(logLevel *string) error {
-	var err error
-
-	var appliedLogLevel string
+	appliedLogLevel := "info"
 	if logLevel != nil {
 		appliedLogLevel = *logLevel
-	} else {
-		appliedLogLevel = "info"
 	}
 
-	var level zapcore.Level
 	switch appliedLogLevel {
 	case "debug":
-		level = zap.DebugLevel
-	case "info":
-		level = zap.InfoLevel
+		globalLevel.Set(slog.LevelDebug)
 	case "warn":
-		level = zap.WarnLevel
+		globalLevel.Set(slog.LevelWarn)
 	case "error":
-		level = zap.ErrorLevel
+		globalLevel.Set(slog.LevelError)
 	default:
-		level = zap.InfoLevel
+		globalLevel.Set(slog.LevelInfo)
 	}
 
-	env := os.Getenv("GO_ENV")
-	if env == "production" {
-		config := zap.NewProductionConfig()
-		config.Level = zap.NewAtomicLevelAt(level)
-		globalLogger, err = config.Build(zap.AddStacktrace(zap.ErrorLevel))
-		if err != nil {
-			return err
-		}
+	var handler slog.Handler
+	if os.Getenv("GO_ENV") == "production" {
+		handler = slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: globalLevel, AddSource: true})
 	} else {
-		output, _, err := zap.Open("stderr")
-		if err != nil {
-			return err
-		}
-		core := newPrettyCore(level, output)
-		globalLogger = zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))
+		handler = newPrettyHandler(os.Stderr, globalLevel)
 	}
 
-	configureSlogDefault(level)
+	slog.SetDefault(slog.New(handler))
 	return nil
 }
 
-// Get returns the global logger
-func Get() *zap.Logger {
-	if globalLogger == nil {
-		// Fallback to development logger if not initialized
-		globalLogger, _ = zap.NewDevelopment()
-	}
-	return globalLogger
+// Get returns the process-wide logger. Before Init runs it falls back to the
+// slog default (a plain text handler), so callers never get a nil logger.
+func Get() *slog.Logger {
+	return slog.Default()
 }
 
-// Sync flushes the logger
+// Sync is a no-op: slog handlers write synchronously to stderr. Retained so the
+// server shutdown path and tests compile unchanged.
 func Sync() error {
-	if globalLogger != nil {
-		return globalLogger.Sync()
-	}
 	return nil
 }
 
-// Shutdown properly closes the logger
+// Shutdown is a no-op; see Sync.
 func Shutdown() error {
-	return Sync()
+	return nil
 }
 
-// WithContext returns a logger with additional context fields
-func WithContext(fields ...zap.Field) *zap.Logger {
-	return Get().With(fields...)
+// WithContext returns a logger with additional context attributes.
+func WithContext(args ...any) *slog.Logger {
+	return slog.Default().With(args...)
 }
 
-// WithGameContext returns a logger with game-related context
-func WithGameContext(gameID, playerID string) *zap.Logger {
-	fields := make([]zap.Field, 0, 2)
-
+// WithGameContext returns a logger with game-related context.
+func WithGameContext(gameID, playerID string) *slog.Logger {
+	args := make([]any, 0, 2)
 	if gameID != "" {
-		fields = append(fields, zap.String("game_id", gameID))
+		args = append(args, slog.String("game_id", gameID))
 	}
-
 	if playerID != "" {
-		fields = append(fields, zap.String("player_id", playerID))
+		args = append(args, slog.String("player_id", playerID))
 	}
-
-	return Get().With(fields...)
+	return slog.Default().With(args...)
 }
 
-// WithClientContext returns a logger with client-related context
-func WithClientContext(clientID, playerID, gameID string) *zap.Logger {
-	fields := make([]zap.Field, 0, 3)
-
+// WithClientContext returns a logger with client-related context.
+func WithClientContext(clientID, playerID, gameID string) *slog.Logger {
+	args := make([]any, 0, 3)
 	if clientID != "" {
-		fields = append(fields, zap.String("client_id", clientID))
+		args = append(args, slog.String("client_id", clientID))
 	}
-
 	if playerID != "" {
-		fields = append(fields, zap.String("player_id", playerID))
+		args = append(args, slog.String("player_id", playerID))
 	}
-
 	if gameID != "" {
-		fields = append(fields, zap.String("game_id", gameID))
+		args = append(args, slog.String("game_id", gameID))
 	}
-
-	return Get().With(fields...)
+	return slog.Default().With(args...)
 }

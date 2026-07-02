@@ -2,22 +2,21 @@ package query
 
 import (
 	"context"
+	"log/slog"
 
 	"terraforming-mars-backend/internal/game"
-
-	"go.uber.org/zap"
 )
 
 // GetGameAction handles querying a single game
 type GetGameAction struct {
 	gameRepo game.GameRepository
-	logger   *zap.Logger
+	logger   *slog.Logger
 }
 
 // NewGetGameAction creates a new get game query action
 func NewGetGameAction(
 	gameRepo game.GameRepository,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *GetGameAction {
 	return &GetGameAction{
 		gameRepo: gameRepo,
@@ -27,12 +26,12 @@ func NewGetGameAction(
 
 // Execute retrieves a game by ID
 func (a *GetGameAction) Execute(ctx context.Context, gameID string) (*game.Game, error) {
-	log := a.logger.With(zap.String("game_id", gameID))
+	log := a.logger.With(slog.String("game_id", gameID))
 	log.Debug("Querying game")
 
 	game, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		log.Debug("Failed to get game", zap.Error(err))
+		log.Debug("Failed to get game", slog.Any("error", err))
 		return nil, err
 	}
 

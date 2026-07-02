@@ -3,6 +3,7 @@ package colony
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	baseaction "terraforming-mars-backend/internal/action"
@@ -12,8 +13,6 @@ import (
 	"terraforming-mars-backend/internal/game/colony"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
-
-	"go.uber.org/zap"
 )
 
 // TradePaymentType represents the resource used to pay for a colony trade
@@ -52,7 +51,7 @@ func NewTradeAction(
 	colonyRegistry colony.ColonyRegistry,
 	cardRegistry cards.CardRegistry,
 	stateRepo game.GameStateRepository,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *TradeAction {
 	return &TradeAction{
 		BaseAction:     baseaction.NewBaseActionWithStateRepo(gameRepo, nil, stateRepo),
@@ -64,8 +63,8 @@ func NewTradeAction(
 // Execute performs the trade action
 func (a *TradeAction) Execute(ctx context.Context, gameID string, playerID string, colonyID string, paymentType TradePaymentType) error {
 	log := a.InitLogger(gameID, playerID).With(
-		zap.String("action", "colony_trade"),
-		zap.String("colony_id", colonyID),
+		slog.String("action", "colony_trade"),
+		slog.String("colony_id", colonyID),
 	)
 	log.Debug("Trading with colony")
 
@@ -150,8 +149,8 @@ func (a *TradeAction) Execute(ctx context.Context, gameID string, playerID strin
 		}
 		tileState.MarkerPosition = newPosition
 		log.Debug("Applied trade step bonus",
-			zap.Int("bonus", tradeStepBonus),
-			zap.Int("new_marker_position", newPosition))
+			slog.Int("bonus", tradeStepBonus),
+			slog.Int("new_marker_position", newPosition))
 	}
 
 	// Collect pending card-targeted resources per player, so same-type resources
@@ -241,20 +240,20 @@ func (a *TradeAction) Execute(ctx context.Context, gameID string, playerID strin
 	a.ConsumePlayerAction(g, log)
 
 	log.Info("Colony traded",
-		zap.String("colony_id", colonyID),
-		zap.Int("marker_position", tileState.MarkerPosition))
+		slog.String("colony_id", colonyID),
+		slog.Int("marker_position", tileState.MarkerPosition))
 
 	return nil
 }
 
 // setPendingColonyResource sets a pending colony resource selection on a player
 // if they have at least one card that can store the resource type.
-func setPendingColonyResource(p *player.Player, pending *PendingResource, colonyName string, colonyID string, reason string, cardRegistry cards.CardRegistry, log *zap.Logger) {
+func setPendingColonyResource(p *player.Player, pending *PendingResource, colonyName string, colonyID string, reason string, cardRegistry cards.CardRegistry, log *slog.Logger) {
 	if !hasEligibleStorageCard(p, pending.ResourceType, cardRegistry) {
 		log.Debug("No eligible storage card, resources lost",
-			zap.String("player_id", p.ID()),
-			zap.String("resource_type", pending.ResourceType),
-			zap.Int("amount", pending.Amount))
+			slog.String("player_id", p.ID()),
+			slog.String("resource_type", pending.ResourceType),
+			slog.Int("amount", pending.Amount))
 		return
 	}
 
@@ -267,9 +266,9 @@ func setPendingColonyResource(p *player.Player, pending *PendingResource, colony
 	})
 
 	log.Debug("Set pending colony resource selection",
-		zap.String("player_id", p.ID()),
-		zap.String("resource_type", pending.ResourceType),
-		zap.Int("amount", pending.Amount))
+		slog.String("player_id", p.ID()),
+		slog.String("resource_type", pending.ResourceType),
+		slog.Int("amount", pending.Amount))
 }
 
 // hasEligibleStorageCard checks if a player has any played card that can store the given resource type.
@@ -304,7 +303,7 @@ func hasEligibleStorageCard(p *player.Player, resourceType string, cardRegistry 
 }
 
 // SetPendingColonyResourceFromTrade handles pending card-targeted resources from trade/colony operations.
-func SetPendingColonyResourceFromTrade(p *player.Player, pendings []*PendingResource, colonyName string, colonyID string, reason string, cardRegistry cards.CardRegistry, log *zap.Logger) {
+func SetPendingColonyResourceFromTrade(p *player.Player, pendings []*PendingResource, colonyName string, colonyID string, reason string, cardRegistry cards.CardRegistry, log *slog.Logger) {
 	for _, combined := range combinePendingResources(pendings) {
 		setPendingColonyResource(p, combined, colonyName, colonyID, reason, cardRegistry, log)
 	}

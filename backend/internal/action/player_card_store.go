@@ -1,13 +1,12 @@
 package action
 
 import (
+	"log/slog"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // SetupPlayerCardStore wires event-driven state calculation for a player's hand cards.
@@ -26,7 +25,7 @@ func SetupPlayerCardStore(p *player.Player, g *game.Game, cardRegistry gamecards
 		card, err := cardRegistry.GetByID(cardID)
 		if err != nil {
 			logger.Get().Warn("Card not found in registry during recalculation",
-				zap.String("card_id", cardID), zap.Error(err))
+				slog.String("card_id", cardID), slog.Any("error", err))
 			return player.EntityState{}
 		}
 		return CalculatePlayerCardState(card, p, g, cardRegistry, lookup)
@@ -44,7 +43,7 @@ func SetupPlayerCardStore(p *player.Player, g *game.Game, cardRegistry gamecards
 		card, err := cardRegistry.GetByID(e.CardID)
 		if err != nil {
 			logger.Get().Warn("Card not found in registry",
-				zap.String("card_id", e.CardID), zap.Error(err))
+				slog.String("card_id", e.CardID), slog.Any("error", err))
 			return
 		}
 		state := CalculatePlayerCardState(card, p, g, cardRegistry, lookup)

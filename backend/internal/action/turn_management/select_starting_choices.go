@@ -8,8 +8,6 @@ import (
 
 	baseaction "terraforming-mars-backend/internal/action"
 
-	"go.uber.org/zap"
-
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
@@ -25,7 +23,7 @@ type SelectStartingChoicesAction struct {
 	cardRegistry  gamecards.CardRegistry
 	awardRegistry award.AwardRegistry
 	corpProc      *gamecards.CorporationProcessor
-	logger        *zap.Logger
+	logger        *slog.Logger
 }
 
 // NewSelectStartingChoicesAction creates a new select starting choices action
@@ -33,7 +31,7 @@ func NewSelectStartingChoicesAction(
 	gameRepo game.GameRepository,
 	cardRegistry gamecards.CardRegistry,
 	awardRegistry award.AwardRegistry,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *SelectStartingChoicesAction {
 	return &SelectStartingChoicesAction{
 		gameRepo:      gameRepo,
@@ -48,29 +46,29 @@ func NewSelectStartingChoicesAction(
 // Effects are deferred to init_apply_corp and init_apply_prelude phases.
 func (a *SelectStartingChoicesAction) Execute(ctx context.Context, gameID string, playerID string, corporationID string, preludeIDs []string, cardIDs []string) error {
 	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
-		zap.String("action", "select_starting_choices"),
-		zap.String("corporation_id", corporationID),
-		zap.Strings("prelude_ids", preludeIDs),
-		zap.Strings("card_ids", cardIDs),
+		slog.String("game_id", gameID),
+		slog.String("player_id", playerID),
+		slog.String("action", "select_starting_choices"),
+		slog.String("corporation_id", corporationID),
+		slog.Any("prelude_ids", preludeIDs),
+		slog.Any("card_ids", cardIDs),
 	)
 	log.Debug("Player selecting starting choices")
 
 	g, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
+		log.Error("Failed to get game", slog.Any("error", err))
 		return fmt.Errorf("game not found: %s", gameID)
 	}
 
 	if g.CurrentPhase() != shared.GamePhaseStartingSelection {
-		log.Error("Game not in starting selection phase", zap.String("phase", string(g.CurrentPhase())))
+		log.Error("Game not in starting selection phase", slog.String("phase", string(g.CurrentPhase())))
 		return fmt.Errorf("game not in starting selection phase")
 	}
 
 	p, err := g.GetPlayer(playerID)
 	if err != nil {
-		log.Error("Player not found in game", zap.Error(err))
+		log.Error("Player not found in game", slog.Any("error", err))
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
@@ -111,7 +109,7 @@ func (a *SelectStartingChoicesAction) Execute(ctx context.Context, gameID string
 		}
 		if len(unselected) > 0 {
 			if err := g.Deck().Remove(ctx, unselected); err != nil {
-				log.Error("Failed to remove unselected preludes", zap.Error(err))
+				log.Error("Failed to remove unselected preludes", slog.Any("error", err))
 				return fmt.Errorf("failed to remove unselected preludes: %w", err)
 			}
 		}
@@ -132,7 +130,7 @@ func (a *SelectStartingChoicesAction) Execute(ctx context.Context, gameID string
 		}
 		if len(unselected) > 0 {
 			if err := g.Deck().Discard(ctx, unselected); err != nil {
-				log.Error("Failed to discard unselected project cards", zap.Error(err))
+				log.Error("Failed to discard unselected project cards", slog.Any("error", err))
 				return fmt.Errorf("failed to discard unselected project cards: %w", err)
 			}
 		}
@@ -155,7 +153,7 @@ func (a *SelectStartingChoicesAction) Execute(ctx context.Context, gameID string
 	return nil
 }
 
-func (a *SelectStartingChoicesAction) validateCorporation(g *game.Game, p *player.Player, corporationID string, log *zap.Logger) error {
+func (a *SelectStartingChoicesAction) validateCorporation(g *game.Game, p *player.Player, corporationID string, log *slog.Logger) error {
 	corpPhase := g.GetSelectCorporationPhase(p.ID())
 	if corpPhase == nil {
 		return fmt.Errorf("not in corporation selection phase")
@@ -188,7 +186,7 @@ func (a *SelectStartingChoicesAction) validateCorporation(g *game.Game, p *playe
 	return nil
 }
 
-func (a *SelectStartingChoicesAction) validatePreludes(g *game.Game, p *player.Player, preludeIDs []string, log *zap.Logger) error {
+func (a *SelectStartingChoicesAction) validatePreludes(g *game.Game, p *player.Player, preludeIDs []string, log *slog.Logger) error {
 	preludePhase := g.GetSelectPreludeCardsPhase(p.ID())
 	if preludePhase == nil {
 		if len(preludeIDs) > 0 {
@@ -214,7 +212,7 @@ func (a *SelectStartingChoicesAction) validatePreludes(g *game.Game, p *player.P
 	return nil
 }
 
-func (a *SelectStartingChoicesAction) validateStartingCards(g *game.Game, p *player.Player, corporationID string, cardIDs []string, log *zap.Logger) error {
+func (a *SelectStartingChoicesAction) validateStartingCards(g *game.Game, p *player.Player, corporationID string, cardIDs []string, log *slog.Logger) error {
 	selectionPhase := g.GetSelectStartingCardsPhase(p.ID())
 	if selectionPhase == nil {
 		return fmt.Errorf("not in starting card selection phase")
@@ -280,7 +278,7 @@ func getCorpStartingCredits(cardRegistry gamecards.CardRegistry, corporationID s
 
 // checkAndAdvanceToInitApplyCorp checks if all players have stored their choices
 // and transitions to the init_apply_corp phase
-func (a *SelectStartingChoicesAction) checkAndAdvanceToInitApplyCorp(ctx context.Context, g *game.Game, log *zap.Logger) {
+func (a *SelectStartingChoicesAction) checkAndAdvanceToInitApplyCorp(ctx context.Context, g *game.Game, log *slog.Logger) {
 	allPlayers := g.GetAllPlayers()
 	turnOrder := g.TurnOrder()
 
@@ -297,7 +295,7 @@ func (a *SelectStartingChoicesAction) checkAndAdvanceToInitApplyCorp(ctx context
 	log.Debug("All players stored starting choices, advancing to init_apply_corp phase")
 
 	if err := g.UpdatePhase(ctx, shared.GamePhaseInitApplyCorp); err != nil {
-		log.Error("Failed to transition to init_apply_corp phase", zap.Error(err))
+		log.Error("Failed to transition to init_apply_corp phase", slog.Any("error", err))
 		return
 	}
 
@@ -308,12 +306,12 @@ func (a *SelectStartingChoicesAction) checkAndAdvanceToInitApplyCorp(ctx context
 
 	firstIndex := findPlayerIndex(turnOrder, firstPlayerID)
 	if err := g.SetInitPhasePlayerIndex(ctx, firstIndex); err != nil {
-		log.Error("Failed to set init phase player index", zap.Error(err))
+		log.Error("Failed to set init phase player index", slog.Any("error", err))
 		return
 	}
 
 	if err := g.SetInitPhaseWaitingForConfirm(ctx, true); err != nil {
-		log.Error("Failed to set waiting for confirm", zap.Error(err))
+		log.Error("Failed to set waiting for confirm", slog.Any("error", err))
 		return
 	}
 }
@@ -321,7 +319,7 @@ func (a *SelectStartingChoicesAction) checkAndAdvanceToInitApplyCorp(ctx context
 // ApplyCorpForPlayer applies corporation effects for a single player during init_apply_corp phase.
 // This includes starting effects, auto effects, registering triggers/actions,
 // and purchasing project cards.
-func ApplyCorpForPlayer(ctx context.Context, g *game.Game, playerID string, cardRegistry gamecards.CardRegistry, corpProc *gamecards.CorporationProcessor, log *zap.Logger) error {
+func ApplyCorpForPlayer(ctx context.Context, g *game.Game, playerID string, cardRegistry gamecards.CardRegistry, corpProc *gamecards.CorporationProcessor, log *slog.Logger) error {
 	choices := g.GetDeferredStartingChoices(playerID)
 	if choices == nil {
 		return fmt.Errorf("no deferred starting choices for player %s", playerID)
@@ -342,8 +340,8 @@ func ApplyCorpForPlayer(ctx context.Context, g *game.Game, playerID string, card
 	}
 
 	log.Debug("Applying corporation effects",
-		zap.String("player_id", playerID),
-		zap.String("corporation", corpCard.Name))
+		slog.String("player_id", playerID),
+		slog.String("corporation", corpCard.Name))
 
 	// Register trigger effects BEFORE applying starting effects so that
 	// production-increased triggers (e.g. Manutech) fire on starting production
@@ -436,15 +434,15 @@ func ApplyCorpForPlayer(ctx context.Context, g *game.Game, playerID string, card
 	g.MarkCorpApplied(playerID)
 
 	log.Debug("Corporation effects and card purchase complete",
-		zap.String("player_id", playerID),
-		zap.String("corporation", corpCard.Name))
+		slog.String("player_id", playerID),
+		slog.String("corporation", corpCard.Name))
 
 	return nil
 }
 
 // ApplyPreludesForPlayer applies all prelude card effects for a single player
 // during the init_apply_prelude phase.
-func ApplyPreludesForPlayer(ctx context.Context, g *game.Game, playerID string, cardRegistry gamecards.CardRegistry, stateRepo game.GameStateRepository, log *zap.Logger) error {
+func ApplyPreludesForPlayer(ctx context.Context, g *game.Game, playerID string, cardRegistry gamecards.CardRegistry, stateRepo game.GameStateRepository, log *slog.Logger) error {
 	choices := g.GetDeferredStartingChoices(playerID)
 	if choices == nil {
 		return fmt.Errorf("no deferred starting choices for player %s", playerID)
@@ -460,8 +458,8 @@ func ApplyPreludesForPlayer(ctx context.Context, g *game.Game, playerID string, 
 	}
 
 	log.Debug("Applying prelude effects",
-		zap.String("player_id", playerID),
-		zap.Strings("preludes", choices.PreludeIDs))
+		slog.String("player_id", playerID),
+		slog.Any("preludes", choices.PreludeIDs))
 
 	for _, preludeID := range choices.PreludeIDs {
 		if err := ApplyPreludeCard(ctx, g, p, preludeID, cardRegistry, stateRepo, log); err != nil {
@@ -471,13 +469,13 @@ func ApplyPreludesForPlayer(ctx context.Context, g *game.Game, playerID string, 
 
 	g.MarkPreludesApplied(playerID)
 
-	log.Debug("Prelude effects complete", zap.String("player_id", playerID))
+	log.Debug("Prelude effects complete", slog.String("player_id", playerID))
 	return nil
 }
 
 // ApplyPreludeCard applies a single prelude card's effects: adds to played cards,
 // processes auto behaviors, registers trigger effects and manual actions.
-func ApplyPreludeCard(ctx context.Context, g *game.Game, p *player.Player, preludeID string, cardRegistry gamecards.CardRegistry, stateRepo game.GameStateRepository, log *zap.Logger) error {
+func ApplyPreludeCard(ctx context.Context, g *game.Game, p *player.Player, preludeID string, cardRegistry gamecards.CardRegistry, stateRepo game.GameStateRepository, log *slog.Logger) error {
 	card, err := cardRegistry.GetByID(preludeID)
 	if err != nil {
 		return fmt.Errorf("prelude card not found: %s", preludeID)
@@ -559,7 +557,7 @@ func ApplyPreludeCard(ctx context.Context, g *game.Game, p *player.Player, prelu
 		description := fmt.Sprintf("Played prelude %s", card.Name)
 		displayData := baseaction.BuildCardDisplayData(card, shared.SourceTypeCardPlay)
 		if _, err := stateRepo.WriteFull(ctx, g.ID(), g, card.Name, shared.SourceTypeCardPlay, p.ID(), description, nil, nil, displayData); err != nil {
-			log.Warn("Failed to write prelude state log", zap.String("card", card.Name), zap.Error(err))
+			log.Warn("Failed to write prelude state log", slog.String("card", card.Name), slog.Any("error", err))
 		}
 	}
 
@@ -567,9 +565,9 @@ func ApplyPreludeCard(ctx context.Context, g *game.Game, p *player.Player, prelu
 }
 
 // AdvanceToActionPhase transitions the game to the action phase and sets the first player's turn.
-func AdvanceToActionPhase(ctx context.Context, g *game.Game, allPlayers []*player.Player, log *zap.Logger) {
+func AdvanceToActionPhase(ctx context.Context, g *game.Game, allPlayers []*player.Player, log *slog.Logger) {
 	if err := g.UpdatePhase(ctx, shared.GamePhaseAction); err != nil {
-		log.Error("Failed to transition game phase", zap.Error(err))
+		log.Error("Failed to transition game phase", slog.Any("error", err))
 		return
 	}
 
@@ -594,13 +592,13 @@ func AdvanceToActionPhase(ctx context.Context, g *game.Game, allPlayers []*playe
 		}
 
 		if err := g.SetCurrentTurn(ctx, firstPlayerID, availableActions); err != nil {
-			log.Error("Failed to set current turn", zap.Error(err))
+			log.Error("Failed to set current turn", slog.Any("error", err))
 			return
 		}
 
 		log.Debug("Set first player turn with actions",
-			zap.String("first_player_id", firstPlayerID),
-			zap.Int("available_actions", availableActions))
+			slog.String("first_player_id", firstPlayerID),
+			slog.Int("available_actions", availableActions))
 	}
 }
 

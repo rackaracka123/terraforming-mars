@@ -3,8 +3,7 @@ package game
 import (
 	"context"
 	"fmt"
-
-	"go.uber.org/zap"
+	"log/slog"
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	internalgame "terraforming-mars-backend/internal/game"
@@ -16,14 +15,14 @@ import (
 type SelectDemoChoicesAction struct {
 	gameRepo     internalgame.GameRepository
 	cardRegistry cards.CardRegistry
-	logger       *zap.Logger
+	logger       *slog.Logger
 }
 
 // NewSelectDemoChoicesAction creates a new select demo choices action
 func NewSelectDemoChoicesAction(
 	gameRepo internalgame.GameRepository,
 	cardRegistry cards.CardRegistry,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *SelectDemoChoicesAction {
 	return &SelectDemoChoicesAction{
 		gameRepo:     gameRepo,
@@ -40,9 +39,9 @@ func (a *SelectDemoChoicesAction) Execute(
 	request *dto.SelectDemoChoicesRequest,
 ) error {
 	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
-		zap.String("action", "select_demo_choices"),
+		slog.String("game_id", gameID),
+		slog.String("player_id", playerID),
+		slog.String("action", "select_demo_choices"),
 	)
 	log.Debug("Player selecting demo choices")
 
@@ -140,9 +139,9 @@ func (a *SelectDemoChoicesAction) Execute(
 	}
 
 	log.Info("Demo choices selected",
-		zap.String("corporation", corpCard.Name),
-		zap.Int("prelude_count", len(request.PreludeIDs)),
-		zap.Int("card_count", len(request.CardIDs)))
+		slog.String("corporation", corpCard.Name),
+		slog.Int("prelude_count", len(request.PreludeIDs)),
+		slog.Int("card_count", len(request.CardIDs)))
 
 	return nil
 }

@@ -2,14 +2,13 @@ package standard_project
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 
 	stdprojaction "terraforming-mars-backend/internal/action/standard_project"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // Broadcaster interface for explicit broadcasting
@@ -21,7 +20,7 @@ type Broadcaster interface {
 type ExecuteHandler struct {
 	action      *stdprojaction.ExecuteStandardProjectAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewExecuteHandler creates a new unified standard project handler
@@ -36,8 +35,8 @@ func NewExecuteHandler(action *stdprojaction.ExecuteStandardProjectAction, broad
 // HandleMessage implements the MessageHandler interface
 func (h *ExecuteHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	if connection.GameID == "" || connection.PlayerID == "" {
@@ -53,12 +52,12 @@ func (h *ExecuteHandler) HandleMessage(ctx context.Context, connection *core.Con
 		return
 	}
 
-	log = log.With(zap.String("project_id", projectID))
+	log = log.With(slog.String("project_id", projectID))
 	log.Debug("Processing standard project request")
 
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, projectID)
 	if err != nil {
-		log.Error("Failed to execute standard project", zap.Error(err))
+		log.Error("Failed to execute standard project", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}

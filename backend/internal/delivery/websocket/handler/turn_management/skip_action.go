@@ -2,20 +2,19 @@ package turn_management
 
 import (
 	"context"
+	"log/slog"
 
 	turnaction "terraforming-mars-backend/internal/action/turn_management"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // SkipActionHandler handles skip action requests
 type SkipActionHandler struct {
 	action      *turnaction.SkipActionAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewSkipActionHandler creates a new skip action handler
@@ -30,8 +29,8 @@ func NewSkipActionHandler(action *turnaction.SkipActionAction, broadcaster Broad
 // HandleMessage implements the MessageHandler interface
 func (h *SkipActionHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing skip action request")
@@ -44,7 +43,7 @@ func (h *SkipActionHandler) HandleMessage(ctx context.Context, connection *core.
 
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID)
 	if err != nil {
-		log.Error("Failed to execute skip action", zap.Error(err))
+		log.Error("Failed to execute skip action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}

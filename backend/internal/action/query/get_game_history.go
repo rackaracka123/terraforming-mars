@@ -3,11 +3,10 @@ package query
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"terraforming-mars-backend/internal/game/datastore"
 	"terraforming-mars-backend/internal/game/shared"
-
-	"go.uber.org/zap"
 )
 
 // HistoryPolicy controls how history entries are grouped/reduced.
@@ -31,13 +30,13 @@ type HistoryFilter struct {
 // GetGameHistoryAction handles querying game state history
 type GetGameHistoryAction struct {
 	ds     *datastore.DataStore
-	logger *zap.Logger
+	logger *slog.Logger
 }
 
 // NewGetGameHistoryAction creates a new get game history query action
 func NewGetGameHistoryAction(
 	ds *datastore.DataStore,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *GetGameHistoryAction {
 	return &GetGameHistoryAction{
 		ds:     ds,
@@ -51,7 +50,7 @@ func (a *GetGameHistoryAction) Execute(ctx context.Context, gameID string, filte
 		return nil, err
 	}
 
-	log := a.logger.With(zap.String("game_id", gameID))
+	log := a.logger.With(slog.String("game_id", gameID))
 	log.Debug("Querying game history")
 
 	entries, err := a.ds.GetGameHistory(gameID)
@@ -63,7 +62,7 @@ func (a *GetGameHistoryAction) Execute(ctx context.Context, gameID string, filte
 		entries = applyFilter(entries, filter)
 	}
 
-	log.Debug("Game history query completed", zap.Int("count", len(entries)))
+	log.Debug("Game history query completed", slog.Int("count", len(entries)))
 	return entries, nil
 }
 

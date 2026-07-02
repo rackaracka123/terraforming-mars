@@ -2,23 +2,22 @@ package query
 
 import (
 	"context"
+	"log/slog"
 
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/shared"
-
-	"go.uber.org/zap"
 )
 
 // ListGamesAction handles querying all games
 type ListGamesAction struct {
 	gameRepo game.GameRepository
-	logger   *zap.Logger
+	logger   *slog.Logger
 }
 
 // NewListGamesAction creates a new list games query action
 func NewListGamesAction(
 	gameRepo game.GameRepository,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *ListGamesAction {
 	return &ListGamesAction{
 		gameRepo: gameRepo,
@@ -33,10 +32,10 @@ func (a *ListGamesAction) Execute(ctx context.Context, status *shared.GameStatus
 
 	games, err := a.gameRepo.List(ctx, status)
 	if err != nil {
-		log.Error("Failed to list games", zap.Error(err))
+		log.Error("Failed to list games", slog.Any("error", err))
 		return nil, err
 	}
 
-	log.Debug("Games query completed", zap.Int("count", len(games)))
+	log.Debug("Games query completed", slog.Int("count", len(games)))
 	return games, nil
 }

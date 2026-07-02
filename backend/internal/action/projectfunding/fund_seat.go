@@ -3,6 +3,7 @@ package projectfunding
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	baseaction "terraforming-mars-backend/internal/action"
@@ -11,8 +12,6 @@ import (
 	"terraforming-mars-backend/internal/game/player"
 	pf "terraforming-mars-backend/internal/game/projectfunding"
 	"terraforming-mars-backend/internal/game/shared"
-
-	"go.uber.org/zap"
 )
 
 // FundSeatPayment describes how the player pays for a seat
@@ -43,8 +42,8 @@ func NewFundSeatAction(
 // Execute performs the fund seat action
 func (a *FundSeatAction) Execute(ctx context.Context, gameID string, playerID string, projectID string, payment FundSeatPayment) error {
 	log := a.InitLogger(gameID, playerID).With(
-		zap.String("action", "fund_project_seat"),
-		zap.String("project_id", projectID),
+		slog.String("action", "fund_project_seat"),
+		slog.String("project_id", projectID),
 	)
 	log.Debug("Purchasing project seat")
 
@@ -196,13 +195,13 @@ func (a *FundSeatAction) Execute(ctx context.Context, gameID string, playerID st
 	}
 
 	log.Info("Project seat purchased",
-		zap.String("project_id", projectID),
-		zap.Int("seat_index", seatIndex))
+		slog.String("project_id", projectID),
+		slog.Int("seat_index", seatIndex))
 
 	return nil
 }
 
-func (a *FundSeatAction) completeProject(ctx context.Context, g *game.Game, state *pf.ProjectState, def *pf.ProjectDefinition, log *zap.Logger) {
+func (a *FundSeatAction) completeProject(ctx context.Context, g *game.Game, state *pf.ProjectState, def *pf.ProjectDefinition, log *slog.Logger) {
 	state.IsCompleted = true
 
 	allPlayers := g.GetAllPlayers()
@@ -223,7 +222,7 @@ func (a *FundSeatAction) completeProject(ctx context.Context, g *game.Game, stat
 
 		p, err := g.GetPlayer(playerID)
 		if err != nil {
-			log.Error("Failed to get player for tier rewards", zap.String("player_id", playerID), zap.Error(err))
+			log.Error("Failed to get player for tier rewards", slog.String("player_id", playerID), slog.Any("error", err))
 			continue
 		}
 
@@ -265,24 +264,24 @@ func (a *FundSeatAction) completeProject(ctx context.Context, g *game.Game, stat
 	})
 
 	log.Debug("Project completed",
-		zap.String("project_id", def.ID),
-		zap.Int("total_seats", len(state.SeatOwners)))
+		slog.String("project_id", def.ID),
+		slog.Int("total_seats", len(state.SeatOwners)))
 }
 
-func (a *FundSeatAction) applyGlobalEffects(ctx context.Context, g *game.Game, def *pf.ProjectDefinition, allPlayers []*player.Player, completingPlayerID string, log *zap.Logger) {
+func (a *FundSeatAction) applyGlobalEffects(ctx context.Context, g *game.Game, def *pf.ProjectDefinition, allPlayers []*player.Player, completingPlayerID string, log *slog.Logger) {
 	for _, effect := range def.CompletionEffect.GlobalEffects {
 		switch effect.Type {
 		case "temperature":
 			if _, err := g.GlobalParameters().IncreaseTemperature(ctx, effect.Amount, completingPlayerID); err != nil {
-				log.Error("Failed to increase temperature for project completion", zap.Error(err))
+				log.Error("Failed to increase temperature for project completion", slog.Any("error", err))
 			}
 		case "oxygen":
 			if _, err := g.GlobalParameters().IncreaseOxygen(ctx, effect.Amount, completingPlayerID); err != nil {
-				log.Error("Failed to increase oxygen for project completion", zap.Error(err))
+				log.Error("Failed to increase oxygen for project completion", slog.Any("error", err))
 			}
 		case "freeze-turn-order":
 			g.SetNextGenTurnOrderFrozen(true)
-			log.Debug("Turn order frozen by project completion", zap.String("project", def.Name))
+			log.Debug("Turn order frozen by project completion", slog.String("project", def.Name))
 		case "production-choice":
 			amount := effect.Amount
 			if amount <= 0 {
@@ -296,7 +295,7 @@ func (a *FundSeatAction) applyGlobalEffects(ctx context.Context, g *game.Game, d
 					SourceCardID: def.ID,
 				})
 			}
-			log.Debug("Production choice set for all players", zap.String("project", def.Name))
+			log.Debug("Production choice set for all players", slog.String("project", def.Name))
 		case "card-draw":
 			n := effect.Amount
 			if n <= 0 {
@@ -305,15 +304,15 @@ func (a *FundSeatAction) applyGlobalEffects(ctx context.Context, g *game.Game, d
 			for _, p := range allPlayers {
 				cardIDs, err := g.Deck().DrawProjectCards(ctx, n)
 				if err != nil {
-					log.Error("Failed to draw cards for project completion", zap.Error(err))
+					log.Error("Failed to draw cards for project completion", slog.Any("error", err))
 					break
 				}
 				for _, cardID := range cardIDs {
 					p.Hand().AddCard(cardID)
 				}
 				log.Debug("Cards drawn for player",
-					zap.String("player_id", p.ID()),
-					zap.Int("count", len(cardIDs)))
+					slog.String("player_id", p.ID()),
+					slog.Int("count", len(cardIDs)))
 			}
 		}
 	}

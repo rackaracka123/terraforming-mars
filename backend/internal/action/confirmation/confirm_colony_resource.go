@@ -3,13 +3,12 @@ package confirmation
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	baseaction "terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
-
-	"go.uber.org/zap"
 )
 
 // ConfirmColonyResourceAction handles confirming a card storage target for colony resource placement
@@ -22,7 +21,7 @@ func NewConfirmColonyResourceAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
 	stateRepo game.GameStateRepository,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *ConfirmColonyResourceAction {
 	return &ConfirmColonyResourceAction{
 		BaseAction: baseaction.NewBaseActionWithStateRepo(gameRepo, cardRegistry, stateRepo),
@@ -32,8 +31,8 @@ func NewConfirmColonyResourceAction(
 // Execute performs the confirm colony resource action
 func (a *ConfirmColonyResourceAction) Execute(ctx context.Context, gameID string, playerID string, targetCardID string) error {
 	log := a.InitLogger(gameID, playerID).With(
-		zap.String("action", "confirm_colony_resource"),
-		zap.String("target_card_id", targetCardID),
+		slog.String("action", "confirm_colony_resource"),
+		slog.String("target_card_id", targetCardID),
 	)
 	log.Debug("Confirming colony resource placement")
 
@@ -56,8 +55,8 @@ func (a *ConfirmColonyResourceAction) Execute(ctx context.Context, gameID string
 	// If empty target, player skipped (no eligible card or chose to skip)
 	if targetCardID == "" {
 		log.Debug("Player skipped colony resource placement",
-			zap.String("resource_type", selection.ResourceType),
-			zap.Int("amount", selection.Amount))
+			slog.String("resource_type", selection.ResourceType),
+			slog.Int("amount", selection.Amount))
 		return nil
 	}
 
@@ -91,10 +90,10 @@ func (a *ConfirmColonyResourceAction) Execute(ctx context.Context, gameID string
 	p.Resources().AddToStorage(targetCardID, selection.Amount)
 
 	log.Info("Colony resource placed",
-		zap.String("resource_type", selection.ResourceType),
-		zap.Int("amount", selection.Amount),
-		zap.String("target_card", targetCardID),
-		zap.String("source", selection.Source))
+		slog.String("resource_type", selection.ResourceType),
+		slog.Int("amount", selection.Amount),
+		slog.String("target_card", targetCardID),
+		slog.String("source", selection.Source))
 
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"maps"
 
 	awardAction "terraforming-mars-backend/internal/action/award"
@@ -16,8 +17,6 @@ import (
 	turnAction "terraforming-mars-backend/internal/action/turn_management"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
-
-	"go.uber.org/zap"
 )
 
 // CommandDispatcher maps bot JSONL commands to direct action calls.
@@ -38,7 +37,7 @@ type CommandDispatcher struct {
 	claimMilestone         *milestoneAction.ClaimMilestoneAction
 	fundAward              *awardAction.FundAwardAction
 	confirmInitAdvance     *turnAction.ConfirmInitAdvanceAction
-	logger                 *zap.Logger
+	logger                 *slog.Logger
 }
 
 // NewCommandDispatcher creates a new dispatcher with all action references.
@@ -59,7 +58,7 @@ func NewCommandDispatcher(
 	claimMilestone *milestoneAction.ClaimMilestoneAction,
 	fundAward *awardAction.FundAwardAction,
 	confirmInitAdvance *turnAction.ConfirmInitAdvanceAction,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *CommandDispatcher {
 	return &CommandDispatcher{
 		playCard:               playCard,
@@ -93,9 +92,9 @@ func (d *CommandDispatcher) Dispatch(ctx context.Context, gameID, playerID strin
 	}
 
 	d.logger.Debug("Dispatching bot command",
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
-		zap.String("type", envelope.Type))
+		slog.String("game_id", gameID),
+		slog.String("player_id", playerID),
+		slog.String("type", envelope.Type))
 
 	switch envelope.Type {
 	case "action.card.play-card":

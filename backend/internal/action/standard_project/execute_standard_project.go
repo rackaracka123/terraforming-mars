@@ -14,8 +14,6 @@ import (
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/game/standardproject"
-
-	"go.uber.org/zap"
 )
 
 // ExecuteStandardProjectAction handles all standard projects via a single unified action
@@ -30,7 +28,7 @@ func NewExecuteStandardProjectAction(
 	cardRegistry gamecards.CardRegistry,
 	standardProjectRegistry standardproject.StandardProjectRegistry,
 	stateRepo game.GameStateRepository,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *ExecuteStandardProjectAction {
 	return &ExecuteStandardProjectAction{
 		BaseAction:              baseaction.NewBaseActionWithStateRepo(gameRepo, cardRegistry, stateRepo),
@@ -45,12 +43,12 @@ func (a *ExecuteStandardProjectAction) Execute(
 	playerID string,
 	projectID string,
 ) error {
-	log := a.InitLogger(gameID, playerID).With(zap.String("project_id", projectID))
+	log := a.InitLogger(gameID, playerID).With(slog.String("project_id", projectID))
 	log.Debug("Executing standard project")
 
 	definition, err := a.standardProjectRegistry.GetByID(projectID)
 	if err != nil {
-		log.Warn("Unknown standard project", zap.String("project_id", projectID))
+		log.Warn("Unknown standard project", slog.String("project_id", projectID))
 		return fmt.Errorf("unknown standard project: %s", projectID)
 	}
 
@@ -91,9 +89,9 @@ func (a *ExecuteStandardProjectAction) Execute(
 		}
 		if creditDiscount > 0 {
 			log.Debug("Applied standard project discount",
-				zap.Int("base_cost", definition.CreditCost()),
-				zap.Int("discount", creditDiscount),
-				zap.Int("effective_cost", effectiveCost))
+				slog.Int("base_cost", definition.CreditCost()),
+				slog.Int("discount", creditDiscount),
+				slog.Int("effective_cost", effectiveCost))
 		}
 	}
 
@@ -101,8 +99,8 @@ func (a *ExecuteStandardProjectAction) Execute(
 		resources := player.Resources().Get()
 		if resources.Credits < effectiveCost {
 			log.Warn("Insufficient credits",
-				zap.Int("cost", effectiveCost),
-				zap.Int("player_credits", resources.Credits))
+				slog.Int("cost", effectiveCost),
+				slog.Int("player_credits", resources.Credits))
 			return fmt.Errorf("insufficient credits: need %d, have %d", effectiveCost, resources.Credits)
 		}
 
@@ -146,7 +144,7 @@ func (a *ExecuteStandardProjectAction) Execute(
 	source := "Standard Project: " + definition.Name
 	a.WriteStateLogFull(ctx, g, source, shared.SourceTypeStandardProject, playerID, definition.Name, nil, allCalculatedOutputs, displayData)
 
-	log.Info("Standard project executed", zap.String("project", definition.Name))
+	log.Info("Standard project executed", slog.String("project", definition.Name))
 	return nil
 }
 
@@ -154,7 +152,7 @@ func (a *ExecuteStandardProjectAction) Execute(
 func (a *ExecuteStandardProjectAction) executeSellPatents(
 	g *game.Game,
 	p *player.Player,
-	log *zap.Logger,
+	log *slog.Logger,
 ) error {
 	_ = g
 	playerCards := p.Hand().Cards()
@@ -180,7 +178,7 @@ func (a *ExecuteStandardProjectAction) executeSellPatents(
 	})
 
 	log.Debug("Created pending card selection for sell patents",
-		zap.Int("available_cards", len(playerCards)))
+		slog.Int("available_cards", len(playerCards)))
 
 	log.Info("Sell patents initiated")
 	return nil

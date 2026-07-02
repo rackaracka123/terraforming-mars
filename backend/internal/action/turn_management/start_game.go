@@ -3,9 +3,8 @@ package turn_management
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	rand "math/rand/v2"
-
-	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
@@ -30,7 +29,7 @@ type StartGameAction struct {
 	milestoneRegistry      milestone.MilestoneRegistry
 	awardRegistry          award.AwardRegistry
 	botStarter             BotStarter
-	logger                 *zap.Logger
+	logger                 *slog.Logger
 }
 
 // NewStartGameAction creates a new start game action
@@ -41,7 +40,7 @@ func NewStartGameAction(
 	milestoneRegistry milestone.MilestoneRegistry,
 	awardRegistry award.AwardRegistry,
 	botStarter BotStarter,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *StartGameAction {
 	return &StartGameAction{
 		gameRepo:               gameRepo,
@@ -57,36 +56,36 @@ func NewStartGameAction(
 // Execute performs the start game action
 func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID string) error {
 	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
-		zap.String("action", "start_game"),
+		slog.String("game_id", gameID),
+		slog.String("player_id", playerID),
+		slog.String("action", "start_game"),
 	)
 	log.Debug("Starting game")
 
 	// 1. Fetch game from repository
 	g, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
+		log.Error("Failed to get game", slog.Any("error", err))
 		return fmt.Errorf("game not found: %s", gameID)
 	}
 
 	// 2. BUSINESS LOGIC: Validate game is in lobby status
 	if g.Status() != shared.GameStatusLobby {
-		log.Warn("Game is not in lobby", zap.String("status", string(g.Status())))
+		log.Warn("Game is not in lobby", slog.String("status", string(g.Status())))
 		return fmt.Errorf("game is not in lobby: %s", g.Status())
 	}
 
 	// 3. BUSINESS LOGIC: Validate player is the host
 	if g.HostPlayerID() != playerID {
 		log.Warn("Only host can start the game",
-			zap.String("host_id", g.HostPlayerID()),
-			zap.String("requesting_player", playerID))
+			slog.String("host_id", g.HostPlayerID()),
+			slog.String("requesting_player", playerID))
 		return fmt.Errorf("only host can start the game")
 	}
 
 	// 4. Get all players
 	players := g.GetAllPlayers()
-	log.Debug("Starting game with players", zap.Int("player_count", len(players)))
+	log.Debug("Starting game with players", slog.Int("player_count", len(players)))
 
 	// 5. BUSINESS LOGIC: Randomize and set turn order
 	playerIDs := make([]string, len(players))
@@ -98,10 +97,10 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 		playerIDs[i], playerIDs[j] = playerIDs[j], playerIDs[i]
 	})
 	if err := g.SetTurnOrder(ctx, playerIDs); err != nil {
-		log.Error("Failed to set turn order", zap.Error(err))
+		log.Error("Failed to set turn order", slog.Any("error", err))
 		return fmt.Errorf("failed to set turn order: %w", err)
 	}
-	log.Debug("Randomized turn order", zap.Strings("turn_order", playerIDs))
+	log.Debug("Randomized turn order", slog.Any("turn_order", playerIDs))
 
 	// 5b. BUSINESS LOGIC: Initialize colony tiles if colonies pack enabled
 	if g.Settings().HasColonies() {
@@ -125,7 +124,7 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 
 	// 7. BUSINESS LOGIC: Update game status to Active
 	if err := g.UpdateStatus(ctx, shared.GameStatusActive); err != nil {
-		log.Error("Failed to update game status", zap.Error(err))
+		log.Error("Failed to update game status", slog.Any("error", err))
 		return fmt.Errorf("failed to update game status: %w", err)
 	}
 
@@ -133,10 +132,10 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 	if len(playerIDs) > 0 {
 		firstPlayerID := playerIDs[0]
 		if err := g.SetCurrentTurn(ctx, firstPlayerID, 0); err != nil {
-			log.Error("Failed to set current turn", zap.Error(err))
+			log.Error("Failed to set current turn", slog.Any("error", err))
 			return fmt.Errorf("failed to set current turn: %w", err)
 		}
-		log.Debug("Set initial turn", zap.String("first_player_id", firstPlayerID))
+		log.Debug("Set initial turn", slog.String("first_player_id", firstPlayerID))
 	}
 
 	// 9. BUSINESS LOGIC: Demo games use pre-selected choices, normal games distribute cards
@@ -146,26 +145,26 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 		}
 	} else {
 		if err := g.UpdatePhase(ctx, shared.GamePhaseStartingSelection); err != nil {
-			log.Error("Failed to update game phase", zap.Error(err))
+			log.Error("Failed to update game phase", slog.Any("error", err))
 			return fmt.Errorf("failed to update game phase: %w", err)
 		}
 
 		if err := a.distributeCorporations(ctx, g, players); err != nil {
-			log.Error("Failed to distribute corporations", zap.Error(err))
+			log.Error("Failed to distribute corporations", slog.Any("error", err))
 			return fmt.Errorf("failed to distribute corporations: %w", err)
 		}
 		log.Debug("Corporations distributed to all players")
 
 		if g.Settings().HasPrelude() {
 			if err := a.distributePreludeCards(ctx, g, players); err != nil {
-				log.Error("Failed to distribute prelude cards", zap.Error(err))
+				log.Error("Failed to distribute prelude cards", slog.Any("error", err))
 				return fmt.Errorf("failed to distribute prelude cards: %w", err)
 			}
 			log.Debug("Prelude cards distributed to all players")
 		}
 
 		if err := a.distributeProjectCards(ctx, g, players); err != nil {
-			log.Error("Failed to distribute project cards", zap.Error(err))
+			log.Error("Failed to distribute project cards", slog.Any("error", err))
 			return fmt.Errorf("failed to distribute project cards: %w", err)
 		}
 		log.Debug("Project cards distributed to all players")
@@ -178,8 +177,8 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 			if p.IsBot() {
 				if err := a.botStarter.StartBot(gameID, p.ID(), p.Name(), string(p.BotDifficulty()), string(p.BotSpeed()), settings); err != nil {
 					log.Error("Failed to start bot",
-						zap.String("bot_player_id", p.ID()),
-						zap.Error(err))
+						slog.String("bot_player_id", p.ID()),
+						slog.Any("error", err))
 				}
 			}
 		}
@@ -189,7 +188,7 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 	return nil
 }
 
-func (a *StartGameAction) initializeColonies(g *game.Game, playerIDs []string, rng *rand.Rand, log *zap.Logger) {
+func (a *StartGameAction) initializeColonies(g *game.Game, playerIDs []string, rng *rand.Rand, log *slog.Logger) {
 	allColonies := a.colonyRegistry.GetAll()
 	if len(allColonies) == 0 {
 		log.Warn("No colony definitions available")
@@ -225,8 +224,8 @@ func (a *StartGameAction) initializeColonies(g *game.Game, playerIDs []string, r
 	g.InitializeTradeFleets(playerIDs)
 
 	log.Debug("Colony tiles initialized",
-		zap.Int("colony_count", len(states)),
-		zap.Int("player_count", len(playerIDs)))
+		slog.Int("colony_count", len(states)),
+		slog.Int("player_count", len(playerIDs)))
 }
 
 const (
@@ -234,13 +233,13 @@ const (
 	maxSelectedAwards     = 5
 )
 
-func (a *StartGameAction) initializeMilestonesAndAwards(g *game.Game, rng *rand.Rand, log *zap.Logger) {
+func (a *StartGameAction) initializeMilestonesAndAwards(g *game.Game, rng *rand.Rand, log *slog.Logger) {
 	settings := g.Settings()
 
 	// Use pre-selected milestones/awards from settings if provided
 	if len(settings.SelectedMilestones) > 0 {
 		g.SetSelectedMilestones(settings.SelectedMilestones)
-		log.Debug("Using pre-selected milestones", zap.Strings("selected", settings.SelectedMilestones))
+		log.Debug("Using pre-selected milestones", slog.Any("selected", settings.SelectedMilestones))
 	} else if a.milestoneRegistry != nil {
 		eligible := a.getEligibleMilestoneIDs(settings)
 		rng.Shuffle(len(eligible), func(i, j int) {
@@ -251,12 +250,12 @@ func (a *StartGameAction) initializeMilestonesAndAwards(g *game.Game, rng *rand.
 			count = len(eligible)
 		}
 		g.SetSelectedMilestones(eligible[:count])
-		log.Debug("Milestones randomly selected", zap.Int("count", count), zap.Strings("selected", eligible[:count]))
+		log.Debug("Milestones randomly selected", slog.Int("count", count), slog.Any("selected", eligible[:count]))
 	}
 
 	if len(settings.SelectedAwards) > 0 {
 		g.SetSelectedAwards(settings.SelectedAwards)
-		log.Debug("Using pre-selected awards", zap.Strings("selected", settings.SelectedAwards))
+		log.Debug("Using pre-selected awards", slog.Any("selected", settings.SelectedAwards))
 	} else if a.awardRegistry != nil {
 		eligible := a.getEligibleAwardIDs(settings)
 		rng.Shuffle(len(eligible), func(i, j int) {
@@ -267,7 +266,7 @@ func (a *StartGameAction) initializeMilestonesAndAwards(g *game.Game, rng *rand.
 			count = len(eligible)
 		}
 		g.SetSelectedAwards(eligible[:count])
-		log.Debug("Awards randomly selected", zap.Int("count", count), zap.Strings("selected", eligible[:count]))
+		log.Debug("Awards randomly selected", slog.Int("count", count), slog.Any("selected", eligible[:count]))
 	}
 }
 
@@ -295,7 +294,7 @@ func (a *StartGameAction) getEligibleAwardIDs(settings shared.GameSettings) []st
 	return eligible
 }
 
-func (a *StartGameAction) initializeProjectFunding(g *game.Game, log *zap.Logger) {
+func (a *StartGameAction) initializeProjectFunding(g *game.Game, log *slog.Logger) {
 	if a.projectFundingRegistry == nil {
 		log.Warn("No project funding registry available")
 		return
@@ -317,10 +316,10 @@ func (a *StartGameAction) initializeProjectFunding(g *game.Game, log *zap.Logger
 	}
 	g.SetProjectFundingStates(states)
 
-	log.Debug("Project funding initialized", zap.Int("project_count", len(states)))
+	log.Debug("Project funding initialized", slog.Int("project_count", len(states)))
 }
 
-func (a *StartGameAction) startDemoGame(ctx context.Context, g *game.Game, players []*playerPkg.Player, log *zap.Logger) error {
+func (a *StartGameAction) startDemoGame(ctx context.Context, g *game.Game, players []*playerPkg.Player, log *slog.Logger) error {
 	settings := g.Settings()
 	deck := g.Deck()
 	turnOrder := g.TurnOrder()

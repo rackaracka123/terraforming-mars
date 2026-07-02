@@ -3,8 +3,8 @@ package admin
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
-	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/shared"
 )
@@ -12,13 +12,13 @@ import (
 // SetPhaseAction handles the admin action to set the game phase
 type SetPhaseAction struct {
 	gameRepo game.GameRepository
-	logger   *zap.Logger
+	logger   *slog.Logger
 }
 
 // NewSetPhaseAction creates a new set phase admin action
 func NewSetPhaseAction(
 	gameRepo game.GameRepository,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *SetPhaseAction {
 	return &SetPhaseAction{
 		gameRepo: gameRepo,
@@ -29,21 +29,21 @@ func NewSetPhaseAction(
 // Execute performs the set phase admin action
 func (a *SetPhaseAction) Execute(ctx context.Context, gameID string, phase shared.GamePhase) error {
 	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("action", "admin_set_phase"),
-		zap.String("phase", string(phase)),
+		slog.String("game_id", gameID),
+		slog.String("action", "admin_set_phase"),
+		slog.String("phase", string(phase)),
 	)
 	log.Debug("Admin: Setting game phase")
 
 	game, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
+		log.Error("Failed to get game", slog.Any("error", err))
 		return fmt.Errorf("game not found: %s", gameID)
 	}
 
 	err = game.UpdatePhase(ctx, phase)
 	if err != nil {
-		log.Error("Failed to update phase", zap.Error(err))
+		log.Error("Failed to update phase", slog.Any("error", err))
 		return fmt.Errorf("failed to update phase: %w", err)
 	}
 

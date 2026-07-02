@@ -2,14 +2,13 @@ package connection
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	connaction "terraforming-mars-backend/internal/action/connection"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // KickSpectatorHandler handles kicking a spectator from a game.
@@ -17,7 +16,7 @@ type KickSpectatorHandler struct {
 	action      *connaction.KickSpectatorAction
 	broadcaster Broadcaster
 	hub         *core.Hub
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewKickSpectatorHandler creates a new kick spectator handler.
@@ -33,8 +32,8 @@ func NewKickSpectatorHandler(action *connaction.KickSpectatorAction, broadcaster
 // HandleMessage processes a kick-spectator message.
 func (h *KickSpectatorHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing kick spectator request")
@@ -61,7 +60,7 @@ func (h *KickSpectatorHandler) HandleMessage(ctx context.Context, connection *co
 
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, targetSpectatorID)
 	if err != nil {
-		log.Error("Failed to kick spectator", zap.Error(err))
+		log.Error("Failed to kick spectator", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}

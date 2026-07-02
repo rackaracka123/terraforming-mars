@@ -3,6 +3,7 @@ package bugreport
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
@@ -13,7 +14,6 @@ import (
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/google/go-github/v75/github"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 )
 
 // Config holds configuration for the bug report service.
@@ -40,7 +40,7 @@ type Capabilities struct {
 
 // Service handles bug report submission via GitHub Issues.
 type Service struct {
-	logger       *zap.Logger
+	logger       *slog.Logger
 	config       Config
 	ghClient     *github.Client
 	capabilities Capabilities
@@ -50,7 +50,7 @@ type Service struct {
 }
 
 // NewService creates and initializes a bug report service.
-func NewService(logger *zap.Logger) *Service {
+func NewService(logger *slog.Logger) *Service {
 	s := &Service{
 		logger:  logger,
 		reports: make(map[string]*Report),
@@ -64,7 +64,7 @@ func (s *Service) initialize() {
 	s.config = cfg
 	s.capabilities.GitHubApp = s.initGitHub(cfg)
 	s.logger.Debug("Bug report service initialized",
-		zap.Bool("github_app", s.capabilities.GitHubApp))
+		slog.Bool("github_app", s.capabilities.GitHubApp))
 }
 
 func (s *Service) initGitHub(cfg Config) bool {
@@ -85,7 +85,7 @@ func (s *Service) initGitHub(cfg Config) bool {
 		cfg.GitHubPrivateKeyPath,
 	)
 	if err != nil {
-		s.logger.Error("Bug report: GitHub App disabled (failed to create transport)", zap.Error(err))
+		s.logger.Error("Bug report: GitHub App disabled (failed to create transport)", slog.Any("error", err))
 		return false
 	}
 
@@ -178,12 +178,12 @@ func (s *Service) processBugReport(id string, title string, description string, 
 	})
 	if err != nil {
 		s.failReport(id, "Failed to create GitHub issue")
-		s.logger.Error("Failed to create GitHub issue", zap.Error(err))
+		s.logger.Error("Failed to create GitHub issue", slog.Any("error", err))
 		return
 	}
 
 	s.completeReport(id, issue.GetHTMLURL())
-	s.logger.Debug("Feedback submitted", zap.String("issue_url", issue.GetHTMLURL()))
+	s.logger.Debug("Feedback submitted", slog.String("issue_url", issue.GetHTMLURL()))
 }
 
 func buildLabels(tags []string) []string {

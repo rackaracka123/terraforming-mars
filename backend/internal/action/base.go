@@ -3,6 +3,7 @@ package action
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"terraforming-mars-backend/internal/events"
@@ -11,8 +12,6 @@ import (
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // BaseAction provides common dependencies for all actions.
@@ -22,7 +21,7 @@ type BaseAction struct {
 	gameRepo     game.GameRepository
 	cardRegistry cards.CardRegistry
 	stateRepo    game.GameStateRepository
-	logger       *zap.Logger
+	logger       *slog.Logger
 }
 
 // NewBaseAction creates a new BaseAction with minimal dependencies
@@ -46,15 +45,15 @@ func NewBaseActionWithStateRepo(gameRepo game.GameRepository, cardRegistry cards
 
 // InitLogger creates a logger with game and player context
 // This should be called at the start of every Execute method
-func (b *BaseAction) InitLogger(gameID, playerID string) *zap.Logger {
+func (b *BaseAction) InitLogger(gameID, playerID string) *slog.Logger {
 	return b.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
+		slog.String("game_id", gameID),
+		slog.String("player_id", playerID),
 	)
 }
 
 // GetLogger returns the base logger for actions that don't have game/player context
-func (b *BaseAction) GetLogger() *zap.Logger {
+func (b *BaseAction) GetLogger() *slog.Logger {
 	return b.logger
 }
 
@@ -96,17 +95,17 @@ func (b *BaseAction) WriteStateLogFull(ctx context.Context, g *game.Game, source
 	_, err := b.stateRepo.WriteFull(ctx, g.ID(), g, source, sourceType, playerID, description, choiceIndex, calculatedOutputs, displayData)
 	if err != nil {
 		b.logger.Warn("Failed to write state log",
-			zap.String("game_id", g.ID()),
-			zap.String("source", source),
-			zap.Error(err))
+			slog.String("game_id", g.ID()),
+			slog.String("source", source),
+			slog.Any("error", err))
 	}
 }
 
 // GetPlayerFromGame fetches a player from the game with consistent error handling
-func (b *BaseAction) GetPlayerFromGame(g *game.Game, playerID string, log *zap.Logger) (*player.Player, error) {
+func (b *BaseAction) GetPlayerFromGame(g *game.Game, playerID string, log *slog.Logger) (*player.Player, error) {
 	p, err := g.GetPlayer(playerID)
 	if err != nil {
-		log.Error("Player not found in game", zap.Error(err))
+		log.Error("Player not found in game", slog.Any("error", err))
 		return nil, fmt.Errorf("player not found: %s", playerID)
 	}
 	return p, nil
@@ -116,7 +115,7 @@ func (b *BaseAction) GetPlayerFromGame(g *game.Game, playerID string, log *zap.L
 // Returns true if an action was consumed, false if unlimited (-1) or no actions remaining (0)
 // This properly handles unlimited actions by not consuming them
 // When the last action is consumed and no tile placement is pending, auto-advances to the next player
-func (b *BaseAction) ConsumePlayerAction(g *game.Game, log *zap.Logger) bool {
+func (b *BaseAction) ConsumePlayerAction(g *game.Game, log *slog.Logger) bool {
 	currentTurn := g.CurrentTurn()
 	if currentTurn == nil {
 		log.Warn("No current turn set, cannot consume action")
@@ -127,7 +126,7 @@ func (b *BaseAction) ConsumePlayerAction(g *game.Game, log *zap.Logger) bool {
 	playerID := currentTurn.PlayerID()
 	consumed := currentTurn.ConsumeAction()
 	if consumed {
-		log.Debug("Action consumed", zap.Int("remaining_actions", currentTurn.ActionsRemaining()))
+		log.Debug("Action consumed", slog.Int("remaining_actions", currentTurn.ActionsRemaining()))
 
 		if currentTurn.ActionsRemaining() == 0 {
 			AutoAdvanceTurnIfNeeded(g, playerID, log)
@@ -147,7 +146,7 @@ func (b *BaseAction) ConsumePlayerAction(g *game.Game, log *zap.Logger) bool {
 // AutoAdvanceTurnIfNeeded advances the turn to the next non-passed player
 // if the current player has 0 actions remaining and no pending tile selection.
 // This is called after consuming an action or after completing a tile placement.
-func AutoAdvanceTurnIfNeeded(g *game.Game, playerID string, log *zap.Logger) {
+func AutoAdvanceTurnIfNeeded(g *game.Game, playerID string, log *slog.Logger) {
 	currentTurn := g.CurrentTurn()
 	if currentTurn == nil {
 		return
@@ -192,10 +191,10 @@ func AutoAdvanceTurnIfNeeded(g *game.Game, playerID string, log *zap.Logger) {
 		currentPlayer, err := g.GetPlayer(playerID)
 		if err == nil && !currentPlayer.HasPassed() {
 			if err := g.SetCurrentTurn(context.Background(), playerID, -1); err != nil {
-				log.Error("Failed to grant unlimited actions to last player", zap.Error(err))
+				log.Error("Failed to grant unlimited actions to last player", slog.Any("error", err))
 			} else {
 				log.Debug("Last non-passed player granted unlimited actions",
-					zap.String("player_id", playerID))
+					slog.String("player_id", playerID))
 			}
 			return
 		}
@@ -214,15 +213,15 @@ func AutoAdvanceTurnIfNeeded(g *game.Game, playerID string, log *zap.Logger) {
 			if nonPassedCount == 1 {
 				nextActions = -1
 				log.Debug("Last non-passed player granted unlimited actions",
-					zap.String("player_id", nextID))
+					slog.String("player_id", nextID))
 			}
 			if err := g.SetCurrentTurn(context.Background(), nextID, nextActions); err != nil {
-				log.Error("Failed to auto-advance turn", zap.Error(err))
+				log.Error("Failed to auto-advance turn", slog.Any("error", err))
 			} else {
 				log.Debug("Auto-advanced turn to next player",
-					zap.String("from", playerID),
-					zap.String("to", nextID),
-					zap.Int("actions", nextActions))
+					slog.String("from", playerID),
+					slog.String("to", nextID),
+					slog.Int("actions", nextActions))
 			}
 			return
 		}

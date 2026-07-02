@@ -2,11 +2,10 @@ package events
 
 import (
 	"fmt"
+	"log/slog"
 	"sync"
 
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // SubscriptionID represents a unique subscription identifier
@@ -28,7 +27,7 @@ type EventBusImpl struct {
 	subscriptions map[SubscriptionID]*subscription
 	nextID        uint64
 	mutex         sync.RWMutex
-	logger        *zap.Logger
+	logger        *slog.Logger
 }
 
 // NewEventBus creates a new type-safe event bus for synchronous event handling
@@ -67,8 +66,8 @@ func Subscribe[T any](eb *EventBusImpl, handler EventHandler[T]) SubscriptionID 
 	eb.subscriptions[id] = sub
 
 	eb.logger.Debug("Event handler subscribed",
-		zap.String("subscription_id", string(id)),
-		zap.String("event_type", eventType))
+		slog.String("subscription_id", string(id)),
+		slog.String("event_type", eventType))
 
 	return id
 }
@@ -91,11 +90,11 @@ func Publish[T any](eb *EventBusImpl, event T) {
 
 	if len(matchingHandlers) == 0 {
 		eb.logger.Debug("No subscribers for event",
-			zap.String("event_type", eventType))
+			slog.String("event_type", eventType))
 	} else {
 		eb.logger.Debug("Publishing event to subscribers",
-			zap.String("event_type", eventType),
-			zap.Int("subscriber_count", len(matchingHandlers)))
+			slog.String("event_type", eventType),
+			slog.Int("subscriber_count", len(matchingHandlers)))
 
 		// Execute handlers without holding the lock
 		for _, handlerFunc := range matchingHandlers {
@@ -112,8 +111,8 @@ func (eb *EventBusImpl) Unsubscribe(id SubscriptionID) {
 	if sub, exists := eb.subscriptions[id]; exists {
 		delete(eb.subscriptions, id)
 		eb.logger.Debug("Event handler unsubscribed",
-			zap.String("subscription_id", string(id)),
-			zap.String("event_type", sub.eventType))
+			slog.String("subscription_id", string(id)),
+			slog.String("event_type", sub.eventType))
 	}
 }
 

@@ -3,13 +3,12 @@ package colony
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 
 	colonyaction "terraforming-mars-backend/internal/action/colony"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // Broadcaster defines the interface for broadcasting game state
@@ -27,7 +26,7 @@ type TradePayload struct {
 type TradeHandler struct {
 	action      *colonyaction.TradeAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewTradeHandler creates a new colony trade handler
@@ -42,8 +41,8 @@ func NewTradeHandler(action *colonyaction.TradeAction, broadcaster Broadcaster) 
 // HandleMessage implements the MessageHandler interface
 func (h *TradeHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing colony trade request")
@@ -56,14 +55,14 @@ func (h *TradeHandler) HandleMessage(ctx context.Context, connection *core.Conne
 
 	payloadBytes, err := json.Marshal(message.Payload)
 	if err != nil {
-		log.Error("Failed to marshal payload", zap.Error(err))
+		log.Error("Failed to marshal payload", slog.Any("error", err))
 		h.sendError(connection, "Invalid payload format")
 		return
 	}
 
 	var payload TradePayload
 	if err := json.Unmarshal(payloadBytes, &payload); err != nil {
-		log.Error("Failed to unmarshal payload", zap.Error(err))
+		log.Error("Failed to unmarshal payload", slog.Any("error", err))
 		h.sendError(connection, "Invalid payload format")
 		return
 	}
@@ -81,12 +80,12 @@ func (h *TradeHandler) HandleMessage(ctx context.Context, connection *core.Conne
 
 	err = h.action.Execute(ctx, connection.GameID, connection.PlayerID, payload.ColonyID, paymentType)
 	if err != nil {
-		log.Error("Failed to execute colony trade action", zap.Error(err))
+		log.Error("Failed to execute colony trade action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}
 
-	log.Debug("Colony traded", zap.String("colony_id", payload.ColonyID))
+	log.Debug("Colony traded", slog.String("colony_id", payload.ColonyID))
 
 	h.broadcaster.BroadcastGameState(connection.GameID, nil)
 

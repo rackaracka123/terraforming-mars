@@ -2,22 +2,21 @@ package query
 
 import (
 	"context"
+	"log/slog"
 
 	"terraforming-mars-backend/internal/game"
-
-	"go.uber.org/zap"
 )
 
 // GetGameLogsAction handles querying game state diff logs
 type GetGameLogsAction struct {
 	stateRepo game.GameStateRepository
-	logger    *zap.Logger
+	logger    *slog.Logger
 }
 
 // NewGetGameLogsAction creates a new get game logs query action
 func NewGetGameLogsAction(
 	stateRepo game.GameStateRepository,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *GetGameLogsAction {
 	return &GetGameLogsAction{
 		stateRepo: stateRepo,
@@ -27,12 +26,12 @@ func NewGetGameLogsAction(
 
 // Execute retrieves all state diffs for a game
 func (a *GetGameLogsAction) Execute(ctx context.Context, gameID string, since int64) ([]game.StateDiff, error) {
-	log := a.logger.With(zap.String("game_id", gameID), zap.Int64("since", since))
+	log := a.logger.With(slog.String("game_id", gameID), slog.Int64("since", since))
 	log.Debug("Querying game logs")
 
 	diffs, err := a.stateRepo.GetDiff(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to get game logs", zap.Error(err))
+		log.Error("Failed to get game logs", slog.Any("error", err))
 		return nil, err
 	}
 
@@ -46,6 +45,6 @@ func (a *GetGameLogsAction) Execute(ctx context.Context, gameID string, since in
 		diffs = filtered
 	}
 
-	log.Debug("Game logs query completed", zap.Int("count", len(diffs)))
+	log.Debug("Game logs query completed", slog.Int("count", len(diffs)))
 	return diffs, nil
 }

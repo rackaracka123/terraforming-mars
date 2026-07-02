@@ -2,13 +2,12 @@ package colony
 
 import (
 	"context"
+	"log/slog"
 
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
-
-	"go.uber.org/zap"
 )
 
 // PendingResource represents a card-targeted resource that needs player selection
@@ -19,14 +18,14 @@ type PendingResource struct {
 }
 
 // ApplyTradeOutput applies a colony output to a player's resources or production.
-func ApplyTradeOutput(ctx context.Context, g *game.Game, p *player.Player, outputType string, amount int, cardRegistry cards.CardRegistry, log *zap.Logger) *PendingResource {
+func ApplyTradeOutput(ctx context.Context, g *game.Game, p *player.Player, outputType string, amount int, cardRegistry cards.CardRegistry, log *slog.Logger) *PendingResource {
 	return applyOutput(ctx, g, p, outputType, amount, cardRegistry, log)
 }
 
 // applyOutput applies a colony output to a player's resources or production.
 // Returns a PendingResource if the output is a card-targeted resource (microbe/animal/floater)
 // that requires the player to choose which card to place it on.
-func applyOutput(ctx context.Context, g *game.Game, p *player.Player, outputType string, amount int, cardRegistry cards.CardRegistry, log *zap.Logger) *PendingResource {
+func applyOutput(ctx context.Context, g *game.Game, p *player.Player, outputType string, amount int, cardRegistry cards.CardRegistry, log *slog.Logger) *PendingResource {
 	rt := shared.ResourceType(outputType)
 	switch rt {
 	case shared.ResourceCredit, shared.ResourceSteel, shared.ResourceTitanium,
@@ -41,15 +40,15 @@ func applyOutput(ctx context.Context, g *game.Game, p *player.Player, outputType
 		if deck != nil {
 			cardIDs, err := deck.DrawProjectCards(ctx, amount)
 			if err != nil {
-				log.Warn("Failed to draw cards for colony output", zap.Error(err))
+				log.Warn("Failed to draw cards for colony output", slog.Any("error", err))
 				return nil
 			}
 			for _, cardID := range cardIDs {
 				p.Hand().AddCard(cardID)
 			}
 			log.Debug("Drew cards for colony output",
-				zap.String("player_id", p.ID()),
-				zap.Int("count", len(cardIDs)))
+				slog.String("player_id", p.ID()),
+				slog.Int("count", len(cardIDs)))
 		}
 	case shared.ResourceOceanPlacement:
 		items := make([]string, amount)
@@ -61,7 +60,7 @@ func applyOutput(ctx context.Context, g *game.Game, p *player.Player, outputType
 			Source: "colony-build",
 		}
 		if err := g.SetPendingTileSelectionQueue(ctx, p.ID(), queue); err != nil {
-			log.Warn("Failed to queue ocean placement for colony output", zap.Error(err))
+			log.Warn("Failed to queue ocean placement for colony output", slog.Any("error", err))
 		}
 	case shared.ResourceMicrobe, shared.ResourceAnimal, shared.ResourceFloater:
 		return &PendingResource{

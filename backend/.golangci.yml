@@ -7,9 +7,10 @@ version: "2"
 #
 #   game (domain)  <-  action (use cases)  <-  delivery (transport)
 #
-# The domain must never import outward layers. (The domain-purity rule that also
-# forbids zap/logger is added in Phase 2, once the 23 domain logger call-sites are
-# migrated.)
+# The domain must never import outward layers. Since Phase 2, zap is removed from
+# the entire backend — everything logs via stdlib log/slog — so a module-wide rule
+# forbids reintroducing it, and the domain additionally must not touch the logger
+# package.
 
 linters:
   default: none
@@ -18,6 +19,12 @@ linters:
   settings:
     depguard:
       rules:
+        no-zap:
+          files:
+            - "**/*.go"
+          deny:
+            - pkg: go.uber.org/zap
+              desc: "zap has been removed from the backend — log via stdlib log/slog"
         domain:
           files:
             - "**/internal/game/**"
@@ -26,8 +33,6 @@ linters:
               desc: "domain (internal/game) must not import the action layer — keep game <- action direction"
             - pkg: terraforming-mars-backend/internal/delivery
               desc: "domain (internal/game) must not import the delivery layer — keep game <- delivery direction"
-            - pkg: go.uber.org/zap
-              desc: "domain (internal/game) must not depend on zap — log via stdlib log/slog"
             - pkg: terraforming-mars-backend/internal/logger
               desc: "domain (internal/game) must not depend on the logger package — log via stdlib log/slog"
 

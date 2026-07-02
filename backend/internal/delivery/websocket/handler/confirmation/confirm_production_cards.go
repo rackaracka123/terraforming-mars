@@ -2,20 +2,19 @@ package confirmation
 
 import (
 	"context"
+	"log/slog"
 
 	confirmaction "terraforming-mars-backend/internal/action/confirmation"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // ConfirmProductionCardsHandler handles confirm production cards requests
 type ConfirmProductionCardsHandler struct {
 	action      *confirmaction.ConfirmProductionCardsAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewConfirmProductionCardsHandler creates a new confirm production cards handler
@@ -30,8 +29,8 @@ func NewConfirmProductionCardsHandler(action *confirmaction.ConfirmProductionCar
 // HandleMessage implements the MessageHandler interface
 func (h *ConfirmProductionCardsHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing confirm production cards request")
@@ -62,12 +61,12 @@ func (h *ConfirmProductionCardsHandler) HandleMessage(ctx context.Context, conne
 	randomBuy, _ := payloadMap["randomBuy"].(bool)
 
 	log.Debug("Parsed confirm production cards request",
-		zap.Strings("selected_card_ids", selectedCardIDs),
-		zap.Bool("random_buy", randomBuy))
+		slog.Any("selected_card_ids", selectedCardIDs),
+		slog.Bool("random_buy", randomBuy))
 
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, selectedCardIDs, randomBuy)
 	if err != nil {
-		log.Error("Failed to execute confirm production cards action", zap.Error(err))
+		log.Error("Failed to execute confirm production cards action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}
