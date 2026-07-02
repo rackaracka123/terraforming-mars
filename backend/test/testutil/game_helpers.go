@@ -2,14 +2,46 @@ package testutil
 
 import (
 	"context"
+	"strconv"
 	"testing"
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/board"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 )
+
+// NewSeededGame builds a game with a fixed master RNG seed and an initialized deck,
+// using the same deck-construction path as production (GetCardIDsByPacks -> InitDeck).
+// Because all game randomness derives from the seed, this is the replay primitive for
+// reproducing a reported game: the server logs each game's seed at creation, so a bug
+// report's seed can be replayed here to reconstruct the identical deck deterministically.
+func NewSeededGame(t *testing.T, seed uint64, settings shared.GameSettings) (*game.Game, game.GameRepository, cards.CardRegistry) {
+	t.Helper()
+
+	repo := NewTestGameRepository(t)
+	cardRegistry := CreateTestCardRegistry()
+	if len(settings.CardPacks) == 0 {
+		settings.CardPacks = []string{"base-game"}
+	}
+	if settings.MaxPlayers == 0 {
+		settings.MaxPlayers = 4
+	}
+
+	g := game.NewGame(repo.DataStore(), "seeded-"+strconv.FormatUint(seed, 10), "", settings, board.GenerateMarsBoard(false))
+	g.SetSeed(seed) // override the auto-generated seed before the deck is shuffled
+
+	projectCards, corpCards, preludeCards := cards.GetCardIDsByPacks(cardRegistry, settings.CardPacks)
+	g.InitDeck(projectCards, corpCards, preludeCards)
+	g.SetVPCardLookup(cards.NewVPCardLookupAdapter(cardRegistry))
+
+	if err := repo.Create(context.Background(), g); err != nil {
+		t.Fatalf("Failed to create seeded game: %v", err)
+	}
+	return g, repo, cardRegistry
+}
 
 // StartTestGame transitions a game from lobby to active status
 func StartTestGame(t *testing.T, g *game.Game) {

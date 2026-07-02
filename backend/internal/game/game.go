@@ -3,6 +3,7 @@ package game
 import (
 	"context"
 	"fmt"
+	mathrand "math/rand/v2"
 	"slices"
 	"strings"
 	"sync"
@@ -262,6 +263,7 @@ func NewGame(
 		SelectPreludeCardsPhases:   make(map[string]*shared.SelectPreludeCardsPhase),
 		DeferredStartingChoices:    make(map[string]*shared.DeferredStartingChoices),
 		TradeFleets:                make(map[string]bool),
+		Seed:                       mathrand.Uint64(),
 	}
 
 	// Insert state into DataStore so components can read/write through it
@@ -295,6 +297,32 @@ func NewGame(
 // ID returns the game ID
 func (g *Game) ID() string {
 	return g.id
+}
+
+// RNG stream identifiers. Each purpose derives an independent deterministic stream
+// from the game Seed so that adding a draw in one area does not perturb another.
+const (
+	rngStreamSetup uint64 = 0x5E7079 // turn order, colony + milestone/award selection
+	rngStreamDeck  uint64 = 0xDECC00 // deck shuffles (offset by ShuffleCount per reshuffle)
+)
+
+// Seed returns the master RNG seed for this game.
+func (g *Game) Seed() uint64 {
+	var seed uint64
+	g.read(func(s *datastore.GameState) { seed = s.Seed })
+	return seed
+}
+
+// SetSeed overrides the master RNG seed. Must be called before InitDeck / StartGame
+// (e.g. by the replay harness) for the override to take effect on setup randomness.
+func (g *Game) SetSeed(seed uint64) {
+	g.update(func(s *datastore.GameState) { s.Seed = seed })
+}
+
+// SetupRand returns a deterministic RNG for one-time game setup (turn order,
+// colony and milestone/award selection), derived from the game Seed.
+func (g *Game) SetupRand() *mathrand.Rand {
+	return mathrand.New(mathrand.NewPCG(g.Seed(), rngStreamSetup))
 }
 
 func (g *Game) CreatedAt() time.Time {
@@ -418,7 +446,7 @@ func (g *Game) SetDeck(d *deck.Deck) {
 func (g *Game) InitDeck(projectCardIDs, corpIDs, preludeIDs []string) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	g.deck = deck.NewDeck(g.ds, g.id, projectCardIDs, corpIDs, preludeIDs)
+	g.deck = deck.NewDeck(g.ds, g.id, g.Seed(), projectCardIDs, corpIDs, preludeIDs)
 	g.update(func(s *datastore.GameState) { s.UpdatedAt = time.Now() })
 }
 

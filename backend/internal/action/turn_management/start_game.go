@@ -3,8 +3,7 @@ package turn_management
 import (
 	"context"
 	"fmt"
-	"math/rand"
-	"time"
+	rand "math/rand/v2"
 
 	"go.uber.org/zap"
 
@@ -94,7 +93,7 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 	for i, p := range players {
 		playerIDs[i] = p.ID()
 	}
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rng := g.SetupRand()
 	rng.Shuffle(len(playerIDs), func(i, j int) {
 		playerIDs[i], playerIDs[j] = playerIDs[j], playerIDs[i]
 	})

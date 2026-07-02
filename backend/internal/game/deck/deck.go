@@ -3,7 +3,7 @@ package deck
 import (
 	"context"
 	"fmt"
-	"math/rand"
+	rand "math/rand/v2"
 
 	"go.uber.org/zap"
 
@@ -11,23 +11,30 @@ import (
 	"terraforming-mars-backend/internal/logger"
 )
 
+// deckRNGStream separates deck randomness from other per-game RNG streams. The
+// initial shuffle uses the base stream; each reshuffle offsets by ShuffleCount so
+// successive reshuffles of the same game produce distinct, reproducible orders.
+const deckRNGStream uint64 = 0xDECC00
+
 type Deck struct {
 	ds     *datastore.DataStore
 	gameID string
 }
 
-func NewDeck(ds *datastore.DataStore, gameID string, projectCardIDs, corpIDs, preludeIDs []string) *Deck {
+func NewDeck(ds *datastore.DataStore, gameID string, seed uint64, projectCardIDs, corpIDs, preludeIDs []string) *Deck {
+	rng := rand.New(rand.NewPCG(seed, deckRNGStream))
+
 	projectCopy := make([]string, len(projectCardIDs))
 	copy(projectCopy, projectCardIDs)
-	rand.Shuffle(len(projectCopy), func(i, j int) { projectCopy[i], projectCopy[j] = projectCopy[j], projectCopy[i] })
+	rng.Shuffle(len(projectCopy), func(i, j int) { projectCopy[i], projectCopy[j] = projectCopy[j], projectCopy[i] })
 
 	corpCopy := make([]string, len(corpIDs))
 	copy(corpCopy, corpIDs)
-	rand.Shuffle(len(corpCopy), func(i, j int) { corpCopy[i], corpCopy[j] = corpCopy[j], corpCopy[i] })
+	rng.Shuffle(len(corpCopy), func(i, j int) { corpCopy[i], corpCopy[j] = corpCopy[j], corpCopy[i] })
 
 	preludeCopy := make([]string, len(preludeIDs))
 	copy(preludeCopy, preludeIDs)
-	rand.Shuffle(len(preludeCopy), func(i, j int) { preludeCopy[i], preludeCopy[j] = preludeCopy[j], preludeCopy[i] })
+	rng.Shuffle(len(preludeCopy), func(i, j int) { preludeCopy[i], preludeCopy[j] = preludeCopy[j], preludeCopy[i] })
 
 	if err := ds.UpdateGame(gameID, func(s *datastore.GameState) {
 		s.ProjectCards = projectCopy
@@ -248,7 +255,10 @@ func (d *Deck) Remove(ctx context.Context, cardIDs []string) error {
 
 func shuffleDeck(s *datastore.GameState) {
 	s.ProjectCards = append(s.ProjectCards, s.DiscardPile...)
-	rand.Shuffle(len(s.ProjectCards), func(i, j int) { s.ProjectCards[i], s.ProjectCards[j] = s.ProjectCards[j], s.ProjectCards[i] })
+	// Offset the stream past the initial shuffle (+1) and per reshuffle so each
+	// reshuffle draws an independent, reproducible order from the same game Seed.
+	rng := rand.New(rand.NewPCG(s.Seed, deckRNGStream+1+uint64(s.ShuffleCount)))
+	rng.Shuffle(len(s.ProjectCards), func(i, j int) { s.ProjectCards[i], s.ProjectCards[j] = s.ProjectCards[j], s.ProjectCards[i] })
 	s.DiscardPile = make([]string, 0)
 	s.ShuffleCount++
 }
