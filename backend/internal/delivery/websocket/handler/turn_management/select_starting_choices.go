@@ -2,13 +2,12 @@ package turn_management
 
 import (
 	"context"
+	"log/slog"
 
 	turnaction "terraforming-mars-backend/internal/action/turn_management"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // Broadcaster interface for explicit broadcasting
@@ -20,7 +19,7 @@ type Broadcaster interface {
 type SelectStartingChoicesHandler struct {
 	action      *turnaction.SelectStartingChoicesAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewSelectStartingChoicesHandler creates a new select starting choices handler
@@ -35,8 +34,8 @@ func NewSelectStartingChoicesHandler(action *turnaction.SelectStartingChoicesAct
 // HandleMessage implements the MessageHandler interface
 func (h *SelectStartingChoicesHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing select starting choices request")
@@ -82,13 +81,13 @@ func (h *SelectStartingChoicesHandler) HandleMessage(ctx context.Context, connec
 	}
 
 	log.Debug("Parsed select starting choices request",
-		zap.String("corporation_id", corporationID),
-		zap.Strings("prelude_ids", preludeIDs),
-		zap.Strings("card_ids", cardIDs))
+		slog.String("corporation_id", corporationID),
+		slog.Any("prelude_ids", preludeIDs),
+		slog.Any("card_ids", cardIDs))
 
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, corporationID, preludeIDs, cardIDs)
 	if err != nil {
-		log.Error("Failed to execute select starting choices action", zap.Error(err))
+		log.Error("Failed to execute select starting choices action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}

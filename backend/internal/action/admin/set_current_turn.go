@@ -3,21 +3,21 @@ package admin
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
-	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/game"
 )
 
 // SetCurrentTurnAction handles the admin action to set the current turn
 type SetCurrentTurnAction struct {
 	gameRepo game.GameRepository
-	logger   *zap.Logger
+	logger   *slog.Logger
 }
 
 // NewSetCurrentTurnAction creates a new set current turn admin action
 func NewSetCurrentTurnAction(
 	gameRepo game.GameRepository,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *SetCurrentTurnAction {
 	return &SetCurrentTurnAction{
 		gameRepo: gameRepo,
@@ -28,27 +28,27 @@ func NewSetCurrentTurnAction(
 // Execute performs the set current turn admin action
 func (a *SetCurrentTurnAction) Execute(ctx context.Context, gameID string, playerID string) error {
 	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
-		zap.String("action", "admin_set_current_turn"),
+		slog.String("game_id", gameID),
+		slog.String("player_id", playerID),
+		slog.String("action", "admin_set_current_turn"),
 	)
 	log.Debug("Admin: Setting current turn")
 
 	game, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
+		log.Error("Failed to get game", slog.Any("error", err))
 		return fmt.Errorf("game not found: %s", gameID)
 	}
 
 	_, err = game.GetPlayer(playerID)
 	if err != nil {
-		log.Error("Player not found in game", zap.Error(err))
+		log.Error("Player not found in game", slog.Any("error", err))
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	err = game.SetCurrentTurn(ctx, playerID, -1)
 	if err != nil {
-		log.Error("Failed to update current turn", zap.Error(err))
+		log.Error("Failed to update current turn", slog.Any("error", err))
 		return fmt.Errorf("failed to update current turn: %w", err)
 	}
 

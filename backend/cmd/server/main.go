@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -45,7 +46,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
-	"go.uber.org/zap"
 )
 
 var Version = "localbuild"
@@ -82,88 +82,97 @@ func main() {
 	// Get working directory to build absolute path
 	wd, err := os.Getwd()
 	if err != nil {
-		log.Fatal("Failed to get working directory", zap.Error(err))
+		log.Error("Failed to get working directory", slog.Any("error", err))
+		os.Exit(1)
 	}
 
 	cardPath := filepath.Join(wd, "assets", "terraforming_mars_cards.json")
-	log.Debug("Loading cards from", zap.String("path", cardPath))
+	log.Debug("Loading cards from", slog.String("path", cardPath))
 
 	cardData, err := cards.LoadCardsFromJSON(cardPath)
 	if err != nil {
-		log.Fatal("Failed to load cards", zap.Error(err))
+		log.Error("Failed to load cards", slog.Any("error", err))
+		os.Exit(1)
 	}
 	cardRegistry := cards.NewInMemoryCardRegistry(cardData)
-	log.Debug("Card registry initialized", zap.Int("card_count", len(cardData)))
+	log.Debug("Card registry initialized", slog.Int("card_count", len(cardData)))
 
 	// ========== Initialize Colony Registry ==========
 	colonyPath := filepath.Join(wd, "assets", "terraforming_mars_colonies.json")
-	log.Debug("Loading colonies from", zap.String("path", colonyPath))
+	log.Debug("Loading colonies from", slog.String("path", colonyPath))
 
 	colonyData, err := colony.LoadColoniesFromJSON(colonyPath)
 	if err != nil {
-		log.Fatal("Failed to load colonies", zap.Error(err))
+		log.Error("Failed to load colonies", slog.Any("error", err))
+		os.Exit(1)
 	}
 	colonyRegistry := colony.NewInMemoryColonyRegistry(colonyData)
-	log.Debug("Colony registry initialized", zap.Int("colony_count", len(colonyData)))
+	log.Debug("Colony registry initialized", slog.Int("colony_count", len(colonyData)))
 
 	// ========== Initialize Project Funding Registry ==========
 	pfPath := filepath.Join(wd, "assets", "terraforming_mars_project_funding.json")
-	log.Debug("Loading project funding from", zap.String("path", pfPath))
+	log.Debug("Loading project funding from", slog.String("path", pfPath))
 
 	pfData, err := pfLoader.LoadProjectsFromJSON(pfPath)
 	if err != nil {
-		log.Fatal("Failed to load project funding", zap.Error(err))
+		log.Error("Failed to load project funding", slog.Any("error", err))
+		os.Exit(1)
 	}
 	pfRegistry := pfLoader.NewInMemoryProjectFundingRegistry(pfData)
-	log.Debug("Project funding registry initialized", zap.Int("project_count", len(pfData)))
+	log.Debug("Project funding registry initialized", slog.Int("project_count", len(pfData)))
 
 	// ========== Initialize Standard Project Registry ==========
 	stdProjPath := filepath.Join(wd, "assets", "terraforming_mars_standard_projects.json")
-	log.Debug("Loading standard projects from", zap.String("path", stdProjPath))
+	log.Debug("Loading standard projects from", slog.String("path", stdProjPath))
 
 	stdProjData, err := stdprojLoader.LoadStandardProjectsFromJSON(stdProjPath)
 	if err != nil {
-		log.Fatal("Failed to load standard projects", zap.Error(err))
+		log.Error("Failed to load standard projects", slog.Any("error", err))
+		os.Exit(1)
 	}
 	stdProjRegistry := stdprojLoader.NewInMemoryStandardProjectRegistry(stdProjData)
-	log.Debug("Standard project registry initialized", zap.Int("project_count", len(stdProjData)))
+	log.Debug("Standard project registry initialized", slog.Int("project_count", len(stdProjData)))
 
 	// ========== Initialize Award Registry ==========
 	awardPath := filepath.Join(wd, "assets", "terraforming_mars_awards.json")
-	log.Debug("Loading awards from", zap.String("path", awardPath))
+	log.Debug("Loading awards from", slog.String("path", awardPath))
 
 	awardData, err := award.LoadAwardsFromJSON(awardPath)
 	if err != nil {
-		log.Fatal("Failed to load awards", zap.Error(err))
+		log.Error("Failed to load awards", slog.Any("error", err))
+		os.Exit(1)
 	}
 	awardRegistry := award.NewInMemoryAwardRegistry(awardData)
-	log.Debug("Award registry initialized", zap.Int("award_count", len(awardData)))
+	log.Debug("Award registry initialized", slog.Int("award_count", len(awardData)))
 
 	// ========== Initialize Milestone Registry ==========
 	milestonePath := filepath.Join(wd, "assets", "terraforming_mars_milestones.json")
-	log.Debug("Loading milestones from", zap.String("path", milestonePath))
+	log.Debug("Loading milestones from", slog.String("path", milestonePath))
 
 	milestoneData, err := msLoader.LoadMilestonesFromJSON(milestonePath)
 	if err != nil {
-		log.Fatal("Failed to load milestones", zap.Error(err))
+		log.Error("Failed to load milestones", slog.Any("error", err))
+		os.Exit(1)
 	}
 	milestoneRegistry := msLoader.NewInMemoryMilestoneRegistry(milestoneData)
-	log.Debug("Milestone registry initialized", zap.Int("milestone_count", len(milestoneData)))
+	log.Debug("Milestone registry initialized", slog.Int("milestone_count", len(milestoneData)))
 
 	// ========== Initialize Map Registry ==========
 	mapPath := filepath.Join(wd, "assets", "terraforming_mars_maps.json")
-	log.Debug("Loading maps from", zap.String("path", mapPath))
+	log.Debug("Loading maps from", slog.String("path", mapPath))
 
 	mapRegistry, err := board.LoadMapsFromJSON(mapPath)
 	if err != nil {
-		log.Fatal("Failed to load maps", zap.Error(err))
+		log.Error("Failed to load maps", slog.Any("error", err))
+		os.Exit(1)
 	}
-	log.Debug("Map registry initialized", zap.Int("map_count", len(mapRegistry.ListMaps())))
+	log.Debug("Map registry initialized", slog.Int("map_count", len(mapRegistry.ListMaps())))
 
 	// ========== Initialize Game Repository (Single Source of Truth) ==========
 	ds, err := datastore.NewDataStore()
 	if err != nil {
-		log.Fatal("Failed to create datastore", zap.Error(err))
+		log.Error("Failed to create datastore", slog.Any("error", err))
+		os.Exit(1)
 	}
 	rm := datastore.NewRuntimeManager()
 	gameRepo := game.NewMemDBGameRepository(ds, rm)
@@ -188,7 +197,7 @@ func main() {
 	bugReportService := bugreport.NewService(log)
 	caps := bugReportService.Capabilities()
 	log.Debug("Feedback service",
-		zap.Bool("github_app", caps.GitHubApp))
+		slog.Bool("github_app", caps.GitHubApp))
 
 	// ========== Initialize WebSocket Hub ==========
 	hub := core.NewHub()
@@ -455,7 +464,8 @@ func main() {
 	go func() {
 		log.Info("HTTP server listening on :3001")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal("Failed to start HTTP server", zap.Error(err))
+			log.Error("Failed to start HTTP server", slog.Any("error", err))
+			os.Exit(1)
 		}
 	}()
 
@@ -472,7 +482,7 @@ func main() {
 
 	// Shutdown HTTP server
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		log.Error("Failed to gracefully shutdown HTTP server", zap.Error(err))
+		log.Error("Failed to gracefully shutdown HTTP server", slog.Any("error", err))
 	} else {
 		log.Debug("HTTP server stopped")
 	}

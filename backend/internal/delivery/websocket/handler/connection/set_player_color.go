@@ -2,20 +2,19 @@ package connection
 
 import (
 	"context"
+	"log/slog"
 
 	connaction "terraforming-mars-backend/internal/action/connection"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // SetPlayerColorHandler handles set-player-color messages.
 type SetPlayerColorHandler struct {
 	action      *connaction.SetPlayerColorAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewSetPlayerColorHandler creates a new set player color handler.
@@ -30,8 +29,8 @@ func NewSetPlayerColorHandler(action *connaction.SetPlayerColorAction, broadcast
 // HandleMessage processes a set-player-color message.
 func (h *SetPlayerColorHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	gameID := connection.GameID
@@ -60,7 +59,7 @@ func (h *SetPlayerColorHandler) HandleMessage(ctx context.Context, connection *c
 	}
 
 	if err := h.action.Execute(ctx, gameID, playerID, targetPlayerID, color); err != nil {
-		log.Error("Failed to set player color", zap.Error(err))
+		log.Error("Failed to set player color", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}

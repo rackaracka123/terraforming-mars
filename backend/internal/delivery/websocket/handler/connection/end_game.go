@@ -2,21 +2,20 @@ package connection
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	connaction "terraforming-mars-backend/internal/action/connection"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // EndGameHandler handles WebSocket messages to end a game.
 type EndGameHandler struct {
 	action *connaction.EndGameAction
 	hub    *core.Hub
-	logger *zap.Logger
+	logger *slog.Logger
 }
 
 // NewEndGameHandler creates a new EndGameHandler.
@@ -31,8 +30,8 @@ func NewEndGameHandler(action *connaction.EndGameAction, hub *core.Hub) *EndGame
 // HandleMessage processes an end-game WebSocket message.
 func (h *EndGameHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing end game request")
@@ -49,7 +48,7 @@ func (h *EndGameHandler) HandleMessage(ctx context.Context, connection *core.Con
 
 	err := h.action.Execute(ctx, gameID, connection.PlayerID)
 	if err != nil {
-		log.Error("Failed to execute end game action", zap.Error(err))
+		log.Error("Failed to execute end game action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}
@@ -71,7 +70,7 @@ func (h *EndGameHandler) HandleMessage(ctx context.Context, connection *core.Con
 		for conn := range gameConnections {
 			conn.Close()
 		}
-		log.Debug("Closed all connections for ended game", zap.String("game_id", gameID))
+		log.Debug("Closed all connections for ended game", slog.String("game_id", gameID))
 	}()
 }
 

@@ -3,11 +3,11 @@ package game
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	rand "math/rand/v2"
 	"time"
 
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/game"
@@ -41,7 +41,7 @@ type AddBotAction struct {
 	colonyBonusLookup gamecards.ColonyBonusLookup
 	healthChecker     BotHealthChecker
 	broadcaster       BotBroadcaster
-	logger            *zap.Logger
+	logger            *slog.Logger
 }
 
 // AddBotResult contains the result of adding a bot
@@ -55,7 +55,7 @@ func NewAddBotAction(
 	cardRegistry gamecards.CardRegistry,
 	healthChecker BotHealthChecker,
 	broadcaster BotBroadcaster,
-	logger *zap.Logger,
+	logger *slog.Logger,
 	colonyBonusLookup ...gamecards.ColonyBonusLookup,
 ) *AddBotAction {
 	var lookup gamecards.ColonyBonusLookup
@@ -75,20 +75,20 @@ func NewAddBotAction(
 // Execute adds a bot player to the game lobby
 func (a *AddBotAction) Execute(ctx context.Context, gameID string, botName string, difficulty string, speed string) (*AddBotResult, error) {
 	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("bot_name", botName),
-		zap.String("action", "add_bot"),
+		slog.String("game_id", gameID),
+		slog.String("bot_name", botName),
+		slog.String("action", "add_bot"),
 	)
 	log.Debug("Adding bot to game")
 
 	g, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		log.Error("Game not found", zap.Error(err))
+		log.Error("Game not found", slog.Any("error", err))
 		return nil, fmt.Errorf("game not found: %s", gameID)
 	}
 
 	if g.Status() != shared.GameStatusLobby {
-		log.Warn("Game is not in lobby", zap.String("status", string(g.Status())))
+		log.Warn("Game is not in lobby", slog.String("status", string(g.Status())))
 		return nil, fmt.Errorf("game is not in lobby: %s", g.Status())
 	}
 
@@ -122,12 +122,12 @@ func (a *AddBotAction) Execute(ctx context.Context, gameID string, botName strin
 	botID := uuid.New().String()
 	botPlayer, err := g.AddNewBotPlayer(ctx, botID, botName, botDifficulty, botSpeed)
 	if err != nil {
-		log.Error("Failed to add bot to game", zap.Error(err))
+		log.Error("Failed to add bot to game", slog.Any("error", err))
 		return nil, fmt.Errorf("failed to add bot to game: %w", err)
 	}
 	action.SetupPlayerCardStore(botPlayer, g, a.cardRegistry, a.colonyBonusLookup)
 
-	log.Info("Bot added to game", zap.String("bot_id", botID), zap.String("bot_name", botName))
+	log.Info("Bot added to game", slog.String("bot_id", botID), slog.String("bot_name", botName))
 
 	if a.healthChecker != nil && a.broadcaster != nil {
 		settings := g.Settings()
@@ -137,8 +137,8 @@ func (a *AddBotAction) Execute(ctx context.Context, gameID string, botName strin
 	return &AddBotResult{PlayerID: botID}, nil
 }
 
-func (a *AddBotAction) runHealthCheck(gameID, botID, botName, difficulty, apiKey, model string, log *zap.Logger) {
-	log.Debug("Running Claude health check for bot", zap.String("bot_id", botID))
+func (a *AddBotAction) runHealthCheck(gameID, botID, botName, difficulty, apiKey, model string, log *slog.Logger) {
+	log.Debug("Running Claude health check for bot", slog.String("bot_id", botID))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -147,24 +147,24 @@ func (a *AddBotAction) runHealthCheck(gameID, botID, botName, difficulty, apiKey
 
 	g, gErr := a.gameRepo.Get(ctx, gameID)
 	if gErr != nil {
-		log.Error("Failed to get game after health check", zap.Error(gErr))
+		log.Error("Failed to get game after health check", slog.Any("error", gErr))
 		return
 	}
 
 	bot, bErr := g.GetPlayer(botID)
 	if bErr != nil {
-		log.Error("Bot not found after health check", zap.Error(bErr))
+		log.Error("Bot not found after health check", slog.Any("error", bErr))
 		return
 	}
 
 	if err != nil {
-		log.Error("Health check failed for bot", zap.String("bot_id", botID), zap.Error(err))
+		log.Error("Health check failed for bot", slog.String("bot_id", botID), slog.Any("error", err))
 		bot.SetBotStatus(playerPkg.BotStatusFailed)
 		a.broadcaster.BroadcastGameState(gameID, nil)
 		return
 	}
 
-	log.Debug("Bot health check passed", zap.String("bot_id", botID))
+	log.Debug("Bot health check passed", slog.String("bot_id", botID))
 	bot.SetBotStatus(playerPkg.BotStatusReady)
 	a.broadcaster.BroadcastGameState(gameID, nil)
 

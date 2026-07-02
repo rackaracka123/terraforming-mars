@@ -6,8 +6,6 @@ import (
 	"log/slog"
 	baseaction "terraforming-mars-backend/internal/action"
 
-	"go.uber.org/zap"
-
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
@@ -25,7 +23,7 @@ func NewUseCardActionAction(
 	gameRepo game.GameRepository,
 	cardRegistry gamecards.CardRegistry,
 	stateRepo game.GameStateRepository,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *UseCardActionAction {
 	return &UseCardActionAction{
 		BaseAction: baseaction.NewBaseActionWithStateRepo(gameRepo, cardRegistry, stateRepo),
@@ -48,21 +46,21 @@ func (a *UseCardActionAction) Execute(
 	reuseSourceCardID *string,
 ) error {
 	log := a.InitLogger(gameID, playerID).With(
-		zap.String("card_id", cardID),
-		zap.Int("behavior_index", behaviorIndex),
-		zap.String("action", "use_card_action"),
+		slog.String("card_id", cardID),
+		slog.Int("behavior_index", behaviorIndex),
+		slog.String("action", "use_card_action"),
 	)
 	if choiceIndex != nil {
-		log = log.With(zap.Int("choice_index", *choiceIndex))
+		log = log.With(slog.Int("choice_index", *choiceIndex))
 	}
 	if len(cardStorageTargets) > 0 {
-		log = log.With(zap.Strings("card_storage_targets", cardStorageTargets))
+		log = log.With(slog.Any("card_storage_targets", cardStorageTargets))
 	}
 	if targetPlayerID != nil {
-		log = log.With(zap.String("target_player_id", *targetPlayerID))
+		log = log.With(slog.String("target_player_id", *targetPlayerID))
 	}
 	if stealSourceCardID != nil {
-		log = log.With(zap.String("source_card_for_input", *stealSourceCardID))
+		log = log.With(slog.String("source_card_for_input", *stealSourceCardID))
 	}
 	log.Debug("Player attempting to use card action")
 
@@ -103,20 +101,20 @@ func (a *UseCardActionAction) Execute(
 
 	if a.hasManualTrigger(cardAction.Behavior) && cardAction.TimesUsedThisGeneration >= 1 {
 		log.Warn("Action already played this generation",
-			zap.Int("times_used", cardAction.TimesUsedThisGeneration))
+			slog.Int("times_used", cardAction.TimesUsedThisGeneration))
 		return fmt.Errorf("action already played this generation")
 	}
 
 	log.Debug("Found card action",
-		zap.String("card_name", cardAction.CardName),
-		zap.Int("times_used_this_generation", cardAction.TimesUsedThisGeneration))
+		slog.String("card_name", cardAction.CardName),
+		slog.Int("times_used_this_generation", cardAction.TimesUsedThisGeneration))
 
 	if choiceIndex != nil && cardAction.Behavior.ChoicePolicy != nil {
 		production := p.Resources().Production()
 		if !shared.IsChoiceValidForPolicy(*choiceIndex, cardAction.Behavior.Choices, cardAction.Behavior.ChoicePolicy, production) {
 			log.Warn("Choice rejected by policy",
-				zap.String("policy_type", string(cardAction.Behavior.ChoicePolicy.Type)),
-				zap.Int("choice_index", *choiceIndex))
+				slog.String("policy_type", string(cardAction.Behavior.ChoicePolicy.Type)),
+				slog.Int("choice_index", *choiceIndex))
 			return fmt.Errorf("choice not valid: policy %q restricts available options", cardAction.Behavior.ChoicePolicy.Type)
 		}
 	}
@@ -146,9 +144,9 @@ func (a *UseCardActionAction) Execute(
 
 	if choiceIndex != nil {
 		log.Debug("Using choice-specific behavior",
-			zap.Int("choice_index", *choiceIndex),
-			zap.Int("input_count", len(inputs)),
-			zap.Int("output_count", len(outputs)))
+			slog.Int("choice_index", *choiceIndex),
+			slog.Int("input_count", len(inputs)),
+			slog.Int("output_count", len(outputs)))
 	}
 
 	if hasVariableAmount(inputs, outputs) && selectedAmount == nil {
@@ -162,19 +160,19 @@ func (a *UseCardActionAction) Execute(
 	}
 
 	if err := validateOutputAffordability(p, outputs); err != nil {
-		log.Warn("Cannot afford negative resource outputs", zap.Error(err))
+		log.Warn("Cannot afford negative resource outputs", slog.Any("error", err))
 		return err
 	}
 
 	if err := applier.ApplyInputs(ctx, inputs); err != nil {
-		log.Error("Failed to apply inputs", zap.Error(err))
+		log.Error("Failed to apply inputs", slog.Any("error", err))
 		return err
 	}
 
 	// Check for card draw outputs (card-peek/take/buy) - these create pending selection
 	hasPending, err := applier.ApplyCardDrawOutputs(ctx, outputs)
 	if err != nil {
-		log.Error("Failed to apply card draw outputs", zap.Error(err))
+		log.Error("Failed to apply card draw outputs", slog.Any("error", err))
 		return err
 	}
 	if hasPending {
@@ -186,7 +184,7 @@ func (a *UseCardActionAction) Execute(
 
 	calculatedOutputs, err := applier.ApplyOutputsAndGetCalculated(ctx, outputs)
 	if err != nil {
-		log.Error("Failed to apply outputs", zap.Error(err))
+		log.Error("Failed to apply outputs", slog.Any("error", err))
 		return err
 	}
 
@@ -210,7 +208,7 @@ func (a *UseCardActionAction) findCardAction(
 	p *player.Player,
 	cardID string,
 	behaviorIndex int,
-	log *zap.Logger,
+	log *slog.Logger,
 ) (*shared.CardAction, error) {
 	actions := p.Actions().List()
 
@@ -221,8 +219,8 @@ func (a *UseCardActionAction) findCardAction(
 	}
 
 	log.Error("Card action not found in player's available actions",
-		zap.String("card_id", cardID),
-		zap.Int("behavior_index", behaviorIndex))
+		slog.String("card_id", cardID),
+		slog.Int("behavior_index", behaviorIndex))
 	return nil, fmt.Errorf("card action not found: %s[%d]", cardID, behaviorIndex)
 }
 
@@ -231,7 +229,7 @@ func (a *UseCardActionAction) incrementUsageCounts(
 	p *player.Player,
 	cardID string,
 	behaviorIndex int,
-	log *zap.Logger,
+	log *slog.Logger,
 ) {
 	actions := p.Actions().List()
 
@@ -241,8 +239,8 @@ func (a *UseCardActionAction) incrementUsageCounts(
 			actions[i].TimesUsedThisTurn++
 			actions[i].TimesUsedThisGeneration++
 			log.Debug("Incremented action usage counts",
-				zap.Int("times_used_this_turn", actions[i].TimesUsedThisTurn),
-				zap.Int("times_used_this_generation", actions[i].TimesUsedThisGeneration))
+				slog.Int("times_used_this_turn", actions[i].TimesUsedThisTurn),
+				slog.Int("times_used_this_generation", actions[i].TimesUsedThisGeneration))
 			break
 		}
 	}
@@ -265,9 +263,9 @@ func (a *UseCardActionAction) executeReuse(
 	selectedAmount *int,
 	actionPayment *gamecards.CardPayment,
 	reuseSourceCardID string,
-	log *zap.Logger,
+	log *slog.Logger,
 ) error {
-	log = log.With(zap.String("reuse_source_card_id", reuseSourceCardID))
+	log = log.With(slog.String("reuse_source_card_id", reuseSourceCardID))
 	log.Debug("Executing action reuse")
 
 	reuseAction, err := a.findActionReuseAction(p, reuseSourceCardID, log)
@@ -299,8 +297,8 @@ func (a *UseCardActionAction) executeReuse(
 		production := p.Resources().Production()
 		if !shared.IsChoiceValidForPolicy(*choiceIndex, targetAction.Behavior.Choices, targetAction.Behavior.ChoicePolicy, production) {
 			log.Warn("Choice rejected by policy",
-				zap.String("policy_type", string(targetAction.Behavior.ChoicePolicy.Type)),
-				zap.Int("choice_index", *choiceIndex))
+				slog.String("policy_type", string(targetAction.Behavior.ChoicePolicy.Type)),
+				slog.Int("choice_index", *choiceIndex))
 			return fmt.Errorf("choice not valid: policy %q restricts available options", targetAction.Behavior.ChoicePolicy.Type)
 		}
 	}
@@ -339,18 +337,18 @@ func (a *UseCardActionAction) executeReuse(
 	}
 
 	if err := validateOutputAffordability(p, outputs); err != nil {
-		log.Warn("Cannot afford negative resource outputs", zap.Error(err))
+		log.Warn("Cannot afford negative resource outputs", slog.Any("error", err))
 		return err
 	}
 
 	if err := applier.ApplyInputs(ctx, inputs); err != nil {
-		log.Error("Failed to apply inputs for reused action", zap.Error(err))
+		log.Error("Failed to apply inputs for reused action", slog.Any("error", err))
 		return err
 	}
 
 	hasPending, err := applier.ApplyCardDrawOutputs(ctx, outputs)
 	if err != nil {
-		log.Error("Failed to apply card draw outputs for reused action", zap.Error(err))
+		log.Error("Failed to apply card draw outputs for reused action", slog.Any("error", err))
 		return err
 	}
 	if hasPending {
@@ -360,7 +358,7 @@ func (a *UseCardActionAction) executeReuse(
 
 	calculatedOutputs, err := applier.ApplyOutputsAndGetCalculated(ctx, outputs)
 	if err != nil {
-		log.Error("Failed to apply outputs for reused action", zap.Error(err))
+		log.Error("Failed to apply outputs for reused action", slog.Any("error", err))
 		return err
 	}
 
@@ -376,15 +374,15 @@ func (a *UseCardActionAction) executeReuse(
 	a.WriteStateLogFull(ctx, g, targetAction.CardName, shared.SourceTypeCardAction, p.ID(), description, choiceIndex, calculatedOutputs, displayData)
 
 	log.Info("Action reused",
-		zap.String("reuse_source", reuseAction.CardName),
-		zap.String("target_action", targetAction.CardName))
+		slog.String("reuse_source", reuseAction.CardName),
+		slog.String("target_action", targetAction.CardName))
 	return nil
 }
 
 func (a *UseCardActionAction) findActionReuseAction(
 	p *player.Player,
 	reuseSourceCardID string,
-	log *zap.Logger,
+	log *slog.Logger,
 ) (*shared.CardAction, error) {
 	actions := p.Actions().List()
 	for i := range actions {
@@ -397,7 +395,7 @@ func (a *UseCardActionAction) findActionReuseAction(
 			}
 		}
 	}
-	log.Error("Action-reuse action not found", zap.String("card_id", reuseSourceCardID))
+	log.Error("Action-reuse action not found", slog.String("card_id", reuseSourceCardID))
 	return nil, fmt.Errorf("action-reuse action not found on card %s", reuseSourceCardID)
 }
 

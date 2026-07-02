@@ -3,13 +3,12 @@ package httpmiddleware
 import (
 	"bufio"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"time"
 
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // responseWriter wraps http.ResponseWriter to capture status code
@@ -64,17 +63,17 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		duration := time.Since(start)
 
 		// Build log fields
-		fields := []zap.Field{
-			zap.Int("status", wrapped.statusCode),
-			zap.String("method", r.Method),
-			zap.String("path", r.URL.Path),
-			zap.String("remote_addr", r.RemoteAddr),
-			zap.Duration("duration", duration),
+		fields := []any{
+			slog.Int("status", wrapped.statusCode),
+			slog.String("method", r.Method),
+			slog.String("path", r.URL.Path),
+			slog.String("remote_addr", r.RemoteAddr),
+			slog.Duration("duration", duration),
 		}
 
 		// Add query parameters if present
 		if r.URL.RawQuery != "" {
-			fields = append(fields, zap.String("query", r.URL.RawQuery))
+			fields = append(fields, slog.String("query", r.URL.RawQuery))
 		}
 
 		// Log based on status code

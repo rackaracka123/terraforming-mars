@@ -3,21 +3,20 @@ package game
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 
 	gameaction "terraforming-mars-backend/internal/action/game"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // SelectDemoChoicesHandler handles demo lobby card selection requests
 type SelectDemoChoicesHandler struct {
 	action      *gameaction.SelectDemoChoicesAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewSelectDemoChoicesHandler creates a new select demo choices handler
@@ -32,8 +31,8 @@ func NewSelectDemoChoicesHandler(action *gameaction.SelectDemoChoicesAction, bro
 // HandleMessage implements the MessageHandler interface
 func (h *SelectDemoChoicesHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing select demo choices request")
@@ -45,14 +44,14 @@ func (h *SelectDemoChoicesHandler) HandleMessage(ctx context.Context, connection
 
 	payloadBytes, err := json.Marshal(message.Payload)
 	if err != nil {
-		log.Error("Failed to marshal payload", zap.Error(err))
+		log.Error("Failed to marshal payload", slog.Any("error", err))
 		h.sendError(connection, "Invalid payload format")
 		return
 	}
 
 	var request dto.SelectDemoChoicesRequest
 	if err := json.Unmarshal(payloadBytes, &request); err != nil {
-		log.Error("Failed to unmarshal payload", zap.Error(err))
+		log.Error("Failed to unmarshal payload", slog.Any("error", err))
 		h.sendError(connection, "Invalid payload format")
 		return
 	}
@@ -90,7 +89,7 @@ func (h *SelectDemoChoicesHandler) HandleMessage(ctx context.Context, connection
 
 	err = h.action.Execute(ctx, connection.GameID, connection.PlayerID, &choices)
 	if err != nil {
-		log.Error("Failed to execute select demo choices action", zap.Error(err))
+		log.Error("Failed to execute select demo choices action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}

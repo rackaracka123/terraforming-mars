@@ -2,6 +2,7 @@ package game
 
 import (
 	"context"
+	"log/slog"
 
 	gameaction "terraforming-mars-backend/internal/action/game"
 	"terraforming-mars-backend/internal/delivery/dto"
@@ -9,14 +10,13 @@ import (
 	"terraforming-mars-backend/internal/logger"
 
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 )
 
 // JoinGameHandler handles join game requests.
 type JoinGameHandler struct {
 	joinGameAction *gameaction.JoinGameAction
 	broadcaster    Broadcaster
-	logger         *zap.Logger
+	logger         *slog.Logger
 }
 
 // NewJoinGameHandler creates a new join game handler
@@ -34,8 +34,8 @@ func NewJoinGameHandler(
 // HandleMessage implements the MessageHandler interface
 func (h *JoinGameHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing join game request")
@@ -66,25 +66,25 @@ func (h *JoinGameHandler) HandleMessage(ctx context.Context, connection *core.Co
 	if playerID == "" {
 		playerID = uuid.New().String()
 		log.Debug("Generated new playerID for session",
-			zap.String("player_id", playerID))
+			slog.String("player_id", playerID))
 	}
 
 	log.Debug("Parsed join game request",
-		zap.String("game_id", gameID),
-		zap.String("player_name", playerName),
-		zap.String("player_id", playerID))
+		slog.String("game_id", gameID),
+		slog.String("player_name", playerName),
+		slog.String("player_id", playerID))
 
 	connection.SetPlayer(playerID, gameID)
 
 	result, err := h.joinGameAction.Execute(ctx, gameID, playerName, playerID)
 	if err != nil {
-		log.Error("Failed to execute join game action", zap.Error(err))
+		log.Error("Failed to execute join game action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}
 
 	log.Debug("Game joined",
-		zap.String("player_id", result.PlayerID))
+		slog.String("player_id", result.PlayerID))
 
 	h.broadcaster.BroadcastGameState(gameID, nil)
 	log.Debug("Broadcasted game state to all players")

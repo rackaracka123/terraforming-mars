@@ -3,9 +3,8 @@ package game
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"slices"
-
-	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/board"
@@ -33,7 +32,7 @@ type UpdateGameSettingsAction struct {
 	gameRepo     game.GameRepository
 	cardRegistry cards.CardRegistry
 	mapRegistry  *board.MapRegistry
-	logger       *zap.Logger
+	logger       *slog.Logger
 }
 
 // NewUpdateGameSettingsAction creates a new update game settings action.
@@ -41,7 +40,7 @@ func NewUpdateGameSettingsAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
 	mapRegistry *board.MapRegistry,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *UpdateGameSettingsAction {
 	return &UpdateGameSettingsAction{
 		gameRepo:     gameRepo,
@@ -59,8 +58,8 @@ func (a *UpdateGameSettingsAction) Execute(
 	patch *SettingsPatch,
 ) error {
 	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
+		slog.String("game_id", gameID),
+		slog.String("player_id", playerID),
 	)
 
 	g, err := a.gameRepo.Get(ctx, gameID)
@@ -166,16 +165,16 @@ func (a *UpdateGameSettingsAction) Execute(
 		projectIDs, corpIDs, preludeIDs := cards.GetCardIDsByPacks(a.cardRegistry, effectivePacks)
 		g.InitDeck(projectIDs, corpIDs, preludeIDs)
 		log.Debug("Deck rebuilt",
-			zap.Int("project_cards", len(projectIDs)),
-			zap.Int("corporations", len(corpIDs)),
-			zap.Int("preludes", len(preludeIDs)))
+			slog.Int("project_cards", len(projectIDs)),
+			slog.Int("corporations", len(corpIDs)),
+			slog.Int("preludes", len(preludeIDs)))
 	}
 
 	if mapChanged || venusChanged {
 		mapDef, _ := a.mapRegistry.GetMap(settings.MapID)
 		initialTiles := board.GenerateBoardFromMap(mapDef, settings.VenusNextEnabled)
 		g.ReplaceBoard(ctx, initialTiles)
-		log.Debug("Board rebuilt", zap.String("map_id", settings.MapID))
+		log.Debug("Board rebuilt", slog.String("map_id", settings.MapID))
 	}
 
 	log.Info("Game settings updated")

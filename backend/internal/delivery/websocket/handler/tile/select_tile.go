@@ -2,20 +2,19 @@ package tile
 
 import (
 	"context"
+	"log/slog"
 
 	tileaction "terraforming-mars-backend/internal/action/tile"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // SelectTileHandler handles tile selection requests
 type SelectTileHandler struct {
 	action      *tileaction.SelectTileAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // Broadcaster interface for explicit broadcasting
@@ -35,8 +34,8 @@ func NewSelectTileHandler(action *tileaction.SelectTileAction, broadcaster Broad
 // HandleMessage implements the MessageHandler interface
 func (h *SelectTileHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing tile selection request")
@@ -61,11 +60,11 @@ func (h *SelectTileHandler) HandleMessage(ctx context.Context, connection *core.
 		return
 	}
 
-	log.Debug("Hex position extracted", zap.String("hex", selectedHex))
+	log.Debug("Hex position extracted", slog.String("hex", selectedHex))
 
 	_, err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, selectedHex)
 	if err != nil {
-		log.Error("Failed to execute select tile action", zap.Error(err))
+		log.Error("Failed to execute select tile action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}

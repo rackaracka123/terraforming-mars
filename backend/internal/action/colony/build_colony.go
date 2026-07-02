@@ -3,6 +3,7 @@ package colony
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"slices"
 	"time"
 
@@ -13,8 +14,6 @@ import (
 	gamecolony "terraforming-mars-backend/internal/game/colony"
 	gameplayer "terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
-
-	"go.uber.org/zap"
 )
 
 const (
@@ -34,7 +33,7 @@ func NewBuildColonyAction(
 	colonyRegistry gamecolony.ColonyRegistry,
 	cardRegistry cards.CardRegistry,
 	stateRepo game.GameStateRepository,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *BuildColonyAction {
 	return &BuildColonyAction{
 		BaseAction:     baseaction.NewBaseActionWithStateRepo(gameRepo, nil, stateRepo),
@@ -46,8 +45,8 @@ func NewBuildColonyAction(
 // Execute performs the build colony action
 func (a *BuildColonyAction) Execute(ctx context.Context, gameID string, playerID string, colonyID string) error {
 	log := a.InitLogger(gameID, playerID).With(
-		zap.String("action", "build_colony"),
-		zap.String("colony_id", colonyID),
+		slog.String("action", "build_colony"),
+		slog.String("colony_id", colonyID),
 	)
 	log.Debug("Building colony")
 
@@ -103,8 +102,8 @@ func (a *BuildColonyAction) Execute(ctx context.Context, gameID string, playerID
 	resources := player.Resources().Get()
 	if resources.Credits < BuildColonyCost {
 		log.Warn("Insufficient credits for colony",
-			zap.Int("cost", BuildColonyCost),
-			zap.Int("player_credits", resources.Credits))
+			slog.Int("cost", BuildColonyCost),
+			slog.Int("player_credits", resources.Credits))
 		return fmt.Errorf("insufficient credits: need %d, have %d", BuildColonyCost, resources.Credits)
 	}
 
@@ -161,8 +160,8 @@ func (a *BuildColonyAction) Execute(ctx context.Context, gameID string, playerID
 	a.ConsumePlayerAction(g, log)
 
 	log.Info("Colony built",
-		zap.String("colony_id", colonyID),
-		zap.Int("slot_index", slotIndex))
+		slog.String("colony_id", colonyID),
+		slog.Int("slot_index", slotIndex))
 
 	return nil
 }
@@ -178,7 +177,7 @@ func PlaceColonyOnTile(
 	tileState *gamecolony.ColonyState,
 	cardRegistry cards.CardRegistry,
 	source string,
-	log *zap.Logger,
+	log *slog.Logger,
 ) error {
 	slotIndex := len(tileState.PlayerColonies)
 	tileState.PlayerColonies = append(tileState.PlayerColonies, player.ID())
@@ -221,9 +220,9 @@ func PlaceColonyOnTile(
 	})
 
 	log.Debug("Colony placed (free)",
-		zap.String("colony_id", tileState.DefinitionID),
-		zap.String("player_id", player.ID()),
-		zap.Int("slot_index", slotIndex))
+		slog.String("colony_id", tileState.DefinitionID),
+		slog.String("player_id", player.ID()),
+		slog.Int("slot_index", slotIndex))
 
 	return nil
 }

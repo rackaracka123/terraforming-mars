@@ -3,10 +3,9 @@ package confirmation
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"slices"
 	"time"
-
-	"go.uber.org/zap"
 
 	baseaction "terraforming-mars-backend/internal/action"
 	colonyaction "terraforming-mars-backend/internal/action/colony"
@@ -39,8 +38,8 @@ func NewConfirmFreeTradeAction(
 // Execute performs the free trade with the selected colony
 func (a *ConfirmFreeTradeAction) Execute(ctx context.Context, gameID string, playerID string, colonyID string) error {
 	log := a.InitLogger(gameID, playerID).With(
-		zap.String("action", "confirm_free_trade"),
-		zap.String("colony_id", colonyID),
+		slog.String("action", "confirm_free_trade"),
+		slog.String("colony_id", colonyID),
 	)
 	log.Debug("Confirming free trade")
 
@@ -153,7 +152,7 @@ func (a *ConfirmFreeTradeAction) Execute(ctx context.Context, gameID string, pla
 		playerID, fmt.Sprintf("Free traded with %s", definition.Name), nil, nil, nil)
 
 	log.Info("Free trade confirmed",
-		zap.String("colony_id", colonyID))
+		slog.String("colony_id", colonyID))
 
 	return nil
 }

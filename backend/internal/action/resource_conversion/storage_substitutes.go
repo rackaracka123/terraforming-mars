@@ -2,8 +2,7 @@ package resource_conversion
 
 import (
 	"fmt"
-
-	"go.uber.org/zap"
+	"log/slog"
 
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
@@ -16,7 +15,7 @@ func ValidateAndDeductStorageSubstitutes(
 	p *player.Player,
 	storageSubstitutes map[string]int,
 	targetResource shared.ResourceType,
-	log *zap.Logger,
+	log *slog.Logger,
 ) (int, error) {
 	if len(storageSubstitutes) == 0 {
 		return 0, nil
@@ -48,8 +47,8 @@ func ValidateAndDeductStorageSubstitutes(
 		totalValue += count * sub.ConversionRate
 		p.Resources().AddToStorage(cardID, -count)
 		log.Debug("Deducted storage substitute",
-			zap.String("card_id", cardID), zap.Int("count", count),
-			zap.Int("value", count*sub.ConversionRate), zap.String("target", string(targetResource)))
+			slog.String("card_id", cardID), slog.Int("count", count),
+			slog.Int("value", count*sub.ConversionRate), slog.String("target", string(targetResource)))
 	}
 
 	return totalValue, nil

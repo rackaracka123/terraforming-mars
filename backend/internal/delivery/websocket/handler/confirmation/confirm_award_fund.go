@@ -2,20 +2,19 @@ package confirmation
 
 import (
 	"context"
+	"log/slog"
 
 	confirmaction "terraforming-mars-backend/internal/action/confirmation"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // ConfirmAwardFundHandler handles confirm award fund requests
 type ConfirmAwardFundHandler struct {
 	action      *confirmaction.ConfirmAwardFundAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewConfirmAwardFundHandler creates a new confirm award fund handler
@@ -30,8 +29,8 @@ func NewConfirmAwardFundHandler(action *confirmaction.ConfirmAwardFundAction, br
 // HandleMessage implements the MessageHandler interface
 func (h *ConfirmAwardFundHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing confirm award fund request")
@@ -58,7 +57,7 @@ func (h *ConfirmAwardFundHandler) HandleMessage(ctx context.Context, connection 
 
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, awardType)
 	if err != nil {
-		log.Error("Failed to execute confirm award fund action", zap.Error(err))
+		log.Error("Failed to execute confirm award fund action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}

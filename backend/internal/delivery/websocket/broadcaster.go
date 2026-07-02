@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"context"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -16,8 +17,6 @@ import (
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/game/standardproject"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // BotNotifier is called after every game state broadcast to notify bot controller.
@@ -39,7 +38,7 @@ type Broadcaster struct {
 	milestoneRegistry       milestone.MilestoneRegistry
 	availableMaps           []dto.MapInfoDto
 	botNotifier             BotNotifier
-	logger                  *zap.Logger
+	logger                  *slog.Logger
 	lastBroadcastedSeq      map[string]int64 // gameID -> last broadcasted log sequence
 	lastBroadcastedLock     sync.RWMutex
 }
@@ -87,11 +86,11 @@ func (b *Broadcaster) SetBotNotifier(notifier BotNotifier) {
 // Also broadcasts any new log entries since the last broadcast
 func (b *Broadcaster) BroadcastGameState(gameID string, playerIDs []string) {
 	ctx := context.Background()
-	log := b.logger.With(zap.String("game_id", gameID))
+	log := b.logger.With(slog.String("game_id", gameID))
 
 	g, err := b.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to get game for broadcast", zap.Error(err))
+		log.Error("Failed to get game for broadcast", slog.Any("error", err))
 		return
 	}
 
@@ -104,17 +103,17 @@ func (b *Broadcaster) BroadcastGameState(gameID string, playerIDs []string) {
 				playerIDs = append(playerIDs, player.ID())
 			}
 		}
-		log.Debug("Broadcasting to all players", zap.Int("player_count", len(playerIDs)))
+		log.Debug("Broadcasting to all players", slog.Int("player_count", len(playerIDs)))
 	} else {
 		// Broadcast to specific players
-		log.Debug("Broadcasting to specific players", zap.Strings("player_ids", playerIDs))
+		log.Debug("Broadcasting to specific players", slog.Any("player_ids", playerIDs))
 	}
 
 	for _, playerID := range playerIDs {
 		if err := b.sendToPlayer(ctx, g, playerID); err != nil {
 			log.Error("Failed to send game state to player",
-				zap.String("player_id", playerID),
-				zap.Error(err))
+				slog.String("player_id", playerID),
+				slog.Any("error", err))
 			// Continue with other players even if one fails
 		}
 	}
@@ -128,7 +127,7 @@ func (b *Broadcaster) BroadcastGameState(gameID string, playerIDs []string) {
 	// Broadcast any new log entries since the last broadcast
 	b.broadcastNewLogs(gameID, playerIDs)
 
-	log.Debug("Broadcast completed", zap.Int("player_count", len(playerIDs)))
+	log.Debug("Broadcast completed", slog.Int("player_count", len(playerIDs)))
 
 	if b.botNotifier != nil {
 		b.botNotifier.OnGameBroadcast(gameID)
@@ -138,7 +137,7 @@ func (b *Broadcaster) BroadcastGameState(gameID string, playerIDs []string) {
 // broadcastNewLogs sends any new log entries to the specified players
 func (b *Broadcaster) broadcastNewLogs(gameID string, playerIDs []string) {
 	ctx := context.Background()
-	log := b.logger.With(zap.String("game_id", gameID))
+	log := b.logger.With(slog.String("game_id", gameID))
 
 	// Get the last broadcasted sequence for this game
 	b.lastBroadcastedLock.RLock()
@@ -148,7 +147,7 @@ func (b *Broadcaster) broadcastNewLogs(gameID string, playerIDs []string) {
 	// Fetch all logs
 	diffs, err := b.stateRepo.GetDiff(ctx, gameID)
 	if err != nil {
-		log.Debug("No logs to broadcast", zap.Error(err))
+		log.Debug("No logs to broadcast", slog.Any("error", err))
 		return
 	}
 
@@ -186,8 +185,8 @@ func (b *Broadcaster) broadcastNewLogs(gameID string, playerIDs []string) {
 	for _, playerID := range playerIDs {
 		if err := b.hub.SendToPlayer(gameID, playerID, message); err != nil {
 			log.Error("Failed to send log update to player",
-				zap.String("player_id", playerID),
-				zap.Error(err))
+				slog.String("player_id", playerID),
+				slog.Any("error", err))
 		}
 	}
 
@@ -196,14 +195,14 @@ func (b *Broadcaster) broadcastNewLogs(gameID string, playerIDs []string) {
 		conn.SendMessage(message)
 	}
 
-	log.Debug("Broadcasted new logs", zap.Int("log_count", len(newLogs)))
+	log.Debug("Broadcasted new logs", slog.Int("log_count", len(newLogs)))
 }
 
 // sendToPlayer creates a personalized DTO for a player and sends it via WebSocket
 func (b *Broadcaster) sendToPlayer(ctx context.Context, game *game.Game, playerID string) error {
 	log := b.logger.With(
-		zap.String("game_id", game.ID()),
-		zap.String("player_id", playerID),
+		slog.String("game_id", game.ID()),
+		slog.String("player_id", playerID),
 	)
 
 	gameDto := dto.ToGameDtoFull(game, b.cardRegistry, playerID, dto.Registries{
@@ -235,13 +234,13 @@ func (b *Broadcaster) sendToPlayer(ctx context.Context, game *game.Game, playerI
 func (b *Broadcaster) SendInitialLogs(gameID string, playerID string) {
 	ctx := context.Background()
 	log := b.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
+		slog.String("game_id", gameID),
+		slog.String("player_id", playerID),
 	)
 
 	diffs, err := b.stateRepo.GetDiff(ctx, gameID)
 	if err != nil {
-		log.Debug("No logs to send (game may be new)", zap.Error(err))
+		log.Debug("No logs to send (game may be new)", slog.Any("error", err))
 		return
 	}
 
@@ -261,11 +260,11 @@ func (b *Broadcaster) SendInitialLogs(gameID string, playerID string) {
 	}
 
 	if err := b.hub.SendToPlayer(gameID, playerID, message); err != nil {
-		log.Error("Failed to send initial logs", zap.Error(err))
+		log.Error("Failed to send initial logs", slog.Any("error", err))
 		return
 	}
 
-	log.Debug("Sent initial logs to player", zap.Int("log_count", len(logDtos)))
+	log.Debug("Sent initial logs to player", slog.Int("log_count", len(logDtos)))
 }
 
 // broadcastToSpectators sends spectator-specific game state to all spectator connections.
@@ -287,25 +286,25 @@ func (b *Broadcaster) broadcastToSpectators(g *game.Game) {
 	for _, s := range spectators {
 		if err := b.hub.SendToSpectator(g.ID(), s.ID(), message); err != nil {
 			b.logger.Error("Failed to send game state to spectator",
-				zap.String("game_id", g.ID()),
-				zap.String("spectator_id", s.ID()),
-				zap.Error(err))
+				slog.String("game_id", g.ID()),
+				slog.String("spectator_id", s.ID()),
+				slog.Any("error", err))
 		}
 	}
 
 	b.logger.Debug("Broadcasted to spectators",
-		zap.String("game_id", g.ID()),
-		zap.Int("spectator_count", len(spectators)))
+		slog.String("game_id", g.ID()),
+		slog.Int("spectator_count", len(spectators)))
 }
 
 // BroadcastChatMessage broadcasts a chat message to all players and spectators in a game.
 func (b *Broadcaster) BroadcastChatMessage(gameID string, chatMsg shared.ChatMessage) {
 	ctx := context.Background()
-	log := b.logger.With(zap.String("game_id", gameID))
+	log := b.logger.With(slog.String("game_id", gameID))
 
 	g, err := b.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to get game for chat broadcast", zap.Error(err))
+		log.Error("Failed to get game for chat broadcast", slog.Any("error", err))
 		return
 	}
 
@@ -328,8 +327,8 @@ func (b *Broadcaster) BroadcastChatMessage(gameID string, chatMsg shared.ChatMes
 		if !p.HasExited() {
 			if err := b.hub.SendToPlayer(gameID, p.ID(), message); err != nil {
 				log.Error("Failed to send chat to player",
-					zap.String("player_id", p.ID()),
-					zap.Error(err))
+					slog.String("player_id", p.ID()),
+					slog.Any("error", err))
 			}
 		}
 	}
@@ -346,13 +345,13 @@ func (b *Broadcaster) BroadcastChatMessage(gameID string, chatMsg shared.ChatMes
 func (b *Broadcaster) SendInitialLogsToSpectator(gameID string, spectatorID string) {
 	ctx := context.Background()
 	log := b.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("spectator_id", spectatorID),
+		slog.String("game_id", gameID),
+		slog.String("spectator_id", spectatorID),
 	)
 
 	diffs, err := b.stateRepo.GetDiff(ctx, gameID)
 	if err != nil {
-		log.Debug("No logs to send to spectator", zap.Error(err))
+		log.Debug("No logs to send to spectator", slog.Any("error", err))
 		return
 	}
 
@@ -370,21 +369,21 @@ func (b *Broadcaster) SendInitialLogsToSpectator(gameID string, spectatorID stri
 	}
 
 	if err := b.hub.SendToSpectator(gameID, spectatorID, message); err != nil {
-		log.Error("Failed to send initial logs to spectator", zap.Error(err))
+		log.Error("Failed to send initial logs to spectator", slog.Any("error", err))
 		return
 	}
 
-	log.Debug("Sent initial logs to spectator", zap.Int("log_count", len(logDtos)))
+	log.Debug("Sent initial logs to spectator", slog.Int("log_count", len(logDtos)))
 }
 
 // BroadcastLogUpdate broadcasts a single log entry to all players in a game
 func (b *Broadcaster) BroadcastLogUpdate(gameID string, logEntry *game.StateDiff) {
 	ctx := context.Background()
-	log := b.logger.With(zap.String("game_id", gameID))
+	log := b.logger.With(slog.String("game_id", gameID))
 
 	g, err := b.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to get game for log broadcast", zap.Error(err))
+		log.Error("Failed to get game for log broadcast", slog.Any("error", err))
 		return
 	}
 
@@ -401,8 +400,8 @@ func (b *Broadcaster) BroadcastLogUpdate(gameID string, logEntry *game.StateDiff
 	for _, player := range players {
 		if err := b.hub.SendToPlayer(gameID, player.ID(), message); err != nil {
 			log.Error("Failed to send log update to player",
-				zap.String("player_id", player.ID()),
-				zap.Error(err))
+				slog.String("player_id", player.ID()),
+				slog.Any("error", err))
 		}
 	}
 
@@ -411,5 +410,5 @@ func (b *Broadcaster) BroadcastLogUpdate(gameID string, logEntry *game.StateDiff
 		conn.SendMessage(message)
 	}
 
-	log.Debug("Broadcasted log update", zap.Int64("sequence", logEntry.SequenceNumber))
+	log.Debug("Broadcasted log update", slog.Int64("sequence", logEntry.SequenceNumber))
 }

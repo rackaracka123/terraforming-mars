@@ -3,9 +3,8 @@ package confirmation
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"slices"
-
-	"go.uber.org/zap"
 
 	baseaction "terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/game"
@@ -25,7 +24,7 @@ func NewConfirmAwardFundAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
 	awardRegistry award.AwardRegistry,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *ConfirmAwardFundAction {
 	return &ConfirmAwardFundAction{
 		BaseAction:    baseaction.NewBaseAction(gameRepo, cardRegistry),
@@ -36,8 +35,8 @@ func NewConfirmAwardFundAction(
 // Execute funds the selected award for free and clears the pending selection
 func (a *ConfirmAwardFundAction) Execute(ctx context.Context, gameID string, playerID string, awardType string) error {
 	log := a.InitLogger(gameID, playerID).With(
-		zap.String("action", "confirm_award_fund"),
-		zap.String("award_type", awardType),
+		slog.String("action", "confirm_award_fund"),
+		slog.String("award_type", awardType),
 	)
 	log.Debug("Confirming award fund selection")
 
@@ -76,7 +75,7 @@ func (a *ConfirmAwardFundAction) Execute(ctx context.Context, gameID string, pla
 	}
 
 	log.Info("Award funded for free",
-		zap.String("award", def.Name))
+		slog.String("award", def.Name))
 
 	return nil
 }

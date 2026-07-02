@@ -3,8 +3,8 @@ package turn_management
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
-	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/game"
 	playerPkg "terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
@@ -13,11 +13,11 @@ import (
 // ExecuteProductionPhase handles the production phase when all players have passed.
 // It calculates production, draws cards, advances the generation, rotates turn order,
 // and transitions the game to the production_and_card_draw phase.
-func ExecuteProductionPhase(ctx context.Context, g *game.Game, players []*playerPkg.Player, log *zap.Logger) error {
-	log = log.With(zap.String("game_id", g.ID()))
+func ExecuteProductionPhase(ctx context.Context, g *game.Game, players []*playerPkg.Player, log *slog.Logger) error {
+	log = log.With(slog.String("game_id", g.ID()))
 	log.Debug("Starting production phase",
-		zap.Int("player_count", len(players)),
-		zap.Int("generation", g.Generation()))
+		slog.Int("player_count", len(players)),
+		slog.Int("generation", g.Generation()))
 
 	// Solar Phase: advance colony markers and reset trade fleets
 	if g.HasColonies() {
@@ -62,9 +62,9 @@ func ExecuteProductionPhase(ctx context.Context, g *game.Game, players []*player
 			cardIDs, err := deck.DrawProjectCards(ctx, 1)
 			if err != nil || len(cardIDs) == 0 {
 				log.Debug("Deck empty or error drawing card, stopping at card draw",
-					zap.Int("cards_drawn", len(drawnCards)),
-					zap.Int("attempt", i),
-					zap.Error(err))
+					slog.Int("cards_drawn", len(drawnCards)),
+					slog.Int("attempt", i),
+					slog.Any("error", err))
 				break
 			}
 			drawnCards = append(drawnCards, cardIDs[0])
@@ -80,20 +80,20 @@ func ExecuteProductionPhase(ctx context.Context, g *game.Game, players []*player
 		}
 
 		log.Debug("Setting production phase data for player",
-			zap.String("player_id", p.ID()),
-			zap.Int("available_cards", len(drawnCards)))
+			slog.String("player_id", p.ID()),
+			slog.Int("available_cards", len(drawnCards)))
 
 		err := g.SetProductionPhase(ctx, p.ID(), productionPhaseData)
 		if err != nil {
-			log.Error("Failed to set production phase", zap.Error(err))
+			log.Error("Failed to set production phase", slog.Any("error", err))
 			return fmt.Errorf("failed to set production phase: %w", err)
 		}
 
 		log.Debug("Production phase data set",
-			zap.String("player_id", p.ID()),
-			zap.Int("cards_drawn", len(drawnCards)),
-			zap.Int("credits_income", productionPhaseData.CreditsIncome),
-			zap.Int("energy_converted", energyConverted))
+			slog.String("player_id", p.ID()),
+			slog.Int("cards_drawn", len(drawnCards)),
+			slog.Int("credits_income", productionPhaseData.CreditsIncome),
+			slog.Int("energy_converted", energyConverted))
 	}
 
 	oldGeneration := g.Generation()
@@ -129,7 +129,7 @@ func ExecuteProductionPhase(ctx context.Context, g *game.Game, players []*player
 		}
 		turnOrder = rotatedOrder
 		log.Debug("Turn order rotated for new generation",
-			zap.Strings("new_turn_order", turnOrder))
+			slog.Any("new_turn_order", turnOrder))
 	}
 
 	if len(turnOrder) > 0 {
@@ -157,18 +157,18 @@ func ExecuteProductionPhase(ctx context.Context, g *game.Game, players []*player
 	}
 
 	log.Debug("Updating game phase to production_and_card_draw",
-		zap.String("current_phase", string(g.CurrentPhase())),
-		zap.String("new_phase", string(shared.GamePhaseProductionAndCardDraw)))
+		slog.String("current_phase", string(g.CurrentPhase())),
+		slog.String("new_phase", string(shared.GamePhaseProductionAndCardDraw)))
 
 	err := g.UpdatePhase(ctx, shared.GamePhaseProductionAndCardDraw)
 	if err != nil {
-		log.Error("Failed to update phase", zap.Error(err))
+		log.Error("Failed to update phase", slog.Any("error", err))
 		return fmt.Errorf("failed to update phase: %w", err)
 	}
 
 	log.Info("Production phase complete, generation advanced",
-		zap.Int("old_generation", oldGeneration),
-		zap.Int("new_generation", newGeneration))
+		slog.Int("old_generation", oldGeneration),
+		slog.Int("new_generation", newGeneration))
 
 	return nil
 }
@@ -176,11 +176,11 @@ func ExecuteProductionPhase(ctx context.Context, g *game.Game, players []*player
 // ExecuteFinalProductionPhase runs the production phase for the final generation.
 // Per TM rules, there is no research phase (no card drawing) after the final production.
 // Sets up ProductionPhase data for the modal and transitions to production_and_card_draw.
-func ExecuteFinalProductionPhase(ctx context.Context, g *game.Game, players []*playerPkg.Player, log *zap.Logger) error {
-	log = log.With(zap.String("game_id", g.ID()))
+func ExecuteFinalProductionPhase(ctx context.Context, g *game.Game, players []*playerPkg.Player, log *slog.Logger) error {
+	log = log.With(slog.String("game_id", g.ID()))
 	log.Debug("Starting final production phase",
-		zap.Int("player_count", len(players)),
-		zap.Int("generation", g.Generation()))
+		slog.Int("player_count", len(players)),
+		slog.Int("generation", g.Generation()))
 
 	if g.HasColonies() {
 		for _, state := range g.Colonies().States() {
@@ -221,17 +221,17 @@ func ExecuteFinalProductionPhase(ctx context.Context, g *game.Game, players []*p
 			CreditsIncome:     production.Credits + tr,
 		}
 		if err := g.SetProductionPhase(ctx, p.ID(), productionPhaseData); err != nil {
-			log.Error("Failed to set final production phase", zap.Error(err))
+			log.Error("Failed to set final production phase", slog.Any("error", err))
 			return fmt.Errorf("failed to set final production phase: %w", err)
 		}
 		log.Debug("Final production applied",
-			zap.String("player_id", p.ID()),
-			zap.Int("credits_income", production.Credits+tr),
-			zap.Int("energy_converted", energyConverted))
+			slog.String("player_id", p.ID()),
+			slog.Int("credits_income", production.Credits+tr),
+			slog.Int("energy_converted", energyConverted))
 	}
 
 	if err := g.UpdatePhase(ctx, shared.GamePhaseProductionAndCardDraw); err != nil {
-		log.Error("Failed to update phase", zap.Error(err))
+		log.Error("Failed to update phase", slog.Any("error", err))
 		return fmt.Errorf("failed to update phase: %w", err)
 	}
 

@@ -3,20 +3,19 @@ package resource_conversion
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 
 	resconvaction "terraforming-mars-backend/internal/action/resource_conversion"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // ConvertPlantsHandler handles convert plants to greenery requests
 type ConvertPlantsHandler struct {
 	action      *resconvaction.ConvertPlantsToGreeneryAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewConvertPlantsHandler creates a new convert plants handler
@@ -31,8 +30,8 @@ func NewConvertPlantsHandler(action *resconvaction.ConvertPlantsToGreeneryAction
 // HandleMessage implements the MessageHandler interface
 func (h *ConvertPlantsHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing convert plants request")
@@ -51,7 +50,7 @@ func (h *ConvertPlantsHandler) HandleMessage(ctx context.Context, connection *co
 
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, req.StorageSubstitutes)
 	if err != nil {
-		log.Error("Failed to execute convert plants action", zap.Error(err))
+		log.Error("Failed to execute convert plants action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}

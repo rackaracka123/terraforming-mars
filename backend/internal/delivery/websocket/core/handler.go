@@ -1,6 +1,7 @@
 package core
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -8,7 +9,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"go.uber.org/zap"
 )
 
 var upgrader = websocket.Upgrader{
@@ -23,7 +23,7 @@ var upgrader = websocket.Upgrader{
 // Handler handles WebSocket HTTP upgrade requests
 type Handler struct {
 	hub    *Hub
-	logger *zap.Logger
+	logger *slog.Logger
 }
 
 // NewHandler creates a new WebSocket handler
@@ -36,11 +36,11 @@ func NewHandler(hub *Hub) *Handler {
 
 // ServeWS handles WebSocket upgrade requests from clients
 func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
-	h.logger.Debug("WebSocket connection request received", zap.String("remote_addr", r.RemoteAddr))
+	h.logger.Debug("WebSocket connection request received", slog.String("remote_addr", r.RemoteAddr))
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		h.logger.Error("Failed to upgrade connection to WebSocket", zap.Error(err))
+		h.logger.Error("Failed to upgrade connection to WebSocket", slog.Any("error", err))
 		return
 	}
 
@@ -52,21 +52,21 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		func(conn *Connection) { h.hub.Unregister <- conn }) // onDisconnect callback
 
 	h.logger.Debug("New WebSocket connection established",
-		zap.String("connection_id", connectionID),
-		zap.String("remote_addr", r.RemoteAddr))
+		slog.String("connection_id", connectionID),
+		slog.String("remote_addr", r.RemoteAddr))
 
 	h.hub.Register <- connection
 
 	if err := conn.SetReadDeadline(time.Now().Add(60 * time.Second)); err != nil {
-		h.logger.Warn("Failed to set initial read deadline", zap.Error(err), zap.String("connection_id", connectionID))
+		h.logger.Warn("Failed to set initial read deadline", slog.Any("error", err), slog.String("connection_id", connectionID))
 	}
 	if err := conn.SetWriteDeadline(time.Now().Add(10 * time.Second)); err != nil {
-		h.logger.Warn("Failed to set initial write deadline", zap.Error(err), zap.String("connection_id", connectionID))
+		h.logger.Warn("Failed to set initial write deadline", slog.Any("error", err), slog.String("connection_id", connectionID))
 	}
 
 	conn.SetPongHandler(func(string) error {
 		if err := conn.SetReadDeadline(time.Now().Add(60 * time.Second)); err != nil {
-			h.logger.Warn("Failed to set read deadline in pong handler", zap.Error(err), zap.String("connection_id", connectionID))
+			h.logger.Warn("Failed to set read deadline in pong handler", slog.Any("error", err), slog.String("connection_id", connectionID))
 		}
 		return nil
 	})
@@ -74,5 +74,5 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 	go connection.WritePump()
 	go connection.ReadPump()
 
-	h.logger.Debug("WebSocket connection fully initialized", zap.String("connection_id", connectionID))
+	h.logger.Debug("WebSocket connection fully initialized", slog.String("connection_id", connectionID))
 }

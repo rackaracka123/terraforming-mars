@@ -3,20 +3,19 @@ package game
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 
 	gameaction "terraforming-mars-backend/internal/action/game"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // UpdateGameSettingsHandler handles incoming update-game-settings messages.
 type UpdateGameSettingsHandler struct {
 	action      *gameaction.UpdateGameSettingsAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewUpdateGameSettingsHandler creates a new update game settings handler.
@@ -31,8 +30,8 @@ func NewUpdateGameSettingsHandler(action *gameaction.UpdateGameSettingsAction, b
 // HandleMessage implements the MessageHandler interface.
 func (h *UpdateGameSettingsHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	gameID := connection.GameID
@@ -67,7 +66,7 @@ func (h *UpdateGameSettingsHandler) HandleMessage(ctx context.Context, connectio
 		ClaudeModel:      patch.ClaudeModel,
 	}
 	if err := h.action.Execute(ctx, gameID, playerID, &domainPatch); err != nil {
-		log.Debug("Failed to update game settings", zap.Error(err))
+		log.Debug("Failed to update game settings", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}

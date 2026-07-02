@@ -2,6 +2,7 @@ package connection
 
 import (
 	"context"
+	"log/slog"
 
 	connaction "terraforming-mars-backend/internal/action/connection"
 	"terraforming-mars-backend/internal/delivery/dto"
@@ -9,14 +10,13 @@ import (
 	"terraforming-mars-backend/internal/logger"
 
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 )
 
 // SpectateGameHandler handles spectator connection requests.
 type SpectateGameHandler struct {
 	action      *connaction.SpectateGameAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewSpectateGameHandler creates a new spectate game handler.
@@ -31,8 +31,8 @@ func NewSpectateGameHandler(action *connaction.SpectateGameAction, broadcaster B
 // HandleMessage processes a spectator-connect message.
 func (h *SpectateGameHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing spectate game request")
@@ -64,12 +64,12 @@ func (h *SpectateGameHandler) HandleMessage(ctx context.Context, connection *cor
 
 	result, err := h.action.Execute(ctx, gameID, spectatorName, spectatorID)
 	if err != nil {
-		log.Error("Failed to execute spectate game action", zap.Error(err))
+		log.Error("Failed to execute spectate game action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}
 
-	log.Debug("Spectator joined", zap.String("spectator_id", result.SpectatorID))
+	log.Debug("Spectator joined", slog.String("spectator_id", result.SpectatorID))
 
 	h.broadcaster.BroadcastGameState(gameID, nil)
 

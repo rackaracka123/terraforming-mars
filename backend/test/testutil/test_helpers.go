@@ -3,13 +3,12 @@ package testutil
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"testing"
 	"time"
 
 	"path/filepath"
 	"runtime"
-
-	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/game"
@@ -29,7 +28,7 @@ func TestContext() context.Context {
 }
 
 // TestLogger creates a test logger (no-op or minimal output)
-func TestLogger() *zap.Logger {
+func TestLogger() *slog.Logger {
 	return logger.Get()
 }
 

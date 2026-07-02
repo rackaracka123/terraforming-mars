@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"go.uber.org/zap"
-
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
 	gamecards "terraforming-mars-backend/internal/game/cards"
@@ -22,7 +20,7 @@ type ConfirmInitAdvanceAction struct {
 	awardRegistry award.AwardRegistry
 	stateRepo     game.GameStateRepository
 	corpProc      *gamecards.CorporationProcessor
-	logger        *zap.Logger
+	logger        *slog.Logger
 }
 
 // NewConfirmInitAdvanceAction creates a new confirm init advance action
@@ -31,7 +29,7 @@ func NewConfirmInitAdvanceAction(
 	cardRegistry gamecards.CardRegistry,
 	awardRegistry award.AwardRegistry,
 	stateRepo game.GameStateRepository,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *ConfirmInitAdvanceAction {
 	return &ConfirmInitAdvanceAction{
 		gameRepo:      gameRepo,
@@ -48,9 +46,9 @@ func NewConfirmInitAdvanceAction(
 // confirm → apply next → wait → ... → confirm → apply last → wait → confirm → transition.
 func (a *ConfirmInitAdvanceAction) Execute(ctx context.Context, gameID string, playerID string) error {
 	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
-		zap.String("action", "confirm_init_advance"),
+		slog.String("game_id", gameID),
+		slog.String("player_id", playerID),
+		slog.String("action", "confirm_init_advance"),
 	)
 
 	g, err := a.gameRepo.Get(ctx, gameID)
@@ -120,7 +118,7 @@ func (a *ConfirmInitAdvanceAction) Execute(ctx context.Context, gameID string, p
 // when the phase is not an init-apply phase, when not waiting for confirm, when the
 // init player index is out of range, or when the current init player still has a pending
 // selection, a pending tile queue, or an incomplete forced first action.
-func AdvanceInitPhaseAfterForcedAction(ctx context.Context, g *game.Game, log *zap.Logger) (bool, error) {
+func AdvanceInitPhaseAfterForcedAction(ctx context.Context, g *game.Game, log *slog.Logger) (bool, error) {
 	phase := g.CurrentPhase()
 	if phase != shared.GamePhaseInitApplyCorp && phase != shared.GamePhaseInitApplyPrelude {
 		return false, nil
@@ -158,19 +156,19 @@ func AdvanceInitPhaseAfterForcedAction(ctx context.Context, g *game.Game, log *z
 	return true, nil
 }
 
-func (a *ConfirmInitAdvanceAction) applyCurrentPlayer(ctx context.Context, g *game.Game, phase shared.GamePhase, currentPlayerID string, log *zap.Logger) error {
+func (a *ConfirmInitAdvanceAction) applyCurrentPlayer(ctx context.Context, g *game.Game, phase shared.GamePhase, currentPlayerID string, log *slog.Logger) error {
 	switch phase {
 	case shared.GamePhaseInitApplyCorp:
 		if err := ApplyCorpForPlayer(ctx, g, currentPlayerID, a.cardRegistry, a.corpProc, log); err != nil {
 			return fmt.Errorf("failed to apply corp for player %s: %w", currentPlayerID, err)
 		}
-		log.Debug("Applied corp effects", zap.String("player_id", currentPlayerID))
+		log.Debug("Applied corp effects", slog.String("player_id", currentPlayerID))
 
 	case shared.GamePhaseInitApplyPrelude:
 		if err := ApplyPreludesForPlayer(ctx, g, currentPlayerID, a.cardRegistry, a.stateRepo, log); err != nil {
 			return fmt.Errorf("failed to apply preludes for player %s: %w", currentPlayerID, err)
 		}
-		log.Debug("Applied prelude effects", zap.String("player_id", currentPlayerID))
+		log.Debug("Applied prelude effects", slog.String("player_id", currentPlayerID))
 	}
 
 	// After applying, wait for the frontend to display the effects
@@ -180,7 +178,7 @@ func (a *ConfirmInitAdvanceAction) applyCurrentPlayer(ctx context.Context, g *ga
 	return nil
 }
 
-func advanceToNextPlayer(ctx context.Context, g *game.Game, phase shared.GamePhase, currentIndex int, turnOrder []string, allPlayers []*player.Player, log *zap.Logger) error {
+func advanceToNextPlayer(ctx context.Context, g *game.Game, phase shared.GamePhase, currentIndex int, turnOrder []string, allPlayers []*player.Player, log *slog.Logger) error {
 	nextPlayerID := findNextActivePlayer(g, turnOrder, currentIndex+1)
 
 	if nextPlayerID != "" {

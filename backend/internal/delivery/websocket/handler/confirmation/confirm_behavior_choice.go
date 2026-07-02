@@ -2,20 +2,19 @@ package confirmation
 
 import (
 	"context"
+	"log/slog"
 
 	confirmaction "terraforming-mars-backend/internal/action/confirmation"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // ConfirmBehaviorChoiceHandler handles confirm behavior choice requests
 type ConfirmBehaviorChoiceHandler struct {
 	action      *confirmaction.ConfirmBehaviorChoiceAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewConfirmBehaviorChoiceHandler creates a new confirm behavior choice handler
@@ -30,8 +29,8 @@ func NewConfirmBehaviorChoiceHandler(action *confirmaction.ConfirmBehaviorChoice
 // HandleMessage implements the MessageHandler interface
 func (h *ConfirmBehaviorChoiceHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing confirm behavior choice request")
@@ -67,11 +66,11 @@ func (h *ConfirmBehaviorChoiceHandler) HandleMessage(ctx context.Context, connec
 	}
 
 	log.Debug("Parsed confirm behavior choice request",
-		zap.Int("choice_index", choiceIndex))
+		slog.Int("choice_index", choiceIndex))
 
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, choiceIndex, cardStorageTargets)
 	if err != nil {
-		log.Error("Failed to execute confirm behavior choice action", zap.Error(err))
+		log.Error("Failed to execute confirm behavior choice action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}

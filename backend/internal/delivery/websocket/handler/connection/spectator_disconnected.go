@@ -2,20 +2,19 @@ package connection
 
 import (
 	"context"
+	"log/slog"
 
 	connaction "terraforming-mars-backend/internal/action/connection"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // SpectatorDisconnectedHandler handles spectator disconnect events.
 type SpectatorDisconnectedHandler struct {
 	action      *connaction.SpectatorDisconnectedAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewSpectatorDisconnectedHandler creates a new spectator disconnected handler.
@@ -30,8 +29,8 @@ func NewSpectatorDisconnectedHandler(action *connaction.SpectatorDisconnectedAct
 // HandleMessage processes a spectator-disconnected message.
 func (h *SpectatorDisconnectedHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	payloadMap, ok := message.Payload.(map[string]interface{})
@@ -56,12 +55,12 @@ func (h *SpectatorDisconnectedHandler) HandleMessage(ctx context.Context, connec
 	}
 
 	log = log.With(
-		zap.String("spectator_id", spectatorID),
-		zap.String("game_id", gameID),
+		slog.String("spectator_id", spectatorID),
+		slog.String("game_id", gameID),
 	)
 
 	if err := h.action.Execute(ctx, gameID, spectatorID); err != nil {
-		log.Error("Failed to handle spectator disconnect", zap.Error(err))
+		log.Error("Failed to handle spectator disconnect", slog.Any("error", err))
 		return
 	}
 

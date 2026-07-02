@@ -3,14 +3,13 @@ package admin
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 
 	"terraforming-mars-backend/internal/action/admin"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // Broadcaster interface for broadcasting game state
@@ -30,7 +29,7 @@ type AdminCommandHandler struct {
 	startTileSelectionAction  *admin.StartTileSelectionAction
 	setTRAction               *admin.SetTRAction
 	broadcaster               Broadcaster
-	logger                    *zap.Logger
+	logger                    *slog.Logger
 }
 
 // NewAdminCommandHandler creates a new admin command handler
@@ -64,8 +63,8 @@ func NewAdminCommandHandler(
 // HandleMessage implements the MessageHandler interface
 func (h *AdminCommandHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing admin command")
@@ -99,8 +98,8 @@ func (h *AdminCommandHandler) HandleMessage(ctx context.Context, connection *cor
 	}
 
 	log.Debug("Admin command received",
-		zap.String("command_type", commandType),
-		zap.String("game_id", gameID))
+		slog.String("command_type", commandType),
+		slog.String("game_id", gameID))
 
 	var err error
 	switch dto.AdminCommandType(commandType) {
@@ -123,13 +122,13 @@ func (h *AdminCommandHandler) HandleMessage(ctx context.Context, connection *cor
 	case dto.AdminCommandTypeSetTR:
 		err = h.handleSetTR(ctx, gameID, commandPayload)
 	default:
-		log.Error("Unknown admin command type", zap.String("command_type", commandType))
+		log.Error("Unknown admin command type", slog.String("command_type", commandType))
 		h.sendError(connection, "Unknown admin command type: "+commandType)
 		return
 	}
 
 	if err != nil {
-		log.Error("Admin command failed", zap.Error(err))
+		log.Error("Admin command failed", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}

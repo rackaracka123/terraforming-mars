@@ -2,21 +2,20 @@ package connection
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	connaction "terraforming-mars-backend/internal/action/connection"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 type KickPlayerHandler struct {
 	action      *connaction.KickPlayerAction
 	broadcaster Broadcaster
 	hub         *core.Hub
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 func NewKickPlayerHandler(action *connaction.KickPlayerAction, broadcaster Broadcaster, hub *core.Hub) *KickPlayerHandler {
@@ -30,8 +29,8 @@ func NewKickPlayerHandler(action *connaction.KickPlayerAction, broadcaster Broad
 
 func (h *KickPlayerHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing kick player request")
@@ -58,7 +57,7 @@ func (h *KickPlayerHandler) HandleMessage(ctx context.Context, connection *core.
 
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, targetPlayerID)
 	if err != nil {
-		log.Error("Failed to execute kick player action", zap.Error(err))
+		log.Error("Failed to execute kick player action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}
@@ -74,13 +73,13 @@ func (h *KickPlayerHandler) HandleMessage(ctx context.Context, connection *core.
 			Payload: map[string]any{"reason": "You were kicked from the game"},
 		}
 		kickedConnection.SendMessage(kickedMessage)
-		log.Debug("Sent player-kicked message to kicked player", zap.String("target_player_id", targetPlayerID))
+		log.Debug("Sent player-kicked message to kicked player", slog.String("target_player_id", targetPlayerID))
 
 		// Close the kicked player's connection after a short delay to ensure the message is sent
 		go func() {
 			time.Sleep(100 * time.Millisecond)
 			kickedConnection.Close()
-			log.Debug("Closed kicked player's connection", zap.String("target_player_id", targetPlayerID))
+			log.Debug("Closed kicked player's connection", slog.String("target_player_id", targetPlayerID))
 		}()
 	}
 

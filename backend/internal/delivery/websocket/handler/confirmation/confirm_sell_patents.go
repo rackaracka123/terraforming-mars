@@ -2,20 +2,19 @@ package confirmation
 
 import (
 	"context"
+	"log/slog"
 
 	confirmaction "terraforming-mars-backend/internal/action/confirmation"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // ConfirmSellPatentsHandler handles confirm sell patents requests
 type ConfirmSellPatentsHandler struct {
 	action      *confirmaction.ConfirmSellPatentsAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewConfirmSellPatentsHandler creates a new confirm sell patents handler
@@ -30,8 +29,8 @@ func NewConfirmSellPatentsHandler(action *confirmaction.ConfirmSellPatentsAction
 // HandleMessage implements the MessageHandler interface
 func (h *ConfirmSellPatentsHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing confirm sell patents request")
@@ -60,11 +59,11 @@ func (h *ConfirmSellPatentsHandler) HandleMessage(ctx context.Context, connectio
 	}
 
 	log.Debug("Parsed confirm sell patents request",
-		zap.Strings("selected_card_ids", selectedCardIDs))
+		slog.Any("selected_card_ids", selectedCardIDs))
 
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, selectedCardIDs)
 	if err != nil {
-		log.Error("Failed to execute confirm sell patents action", zap.Error(err))
+		log.Error("Failed to execute confirm sell patents action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}

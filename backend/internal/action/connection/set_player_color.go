@@ -3,8 +3,8 @@ package connection
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
-	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/shared"
 )
@@ -12,13 +12,13 @@ import (
 // SetPlayerColorAction handles changing a player's color during the lobby phase.
 type SetPlayerColorAction struct {
 	gameRepo game.GameRepository
-	logger   *zap.Logger
+	logger   *slog.Logger
 }
 
 // NewSetPlayerColorAction creates a new SetPlayerColorAction.
 func NewSetPlayerColorAction(
 	gameRepo game.GameRepository,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *SetPlayerColorAction {
 	return &SetPlayerColorAction{
 		gameRepo: gameRepo,
@@ -31,16 +31,16 @@ func NewSetPlayerColorAction(
 // A player can change their own color, or the host can change a bot's color.
 func (a *SetPlayerColorAction) Execute(ctx context.Context, gameID, requesterID, targetPlayerID, color string) error {
 	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("requester_id", requesterID),
-		zap.String("target_player_id", targetPlayerID),
-		zap.String("color", color),
-		zap.String("action", "set_player_color"),
+		slog.String("game_id", gameID),
+		slog.String("requester_id", requesterID),
+		slog.String("target_player_id", targetPlayerID),
+		slog.String("color", color),
+		slog.String("action", "set_player_color"),
 	)
 
 	g, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
+		log.Error("Failed to get game", slog.Any("error", err))
 		return fmt.Errorf("game not found: %s", gameID)
 	}
 
@@ -67,7 +67,7 @@ func (a *SetPlayerColorAction) Execute(ctx context.Context, gameID, requesterID,
 
 	p, err := g.GetPlayer(targetPlayerID)
 	if err != nil {
-		log.Error("Player not found", zap.Error(err))
+		log.Error("Player not found", slog.Any("error", err))
 		return fmt.Errorf("player not found: %s", targetPlayerID)
 	}
 

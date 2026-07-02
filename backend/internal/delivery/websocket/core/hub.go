@@ -2,10 +2,9 @@ package core
 
 import (
 	"context"
+	"log/slog"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // MessageHandler defines the interface for handling different message types
@@ -30,7 +29,7 @@ type Hub struct {
 	Messages   chan HubMessage
 
 	manager  *Manager
-	logger   *zap.Logger
+	logger   *slog.Logger
 	handlers map[dto.MessageType]MessageHandler
 }
 
@@ -120,16 +119,16 @@ func (h *Hub) SendToPlayer(gameID, playerID string, message dto.WebSocketMessage
 	connection := h.manager.GetConnectionByPlayerID(gameID, playerID)
 	if connection == nil {
 		h.logger.Debug("No connection found for player",
-			zap.String("game_id", gameID),
-			zap.String("player_id", playerID))
+			slog.String("game_id", gameID),
+			slog.String("player_id", playerID))
 		return nil // Don't error, just skip sending (player might be disconnected)
 	}
 
 	connection.SendMessage(message)
 	h.logger.Debug("Message sent to player via Hub",
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
-		zap.String("message_type", string(message.Type)))
+		slog.String("game_id", gameID),
+		slog.String("player_id", playerID),
+		slog.String("message_type", string(message.Type)))
 
 	return nil
 }
@@ -149,9 +148,9 @@ func (h *Hub) SendToSpectator(gameID, spectatorID string, message dto.WebSocketM
 func (h *Hub) RegisterConnectionWithGame(connection *Connection, gameID string) {
 	h.manager.AddToGame(connection, gameID)
 	h.logger.Debug("Connection registered with game",
-		zap.String("connection_id", connection.ID),
-		zap.String("game_id", gameID),
-		zap.String("player_id", connection.PlayerID))
+		slog.String("connection_id", connection.ID),
+		slog.String("game_id", gameID),
+		slog.String("player_id", connection.PlayerID))
 }
 
 // routeMessage routes incoming messages to appropriate handlers
@@ -160,16 +159,16 @@ func (h *Hub) routeMessage(ctx context.Context, hubMessage HubMessage) {
 	message := hubMessage.Message
 
 	h.logger.Debug("Routing WebSocket message",
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)))
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)))
 
 	if handler, exists := h.handlers[message.Type]; exists {
 		h.logger.Debug("Routing to registered message handler",
-			zap.String("message_type", string(message.Type)))
+			slog.String("message_type", string(message.Type)))
 		handler.HandleMessage(ctx, connection, message)
 	} else {
 		h.logger.Warn("Unknown message type",
-			zap.String("message_type", string(message.Type)))
+			slog.String("message_type", string(message.Type)))
 		h.sendError(connection, ErrUnknownMessageType)
 	}
 }

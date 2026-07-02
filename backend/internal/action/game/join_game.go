@@ -3,14 +3,13 @@ package game
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"unicode/utf8"
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
-
-	"go.uber.org/zap"
 )
 
 // JoinGameAction handles players joining games
@@ -19,7 +18,7 @@ type JoinGameAction struct {
 	gameRepo          game.GameRepository
 	cardRegistry      gamecards.CardRegistry
 	colonyBonusLookup gamecards.ColonyBonusLookup
-	logger            *zap.Logger
+	logger            *slog.Logger
 }
 
 // JoinGameResult contains the result of joining a game
@@ -31,7 +30,7 @@ type JoinGameResult struct {
 func NewJoinGameAction(
 	gameRepo game.GameRepository,
 	cardRegistry gamecards.CardRegistry,
-	logger *zap.Logger,
+	logger *slog.Logger,
 	colonyBonusLookup ...gamecards.ColonyBonusLookup,
 ) *JoinGameAction {
 	var lookup gamecards.ColonyBonusLookup
@@ -56,15 +55,15 @@ func (a *JoinGameAction) Execute(
 ) (*JoinGameResult, error) {
 
 	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_name", playerName),
+		slog.String("game_id", gameID),
+		slog.String("player_name", playerName),
 	)
 	log.Debug("Player joining game")
 
 	// 1. Fetch game from repository
 	g, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		log.Error("Game not found", zap.Error(err))
+		log.Error("Game not found", slog.Any("error", err))
 		return nil, fmt.Errorf("game not found: %w", err)
 	}
 
@@ -72,7 +71,7 @@ func (a *JoinGameAction) Execute(
 	existingPlayer, err := g.GetPlayer(playerID)
 	if err == nil && existingPlayer != nil {
 		// Reconnection case - skip lobby check, just update connection status
-		log.Debug("Player reconnecting", zap.String("player_id", playerID))
+		log.Debug("Player reconnecting", slog.String("player_id", playerID))
 		existingPlayer.SetConnected(true)
 
 		return &JoinGameResult{PlayerID: playerID}, nil
@@ -81,13 +80,13 @@ func (a *JoinGameAction) Execute(
 	// 3. Validate player name length (only for new joins)
 	if utf8.RuneCountInString(playerName) > game.MaxPlayerNameLength {
 		log.Warn("Player name exceeds maximum length",
-			zap.Int("max_length", game.MaxPlayerNameLength))
+			slog.Int("max_length", game.MaxPlayerNameLength))
 		return nil, fmt.Errorf("player name exceeds maximum length of %d characters", game.MaxPlayerNameLength)
 	}
 
 	// 4. Validate game is in lobby status (only for new joins)
 	if g.Status() != shared.GameStatusLobby {
-		log.Warn("Game is not in lobby", zap.String("status", string(g.Status())))
+		log.Warn("Game is not in lobby", slog.String("status", string(g.Status())))
 		return nil, fmt.Errorf("game is not in lobby: %s", g.Status())
 	}
 
@@ -96,7 +95,7 @@ func (a *JoinGameAction) Execute(
 	for _, p := range existingPlayers {
 		if p.Name() == playerName {
 			log.Debug("Player already exists, returning existing ID",
-				zap.String("player_id", p.ID()))
+				slog.String("player_id", p.ID()))
 
 			return &JoinGameResult{PlayerID: p.ID()}, nil
 		}
@@ -108,7 +107,7 @@ func (a *JoinGameAction) Execute(
 		maxPlayers = game.DefaultMaxPlayers
 	}
 	if len(existingPlayers) >= maxPlayers {
-		log.Error("Game is full", zap.Int("max_players", maxPlayers))
+		log.Error("Game is full", slog.Int("max_players", maxPlayers))
 		return nil, fmt.Errorf("game is full")
 	}
 
@@ -119,7 +118,7 @@ func (a *JoinGameAction) Execute(
 	if isFirstPlayer {
 		err = g.SetHostPlayerID(ctx, playerID)
 		if err != nil {
-			log.Error("Failed to set host player", zap.Error(err))
+			log.Error("Failed to set host player", slog.Any("error", err))
 			return nil, fmt.Errorf("failed to set host player: %w", err)
 		}
 		log.Debug("Player set as host")
@@ -128,7 +127,7 @@ func (a *JoinGameAction) Execute(
 	// 8. Create and add player to game (publishes PlayerJoinedEvent which auto-broadcasts)
 	newPlayer, err := g.AddNewPlayer(ctx, playerID, playerName)
 	if err != nil {
-		log.Error("Failed to add player to game", zap.Error(err))
+		log.Error("Failed to add player to game", slog.Any("error", err))
 		return nil, fmt.Errorf("failed to add player to game: %w", err)
 	}
 	action.SetupPlayerCardStore(newPlayer, g, a.cardRegistry, a.colonyBonusLookup)

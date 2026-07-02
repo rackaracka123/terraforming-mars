@@ -3,8 +3,7 @@ package game
 import (
 	"context"
 	"fmt"
-
-	"go.uber.org/zap"
+	"log/slog"
 
 	gamePkg "terraforming-mars-backend/internal/game"
 	playerPkg "terraforming-mars-backend/internal/game/player"
@@ -20,13 +19,13 @@ type BotStarter interface {
 type ConvertToBotAction struct {
 	gameRepo   gamePkg.GameRepository
 	botStarter BotStarter
-	logger     *zap.Logger
+	logger     *slog.Logger
 }
 
 func NewConvertToBotAction(
 	gameRepo gamePkg.GameRepository,
 	botStarter BotStarter,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *ConvertToBotAction {
 	return &ConvertToBotAction{
 		gameRepo:   gameRepo,
@@ -37,10 +36,10 @@ func NewConvertToBotAction(
 
 func (a *ConvertToBotAction) Execute(ctx context.Context, gameID string, requesterID string, targetPlayerID string) error {
 	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("requester_id", requesterID),
-		zap.String("target_player_id", targetPlayerID),
-		zap.String("action", "convert_to_bot"),
+		slog.String("game_id", gameID),
+		slog.String("requester_id", requesterID),
+		slog.String("target_player_id", targetPlayerID),
+		slog.String("action", "convert_to_bot"),
 	)
 
 	g, err := a.gameRepo.Get(ctx, gameID)
@@ -77,7 +76,7 @@ func (a *ConvertToBotAction) Execute(ctx context.Context, gameID string, request
 		return fmt.Errorf("claude API key is required to convert players to bots")
 	}
 
-	log.Debug("Converting player to bot", zap.String("player_name", target.Name()))
+	log.Debug("Converting player to bot", slog.String("player_name", target.Name()))
 
 	target.SetPlayerType(playerPkg.PlayerTypeBot)
 	target.SetBotDifficulty(playerPkg.BotDifficultyNormal)
@@ -88,11 +87,11 @@ func (a *ConvertToBotAction) Execute(ctx context.Context, gameID string, request
 	if a.botStarter != nil {
 		settings := g.Settings()
 		if err := a.botStarter.StartBot(gameID, targetPlayerID, target.Name(), string(playerPkg.BotDifficultyNormal), string(playerPkg.BotSpeedFast), settings); err != nil {
-			log.Error("Failed to start bot session", zap.Error(err))
+			log.Error("Failed to start bot session", slog.Any("error", err))
 			target.SetBotStatus(playerPkg.BotStatusFailed)
 		}
 	}
 
-	log.Info("Player converted to bot", zap.String("player_name", target.Name()))
+	log.Info("Player converted to bot", slog.String("player_name", target.Name()))
 	return nil
 }

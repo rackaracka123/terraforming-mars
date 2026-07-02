@@ -3,13 +3,12 @@ package colony
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 
 	colonyaction "terraforming-mars-backend/internal/action/colony"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // BuildColonyPayload represents the expected payload for building a colony
@@ -21,7 +20,7 @@ type BuildColonyPayload struct {
 type BuildColonyHandler struct {
 	action      *colonyaction.BuildColonyAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewBuildColonyHandler creates a new build colony handler
@@ -36,8 +35,8 @@ func NewBuildColonyHandler(action *colonyaction.BuildColonyAction, broadcaster B
 // HandleMessage implements the MessageHandler interface
 func (h *BuildColonyHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing build colony request")
@@ -50,14 +49,14 @@ func (h *BuildColonyHandler) HandleMessage(ctx context.Context, connection *core
 
 	payloadBytes, err := json.Marshal(message.Payload)
 	if err != nil {
-		log.Error("Failed to marshal payload", zap.Error(err))
+		log.Error("Failed to marshal payload", slog.Any("error", err))
 		h.sendError(connection, "Invalid payload format")
 		return
 	}
 
 	var payload BuildColonyPayload
 	if err := json.Unmarshal(payloadBytes, &payload); err != nil {
-		log.Error("Failed to unmarshal payload", zap.Error(err))
+		log.Error("Failed to unmarshal payload", slog.Any("error", err))
 		h.sendError(connection, "Invalid payload format")
 		return
 	}
@@ -70,12 +69,12 @@ func (h *BuildColonyHandler) HandleMessage(ctx context.Context, connection *core
 
 	err = h.action.Execute(ctx, connection.GameID, connection.PlayerID, payload.ColonyID)
 	if err != nil {
-		log.Error("Failed to execute build colony action", zap.Error(err))
+		log.Error("Failed to execute build colony action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}
 
-	log.Debug("Colony built", zap.String("colony_id", payload.ColonyID))
+	log.Debug("Colony built", slog.String("colony_id", payload.ColonyID))
 
 	h.broadcaster.BroadcastGameState(connection.GameID, nil)
 

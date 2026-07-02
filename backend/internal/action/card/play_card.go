@@ -8,8 +8,6 @@ import (
 
 	baseaction "terraforming-mars-backend/internal/action"
 
-	"go.uber.org/zap"
-
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
@@ -30,7 +28,7 @@ func NewPlayCardAction(
 	gameRepo game.GameRepository,
 	cardRegistry gamecards.CardRegistry,
 	stateRepo game.GameStateRepository,
-	logger *zap.Logger,
+	logger *slog.Logger,
 	colonyBonusLookup ...gamecards.ColonyBonusLookup,
 ) *PlayCardAction {
 	var lookup gamecards.ColonyBonusLookup
@@ -65,17 +63,17 @@ func (a *PlayCardAction) Execute(
 	selectedAmount *int,
 ) error {
 	log := a.InitLogger(gameID, playerID).With(
-		zap.String("card_id", cardID),
-		zap.String("action", "play_card"),
+		slog.String("card_id", cardID),
+		slog.String("action", "play_card"),
 	)
 	if choiceIndex != nil {
-		log = log.With(zap.Int("choice_index", *choiceIndex))
+		log = log.With(slog.Int("choice_index", *choiceIndex))
 	}
 	if len(cardStorageTargets) > 0 {
-		log = log.With(zap.Strings("card_storage_targets", cardStorageTargets))
+		log = log.With(slog.Any("card_storage_targets", cardStorageTargets))
 	}
 	if targetPlayerID != nil {
-		log = log.With(zap.String("target_player_id", *targetPlayerID))
+		log = log.With(slog.String("target_player_id", *targetPlayerID))
 	}
 	log.Debug("Player attempting to play card")
 
@@ -116,35 +114,35 @@ func (a *PlayCardAction) Execute(
 
 	card, err := a.CardRegistry().GetByID(cardID)
 	if err != nil {
-		log.Error("Card not found in registry", zap.Error(err))
+		log.Error("Card not found in registry", slog.Any("error", err))
 		return fmt.Errorf("card not found: %w", err)
 	}
 
 	log.Debug("Card data retrieved",
-		zap.String("card_name", card.Name),
-		zap.Int("base_cost", card.Cost))
+		slog.String("card_name", card.Name),
+		slog.Int("base_cost", card.Cost))
 
 	calculator := gamecards.NewRequirementModifierCalculator(a.CardRegistry())
 
 	if err := validateCardRequirements(card, g, player, calculator, a.CardRegistry()); err != nil {
-		log.Error("Card requirements not met", zap.Error(err))
+		log.Error("Card requirements not met", slog.Any("error", err))
 		return fmt.Errorf("cannot play card: %w", err)
 	}
 
 	log.Debug("Card requirements validated")
 
 	if tileErrors := baseaction.ValidateTileOutputs(card, player, g); len(tileErrors) > 0 {
-		log.Error("Tile placement not available", zap.String("error", tileErrors[0].Message))
+		log.Error("Tile placement not available", slog.String("error", tileErrors[0].Message))
 		return fmt.Errorf("cannot play card: %s", tileErrors[0].Message)
 	}
 
 	if err := validateProductionOutputs(card, player); err != nil {
-		log.Error("Production output validation failed", zap.Error(err))
+		log.Error("Production output validation failed", slog.Any("error", err))
 		return fmt.Errorf("cannot play card: %w", err)
 	}
 
 	if err := validateNegativeResourceOutputs(card, player); err != nil {
-		log.Error("Negative resource output validation failed", zap.Error(err))
+		log.Error("Negative resource output validation failed", slog.Any("error", err))
 		return fmt.Errorf("cannot play card: %w", err)
 	}
 
@@ -155,7 +153,7 @@ func (a *PlayCardAction) Execute(
 				selectedChoice := behavior.Choices[*choiceIndex]
 				if selectedChoice.Requirements != nil {
 					if err := validateChoiceRequirements(selectedChoice.Requirements, player, g, a.CardRegistry()); err != nil {
-						log.Error("Choice requirements not met", zap.Error(err))
+						log.Error("Choice requirements not met", slog.Any("error", err))
 						return fmt.Errorf("choice %d requirements not met: %w", *choiceIndex, err)
 					}
 				}
@@ -172,9 +170,9 @@ func (a *PlayCardAction) Execute(
 
 	if discountAmount > 0 {
 		log.Debug("Discount applied",
-			zap.Int("base_cost", card.Cost),
-			zap.Int("discount", discountAmount),
-			zap.Int("effective_cost", effectiveCost))
+			slog.Int("base_cost", card.Cost),
+			slog.Int("discount", discountAmount),
+			slog.Int("effective_cost", effectiveCost))
 	}
 
 	playerSubstitutes := player.Resources().PaymentSubstitutes()
@@ -202,26 +200,26 @@ func (a *PlayCardAction) Execute(
 	}
 
 	if err := cardPayment.CoversCardCost(effectiveCost, allowSteel, allowTitanium, playerSubstitutes, applicableStorageSubs); err != nil {
-		log.Error("Payment validation failed", zap.Error(err))
+		log.Error("Payment validation failed", slog.Any("error", err))
 		return err
 	}
 
 	totalValue := cardPayment.TotalValue(playerSubstitutes, applicableStorageSubs)
 	log.Debug("Payment validated",
-		zap.Int("effective_cost", effectiveCost),
-		zap.Int("payment_value", totalValue),
-		zap.Int("credits", adjustedPayment.Credits),
-		zap.Int("steel", adjustedPayment.Steel),
-		zap.Int("titanium", adjustedPayment.Titanium),
-		zap.Any("substitutes", adjustedPayment.Substitutes),
-		zap.Any("storageSubstitutes", adjustedPayment.StorageSubstitutes))
+		slog.Int("effective_cost", effectiveCost),
+		slog.Int("payment_value", totalValue),
+		slog.Int("credits", adjustedPayment.Credits),
+		slog.Int("steel", adjustedPayment.Steel),
+		slog.Int("titanium", adjustedPayment.Titanium),
+		slog.Any("substitutes", adjustedPayment.Substitutes),
+		slog.Any("storageSubstitutes", adjustedPayment.StorageSubstitutes))
 
 	resources := player.Resources().Get()
 	storageGetter := func(cardID string) int {
 		return player.Resources().GetCardStorage(cardID)
 	}
 	if err := cardPayment.CanAfford(resources, storageGetter); err != nil {
-		log.Error("Player can't afford payment", zap.Error(err))
+		log.Error("Player can't afford payment", slog.Any("error", err))
 		return err
 	}
 
@@ -244,9 +242,9 @@ func (a *PlayCardAction) Execute(
 	if card.ResourceStorage != nil {
 		player.Resources().AddToStorage(cardID, card.ResourceStorage.Starting)
 		log.Debug("Initialized resource storage",
-			zap.String("card_id", cardID),
-			zap.String("resource_type", string(card.ResourceStorage.Type)),
-			zap.Int("starting_amount", card.ResourceStorage.Starting))
+			slog.String("card_id", cardID),
+			slog.String("resource_type", string(card.ResourceStorage.Type)),
+			slog.Int("starting_amount", card.ResourceStorage.Starting))
 	}
 
 	deductions := map[shared.ResourceType]int{
@@ -266,21 +264,21 @@ func (a *PlayCardAction) Execute(
 		if amount > 0 {
 			player.Resources().AddToStorage(cardID, -amount)
 			log.Debug("Deducted storage payment",
-				zap.String("card_id", cardID),
-				zap.Int("amount", amount))
+				slog.String("card_id", cardID),
+				slog.Int("amount", amount))
 		}
 	}
 
 	log.Debug("Payment deducted",
-		zap.Int("credits", adjustedPayment.Credits),
-		zap.Int("steel", adjustedPayment.Steel),
-		zap.Int("titanium", adjustedPayment.Titanium),
-		zap.Any("substitutes", adjustedPayment.Substitutes),
-		zap.Any("storageSubstitutes", adjustedPayment.StorageSubstitutes))
+		slog.Int("credits", adjustedPayment.Credits),
+		slog.Int("steel", adjustedPayment.Steel),
+		slog.Int("titanium", adjustedPayment.Titanium),
+		slog.Any("substitutes", adjustedPayment.Substitutes),
+		slog.Any("storageSubstitutes", adjustedPayment.StorageSubstitutes))
 
 	calculatedOutputs, err := a.applyCardBehaviors(ctx, g, card, player, choiceIndex, cardStorageTargets, targetPlayerID, selectedAmount, log)
 	if err != nil {
-		log.Error("Failed to apply card behaviors", zap.Error(err))
+		log.Error("Failed to apply card behaviors", slog.Any("error", err))
 		return fmt.Errorf("failed to apply card behaviors: %w", err)
 	}
 
@@ -294,9 +292,9 @@ func (a *PlayCardAction) Execute(
 	a.WriteStateLogFull(ctx, g, card.Name, shared.SourceTypeCardPlay, playerID, description, choiceIndex, calculatedOutputs, displayData)
 
 	log.Info("Card played",
-		zap.String("card_name", card.Name),
-		zap.Int("card_cost", card.Cost),
-		zap.Int("payment_value", totalValue))
+		slog.String("card_name", card.Name),
+		slog.Int("card_cost", card.Cost),
+		slog.Int("payment_value", totalValue))
 
 	return nil
 }
@@ -454,7 +452,7 @@ func (a *PlayCardAction) applyCardBehaviors(
 	cardStorageTargets []string,
 	targetPlayerID *string,
 	selectedAmount *int,
-	log *zap.Logger,
+	log *slog.Logger,
 ) ([]shared.CalculatedOutput, error) {
 	if len(card.Behaviors) == 0 {
 		log.Debug("No card behaviors to apply")
@@ -462,15 +460,15 @@ func (a *PlayCardAction) applyCardBehaviors(
 	}
 
 	log.Debug("Processing card behaviors",
-		zap.String("card_id", card.ID),
-		zap.Int("behavior_count", len(card.Behaviors)))
+		slog.String("card_id", card.ID),
+		slog.Int("behavior_count", len(card.Behaviors)))
 
 	var allCalculatedOutputs []shared.CalculatedOutput
 
 	for behaviorIndex, behavior := range card.Behaviors {
 		log.Debug("Processing behavior",
-			zap.Int("index", behaviorIndex),
-			zap.Int("trigger_count", len(behavior.Triggers)))
+			slog.Int("index", behaviorIndex),
+			slog.Int("trigger_count", len(behavior.Triggers)))
 
 		// Apply auto-trigger behaviors immediately
 		if gamecards.HasAutoTrigger(behavior) {
@@ -482,8 +480,8 @@ func (a *PlayCardAction) applyCardBehaviors(
 				if autoIdx >= 0 {
 					effectiveChoiceIndex = &autoIdx
 					log.Debug("Auto-selected choice by policy",
-						zap.String("policy_type", string(behavior.ChoicePolicy.Type)),
-						zap.Int("choice_index", autoIdx))
+						slog.String("policy_type", string(behavior.ChoicePolicy.Type)),
+						slog.Int("choice_index", autoIdx))
 				}
 			}
 
@@ -503,7 +501,7 @@ func (a *PlayCardAction) applyCardBehaviors(
 			}
 
 			log.Debug("Found auto-trigger behavior, applying outputs immediately",
-				zap.Int("output_count", len(outputs)))
+				slog.Int("output_count", len(outputs)))
 
 			// Use BehaviorApplier for consistent output handling
 			applier := gamecards.NewBehaviorApplier(p, g, card.Name, slog.Default()).
@@ -547,7 +545,7 @@ func (a *PlayCardAction) applyCardBehaviors(
 			// These need to show in the effects list for display and for modifier calculations
 			if gamecards.HasPersistentEffects(behavior) {
 				log.Debug("Registering auto-trigger behavior with persistent effects",
-					zap.String("card_name", card.Name))
+					slog.String("card_name", card.Name))
 
 				effect := shared.CardEffect{
 					CardID:        card.ID,
@@ -596,7 +594,7 @@ func (a *PlayCardAction) applyCardBehaviors(
 		// Register conditional-trigger behaviors as passive effects
 		if gamecards.HasConditionalTrigger(behavior) {
 			log.Debug("Found conditional-trigger behavior, registering as passive effect",
-				zap.Int("trigger_count", len(behavior.Triggers)))
+				slog.Int("trigger_count", len(behavior.Triggers)))
 
 			effect := shared.CardEffect{
 				CardID:        card.ID,
@@ -673,7 +671,7 @@ func (a *PlayCardAction) createPendingCardDiscard(
 	card *gamecards.Card,
 	inputs []shared.BehaviorCondition,
 	outputs []shared.BehaviorCondition,
-	log *zap.Logger,
+	log *slog.Logger,
 ) {
 	minCards := 0
 	maxCards := 0
@@ -707,11 +705,11 @@ func (a *PlayCardAction) createPendingCardDiscard(
 	p.Selection().SetPendingCardDiscardSelection(selection)
 
 	log.Debug("Created pending card discard selection",
-		zap.String("card_name", card.Name),
-		zap.Int("min_cards", minCards),
-		zap.Int("max_cards", maxCards),
-		zap.Bool("optional", isOptional),
-		zap.Int("pending_outputs", len(outputs)))
+		slog.String("card_name", card.Name),
+		slog.Int("min_cards", minCards),
+		slog.Int("max_cards", maxCards),
+		slog.Bool("optional", isOptional),
+		slog.Int("pending_outputs", len(outputs)))
 }
 
 // createPendingCardDiscardFromOutputs creates a PendingCardDiscardSelection for behaviors with card-discard outputs.
@@ -720,7 +718,7 @@ func (a *PlayCardAction) createPendingCardDiscardFromOutputs(
 	p *player.Player,
 	card *gamecards.Card,
 	outputs []shared.BehaviorCondition,
-	log *zap.Logger,
+	log *slog.Logger,
 ) {
 	minCards := 0
 	maxCards := 0
@@ -746,10 +744,10 @@ func (a *PlayCardAction) createPendingCardDiscardFromOutputs(
 	p.Selection().SetPendingCardDiscardSelection(selection)
 
 	log.Debug("Created pending card discard selection from outputs",
-		zap.String("card_name", card.Name),
-		zap.Int("min_cards", minCards),
-		zap.Int("max_cards", maxCards),
-		zap.Int("pending_outputs", len(pendingOutputs)))
+		slog.String("card_name", card.Name),
+		slog.Int("min_cards", minCards),
+		slog.Int("max_cards", maxCards),
+		slog.Int("pending_outputs", len(pendingOutputs)))
 }
 
 func adjustPaymentToEffectiveCost(
@@ -856,11 +854,11 @@ func collectTemporaryEffectCardIDs(p *player.Player, temporaryType string) []str
 }
 
 // removePrePlayTemporaryEffects removes temporary effects by their card IDs (collected before card play).
-func removePrePlayTemporaryEffects(p *player.Player, cardIDs []string, log *zap.Logger) {
+func removePrePlayTemporaryEffects(p *player.Player, cardIDs []string, log *slog.Logger) {
 	for _, cardID := range cardIDs {
 		p.Effects().RemoveEffectsByCardID(cardID)
 		log.Debug("Removed temporary next-card effect",
-			zap.String("effect_card_id", cardID))
+			slog.String("effect_card_id", cardID))
 	}
 }
 

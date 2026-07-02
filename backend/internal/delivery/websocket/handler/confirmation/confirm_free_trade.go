@@ -2,20 +2,19 @@ package confirmation
 
 import (
 	"context"
+	"log/slog"
 
 	confirmaction "terraforming-mars-backend/internal/action/confirmation"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // ConfirmFreeTradeHandler handles confirm free trade requests
 type ConfirmFreeTradeHandler struct {
 	action      *confirmaction.ConfirmFreeTradeAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewConfirmFreeTradeHandler creates a new confirm free trade handler
@@ -30,8 +29,8 @@ func NewConfirmFreeTradeHandler(action *confirmaction.ConfirmFreeTradeAction, br
 // HandleMessage implements the MessageHandler interface
 func (h *ConfirmFreeTradeHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing confirm free trade request")
@@ -55,7 +54,7 @@ func (h *ConfirmFreeTradeHandler) HandleMessage(ctx context.Context, connection 
 
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, colonyID)
 	if err != nil {
-		log.Error("Failed to execute confirm free trade action", zap.Error(err))
+		log.Error("Failed to execute confirm free trade action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}

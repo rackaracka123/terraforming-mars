@@ -3,13 +3,12 @@ package award
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 
 	awardaction "terraforming-mars-backend/internal/action/award"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // Broadcaster defines the interface for broadcasting game state
@@ -21,7 +20,7 @@ type Broadcaster interface {
 type FundAwardHandler struct {
 	action      *awardaction.FundAwardAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewFundAwardHandler creates a new fund award handler
@@ -41,8 +40,8 @@ type FundAwardPayload struct {
 // HandleMessage implements the MessageHandler interface
 func (h *FundAwardHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing fund award request")
@@ -55,14 +54,14 @@ func (h *FundAwardHandler) HandleMessage(ctx context.Context, connection *core.C
 
 	payloadBytes, err := json.Marshal(message.Payload)
 	if err != nil {
-		log.Error("Failed to marshal payload", zap.Error(err))
+		log.Error("Failed to marshal payload", slog.Any("error", err))
 		h.sendError(connection, "Invalid payload format")
 		return
 	}
 
 	var payload FundAwardPayload
 	if err := json.Unmarshal(payloadBytes, &payload); err != nil {
-		log.Error("Failed to unmarshal payload", zap.Error(err))
+		log.Error("Failed to unmarshal payload", slog.Any("error", err))
 		h.sendError(connection, "Invalid payload format")
 		return
 	}
@@ -75,13 +74,13 @@ func (h *FundAwardHandler) HandleMessage(ctx context.Context, connection *core.C
 
 	err = h.action.Execute(ctx, connection.GameID, connection.PlayerID, payload.AwardType)
 	if err != nil {
-		log.Error("Failed to execute fund award action", zap.Error(err))
+		log.Error("Failed to execute fund award action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}
 
 	log.Debug("Fund award completed",
-		zap.String("award_type", payload.AwardType))
+		slog.String("award_type", payload.AwardType))
 
 	h.broadcaster.BroadcastGameState(connection.GameID, nil)
 	log.Debug("Broadcasted game state to all players")

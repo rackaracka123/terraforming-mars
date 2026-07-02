@@ -3,8 +3,8 @@ package connection
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
-	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/shared"
 )
@@ -12,13 +12,13 @@ import (
 // PlayerDisconnectedAction handles the business logic for player disconnection
 type PlayerDisconnectedAction struct {
 	gameRepo game.GameRepository
-	logger   *zap.Logger
+	logger   *slog.Logger
 }
 
 // NewPlayerDisconnectedAction creates a new player disconnected action
 func NewPlayerDisconnectedAction(
 	gameRepo game.GameRepository,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *PlayerDisconnectedAction {
 	return &PlayerDisconnectedAction{
 		gameRepo: gameRepo,
@@ -29,15 +29,15 @@ func NewPlayerDisconnectedAction(
 // Execute performs the player disconnected action
 func (a *PlayerDisconnectedAction) Execute(ctx context.Context, gameID string, playerID string) error {
 	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
-		zap.String("action", "player_disconnected"),
+		slog.String("game_id", gameID),
+		slog.String("player_id", playerID),
+		slog.String("action", "player_disconnected"),
 	)
 	log.Debug("Player disconnecting")
 
 	g, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
+		log.Error("Failed to get game", slog.Any("error", err))
 		return fmt.Errorf("game not found: %s", gameID)
 	}
 
@@ -45,14 +45,14 @@ func (a *PlayerDisconnectedAction) Execute(ctx context.Context, gameID string, p
 		wasHost := g.HostPlayerID() == playerID
 
 		if err := g.RemovePlayer(ctx, playerID); err != nil {
-			log.Error("Failed to remove player from lobby", zap.Error(err))
+			log.Error("Failed to remove player from lobby", slog.Any("error", err))
 			return fmt.Errorf("failed to remove player: %w", err)
 		}
 
 		remaining := g.GetAllPlayers()
 		if len(remaining) == 0 {
 			if err := a.gameRepo.Delete(ctx, gameID); err != nil {
-				log.Error("Failed to delete empty game", zap.Error(err))
+				log.Error("Failed to delete empty game", slog.Any("error", err))
 				return fmt.Errorf("failed to delete empty game: %w", err)
 			}
 			log.Debug("Game deleted (no players remaining)")
@@ -70,7 +70,7 @@ func (a *PlayerDisconnectedAction) Execute(ctx context.Context, gameID string, p
 
 			if newHost == "" {
 				if err := a.gameRepo.Delete(ctx, gameID); err != nil {
-					log.Error("Failed to delete game with only bots", zap.Error(err))
+					log.Error("Failed to delete game with only bots", slog.Any("error", err))
 					return fmt.Errorf("failed to delete game: %w", err)
 				}
 				log.Debug("Game deleted (no human players remaining)")
@@ -78,10 +78,10 @@ func (a *PlayerDisconnectedAction) Execute(ctx context.Context, gameID string, p
 			}
 
 			if err := g.SetHostPlayerID(ctx, newHost); err != nil {
-				log.Error("Failed to reassign host", zap.Error(err))
+				log.Error("Failed to reassign host", slog.Any("error", err))
 				return fmt.Errorf("failed to reassign host: %w", err)
 			}
-			log.Debug("Host reassigned to human player", zap.String("new_host", newHost))
+			log.Debug("Host reassigned to human player", slog.String("new_host", newHost))
 		}
 
 		log.Debug("Player removed from lobby")
@@ -90,12 +90,12 @@ func (a *PlayerDisconnectedAction) Execute(ctx context.Context, gameID string, p
 
 	player, err := g.GetPlayer(playerID)
 	if err != nil {
-		log.Error("Player not found in game", zap.Error(err))
+		log.Error("Player not found in game", slog.Any("error", err))
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	if player.IsBot() {
-		log.Debug("Skipping disconnect for bot player", zap.String("player_id", playerID))
+		log.Debug("Skipping disconnect for bot player", slog.String("player_id", playerID))
 		return nil
 	}
 

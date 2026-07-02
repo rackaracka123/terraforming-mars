@@ -2,20 +2,19 @@ package game
 
 import (
 	"context"
+	"log/slog"
 
 	gameaction "terraforming-mars-backend/internal/action/game"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // AddBotHandler handles add bot requests
 type AddBotHandler struct {
 	addBotAction *gameaction.AddBotAction
 	broadcaster  Broadcaster
-	logger       *zap.Logger
+	logger       *slog.Logger
 }
 
 // NewAddBotHandler creates a new add bot handler
@@ -30,8 +29,8 @@ func NewAddBotHandler(addBotAction *gameaction.AddBotAction, broadcaster Broadca
 // HandleMessage implements the MessageHandler interface
 func (h *AddBotHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing add bot request")
@@ -60,12 +59,12 @@ func (h *AddBotHandler) HandleMessage(ctx context.Context, connection *core.Conn
 
 	result, err := h.addBotAction.Execute(ctx, gameID, botName, difficulty, speed)
 	if err != nil {
-		log.Error("Failed to add bot", zap.Error(err))
+		log.Error("Failed to add bot", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}
 
-	log.Debug("Bot added", zap.String("bot_id", result.PlayerID))
+	log.Debug("Bot added", slog.String("bot_id", result.PlayerID))
 
 	h.broadcaster.BroadcastGameState(gameID, nil)
 }

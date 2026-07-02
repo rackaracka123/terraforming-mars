@@ -2,6 +2,7 @@ package connection
 
 import (
 	"context"
+	"log/slog"
 
 	connaction "terraforming-mars-backend/internal/action/connection"
 	"terraforming-mars-backend/internal/delivery/dto"
@@ -9,8 +10,6 @@ import (
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // ChatMessageHandler handles chat message requests from players and spectators.
@@ -18,7 +17,7 @@ type ChatMessageHandler struct {
 	action      *connaction.SendChatMessageAction
 	broadcaster ChatBroadcaster
 	gameRepo    game.GameRepository
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // ChatBroadcaster defines the broadcasting interface needed by the chat handler.
@@ -43,8 +42,8 @@ func NewChatMessageHandler(
 // HandleMessage processes a chat-message from a player or spectator.
 func (h *ChatMessageHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	gameID := connection.GameID
@@ -71,7 +70,7 @@ func (h *ChatMessageHandler) HandleMessage(ctx context.Context, connection *core
 
 	g, err := h.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
+		log.Error("Failed to get game", slog.Any("error", err))
 		h.sendError(connection, "game not found")
 		return
 	}
@@ -79,7 +78,7 @@ func (h *ChatMessageHandler) HandleMessage(ctx context.Context, connection *core
 	if isSpectator {
 		s, err := g.GetSpectator(connection.SpectatorID)
 		if err != nil {
-			log.Error("Spectator not found", zap.Error(err))
+			log.Error("Spectator not found", slog.Any("error", err))
 			h.sendError(connection, "spectator not found")
 			return
 		}
@@ -89,7 +88,7 @@ func (h *ChatMessageHandler) HandleMessage(ctx context.Context, connection *core
 	} else {
 		p, err := g.GetPlayer(connection.PlayerID)
 		if err != nil {
-			log.Error("Player not found", zap.Error(err))
+			log.Error("Player not found", slog.Any("error", err))
 			h.sendError(connection, "player not found")
 			return
 		}
@@ -100,7 +99,7 @@ func (h *ChatMessageHandler) HandleMessage(ctx context.Context, connection *core
 
 	chatMsg, err := h.action.Execute(ctx, gameID, senderID, senderName, senderColor, msgText, isSpectator)
 	if err != nil {
-		log.Error("Failed to send chat message", zap.Error(err))
+		log.Error("Failed to send chat message", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}
