@@ -3,13 +3,12 @@ package cards
 import (
 	"context"
 	"fmt"
-
-	"go.uber.org/zap"
+	"log/slog"
 
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-func (a *BehaviorApplier) applyCardStorageOutput(ctx context.Context, o *shared.CardStorageCondition, amount int, log *zap.Logger) error {
+func (a *BehaviorApplier) applyCardStorageOutput(ctx context.Context, o *shared.CardStorageCondition, amount int, log *slog.Logger) error {
 	if a.player == nil {
 		return fmt.Errorf("cannot apply card resource: no player context")
 	}
@@ -33,7 +32,7 @@ func (a *BehaviorApplier) applyCardStorageOutput(ctx context.Context, o *shared.
 		}
 		a.player.Resources().AddToStorage(targetID, amount)
 		log.Debug("Added card-resource to target card storage",
-			zap.String("card_id", targetID), zap.String("storage_type", string(targetCard.ResourceStorage.Type)), zap.Int("amount", amount))
+			slog.String("card_id", targetID), slog.String("storage_type", string(targetCard.ResourceStorage.Type)), slog.Int("amount", amount))
 		return nil
 	}
 
@@ -41,12 +40,12 @@ func (a *BehaviorApplier) applyCardStorageOutput(ctx context.Context, o *shared.
 	switch o.Target {
 	case "self-card":
 		if a.sourceCardID == "" {
-			log.Warn("Cannot place resource on self-card: no source card ID", zap.String("resource_type", string(rt)))
+			log.Warn("Cannot place resource on self-card: no source card ID", slog.String("resource_type", string(rt)))
 			return nil
 		}
 		a.player.Resources().AddToStorage(a.sourceCardID, amount)
 		log.Debug("Added resource to card storage",
-			zap.String("card_id", a.sourceCardID), zap.String("resource_type", string(rt)), zap.Int("amount", amount))
+			slog.String("card_id", a.sourceCardID), slog.String("resource_type", string(rt)), slog.Int("amount", amount))
 
 	case "steal-from-any-card":
 		if a.stealSourceCardID == "" {
@@ -62,22 +61,22 @@ func (a *BehaviorApplier) applyCardStorageOutput(ctx context.Context, o *shared.
 				stolenAmount = min(amount, storage)
 				p.Resources().AddToStorage(a.stealSourceCardID, -stolenAmount)
 				log.Debug("Stole resource from card",
-					zap.String("source_card_id", a.stealSourceCardID), zap.String("owner_player_id", p.ID()),
-					zap.String("resource_type", string(rt)), zap.Int("amount", stolenAmount))
+					slog.String("source_card_id", a.stealSourceCardID), slog.String("owner_player_id", p.ID()),
+					slog.String("resource_type", string(rt)), slog.Int("amount", stolenAmount))
 				break
 			}
 		}
 		if stolenAmount > 0 && a.sourceCardID != "" {
 			a.player.Resources().AddToStorage(a.sourceCardID, stolenAmount)
 			log.Debug("Added stolen resource to self card",
-				zap.String("card_id", a.sourceCardID), zap.String("resource_type", string(rt)), zap.Int("amount", stolenAmount))
+				slog.String("card_id", a.sourceCardID), slog.String("resource_type", string(rt)), slog.Int("amount", stolenAmount))
 		}
 
 	case "any-card":
 		targetID := a.nextTargetCardID()
 		if targetID == "" {
 			log.Warn("No target card for any-card resource placement — resources lost",
-				zap.String("resource_type", string(rt)), zap.Int("amount", amount))
+				slog.String("resource_type", string(rt)), slog.Int("amount", amount))
 			return nil
 		}
 		if a.cardRegistry != nil {
@@ -94,21 +93,21 @@ func (a *BehaviorApplier) applyCardStorageOutput(ctx context.Context, o *shared.
 		}
 		a.player.Resources().AddToStorage(targetID, amount)
 		log.Debug("Added resource to target card storage",
-			zap.String("card_id", targetID), zap.String("resource_type", string(rt)), zap.Int("amount", amount))
+			slog.String("card_id", targetID), slog.String("resource_type", string(rt)), slog.Int("amount", amount))
 
 	default:
 		if a.sourceCardID != "" {
 			a.player.Resources().AddToStorage(a.sourceCardID, amount)
 			log.Debug("Added resource to card storage (default to self)",
-				zap.String("card_id", a.sourceCardID), zap.String("resource_type", string(rt)), zap.Int("amount", amount))
+				slog.String("card_id", a.sourceCardID), slog.String("resource_type", string(rt)), slog.Int("amount", amount))
 		} else {
-			log.Warn("Unhandled target for card resource", zap.String("target", o.Target), zap.String("resource_type", string(rt)))
+			log.Warn("Unhandled target for card resource", slog.String("target", o.Target), slog.String("resource_type", string(rt)))
 		}
 	}
 	return nil
 }
 
-func (a *BehaviorApplier) applyCardOperationOutput(ctx context.Context, o *shared.CardOperationCondition, amount int, log *zap.Logger) error {
+func (a *BehaviorApplier) applyCardOperationOutput(ctx context.Context, o *shared.CardOperationCondition, amount int, log *slog.Logger) error {
 	switch o.ResourceType {
 	case shared.ResourceCardDraw:
 		if a.game == nil || a.player == nil {
@@ -121,13 +120,13 @@ func (a *BehaviorApplier) applyCardOperationOutput(ctx context.Context, o *share
 				}
 				drawnCards, err := a.game.Deck().DrawProjectCards(ctx, amount)
 				if err != nil {
-					log.Warn("Failed to draw cards for opponent", zap.String("opponent_id", opponent.ID()), zap.Error(err))
+					log.Warn("Failed to draw cards for opponent", slog.String("opponent_id", opponent.ID()), slog.Any("error", err))
 					continue
 				}
 				for _, cardID := range drawnCards {
 					opponent.Hand().AddCard(cardID)
 				}
-				log.Debug("Opponent drew cards", zap.String("opponent_id", opponent.ID()), zap.Int("amount", len(drawnCards)))
+				log.Debug("Opponent drew cards", slog.String("opponent_id", opponent.ID()), slog.Int("amount", len(drawnCards)))
 			}
 		} else if HasCardSelectors(o.Selectors) && a.cardRegistry != nil {
 			matcher := func(cardID string) bool {
@@ -139,7 +138,7 @@ func (a *BehaviorApplier) applyCardOperationOutput(ctx context.Context, o *share
 			}
 			matched, discarded, err := a.game.Deck().DrawProjectCardsUntilMatching(ctx, amount, matcher)
 			if err != nil {
-				log.Warn("Failed to draw matching cards", zap.Error(err))
+				log.Warn("Failed to draw matching cards", slog.Any("error", err))
 				return nil
 			}
 			for _, cardID := range matched {
@@ -148,17 +147,17 @@ func (a *BehaviorApplier) applyCardOperationOutput(ctx context.Context, o *share
 			if len(discarded) > 0 {
 				_ = a.game.Deck().Discard(ctx, discarded)
 			}
-			log.Debug("Drew matching cards (draw-until)", zap.Int("matched", len(matched)), zap.Int("discarded", len(discarded)))
+			log.Debug("Drew matching cards (draw-until)", slog.Int("matched", len(matched)), slog.Int("discarded", len(discarded)))
 		} else {
 			drawnCards, err := a.game.Deck().DrawProjectCards(ctx, amount)
 			if err != nil {
-				log.Warn("Failed to draw cards", zap.Error(err))
+				log.Warn("Failed to draw cards", slog.Any("error", err))
 				return nil
 			}
 			for _, cardID := range drawnCards {
 				a.player.Hand().AddCard(cardID)
 			}
-			log.Debug("Drew cards and added to hand", zap.Int("amount", len(drawnCards)))
+			log.Debug("Drew cards and added to hand", slog.Int("amount", len(drawnCards)))
 		}
 
 	case shared.ResourceCardDiscard:
@@ -166,10 +165,10 @@ func (a *BehaviorApplier) applyCardOperationOutput(ctx context.Context, o *share
 
 	case shared.ResourceCardPeek, shared.ResourceCardTake, shared.ResourceCardBuy:
 		log.Debug("Skipping card draw output (handled by ApplyCardDrawOutputs)",
-			zap.String("type", string(o.ResourceType)), zap.Int("amount", amount))
+			slog.String("type", string(o.ResourceType)), slog.Int("amount", amount))
 
 	default:
-		log.Warn("Unhandled card operation type", zap.String("type", string(o.ResourceType)))
+		log.Warn("Unhandled card operation type", slog.String("type", string(o.ResourceType)))
 	}
 	return nil
 }

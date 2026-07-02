@@ -2,11 +2,10 @@ package query
 
 import (
 	"context"
+	"log/slog"
 	"sort"
 
 	gamecards "terraforming-mars-backend/internal/game/cards"
-
-	"go.uber.org/zap"
 )
 
 // ListCardsResult represents the result of listing cards
@@ -20,13 +19,13 @@ type ListCardsResult struct {
 // ListCardsAction handles querying all cards with pagination
 type ListCardsAction struct {
 	cardRegistry gamecards.CardRegistry
-	logger       *zap.Logger
+	logger       *slog.Logger
 }
 
 // NewListCardsAction creates a new list cards query action
 func NewListCardsAction(
 	cardRegistry gamecards.CardRegistry,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *ListCardsAction {
 	return &ListCardsAction{
 		cardRegistry: cardRegistry,
@@ -37,8 +36,8 @@ func NewListCardsAction(
 // Execute retrieves cards with pagination
 func (a *ListCardsAction) Execute(ctx context.Context, offset, limit int) (*ListCardsResult, error) {
 	log := a.logger.With(
-		zap.Int("offset", offset),
-		zap.Int("limit", limit),
+		slog.Int("offset", offset),
+		slog.Int("limit", limit),
 	)
 	log.Debug("Querying cards")
 
@@ -63,8 +62,8 @@ func (a *ListCardsAction) Execute(ctx context.Context, offset, limit int) (*List
 	paginatedCards := allCards[start:end]
 
 	log.Debug("Cards query completed",
-		zap.Int("total_count", totalCount),
-		zap.Int("returned_count", len(paginatedCards)),
+		slog.Int("total_count", totalCount),
+		slog.Int("returned_count", len(paginatedCards)),
 	)
 
 	return &ListCardsResult{

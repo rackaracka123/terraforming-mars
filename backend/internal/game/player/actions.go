@@ -1,11 +1,9 @@
 package player
 
 import (
-	"go.uber.org/zap"
-
+	"log/slog"
 	"terraforming-mars-backend/internal/game/datastore"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/logger"
 )
 
 // Actions manages available manual actions.
@@ -22,13 +20,13 @@ func NewActions(ds *datastore.DataStore, gameID, playerID string) *Actions {
 
 func (a *Actions) update(fn func(s *datastore.PlayerState)) {
 	if err := a.ds.UpdatePlayer(a.gameID, a.playerID, fn); err != nil {
-		logger.Get().Warn("Failed to update player state", zap.String("game_id", a.gameID), zap.String("player_id", a.playerID), zap.Error(err))
+		slog.Default().Warn("Failed to update player state", slog.String("game_id", a.gameID), slog.String("player_id", a.playerID), slog.Any("error", err))
 	}
 }
 
 func (a *Actions) read(fn func(s *datastore.PlayerState)) {
 	if err := a.ds.ReadPlayer(a.gameID, a.playerID, fn); err != nil {
-		logger.Get().Warn("Failed to read player state", zap.String("game_id", a.gameID), zap.String("player_id", a.playerID), zap.Error(err))
+		slog.Default().Warn("Failed to read player state", slog.String("game_id", a.gameID), slog.String("player_id", a.playerID), slog.Any("error", err))
 	}
 }
 

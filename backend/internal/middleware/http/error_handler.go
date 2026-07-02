@@ -2,11 +2,10 @@ package httpmiddleware
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // Recovery middleware recovers from panics and returns a 500 error
@@ -16,10 +15,10 @@ func Recovery(next http.Handler) http.Handler {
 			if err := recover(); err != nil {
 				log := logger.Get()
 				log.Error("Panic in HTTP handler",
-					zap.Any("error", err),
-					zap.String("method", r.Method),
-					zap.String("path", r.URL.Path),
-					zap.String("remote_addr", r.RemoteAddr))
+					slog.Any("error", err),
+					slog.String("method", r.Method),
+					slog.String("path", r.URL.Path),
+					slog.String("remote_addr", r.RemoteAddr))
 
 				// Send error response
 				w.Header().Set("Content-Type", "application/json")
@@ -30,7 +29,7 @@ func Recovery(next http.Handler) http.Handler {
 				}
 
 				if err := json.NewEncoder(w).Encode(errorResponse); err != nil {
-					log.Warn("Failed to encode error response", zap.Error(err))
+					log.Warn("Failed to encode error response", slog.Any("error", err))
 				}
 			}
 		}()

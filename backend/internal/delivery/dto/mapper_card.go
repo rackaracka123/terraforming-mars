@@ -1,8 +1,7 @@
 package dto
 
 import (
-	"go.uber.org/zap"
-
+	"log/slog"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
@@ -50,9 +49,9 @@ func getCorporationCard(p *player.Player, cardRegistry gamecards.CardRegistry) *
 	if err != nil {
 		log := logger.Get()
 		log.Warn("Failed to fetch corporation card",
-			zap.String("player_id", p.ID()),
-			zap.String("corporation_id", p.CorporationID()),
-			zap.Error(err))
+			slog.String("player_id", p.ID()),
+			slog.String("corporation_id", p.CorporationID()),
+			slog.Any("error", err))
 		return nil
 	}
 
@@ -69,8 +68,8 @@ func getPlayedCards(cardIDs []string, cardRegistry gamecards.CardRegistry) []Car
 		card, err := cardRegistry.GetByID(cardID)
 		if err != nil {
 			log.Warn("Failed to fetch played card",
-				zap.String("card_id", cardID),
-				zap.Error(err))
+				slog.String("card_id", cardID),
+				slog.Any("error", err))
 			continue // Skip cards that can't be found
 		}
 		cardDtos = append(cardDtos, ToCardDto(*card))

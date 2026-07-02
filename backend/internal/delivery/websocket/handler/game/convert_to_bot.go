@@ -2,21 +2,20 @@ package game
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	gameaction "terraforming-mars-backend/internal/action/game"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 type ConvertToBotHandler struct {
 	action      *gameaction.ConvertToBotAction
 	broadcaster Broadcaster
 	hub         *core.Hub
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 func NewConvertToBotHandler(action *gameaction.ConvertToBotAction, broadcaster Broadcaster, hub *core.Hub) *ConvertToBotHandler {
@@ -30,8 +29,8 @@ func NewConvertToBotHandler(action *gameaction.ConvertToBotAction, broadcaster B
 
 func (h *ConvertToBotHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 	log.Debug("Processing convert to bot request")
 
@@ -54,7 +53,7 @@ func (h *ConvertToBotHandler) HandleMessage(ctx context.Context, connection *cor
 
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, targetPlayerID)
 	if err != nil {
-		log.Error("Failed to convert player to bot", zap.Error(err))
+		log.Error("Failed to convert player to bot", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}

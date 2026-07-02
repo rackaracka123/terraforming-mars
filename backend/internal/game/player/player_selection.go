@@ -1,12 +1,10 @@
 package player
 
 import (
-	"go.uber.org/zap"
-
+	"log/slog"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game/datastore"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/logger"
 )
 
 // Selection manages player-specific card selection state.
@@ -28,7 +26,7 @@ func newSelection(ds *datastore.DataStore, eventBus *events.EventBusImpl, gameID
 
 func (s *Selection) update(fn func(st *datastore.PlayerState)) {
 	if err := s.ds.UpdatePlayer(s.gameID, s.playerID, fn); err != nil {
-		logger.Get().Warn("Failed to update player state", zap.String("game_id", s.gameID), zap.String("player_id", s.playerID), zap.Error(err))
+		slog.Default().Warn("Failed to update player state", slog.String("game_id", s.gameID), slog.String("player_id", s.playerID), slog.Any("error", err))
 	}
 	if s.eventBus != nil {
 		events.Publish(s.eventBus, events.PlayerSelectionChangedEvent{
@@ -40,7 +38,7 @@ func (s *Selection) update(fn func(st *datastore.PlayerState)) {
 
 func (s *Selection) read(fn func(st *datastore.PlayerState)) {
 	if err := s.ds.ReadPlayer(s.gameID, s.playerID, fn); err != nil {
-		logger.Get().Warn("Failed to read player state", zap.String("game_id", s.gameID), zap.String("player_id", s.playerID), zap.Error(err))
+		slog.Default().Warn("Failed to read player state", slog.String("game_id", s.gameID), slog.String("player_id", s.playerID), slog.Any("error", err))
 	}
 }
 

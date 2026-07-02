@@ -3,19 +3,18 @@ package connection
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/cards"
-
-	"go.uber.org/zap"
 )
 
 // PlayerTakeoverAction handles the business logic for taking over a disconnected player
 type PlayerTakeoverAction struct {
 	gameRepo     game.GameRepository
 	cardRegistry cards.CardRegistry
-	logger       *zap.Logger
+	logger       *slog.Logger
 }
 
 // PlayerTakeoverResult contains the result of a player takeover
@@ -29,7 +28,7 @@ type PlayerTakeoverResult struct {
 func NewPlayerTakeoverAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *PlayerTakeoverAction {
 	return &PlayerTakeoverAction{
 		gameRepo:     gameRepo,
@@ -41,21 +40,21 @@ func NewPlayerTakeoverAction(
 // Execute performs the player takeover action
 func (a *PlayerTakeoverAction) Execute(ctx context.Context, gameID string, targetPlayerID string) (*PlayerTakeoverResult, error) {
 	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("target_player_id", targetPlayerID),
-		zap.String("action", "player_takeover"),
+		slog.String("game_id", gameID),
+		slog.String("target_player_id", targetPlayerID),
+		slog.String("action", "player_takeover"),
 	)
 	log.Debug("Processing player takeover request")
 
 	g, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
+		log.Error("Failed to get game", slog.Any("error", err))
 		return nil, fmt.Errorf("game not found: %s", gameID)
 	}
 
 	player, err := g.GetPlayer(targetPlayerID)
 	if err != nil {
-		log.Error("Target player not found in game", zap.Error(err))
+		log.Error("Target player not found in game", slog.Any("error", err))
 		return nil, fmt.Errorf("player not found: %s", targetPlayerID)
 	}
 
@@ -79,7 +78,7 @@ func (a *PlayerTakeoverAction) Execute(ctx context.Context, gameID string, targe
 	gameDto := dto.ToGameDto(g, a.cardRegistry, targetPlayerID)
 
 	log.Info("Player takeover completed",
-		zap.String("player_name", player.Name()))
+		slog.String("player_name", player.Name()))
 
 	return &PlayerTakeoverResult{
 		PlayerID:   targetPlayerID,

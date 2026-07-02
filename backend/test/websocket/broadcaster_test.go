@@ -2,6 +2,7 @@ package websocket_test
 
 import (
 	"context"
+	"log/slog"
 	"sync"
 	"testing"
 	"time"
@@ -12,8 +13,6 @@ import (
 	"terraforming-mars-backend/internal/game/datastore"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/test/testutil"
-
-	"go.uber.org/zap"
 )
 
 // MockHub implements a simple hub for testing
@@ -27,7 +26,7 @@ type Broadcaster struct {
 	gameRepo     game.GameRepository
 	hub          *MockHub
 	cardRegistry cards.CardRegistry
-	logger       *zap.Logger
+	logger       *slog.Logger
 }
 
 // NewBroadcaster creates a test broadcaster
@@ -35,7 +34,7 @@ func NewBroadcaster(
 	hub *MockHub,
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *Broadcaster {
 	return &Broadcaster{
 		gameRepo:     gameRepo,

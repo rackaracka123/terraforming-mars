@@ -3,13 +3,12 @@ package game
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	mathrand "math/rand/v2"
 	"slices"
 	"strings"
 	"sync"
 	"time"
-
-	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game/board"
@@ -20,7 +19,6 @@ import (
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/projectfunding"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/logger"
 )
 
 type VPCardInfo struct {
@@ -191,13 +189,13 @@ type Game struct {
 
 func (g *Game) update(fn func(s *datastore.GameState)) {
 	if err := g.ds.UpdateGame(g.id, fn); err != nil {
-		logger.Get().Warn("Failed to update game state", zap.String("game_id", g.id), zap.Error(err))
+		slog.Default().Warn("Failed to update game state", slog.String("game_id", g.id), slog.Any("error", err))
 	}
 }
 
 func (g *Game) read(fn func(s *datastore.GameState)) {
 	if err := g.ds.ReadGame(g.id, fn); err != nil {
-		logger.Get().Warn("Failed to read game state", zap.String("game_id", g.id), zap.Error(err))
+		slog.Default().Warn("Failed to read game state", slog.String("game_id", g.id), slog.Any("error", err))
 	}
 }
 
@@ -269,7 +267,7 @@ func NewGame(
 	// Insert state into DataStore so components can read/write through it
 	txn := ds.BeginTxn()
 	if err := txn.InsertGame(state); err != nil {
-		logger.Get().Error("Failed to insert game state", zap.String("game_id", id), zap.Error(err))
+		slog.Default().Error("Failed to insert game state", slog.String("game_id", id), slog.Any("error", err))
 	}
 	txn.Commit()
 
@@ -559,7 +557,7 @@ func (g *Game) AddNewPlayer(ctx context.Context, playerID, playerName string) (*
 			GenerationalEvents: make(map[shared.GenerationalEvent]int),
 		}
 	}); err != nil {
-		logger.Get().Error("Failed to add player to game state", zap.String("game_id", g.id), zap.String("player_id", playerID), zap.Error(err))
+		slog.Default().Error("Failed to add player to game state", slog.String("game_id", g.id), slog.String("player_id", playerID), slog.Any("error", err))
 	}
 	p := player.NewPlayer(g.ds, g.id, playerID, g.eventBus)
 	if err := g.AddPlayer(ctx, p); err != nil {
@@ -587,7 +585,7 @@ func (g *Game) AddNewBotPlayer(ctx context.Context, botID, botName string, diffi
 			GenerationalEvents: make(map[shared.GenerationalEvent]int),
 		}
 	}); err != nil {
-		logger.Get().Error("Failed to add bot player to game state", zap.String("game_id", g.id), zap.String("bot_id", botID), zap.Error(err))
+		slog.Default().Error("Failed to add bot player to game state", slog.String("game_id", g.id), slog.String("bot_id", botID), slog.Any("error", err))
 	}
 	p := player.NewPlayer(g.ds, g.id, botID, g.eventBus)
 	if err := g.AddPlayer(ctx, p); err != nil {
@@ -1622,9 +1620,9 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string, 
 			if len(boardTags) > 0 {
 				if tileHasRequiredTag(tile, boardTags) {
 					availableHexes = append(availableHexes, tile.Coordinates.String())
-					logger.Get().Debug("Tile available for city (board tag match)",
-						zap.String("tile", tile.Coordinates.String()),
-						zap.Strings("board_tags", boardTags))
+					slog.Default().Debug("Tile available for city (board tag match)",
+						slog.String("tile", tile.Coordinates.String()),
+						slog.Any("board_tags", boardTags))
 				}
 				continue
 			}
@@ -1636,9 +1634,9 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string, 
 
 			// Normal city placement: exclude reserved areas (tagged tiles)
 			if tileHasAnyTag(tile) {
-				logger.Get().Debug("Skipping reserved tile for normal city placement",
-					zap.String("tile", tile.Coordinates.String()),
-					zap.Strings("tile_tags", tile.Tags))
+				slog.Default().Debug("Skipping reserved tile for normal city placement",
+					slog.String("tile", tile.Coordinates.String()),
+					slog.Any("tile_tags", tile.Tags))
 				continue
 			}
 
@@ -1646,8 +1644,8 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string, 
 			if adjacency == "none" {
 				if !hasAnyAdjacentOccupied(tile) {
 					availableHexes = append(availableHexes, tile.Coordinates.String())
-					logger.Get().Debug("Tile available for city (no adjacent tiles)",
-						zap.String("tile", tile.Coordinates.String()))
+					slog.Default().Debug("Tile available for city (no adjacent tiles)",
+						slog.String("tile", tile.Coordinates.String()))
 				}
 				continue // Skip normal city adjacency rules
 			}
@@ -1665,9 +1663,9 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string, 
 			hasAdjacentCity := false
 			neighbors := tile.Coordinates.GetNeighbors()
 
-			logger.Get().Debug("Checking city placement",
-				zap.String("tile", tile.Coordinates.String()),
-				zap.Int("neighbor_count", len(neighbors)))
+			slog.Default().Debug("Checking city placement",
+				slog.String("tile", tile.Coordinates.String()),
+				slog.Int("neighbor_count", len(neighbors)))
 
 			for _, neighborPos := range neighbors {
 				for _, neighborTile := range tiles {
@@ -1677,11 +1675,11 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string, 
 							occupantType = string(neighborTile.OccupiedBy.Type)
 						}
 
-						logger.Get().Debug("Checking neighbor",
-							zap.String("neighbor_pos", neighborPos.String()),
-							zap.String("neighbor_tile", neighborTile.Coordinates.String()),
-							zap.Bool("occupied", neighborTile.OccupiedBy != nil),
-							zap.String("occupant_type", occupantType))
+						slog.Default().Debug("Checking neighbor",
+							slog.String("neighbor_pos", neighborPos.String()),
+							slog.String("neighbor_tile", neighborTile.Coordinates.String()),
+							slog.Bool("occupied", neighborTile.OccupiedBy != nil),
+							slog.String("occupant_type", occupantType))
 
 						if neighborTile.OccupiedBy != nil && neighborTile.OccupiedBy.Type == shared.ResourceCityTile {
 							hasAdjacentCity = true
@@ -1696,11 +1694,11 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string, 
 
 			if !hasAdjacentCity {
 				availableHexes = append(availableHexes, tile.Coordinates.String())
-				logger.Get().Debug("Tile available for city",
-					zap.String("tile", tile.Coordinates.String()))
+				slog.Default().Debug("Tile available for city",
+					slog.String("tile", tile.Coordinates.String()))
 			} else {
-				logger.Get().Debug("Tile unavailable for city (adjacent city)",
-					zap.String("tile", tile.Coordinates.String()))
+				slog.Default().Debug("Tile unavailable for city (adjacent city)",
+					slog.String("tile", tile.Coordinates.String()))
 			}
 
 		case "greenery", "world-tree":
@@ -1812,8 +1810,8 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string, 
 			canFallback = true
 		}
 		if canFallback {
-			logger.Get().Debug("No tiles match restrictions, falling back to normal placement",
-				zap.String("tile_type", tileType))
+			slog.Default().Debug("No tiles match restrictions, falling back to normal placement",
+				slog.String("tile_type", tileType))
 			return g.calculateAvailableHexesForTile(tileType, playerID, nil)
 		}
 	}
@@ -2040,7 +2038,7 @@ func (g *Game) subscribeToOceanSpaceEvents() {
 }
 
 func (g *Game) subscribeToGlobalParameterBonuses() {
-	log := logger.Get()
+	log := slog.Default()
 
 	events.Subscribe(g.eventBus, func(e events.TemperatureChangedEvent) {
 		if e.ChangedBy == "" {
@@ -2063,7 +2061,7 @@ func (g *Game) subscribeToGlobalParameterBonuses() {
 					{ResourceType: string(shared.ResourceHeatProduction), Amount: 1},
 				},
 			})
-			log.Debug("Temperature bonus: +1 heat production at -24C", zap.String("player_id", e.ChangedBy))
+			log.Debug("Temperature bonus: +1 heat production at -24C", slog.String("player_id", e.ChangedBy))
 		}
 
 		if e.OldValue < -20 && e.NewValue >= -20 {
@@ -2078,13 +2076,13 @@ func (g *Game) subscribeToGlobalParameterBonuses() {
 					{ResourceType: string(shared.ResourceHeatProduction), Amount: 1},
 				},
 			})
-			log.Debug("Temperature bonus: +1 heat production at -20C", zap.String("player_id", e.ChangedBy))
+			log.Debug("Temperature bonus: +1 heat production at -20C", slog.String("player_id", e.ChangedBy))
 		}
 
 		if e.OldValue < 0 && e.NewValue >= 0 {
 			ctx := context.Background()
 			if err := g.AppendToPendingTileSelectionQueue(ctx, e.ChangedBy, []string{"ocean"}, "Temperature Bonus", "", nil); err != nil {
-				log.Warn("Failed to queue ocean tile for temperature bonus", zap.Error(err))
+				log.Warn("Failed to queue ocean tile for temperature bonus", slog.Any("error", err))
 			}
 			g.AddTriggeredEffect(shared.TriggeredEffect{
 				CardName:   "Temperature Bonus",
@@ -2094,7 +2092,7 @@ func (g *Game) subscribeToGlobalParameterBonuses() {
 					{ResourceType: string(shared.ResourceOceanTile), Amount: 1},
 				},
 			})
-			log.Debug("Temperature bonus: place ocean at 0C", zap.String("player_id", e.ChangedBy))
+			log.Debug("Temperature bonus: place ocean at 0C", slog.String("player_id", e.ChangedBy))
 		}
 	})
 
@@ -2107,7 +2105,7 @@ func (g *Game) subscribeToGlobalParameterBonuses() {
 			ctx := context.Background()
 			actualSteps, err := g.globalParameters.IncreaseTemperature(ctx, 1, e.ChangedBy)
 			if err != nil {
-				logger.Get().Warn("Failed to increase temperature from oxygen bonus", zap.Error(err))
+				slog.Default().Warn("Failed to increase temperature from oxygen bonus", slog.Any("error", err))
 			}
 			if actualSteps > 0 {
 				p, pErr := g.GetPlayer(e.ChangedBy)
@@ -2123,7 +2121,7 @@ func (g *Game) subscribeToGlobalParameterBonuses() {
 					{ResourceType: string(shared.ResourceTemperature), Amount: 1},
 				},
 			})
-			log.Debug("Oxygen bonus: +1 temperature step at 8%", zap.String("player_id", e.ChangedBy))
+			log.Debug("Oxygen bonus: +1 temperature step at 8%", slog.String("player_id", e.ChangedBy))
 		}
 	})
 
@@ -2150,7 +2148,7 @@ func (g *Game) subscribeToGlobalParameterBonuses() {
 					{ResourceType: "card-draw", Amount: 1},
 				},
 			})
-			log.Debug("Venus bonus: draw 1 card at 8%", zap.String("player_id", e.ChangedBy))
+			log.Debug("Venus bonus: draw 1 card at 8%", slog.String("player_id", e.ChangedBy))
 		}
 
 		if e.OldValue < 16 && e.NewValue >= 16 {
@@ -2163,7 +2161,7 @@ func (g *Game) subscribeToGlobalParameterBonuses() {
 					{ResourceType: string(shared.ResourceTR), Amount: 1},
 				},
 			})
-			log.Debug("Venus bonus: +1 TR at 16%", zap.String("player_id", e.ChangedBy))
+			log.Debug("Venus bonus: +1 TR at 16%", slog.String("player_id", e.ChangedBy))
 		}
 	})
 }

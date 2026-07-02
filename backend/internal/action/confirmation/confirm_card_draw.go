@@ -3,6 +3,7 @@ package confirmation
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"slices"
 
 	baseaction "terraforming-mars-backend/internal/action"
@@ -11,8 +12,6 @@ import (
 	"terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
-
-	"go.uber.org/zap"
 )
 
 // ConfirmCardDrawAction handles the business logic for confirming card draw selection
@@ -24,7 +23,7 @@ type ConfirmCardDrawAction struct {
 func NewConfirmCardDrawAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *ConfirmCardDrawAction {
 	return &ConfirmCardDrawAction{
 		BaseAction: baseaction.NewBaseAction(gameRepo, cardRegistry),
@@ -34,9 +33,9 @@ func NewConfirmCardDrawAction(
 // Execute performs the confirm card draw action
 func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, playerID string, cardsToTake []string, cardsToBuy []string) error {
 	log := a.InitLogger(gameID, playerID).With(
-		zap.String("action", "confirm_card_draw"),
-		zap.Int("cards_to_take", len(cardsToTake)),
-		zap.Int("cards_to_buy", len(cardsToBuy)),
+		slog.String("action", "confirm_card_draw"),
+		slog.Int("cards_to_take", len(cardsToTake)),
+		slog.Int("cards_to_buy", len(cardsToBuy)),
 	)
 	log.Debug("Confirming card draw selection")
 
@@ -61,37 +60,37 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 
 	if totalSelected > maxAllowed {
 		log.Warn("Too many cards selected",
-			zap.Int("selected", totalSelected),
-			zap.Int("max_allowed", maxAllowed))
+			slog.Int("selected", totalSelected),
+			slog.Int("max_allowed", maxAllowed))
 		return fmt.Errorf("too many cards selected: selected %d, max allowed %d", totalSelected, maxAllowed)
 	}
 
 	if len(cardsToTake) > selection.FreeTakeCount {
 		log.Warn("Too many free cards selected",
-			zap.Int("selected", len(cardsToTake)),
-			zap.Int("max", selection.FreeTakeCount))
+			slog.Int("selected", len(cardsToTake)),
+			slog.Int("max", selection.FreeTakeCount))
 		return fmt.Errorf("too many free cards selected: selected %d, max %d", len(cardsToTake), selection.FreeTakeCount)
 	}
 
 	isPureCardDraw := selection.MaxBuyCount == 0 && selection.FreeTakeCount == len(selection.AvailableCards)
 	if isPureCardDraw && len(cardsToTake) != selection.FreeTakeCount {
 		log.Warn("Must take all cards for pure card-draw effect",
-			zap.Int("required", selection.FreeTakeCount),
-			zap.Int("selected", len(cardsToTake)))
+			slog.Int("required", selection.FreeTakeCount),
+			slog.Int("selected", len(cardsToTake)))
 		return fmt.Errorf("must take all %d cards for card-draw effect", selection.FreeTakeCount)
 	}
 
 	if len(cardsToBuy) > selection.MaxBuyCount {
 		log.Warn("Too many cards to buy",
-			zap.Int("selected", len(cardsToBuy)),
-			zap.Int("max", selection.MaxBuyCount))
+			slog.Int("selected", len(cardsToBuy)),
+			slog.Int("max", selection.MaxBuyCount))
 		return fmt.Errorf("too many cards to buy: selected %d, max %d", len(cardsToBuy), selection.MaxBuyCount)
 	}
 
 	allSelectedCards := append(cardsToTake, cardsToBuy...)
 	for _, cardID := range allSelectedCards {
 		if !slices.Contains(selection.AvailableCards, cardID) {
-			log.Warn("Card not in available cards", zap.String("card_id", cardID))
+			log.Warn("Card not in available cards", slog.String("card_id", cardID))
 			return fmt.Errorf("card %s not in available cards", cardID)
 		}
 	}
@@ -102,8 +101,8 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 		resources := p.Resources().Get()
 		if resources.Credits < totalCost {
 			log.Warn("Insufficient credits to buy cards",
-				zap.Int("needed", totalCost),
-				zap.Int("available", resources.Credits))
+				slog.Int("needed", totalCost),
+				slog.Int("available", resources.Credits))
 			return fmt.Errorf("insufficient credits to buy cards: need %d, have %d", totalCost, resources.Credits)
 		}
 
@@ -113,9 +112,9 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 
 		newResources := p.Resources().Get()
 		log.Debug("Paid for bought cards",
-			zap.Int("cards_bought", len(cardsToBuy)),
-			zap.Int("cost", totalCost),
-			zap.Int("remaining_credits", newResources.Credits))
+			slog.Int("cards_bought", len(cardsToBuy)),
+			slog.Int("cost", totalCost),
+			slog.Int("remaining_credits", newResources.Credits))
 	}
 
 	if selection.PlayAsPrelude {
@@ -126,15 +125,15 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 			}
 		}
 		log.Debug("Played selected prelude cards",
-			zap.Strings("prelude_ids", allSelectedCards))
+			slog.Any("prelude_ids", allSelectedCards))
 	} else {
 		for _, cardID := range allSelectedCards {
 			p.Hand().AddCard(cardID)
 		}
 		log.Debug("Added selected cards to hand",
-			zap.Int("cards_taken", len(cardsToTake)),
-			zap.Int("cards_bought", len(cardsToBuy)),
-			zap.Int("total_cards", len(allSelectedCards)))
+			slog.Int("cards_taken", len(cardsToTake)),
+			slog.Int("cards_bought", len(cardsToBuy)),
+			slog.Int("total_cards", len(allSelectedCards)))
 	}
 
 	unselectedCards := []string{}
@@ -148,20 +147,20 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 		if selection.PlayAsPrelude {
 			// Prelude cards are removed permanently, never discarded
 			if err := g.Deck().Remove(ctx, unselectedCards); err != nil {
-				log.Error("Failed to remove unselected prelude cards", zap.Error(err))
+				log.Error("Failed to remove unselected prelude cards", slog.Any("error", err))
 				return fmt.Errorf("failed to remove unselected prelude cards: %w", err)
 			}
 			log.Debug("Removed unselected prelude cards permanently",
-				zap.Int("count", len(unselectedCards)),
-				zap.Strings("card_ids", unselectedCards))
+				slog.Int("count", len(unselectedCards)),
+				slog.Any("card_ids", unselectedCards))
 		} else {
 			if err := g.Deck().Discard(ctx, unselectedCards); err != nil {
-				log.Error("Failed to discard unselected cards", zap.Error(err))
+				log.Error("Failed to discard unselected cards", slog.Any("error", err))
 				return fmt.Errorf("failed to discard unselected cards: %w", err)
 			}
 			log.Debug("Discarded unselected cards to discard pile",
-				zap.Int("count", len(unselectedCards)),
-				zap.Strings("card_ids", unselectedCards))
+				slog.Int("count", len(unselectedCards)),
+				slog.Any("card_ids", unselectedCards))
 		}
 	}
 
@@ -170,7 +169,7 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 	// Clear forced first action if this was a prelude card draw selection
 	if selection.PlayAsPrelude {
 		if err := g.SetForcedFirstAction(ctx, playerID, nil); err != nil {
-			log.Error("Failed to clear forced first action", zap.Error(err))
+			log.Error("Failed to clear forced first action", slog.Any("error", err))
 		}
 	}
 
@@ -180,11 +179,11 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 	}
 
 	log.Info("Card draw confirmation completed",
-		zap.String("source", selection.Source),
-		zap.Int("cards_taken", len(cardsToTake)),
-		zap.Int("cards_bought", len(cardsToBuy)),
-		zap.Int("total_cost", totalCost),
-		zap.Bool("play_as_prelude", selection.PlayAsPrelude))
+		slog.String("source", selection.Source),
+		slog.Int("cards_taken", len(cardsToTake)),
+		slog.Int("cards_bought", len(cardsToBuy)),
+		slog.Int("total_cost", totalCost),
+		slog.Bool("play_as_prelude", selection.PlayAsPrelude))
 
 	return nil
 }
@@ -195,7 +194,7 @@ func (a *ConfirmCardDrawAction) completeSourceCardAction(
 	g *game.Game,
 	p *player.Player,
 	selection *shared.PendingCardDrawSelection,
-	log *zap.Logger,
+	log *slog.Logger,
 ) {
 	// Increment usage counts for the source card action
 	actions := p.Actions().List()
@@ -204,10 +203,10 @@ func (a *ConfirmCardDrawAction) completeSourceCardAction(
 			actions[i].TimesUsedThisTurn++
 			actions[i].TimesUsedThisGeneration++
 			log.Debug("Incremented action usage counts from card draw confirmation",
-				zap.String("card_id", selection.SourceCardID),
-				zap.Int("behavior_index", selection.SourceBehaviorIndex),
-				zap.Int("times_used_this_turn", actions[i].TimesUsedThisTurn),
-				zap.Int("times_used_this_generation", actions[i].TimesUsedThisGeneration))
+				slog.String("card_id", selection.SourceCardID),
+				slog.Int("behavior_index", selection.SourceBehaviorIndex),
+				slog.Int("times_used_this_turn", actions[i].TimesUsedThisTurn),
+				slog.Int("times_used_this_generation", actions[i].TimesUsedThisGeneration))
 			break
 		}
 	}

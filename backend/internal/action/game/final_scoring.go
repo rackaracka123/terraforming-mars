@@ -2,10 +2,9 @@ package game
 
 import (
 	"context"
+	"log/slog"
 	"sort"
 	"time"
-
-	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
@@ -21,7 +20,7 @@ type FinalScoringAction struct {
 	cardRegistry      gamecards.CardRegistry
 	awardRegistry     award.AwardRegistry
 	milestoneRegistry milestone.MilestoneRegistry
-	logger            *zap.Logger
+	logger            *slog.Logger
 }
 
 // NewFinalScoringAction creates a new final scoring action
@@ -30,7 +29,7 @@ func NewFinalScoringAction(
 	cardRegistry gamecards.CardRegistry,
 	awardRegistry award.AwardRegistry,
 	milestoneRegistry milestone.MilestoneRegistry,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *FinalScoringAction {
 	return &FinalScoringAction{
 		gameRepo:          gameRepo,
@@ -51,19 +50,19 @@ type PlayerScore struct {
 
 // Execute performs the final scoring action
 func (a *FinalScoringAction) Execute(ctx context.Context, gameID string) error {
-	log := a.logger.With(zap.String("game_id", gameID))
+	log := a.logger.With(slog.String("game_id", gameID))
 	log.Debug("Starting final scoring")
 
 	// 1. Fetch game
 	g, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
+		log.Error("Failed to get game", slog.Any("error", err))
 		return err
 	}
 
 	// 2. Validate game is active
 	if g.Status() != shared.GameStatusActive {
-		log.Warn("Game is not active, skipping final scoring", zap.String("status", string(g.Status())))
+		log.Warn("Game is not active, skipping final scoring", slog.String("status", string(g.Status())))
 		return nil
 	}
 
@@ -88,15 +87,15 @@ func (a *FinalScoringAction) Execute(ctx context.Context, gameID string) error {
 			Credits:    p.Resources().Get().Credits,
 		}
 		log.Debug("Player VP calculated",
-			zap.String("player_id", p.ID()),
-			zap.String("player_name", p.Name()),
-			zap.Int("total_vp", breakdown.TotalVP),
-			zap.Int("tr", breakdown.TerraformRating),
-			zap.Int("card_vp", breakdown.CardVP),
-			zap.Int("milestone_vp", breakdown.MilestoneVP),
-			zap.Int("award_vp", breakdown.AwardVP),
-			zap.Int("greenery_vp", breakdown.GreeneryVP),
-			zap.Int("city_vp", breakdown.CityVP),
+			slog.String("player_id", p.ID()),
+			slog.String("player_name", p.Name()),
+			slog.Int("total_vp", breakdown.TotalVP),
+			slog.Int("tr", breakdown.TerraformRating),
+			slog.Int("card_vp", breakdown.CardVP),
+			slog.Int("milestone_vp", breakdown.MilestoneVP),
+			slog.Int("award_vp", breakdown.AwardVP),
+			slog.Int("greenery_vp", breakdown.GreeneryVP),
+			slog.Int("city_vp", breakdown.CityVP),
 		)
 	}
 
@@ -120,10 +119,10 @@ func (a *FinalScoringAction) Execute(ctx context.Context, gameID string) error {
 	}
 
 	log.Debug("Winner determined",
-		zap.String("winner_id", winnerID),
-		zap.String("winner_name", scores[0].PlayerName),
-		zap.Int("winning_vp", scores[0].Breakdown.TotalVP),
-		zap.Bool("is_tie", isTie),
+		slog.String("winner_id", winnerID),
+		slog.String("winner_name", scores[0].PlayerName),
+		slog.Int("winning_vp", scores[0].Breakdown.TotalVP),
+		slog.Bool("is_tie", isTie),
 	)
 
 	// 8. Build shared.FinalScore entries and store in game.
@@ -140,21 +139,21 @@ func (a *FinalScoringAction) Execute(ctx context.Context, gameID string) error {
 	}
 	err = g.SetFinalScores(ctx, finalScores, winnerID, isTie)
 	if err != nil {
-		log.Error("Failed to set final scores", zap.Error(err))
+		log.Error("Failed to set final scores", slog.Any("error", err))
 		return err
 	}
 
 	// 9. Update game status to completed
 	err = g.UpdateStatus(ctx, shared.GameStatusCompleted)
 	if err != nil {
-		log.Error("Failed to update game status", zap.Error(err))
+		log.Error("Failed to update game status", slog.Any("error", err))
 		return err
 	}
 
 	// 10. Update game phase to complete
 	err = g.UpdatePhase(ctx, shared.GamePhaseComplete)
 	if err != nil {
-		log.Error("Failed to update game phase", zap.Error(err))
+		log.Error("Failed to update game phase", slog.Any("error", err))
 		return err
 	}
 

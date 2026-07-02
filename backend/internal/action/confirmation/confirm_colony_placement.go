@@ -3,9 +3,8 @@ package confirmation
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"slices"
-
-	"go.uber.org/zap"
 
 	baseaction "terraforming-mars-backend/internal/action"
 	colonyaction "terraforming-mars-backend/internal/action/colony"
@@ -27,7 +26,7 @@ func NewConfirmColonyPlacementAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
 	colonyRegistry colony.ColonyRegistry,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *ConfirmColonyPlacementAction {
 	return &ConfirmColonyPlacementAction{
 		BaseAction:     baseaction.NewBaseAction(gameRepo, cardRegistry),
@@ -38,8 +37,8 @@ func NewConfirmColonyPlacementAction(
 // Execute places the selected colony for free and clears the pending selection
 func (a *ConfirmColonyPlacementAction) Execute(ctx context.Context, gameID string, playerID string, colonyID string) error {
 	log := a.InitLogger(gameID, playerID).With(
-		zap.String("action", "confirm_colony_placement"),
-		zap.String("colony_id", colonyID),
+		slog.String("action", "confirm_colony_placement"),
+		slog.String("colony_id", colonyID),
 	)
 	log.Debug("Confirming colony placement")
 
@@ -93,7 +92,7 @@ func (a *ConfirmColonyPlacementAction) Execute(ctx context.Context, gameID strin
 	p.Selection().SetPendingColonySelection(nil)
 
 	log.Info("Colony placed from card effect",
-		zap.String("colony_id", colonyID))
+		slog.String("colony_id", colonyID))
 
 	if phase := g.CurrentPhase(); phase == shared.GamePhaseInitApplyCorp || phase == shared.GamePhaseInitApplyPrelude {
 		advanced, err := turn_management.AdvanceInitPhaseAfterForcedAction(ctx, g, log)
@@ -102,7 +101,7 @@ func (a *ConfirmColonyPlacementAction) Execute(ctx context.Context, gameID strin
 		}
 		if advanced {
 			log.Debug("Advanced init phase after forced colony placement",
-				zap.String("colony_id", colonyID))
+				slog.String("colony_id", colonyID))
 		}
 	}
 

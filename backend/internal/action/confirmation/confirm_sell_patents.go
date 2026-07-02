@@ -3,9 +3,9 @@ package confirmation
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	baseaction "terraforming-mars-backend/internal/action"
 
-	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/shared"
 )
@@ -20,7 +20,7 @@ type ConfirmSellPatentsAction struct {
 func NewConfirmSellPatentsAction(
 	gameRepo game.GameRepository,
 	stateRepo game.GameStateRepository,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *ConfirmSellPatentsAction {
 	return &ConfirmSellPatentsAction{
 		BaseAction: baseaction.NewBaseActionWithStateRepo(gameRepo, nil, stateRepo),
@@ -30,8 +30,8 @@ func NewConfirmSellPatentsAction(
 // Execute performs the confirm sell patents action (Phase 2: process card selection)
 func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID string, playerID string, selectedCardIDs []string) error {
 	log := a.InitLogger(gameID, playerID).With(
-		zap.String("action", "confirm_sell_patents"),
-		zap.Int("cards_selected", len(selectedCardIDs)),
+		slog.String("action", "confirm_sell_patents"),
+		slog.Int("cards_selected", len(selectedCardIDs)),
 	)
 	log.Debug("Confirming sell patents card selection")
 
@@ -65,21 +65,21 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID string, p
 
 	if pendingCardSelection.Source != "sell-patents" {
 		log.Warn("Pending card selection is not for sell patents",
-			zap.String("source", pendingCardSelection.Source))
+			slog.String("source", pendingCardSelection.Source))
 		return fmt.Errorf("pending card selection is not for sell patents")
 	}
 
 	if len(selectedCardIDs) < pendingCardSelection.MinCards {
 		log.Warn("Too few cards selected",
-			zap.Int("selected", len(selectedCardIDs)),
-			zap.Int("min_required", pendingCardSelection.MinCards))
+			slog.Int("selected", len(selectedCardIDs)),
+			slog.Int("min_required", pendingCardSelection.MinCards))
 		return fmt.Errorf("must select at least %d cards", pendingCardSelection.MinCards)
 	}
 
 	if len(selectedCardIDs) > pendingCardSelection.MaxCards {
 		log.Warn("Too many cards selected",
-			zap.Int("selected", len(selectedCardIDs)),
-			zap.Int("max_allowed", pendingCardSelection.MaxCards))
+			slog.Int("selected", len(selectedCardIDs)),
+			slog.Int("max_allowed", pendingCardSelection.MaxCards))
 		return fmt.Errorf("cannot select more than %d cards", pendingCardSelection.MaxCards)
 	}
 
@@ -90,7 +90,7 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID string, p
 
 	for _, cardID := range selectedCardIDs {
 		if !availableCardsMap[cardID] {
-			log.Warn("Selected card not available", zap.String("card_id", cardID))
+			log.Warn("Selected card not available", slog.String("card_id", cardID))
 			return fmt.Errorf("card %s is not available for selection", cardID)
 		}
 	}
@@ -107,24 +107,24 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID string, p
 
 		resources := player.Resources().Get()
 		log.Debug("Awarded credits for sold cards",
-			zap.Int("cards_sold", len(selectedCardIDs)),
-			zap.Int("credits_earned", totalReward),
-			zap.Int("new_credits", resources.Credits))
+			slog.Int("cards_sold", len(selectedCardIDs)),
+			slog.Int("credits_earned", totalReward),
+			slog.Int("new_credits", resources.Credits))
 	}
 
 	for _, cardID := range selectedCardIDs {
 		removed := player.Hand().RemoveCard(cardID)
 		if !removed {
-			log.Warn("Failed to remove card from hand", zap.String("card_id", cardID))
+			log.Warn("Failed to remove card from hand", slog.String("card_id", cardID))
 		}
 	}
 
 	if err := g.Deck().Discard(ctx, selectedCardIDs); err != nil {
-		log.Error("Failed to discard sold cards to discard pile", zap.Error(err))
+		log.Error("Failed to discard sold cards to discard pile", slog.Any("error", err))
 		return fmt.Errorf("failed to discard sold cards: %w", err)
 	}
 
-	log.Debug("Sold cards added to discard pile", zap.Int("cards_removed", len(selectedCardIDs)))
+	log.Debug("Sold cards added to discard pile", slog.Int("cards_removed", len(selectedCardIDs)))
 
 	player.Selection().SetPendingCardSelection(nil)
 
@@ -154,7 +154,7 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID string, p
 	}
 
 	log.Info("Sell patents completed",
-		zap.Int("cards_sold", len(selectedCardIDs)),
-		zap.Int("credits_earned", totalReward))
+		slog.Int("cards_sold", len(selectedCardIDs)),
+		slog.Int("credits_earned", totalReward))
 	return nil
 }

@@ -3,11 +3,10 @@ package action
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/shared"
-
-	"go.uber.org/zap"
 )
 
 // ValidateGameExists validates that a game exists (any status)
@@ -16,11 +15,11 @@ func ValidateGameExists(
 	ctx context.Context,
 	gameRepo game.GameRepository,
 	gameID string,
-	log *zap.Logger,
+	log *slog.Logger,
 ) (*game.Game, error) {
 	game, err := gameRepo.Get(ctx, gameID)
 	if err != nil {
-		log.Error("Game not found", zap.Error(err))
+		log.Error("Game not found", slog.Any("error", err))
 		return nil, fmt.Errorf("game not found: %w", err)
 	}
 	return game, nil
@@ -32,7 +31,7 @@ func ValidateActiveGame(
 	ctx context.Context,
 	gameRepo game.GameRepository,
 	gameID string,
-	log *zap.Logger,
+	log *slog.Logger,
 ) (*game.Game, error) {
 	return ValidateGameStatus(ctx, gameRepo, gameID, shared.GameStatusActive, log)
 }
@@ -43,7 +42,7 @@ func ValidateLobbyGame(
 	ctx context.Context,
 	gameRepo game.GameRepository,
 	gameID string,
-	log *zap.Logger,
+	log *slog.Logger,
 ) (*game.Game, error) {
 	return ValidateGameStatus(ctx, gameRepo, gameID, shared.GameStatusLobby, log)
 }
@@ -55,18 +54,18 @@ func ValidateGameStatus(
 	gameRepo game.GameRepository,
 	gameID string,
 	expectedStatus shared.GameStatus,
-	log *zap.Logger,
+	log *slog.Logger,
 ) (*game.Game, error) {
 	gameResult, err := gameRepo.Get(ctx, gameID)
 	if err != nil {
-		log.Error("Game not found", zap.Error(err))
+		log.Error("Game not found", slog.Any("error", err))
 		return nil, fmt.Errorf("game not found: %w", err)
 	}
 
 	if gameResult.Status() != expectedStatus {
 		log.Error("Game not in expected status",
-			zap.String("expected", string(expectedStatus)),
-			zap.String("actual", string(gameResult.Status())))
+			slog.String("expected", string(expectedStatus)),
+			slog.String("actual", string(gameResult.Status())))
 		return nil, fmt.Errorf("game not in %s status", expectedStatus)
 	}
 
@@ -78,12 +77,12 @@ func ValidateGameStatus(
 func ValidateGamePhase(
 	gameInstance *game.Game,
 	expectedPhase shared.GamePhase,
-	log *zap.Logger,
+	log *slog.Logger,
 ) error {
 	if gameInstance.CurrentPhase() != expectedPhase {
 		log.Error("Game not in expected phase",
-			zap.String("expected", string(expectedPhase)),
-			zap.String("actual", string(gameInstance.CurrentPhase())))
+			slog.String("expected", string(expectedPhase)),
+			slog.String("actual", string(gameInstance.CurrentPhase())))
 		return fmt.Errorf("game not in %s phase", expectedPhase)
 	}
 	return nil
@@ -94,12 +93,12 @@ func ValidateGamePhase(
 func ValidateHostPermission(
 	gameInstance *game.Game,
 	playerID string,
-	log *zap.Logger,
+	log *slog.Logger,
 ) error {
 	if gameInstance.HostPlayerID() != playerID {
 		log.Error("Non-host attempted privileged action",
-			zap.String("player_id", playerID),
-			zap.String("host_id", gameInstance.HostPlayerID()))
+			slog.String("player_id", playerID),
+			slog.String("host_id", gameInstance.HostPlayerID()))
 		return fmt.Errorf("only the host can perform this action")
 	}
 	return nil
@@ -110,7 +109,7 @@ func ValidateHostPermission(
 func ValidateCurrentTurn(
 	gameInstance *game.Game,
 	playerID string,
-	log *zap.Logger,
+	log *slog.Logger,
 ) error {
 	currentTurn := gameInstance.CurrentTurn()
 	if currentTurn == nil {
@@ -120,8 +119,8 @@ func ValidateCurrentTurn(
 
 	if currentTurn.PlayerID() != playerID {
 		log.Error("Not player's turn",
-			zap.String("player_id", playerID),
-			zap.String("current_turn", currentTurn.PlayerID()))
+			slog.String("player_id", playerID),
+			slog.String("current_turn", currentTurn.PlayerID()))
 		return fmt.Errorf("not your turn")
 	}
 
@@ -133,7 +132,7 @@ func ValidateCurrentTurn(
 func ValidateActionsRemaining(
 	gameInstance *game.Game,
 	playerID string,
-	log *zap.Logger,
+	log *slog.Logger,
 ) error {
 	currentTurn := gameInstance.CurrentTurn()
 	if currentTurn == nil {
@@ -147,8 +146,8 @@ func ValidateActionsRemaining(
 	remaining := currentTurn.ActionsRemaining()
 	if remaining == 0 {
 		log.Warn("No actions remaining",
-			zap.String("player_id", playerID),
-			zap.Int("actions_remaining", remaining))
+			slog.String("player_id", playerID),
+			slog.Int("actions_remaining", remaining))
 		return fmt.Errorf("no actions remaining")
 	}
 
@@ -160,7 +159,7 @@ func ValidateActionsRemaining(
 func ValidateNoPendingSelections(
 	gameInstance *game.Game,
 	playerID string,
-	log *zap.Logger,
+	log *slog.Logger,
 ) error {
 	if gameInstance.HasAnyPendingSelection(playerID) {
 		return fmt.Errorf("pending selection")

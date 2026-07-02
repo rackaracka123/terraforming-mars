@@ -3,6 +3,7 @@ package confirmation
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"slices"
 	baseaction "terraforming-mars-backend/internal/action"
 
@@ -10,8 +11,6 @@ import (
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
-
-	"go.uber.org/zap"
 )
 
 // ConfirmCardDiscardAction handles the business logic for confirming card discard selection
@@ -23,7 +22,7 @@ type ConfirmCardDiscardAction struct {
 func NewConfirmCardDiscardAction(
 	gameRepo game.GameRepository,
 	cardRegistry gamecards.CardRegistry,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *ConfirmCardDiscardAction {
 	return &ConfirmCardDiscardAction{
 		BaseAction: baseaction.NewBaseAction(gameRepo, cardRegistry),
@@ -34,8 +33,8 @@ func NewConfirmCardDiscardAction(
 // cardsToDiscard: card IDs from hand to discard (empty = skip if optional)
 func (a *ConfirmCardDiscardAction) Execute(ctx context.Context, gameID string, playerID string, cardsToDiscard []string) error {
 	log := a.InitLogger(gameID, playerID).With(
-		zap.String("action", "confirm_card_discard"),
-		zap.Int("cards_to_discard", len(cardsToDiscard)),
+		slog.String("action", "confirm_card_discard"),
+		slog.Int("cards_to_discard", len(cardsToDiscard)),
 	)
 	log.Debug("Confirming card discard selection")
 
@@ -58,15 +57,15 @@ func (a *ConfirmCardDiscardAction) Execute(ctx context.Context, gameID string, p
 	// Validate discard count
 	if len(cardsToDiscard) < selection.MinCards {
 		log.Warn("Not enough cards to discard",
-			zap.Int("selected", len(cardsToDiscard)),
-			zap.Int("min_required", selection.MinCards))
+			slog.Int("selected", len(cardsToDiscard)),
+			slog.Int("min_required", selection.MinCards))
 		return fmt.Errorf("must discard at least %d card(s), selected %d", selection.MinCards, len(cardsToDiscard))
 	}
 
 	if len(cardsToDiscard) > selection.MaxCards {
 		log.Warn("Too many cards to discard",
-			zap.Int("selected", len(cardsToDiscard)),
-			zap.Int("max_allowed", selection.MaxCards))
+			slog.Int("selected", len(cardsToDiscard)),
+			slog.Int("max_allowed", selection.MaxCards))
 		return fmt.Errorf("can discard at most %d card(s), selected %d", selection.MaxCards, len(cardsToDiscard))
 	}
 
@@ -74,7 +73,7 @@ func (a *ConfirmCardDiscardAction) Execute(ctx context.Context, gameID string, p
 	handCards := p.Hand().Cards()
 	for _, cardID := range cardsToDiscard {
 		if !slices.Contains(handCards, cardID) {
-			log.Warn("Card not in hand", zap.String("card_id", cardID))
+			log.Warn("Card not in hand", slog.String("card_id", cardID))
 			return fmt.Errorf("card %s not in player's hand", cardID)
 		}
 	}
@@ -86,19 +85,19 @@ func (a *ConfirmCardDiscardAction) Execute(ctx context.Context, gameID string, p
 
 	if len(cardsToDiscard) > 0 {
 		if err := g.Deck().Discard(ctx, cardsToDiscard); err != nil {
-			log.Error("Failed to discard cards to discard pile", zap.Error(err))
+			log.Error("Failed to discard cards to discard pile", slog.Any("error", err))
 			return fmt.Errorf("failed to discard cards: %w", err)
 		}
 		log.Debug("Discarded cards from hand to discard pile",
-			zap.Int("count", len(cardsToDiscard)),
-			zap.Strings("card_ids", cardsToDiscard))
+			slog.Int("count", len(cardsToDiscard)),
+			slog.Any("card_ids", cardsToDiscard))
 	}
 
 	// Apply pending outputs if player actually discarded (or if discard was mandatory with min=0)
 	if len(cardsToDiscard) > 0 && len(selection.PendingOutputs) > 0 {
 		selfOutputs, err := a.applyPendingOutputs(ctx, g, p, selection, log)
 		if err != nil {
-			log.Error("Failed to apply pending outputs after discard", zap.Error(err))
+			log.Error("Failed to apply pending outputs after discard", slog.Any("error", err))
 			return fmt.Errorf("failed to apply pending outputs: %w", err)
 		}
 
@@ -119,8 +118,8 @@ func (a *ConfirmCardDiscardAction) Execute(ctx context.Context, gameID string, p
 	p.Selection().SetPendingCardDiscardSelection(nil)
 
 	log.Info("Card discard confirmation completed",
-		zap.String("source", selection.Source),
-		zap.Int("cards_discarded", len(cardsToDiscard)))
+		slog.String("source", selection.Source),
+		slog.Int("cards_discarded", len(cardsToDiscard)))
 
 	return nil
 }
@@ -132,7 +131,7 @@ func (a *ConfirmCardDiscardAction) applyPendingOutputs(
 	g *game.Game,
 	p *player.Player,
 	selection *shared.PendingCardDiscardSelection,
-	log *zap.Logger,
+	log *slog.Logger,
 ) ([]shared.CalculatedOutput, error) {
 	var selfOutputs []shared.CalculatedOutput
 
@@ -146,16 +145,16 @@ func (a *ConfirmCardDiscardAction) applyPendingOutputs(
 					drawnCards, err := g.Deck().DrawProjectCards(ctx, outputBC.GetAmount())
 					if err != nil {
 						log.Warn("Failed to draw cards for opponent",
-							zap.String("opponent_id", opponent.ID()),
-							zap.Error(err))
+							slog.String("opponent_id", opponent.ID()),
+							slog.Any("error", err))
 						continue
 					}
 					for _, cardID := range drawnCards {
 						opponent.Hand().AddCard(cardID)
 					}
 					log.Debug("Opponent drew cards",
-						zap.String("opponent_id", opponent.ID()),
-						zap.Int("count", len(drawnCards)))
+						slog.String("opponent_id", opponent.ID()),
+						slog.Int("count", len(drawnCards)))
 
 					g.AddTriggeredEffect(shared.TriggeredEffect{
 						CardName:   selection.Source,
@@ -181,12 +180,12 @@ func (a *ConfirmCardDiscardAction) applyPendingOutputs(
 				Amount:       len(drawnCards),
 			})
 			log.Debug("Drew cards after discard",
-				zap.Int("count", len(drawnCards)))
+				slog.Int("count", len(drawnCards)))
 			continue
 		}
 
 		// For non-card-draw outputs, use the behavior applier
-		applier := gamecards.NewBehaviorApplier(p, g, selection.Source, log).
+		applier := gamecards.NewBehaviorApplier(p, g, selection.Source, slog.Default()).
 			WithSourceCardID(selection.SourceCardID).
 			WithCardRegistry(a.CardRegistry()).
 			WithSourceType(shared.SourceTypePassiveEffect)

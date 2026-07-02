@@ -3,13 +3,12 @@ package confirmation
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	baseaction "terraforming-mars-backend/internal/action"
 
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
-
-	"go.uber.org/zap"
 )
 
 // ConfirmBehaviorChoiceAction handles the business logic for confirming a behavior choice selection
@@ -21,7 +20,7 @@ type ConfirmBehaviorChoiceAction struct {
 func NewConfirmBehaviorChoiceAction(
 	gameRepo game.GameRepository,
 	cardRegistry gamecards.CardRegistry,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *ConfirmBehaviorChoiceAction {
 	return &ConfirmBehaviorChoiceAction{
 		BaseAction: baseaction.NewBaseAction(gameRepo, cardRegistry),
@@ -31,8 +30,8 @@ func NewConfirmBehaviorChoiceAction(
 // Execute performs the confirm behavior choice action
 func (a *ConfirmBehaviorChoiceAction) Execute(ctx context.Context, gameID string, playerID string, choiceIndex int, cardStorageTargets []string) error {
 	log := a.InitLogger(gameID, playerID).With(
-		zap.String("action", "confirm_behavior_choice"),
-		zap.Int("choice_index", choiceIndex),
+		slog.String("action", "confirm_behavior_choice"),
+		slog.Int("choice_index", choiceIndex),
 	)
 	log.Debug("Confirming behavior choice selection")
 
@@ -54,8 +53,8 @@ func (a *ConfirmBehaviorChoiceAction) Execute(ctx context.Context, gameID string
 
 	if choiceIndex < 0 || choiceIndex >= len(selection.Choices) {
 		log.Warn("Invalid choice index",
-			zap.Int("choice_index", choiceIndex),
-			zap.Int("num_choices", len(selection.Choices)))
+			slog.Int("choice_index", choiceIndex),
+			slog.Int("num_choices", len(selection.Choices)))
 		return fmt.Errorf("invalid choice index %d, must be 0-%d", choiceIndex, len(selection.Choices)-1)
 	}
 
@@ -64,12 +63,12 @@ func (a *ConfirmBehaviorChoiceAction) Execute(ctx context.Context, gameID string
 	// Validate choice requirements before applying
 	if choiceErrors := baseaction.CalculateChoiceErrors(selectedChoice, p, g, a.CardRegistry()); len(choiceErrors) > 0 {
 		log.Warn("Choice requirements not met",
-			zap.Int("choice_index", choiceIndex),
-			zap.String("error", choiceErrors[0].Message))
+			slog.Int("choice_index", choiceIndex),
+			slog.String("error", choiceErrors[0].Message))
 		return fmt.Errorf("choice %d requirements not met: %s", choiceIndex, choiceErrors[0].Message)
 	}
 
-	applier := gamecards.NewBehaviorApplier(p, g, selection.Source, log).
+	applier := gamecards.NewBehaviorApplier(p, g, selection.Source, slog.Default()).
 		WithSourceCardID(selection.SourceCardID).
 		WithCardRegistry(a.CardRegistry()).
 		WithSourceType(shared.SourceTypePassiveEffect)
@@ -81,7 +80,7 @@ func (a *ConfirmBehaviorChoiceAction) Execute(ctx context.Context, gameID string
 	// Apply inputs (deduct resources)
 	if len(selectedChoice.Inputs) > 0 {
 		if err := applier.ApplyInputs(ctx, selectedChoice.Inputs); err != nil {
-			log.Error("Failed to apply choice inputs", zap.Error(err))
+			log.Error("Failed to apply choice inputs", slog.Any("error", err))
 			return fmt.Errorf("failed to apply choice inputs: %w", err)
 		}
 	}
@@ -89,7 +88,7 @@ func (a *ConfirmBehaviorChoiceAction) Execute(ctx context.Context, gameID string
 	// Apply outputs (add resources)
 	if len(selectedChoice.Outputs) > 0 {
 		if err := applier.ApplyOutputs(ctx, selectedChoice.Outputs); err != nil {
-			log.Error("Failed to apply choice outputs", zap.Error(err))
+			log.Error("Failed to apply choice outputs", slog.Any("error", err))
 			return fmt.Errorf("failed to apply choice outputs: %w", err)
 		}
 	}
@@ -98,8 +97,8 @@ func (a *ConfirmBehaviorChoiceAction) Execute(ctx context.Context, gameID string
 	p.Selection().SetPendingBehaviorChoiceSelection(nil)
 
 	log.Info("Behavior choice confirmation completed",
-		zap.String("source", selection.Source),
-		zap.Int("choice_selected", choiceIndex))
+		slog.String("source", selection.Source),
+		slog.Int("choice_selected", choiceIndex))
 
 	return nil
 }

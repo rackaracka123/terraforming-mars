@@ -3,10 +3,10 @@ package turn_management
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	baseaction "terraforming-mars-backend/internal/action"
 	gameaction "terraforming-mars-backend/internal/action/game"
 
-	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/game"
 	playerPkg "terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
@@ -22,7 +22,7 @@ type SkipActionAction struct {
 func NewSkipActionAction(
 	gameRepo game.GameRepository,
 	finalScoringAction *gameaction.FinalScoringAction,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *SkipActionAction {
 	return &SkipActionAction{
 		BaseAction:         baseaction.NewBaseAction(gameRepo, nil),
@@ -32,7 +32,7 @@ func NewSkipActionAction(
 
 // Execute performs the skip action
 func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID string) error {
-	log := a.InitLogger(gameID, playerID).With(zap.String("action", "skip_action"))
+	log := a.InitLogger(gameID, playerID).With(slog.String("action", "skip_action"))
 	log.Debug("Skipping player turn")
 
 	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
@@ -92,19 +92,19 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 		currentPlayer.SetPassed(true)
 
 		log.Debug("Player PASSED (marked as passed for generation)",
-			zap.String("player_id", playerID),
-			zap.Int("available_actions", availableActions))
+			slog.String("player_id", playerID),
+			slog.Int("available_actions", availableActions))
 
 		if activePlayerCount == 2 {
 			for _, id := range turnOrder {
 				p, _ := g.GetPlayer(id)
 				if p != nil && !p.HasPassed() && !p.HasExited() && p.ID() != playerID {
 					if err := g.SetCurrentTurn(ctx, p.ID(), -1); err != nil {
-						log.Error("Failed to grant unlimited actions to last player", zap.Error(err))
+						log.Error("Failed to grant unlimited actions to last player", slog.Any("error", err))
 						return fmt.Errorf("failed to grant unlimited actions: %w", err)
 					}
 					log.Debug("Last active player granted unlimited actions due to others passing",
-						zap.String("player_id", p.ID()))
+						slog.String("player_id", p.ID()))
 				}
 			}
 		}
@@ -112,8 +112,8 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 		// SKIP: Player is done with their turn but not passing for the generation
 		// Don't consume action - just advance to next player
 		log.Debug("Player SKIPPED (turn advanced, not passed)",
-			zap.String("player_id", playerID),
-			zap.Int("available_actions", availableActions))
+			slog.String("player_id", playerID),
+			slog.Int("available_actions", availableActions))
 	}
 
 	passedOrExitedCount := 0
@@ -127,9 +127,9 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 	allPlayersFinished := passedOrExitedCount == len(turnOrder)
 
 	log.Debug("Checking generation end condition",
-		zap.Int("passed_or_exited_count", passedOrExitedCount),
-		zap.Int("total_players", len(turnOrder)),
-		zap.Bool("all_players_finished", allPlayersFinished))
+		slog.Int("passed_or_exited_count", passedOrExitedCount),
+		slog.Int("total_players", len(turnOrder)),
+		slog.Bool("all_players_finished", allPlayersFinished))
 
 	if allPlayersFinished {
 		var activePlayers []*playerPkg.Player
@@ -141,9 +141,9 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 
 		if g.CurrentPhase() == shared.GamePhaseFinalPhase {
 			log.Debug("All players finished final phase - triggering final scoring",
-				zap.String("game_id", gameID))
+				slog.String("game_id", gameID))
 			if err := a.finalScoringAction.Execute(ctx, gameID); err != nil {
-				log.Error("Failed to execute final scoring", zap.Error(err))
+				log.Error("Failed to execute final scoring", slog.Any("error", err))
 				return fmt.Errorf("failed to execute final scoring: %w", err)
 			}
 			log.Info("Game ended after final phase")
@@ -152,12 +152,12 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 
 		if g.GlobalParameters().IsMaxed() {
 			log.Debug("All global parameters maxed - running final production phase",
-				zap.String("game_id", gameID),
-				zap.Int("generation", g.Generation()))
+				slog.String("game_id", gameID),
+				slog.Int("generation", g.Generation()))
 
 			err = ExecuteFinalProductionPhase(ctx, g, activePlayers, log)
 			if err != nil {
-				log.Error("Failed to execute final production phase", zap.Error(err))
+				log.Error("Failed to execute final production phase", slog.Any("error", err))
 				return fmt.Errorf("failed to execute final production phase: %w", err)
 			}
 
@@ -166,13 +166,13 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 		}
 
 		log.Debug("All players finished their turns - executing production phase",
-			zap.String("game_id", gameID),
-			zap.Int("generation", g.Generation()),
-			zap.Int("passed_or_exited_players", passedOrExitedCount))
+			slog.String("game_id", gameID),
+			slog.Int("generation", g.Generation()),
+			slog.Int("passed_or_exited_players", passedOrExitedCount))
 
 		err = ExecuteProductionPhase(ctx, g, activePlayers, log)
 		if err != nil {
-			log.Error("Failed to execute production phase", zap.Error(err))
+			log.Error("Failed to execute production phase", slog.Any("error", err))
 			return fmt.Errorf("failed to execute production phase: %w", err)
 		}
 
@@ -202,18 +202,18 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 	if nonPassedCount == 1 {
 		nextActions = -1
 		log.Debug("Next player is the last non-passed player, granting unlimited actions",
-			zap.String("player_id", nextPlayerID))
+			slog.String("player_id", nextPlayerID))
 	}
 
 	err = g.SetCurrentTurn(ctx, nextPlayerID, nextActions)
 	if err != nil {
-		log.Error("Failed to update current turn", zap.Error(err))
+		log.Error("Failed to update current turn", slog.Any("error", err))
 		return fmt.Errorf("failed to update game: %w", err)
 	}
 
 	log.Info("Player turn skipped, advanced to next player",
-		zap.String("previous_player", playerID),
-		zap.String("current_player", nextPlayerID))
+		slog.String("previous_player", playerID),
+		slog.String("current_player", nextPlayerID))
 
 	return nil
 }

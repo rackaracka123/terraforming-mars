@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -16,7 +17,6 @@ import (
 	"terraforming-mars-backend/internal/logger"
 
 	"github.com/gorilla/mux"
-	"go.uber.org/zap"
 )
 
 // GameHandler handles HTTP requests for games
@@ -66,11 +66,11 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 	gameID := vars["gameId"]
 	playerID := r.URL.Query().Get("playerId")
 
-	log.Debug("HTTP GET /api/v1/games/:gameId", zap.String("game_id", gameID))
+	log.Debug("HTTP GET /api/v1/games/:gameId", slog.String("game_id", gameID))
 
 	game, err := h.getGameAction.Execute(ctx, gameID)
 	if err != nil {
-		log.Debug("Failed to get game", zap.Error(err))
+		log.Debug("Failed to get game", slog.Any("error", err))
 		http.Error(w, "Game not found", http.StatusNotFound)
 		return
 	}
@@ -78,7 +78,7 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 	// If playerId provided, verify player is in the game
 	if playerID != "" {
 		if _, err := game.GetPlayer(playerID); err != nil {
-			log.Debug("Player not in game", zap.String("player_id", playerID))
+			log.Debug("Player not in game", slog.String("player_id", playerID))
 			http.Error(w, "Player not in game", http.StatusNotFound)
 			return
 		}
@@ -92,12 +92,12 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Error("Failed to encode response", zap.Error(err))
+		log.Error("Failed to encode response", slog.Any("error", err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	log.Debug("Game retrieved", zap.String("game_id", gameID))
+	log.Debug("Game retrieved", slog.String("game_id", gameID))
 }
 
 // ListGames handles GET /api/v1/games
@@ -115,7 +115,7 @@ func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
 
 	games, err := h.listGamesAction.Execute(ctx, statusFilter)
 	if err != nil {
-		log.Error("Failed to list games", zap.Error(err))
+		log.Error("Failed to list games", slog.Any("error", err))
 		http.Error(w, "Failed to list games", http.StatusInternalServerError)
 		return
 	}
@@ -129,12 +129,12 @@ func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Error("Failed to encode response", zap.Error(err))
+		log.Error("Failed to encode response", slog.Any("error", err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	log.Debug("Games listed", zap.Int("count", len(games)))
+	log.Debug("Games listed", slog.Int("count", len(games)))
 }
 
 // CreateGame handles POST /api/v1/games
@@ -146,7 +146,7 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 
 	var req dto.CreateGameRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Error("Failed to decode request", zap.Error(err))
+		log.Error("Failed to decode request", slog.Any("error", err))
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -155,7 +155,7 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 	// the rest and hosts edit them from the lobby via UpdateGameSettingsAction.
 	game, err := h.createGameAction.Execute(ctx, shared.GameSettings{DevelopmentMode: true})
 	if err != nil {
-		log.Error("Failed to create game", zap.Error(err))
+		log.Error("Failed to create game", slog.Any("error", err))
 		http.Error(w, "Failed to create game", http.StatusInternalServerError)
 		return
 	}
@@ -169,12 +169,12 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Error("Failed to encode response", zap.Error(err))
+		log.Error("Failed to encode response", slog.Any("error", err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	log.Debug("Game created", zap.String("game_id", game.ID()))
+	log.Debug("Game created", slog.String("game_id", game.ID()))
 }
 
 // ListCards handles GET /api/v1/cards
@@ -205,7 +205,7 @@ func (h *GameHandler) ListCards(w http.ResponseWriter, r *http.Request) {
 	// Execute query action
 	result, err := h.listCardsAction.Execute(ctx, offset, limit)
 	if err != nil {
-		log.Error("Failed to list cards", zap.Error(err))
+		log.Error("Failed to list cards", slog.Any("error", err))
 		http.Error(w, "Failed to list cards", http.StatusInternalServerError)
 		return
 	}
@@ -225,12 +225,12 @@ func (h *GameHandler) ListCards(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Error("Failed to encode response", zap.Error(err))
+		log.Error("Failed to encode response", slog.Any("error", err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	log.Debug("Cards listed", zap.Int("count", len(cardDtos)))
+	log.Debug("Cards listed", slog.Int("count", len(cardDtos)))
 }
 
 // GetGameLogs handles GET /api/v1/games/{gameId}/logs
@@ -250,11 +250,11 @@ func (h *GameHandler) GetGameLogs(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	log.Debug("HTTP GET /api/v1/games/:gameId/logs", zap.String("game_id", gameID), zap.Int64("since", since))
+	log.Debug("HTTP GET /api/v1/games/:gameId/logs", slog.String("game_id", gameID), slog.Int64("since", since))
 
 	diffs, err := h.getGameLogsAction.Execute(ctx, gameID, since)
 	if err != nil {
-		log.Error("Failed to get game logs", zap.Error(err))
+		log.Error("Failed to get game logs", slog.Any("error", err))
 		http.Error(w, "Game not found", http.StatusNotFound)
 		return
 	}
@@ -263,12 +263,12 @@ func (h *GameHandler) GetGameLogs(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(diffsDto); err != nil {
-		log.Error("Failed to encode response", zap.Error(err))
+		log.Error("Failed to encode response", slog.Any("error", err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	log.Debug("Game logs retrieved", zap.String("game_id", gameID), zap.Int("count", len(diffs)))
+	log.Debug("Game logs retrieved", slog.String("game_id", gameID), slog.Int("count", len(diffs)))
 }
 
 // GetGameHistory handles GET /api/v1/games/{gameId}/history
@@ -279,7 +279,7 @@ func (h *GameHandler) GetGameHistory(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	gameID := vars["gameId"]
 
-	log.Debug("HTTP GET /api/v1/games/:gameId/history", zap.String("game_id", gameID))
+	log.Debug("HTTP GET /api/v1/games/:gameId/history", slog.String("game_id", gameID))
 
 	var filter *query.HistoryFilter
 	queryParams := r.URL.Query()
@@ -301,7 +301,7 @@ func (h *GameHandler) GetGameHistory(w http.ResponseWriter, r *http.Request) {
 
 	entries, err := h.getGameHistoryAction.Execute(ctx, gameID, filter)
 	if err != nil {
-		log.Error("Failed to get game history", zap.Error(err))
+		log.Error("Failed to get game history", slog.Any("error", err))
 		http.Error(w, "Failed to get game history", http.StatusInternalServerError)
 		return
 	}
@@ -312,12 +312,12 @@ func (h *GameHandler) GetGameHistory(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Error("Failed to encode response", zap.Error(err))
+		log.Error("Failed to encode response", slog.Any("error", err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	log.Debug("Game history retrieved", zap.String("game_id", gameID), zap.Int("count", len(entries)))
+	log.Debug("Game history retrieved", slog.String("game_id", gameID), slog.Int("count", len(entries)))
 }
 
 // ListMilestonesAndAwards handles GET /api/v1/milestones-awards

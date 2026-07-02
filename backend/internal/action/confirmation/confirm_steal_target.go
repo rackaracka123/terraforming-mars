@@ -3,9 +3,8 @@ package confirmation
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	baseaction "terraforming-mars-backend/internal/action"
-
-	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/cards"
@@ -22,7 +21,7 @@ func NewConfirmStealTargetAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
 	stateRepo game.GameStateRepository,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *ConfirmStealTargetAction {
 	return &ConfirmStealTargetAction{
 		BaseAction: baseaction.NewBaseActionWithStateRepo(gameRepo, cardRegistry, stateRepo),
@@ -32,8 +31,8 @@ func NewConfirmStealTargetAction(
 // Execute performs the confirm steal target action
 func (a *ConfirmStealTargetAction) Execute(ctx context.Context, gameID string, playerID string, targetPlayerID string) error {
 	log := a.InitLogger(gameID, playerID).With(
-		zap.String("action", "confirm_steal_target"),
-		zap.String("target_player_id", targetPlayerID),
+		slog.String("action", "confirm_steal_target"),
+		slog.String("target_player_id", targetPlayerID),
 	)
 	log.Debug("Confirming steal target selection")
 
@@ -63,7 +62,7 @@ func (a *ConfirmStealTargetAction) Execute(ctx context.Context, gameID string, p
 		a.WriteStateLog(ctx, g, selection.Source, shared.SourceTypeCardPlay, playerID, description)
 
 		log.Info("Steal target skipped",
-			zap.String("source", selection.Source))
+			slog.String("source", selection.Source))
 		return nil
 	}
 
@@ -106,8 +105,8 @@ func (a *ConfirmStealTargetAction) Execute(ctx context.Context, gameID string, p
 	a.WriteStateLogFull(ctx, g, selection.Source, shared.SourceTypeCardPlay, playerID, description, nil, calculatedOutputs, nil)
 
 	log.Info("Steal target confirmed",
-		zap.String("source", selection.Source),
-		zap.Int("stolen_amount", stolenAmount))
+		slog.String("source", selection.Source),
+		slog.Int("stolen_amount", stolenAmount))
 	return nil
 }
 

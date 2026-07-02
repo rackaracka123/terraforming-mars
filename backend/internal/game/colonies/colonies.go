@@ -1,15 +1,13 @@
 package colonies
 
 import (
+	"log/slog"
 	"slices"
 	"time"
-
-	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game/colony"
 	"terraforming-mars-backend/internal/game/datastore"
-	"terraforming-mars-backend/internal/logger"
 )
 
 const maxColoniesPerTile = 3
@@ -30,13 +28,13 @@ func NewColonies(ds *datastore.DataStore, gameID string, eventBus *events.EventB
 
 func (c *Colonies) update(fn func(s *datastore.GameState)) {
 	if err := c.ds.UpdateGame(c.gameID, fn); err != nil {
-		logger.Get().Warn("Failed to update game state", zap.String("game_id", c.gameID), zap.Error(err))
+		slog.Default().Warn("Failed to update game state", slog.String("game_id", c.gameID), slog.Any("error", err))
 	}
 }
 
 func (c *Colonies) read(fn func(s *datastore.GameState)) {
 	if err := c.ds.ReadGame(c.gameID, fn); err != nil {
-		logger.Get().Warn("Failed to read game state", zap.String("game_id", c.gameID), zap.Error(err))
+		slog.Default().Warn("Failed to read game state", slog.String("game_id", c.gameID), slog.Any("error", err))
 	}
 }
 

@@ -3,13 +3,12 @@ package resource_conversion
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	baseaction "terraforming-mars-backend/internal/action"
 
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
-
-	"go.uber.org/zap"
 )
 
 const (
@@ -29,7 +28,7 @@ func NewConvertPlantsToGreeneryAction(
 	gameRepo game.GameRepository,
 	cardRegistry gamecards.CardRegistry,
 	stateRepo game.GameStateRepository,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *ConvertPlantsToGreeneryAction {
 	return &ConvertPlantsToGreeneryAction{
 		BaseAction:   baseaction.NewBaseActionWithStateRepo(gameRepo, nil, stateRepo),
@@ -39,7 +38,7 @@ func NewConvertPlantsToGreeneryAction(
 
 // Execute performs the convert plants to greenery action
 func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID string, playerID string, storageSubstitutes map[string]int) error {
-	log := a.InitLogger(gameID, playerID).With(zap.String("action", "convert_plants_to_greenery"))
+	log := a.InitLogger(gameID, playerID).With(slog.String("action", "convert_plants_to_greenery"))
 	log.Debug("Converting plants to greenery")
 
 	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
@@ -50,7 +49,7 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID stri
 	phase := g.CurrentPhase()
 	if phase != shared.GamePhaseAction && phase != shared.GamePhaseFinalPhase {
 		log.Error("Game not in valid phase for greenery conversion",
-			zap.String("actual", string(phase)))
+			slog.String("actual", string(phase)))
 		return fmt.Errorf("game not in action or final phase")
 	}
 
@@ -79,9 +78,9 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID stri
 		requiredPlants = 1
 	}
 	log.Debug("Calculated plants cost",
-		zap.Int("base_cost", BasePlantsForGreenery),
-		zap.Int("discount", plantDiscount),
-		zap.Int("final_cost", requiredPlants))
+		slog.Int("base_cost", BasePlantsForGreenery),
+		slog.Int("discount", plantDiscount),
+		slog.Int("final_cost", requiredPlants))
 
 	storageValue, err := ValidateAndDeductStorageSubstitutes(player, storageSubstitutes, shared.ResourcePlant, log)
 	if err != nil {
@@ -96,10 +95,10 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID stri
 	resources := player.Resources().Get()
 	if resources.Plants < remainingCost {
 		log.Warn("Player cannot afford plants conversion",
-			zap.Int("required", requiredPlants),
-			zap.Int("storage_value", storageValue),
-			zap.Int("remaining_cost", remainingCost),
-			zap.Int("available_plants", resources.Plants))
+			slog.Int("required", requiredPlants),
+			slog.Int("storage_value", storageValue),
+			slog.Int("remaining_cost", remainingCost),
+			slog.Int("available_plants", resources.Plants))
 		return fmt.Errorf("insufficient plants: need %d (after %d from storage), have %d", remainingCost, storageValue, resources.Plants)
 	}
 
@@ -109,9 +108,9 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID stri
 
 	resources = player.Resources().Get()
 	log.Debug("Deducted plants",
-		zap.Int("plants_spent", remainingCost),
-		zap.Int("storage_value", storageValue),
-		zap.Int("remaining_plants", resources.Plants))
+		slog.Int("plants_spent", remainingCost),
+		slog.Int("storage_value", storageValue),
+		slog.Int("remaining_plants", resources.Plants))
 
 	queue := &shared.PendingTileSelectionQueue{
 		Items:  []string{"greenery"},
@@ -132,6 +131,6 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID stri
 	a.ConsumePlayerAction(g, log)
 
 	log.Info("Plants converted, greenery queued",
-		zap.Int("plants_spent", requiredPlants))
+		slog.Int("plants_spent", requiredPlants))
 	return nil
 }

@@ -3,13 +3,12 @@ package projectfunding
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 
 	pfAction "terraforming-mars-backend/internal/action/projectfunding"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // Broadcaster is the interface for broadcasting game state
@@ -29,7 +28,7 @@ type FundSeatPayload struct {
 type FundSeatHandler struct {
 	action      *pfAction.FundSeatAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewFundSeatHandler creates a new fund seat handler
@@ -44,8 +43,8 @@ func NewFundSeatHandler(action *pfAction.FundSeatAction, broadcaster Broadcaster
 // HandleMessage implements the MessageHandler interface
 func (h *FundSeatHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing project funding seat purchase")
@@ -58,14 +57,14 @@ func (h *FundSeatHandler) HandleMessage(ctx context.Context, connection *core.Co
 
 	payloadBytes, err := json.Marshal(message.Payload)
 	if err != nil {
-		log.Error("Failed to marshal payload", zap.Error(err))
+		log.Error("Failed to marshal payload", slog.Any("error", err))
 		h.sendError(connection, "Invalid payload format")
 		return
 	}
 
 	var payload FundSeatPayload
 	if err := json.Unmarshal(payloadBytes, &payload); err != nil {
-		log.Error("Failed to unmarshal payload", zap.Error(err))
+		log.Error("Failed to unmarshal payload", slog.Any("error", err))
 		h.sendError(connection, "Invalid payload format")
 		return
 	}
@@ -84,12 +83,12 @@ func (h *FundSeatHandler) HandleMessage(ctx context.Context, connection *core.Co
 
 	err = h.action.Execute(ctx, connection.GameID, connection.PlayerID, payload.ProjectID, payment)
 	if err != nil {
-		log.Error("Failed to execute fund seat action", zap.Error(err))
+		log.Error("Failed to execute fund seat action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}
 
-	log.Debug("Project seat purchased", zap.String("project_id", payload.ProjectID))
+	log.Debug("Project seat purchased", slog.String("project_id", payload.ProjectID))
 
 	h.broadcaster.BroadcastGameState(connection.GameID, nil)
 

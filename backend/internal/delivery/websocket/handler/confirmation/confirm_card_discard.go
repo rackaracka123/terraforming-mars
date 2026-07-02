@@ -2,20 +2,19 @@ package confirmation
 
 import (
 	"context"
+	"log/slog"
 
 	confirmaction "terraforming-mars-backend/internal/action/confirmation"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // ConfirmCardDiscardHandler handles confirm card discard requests
 type ConfirmCardDiscardHandler struct {
 	action      *confirmaction.ConfirmCardDiscardAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewConfirmCardDiscardHandler creates a new confirm card discard handler
@@ -30,8 +29,8 @@ func NewConfirmCardDiscardHandler(action *confirmaction.ConfirmCardDiscardAction
 // HandleMessage implements the MessageHandler interface
 func (h *ConfirmCardDiscardHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing confirm card discard request")
@@ -60,11 +59,11 @@ func (h *ConfirmCardDiscardHandler) HandleMessage(ctx context.Context, connectio
 	}
 
 	log.Debug("Parsed confirm card discard request",
-		zap.Strings("cards_to_discard", cardsToDiscard))
+		slog.Any("cards_to_discard", cardsToDiscard))
 
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, cardsToDiscard)
 	if err != nil {
-		log.Error("Failed to execute confirm card discard action", zap.Error(err))
+		log.Error("Failed to execute confirm card discard action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}

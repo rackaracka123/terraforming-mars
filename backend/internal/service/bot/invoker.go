@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,8 +13,6 @@ import (
 	"syscall"
 
 	"terraforming-mars-backend/internal/delivery/dto"
-
-	"go.uber.org/zap"
 )
 
 // Invoker executes the Claude CLI as a subprocess to decide turns.
@@ -24,7 +23,7 @@ type Invoker struct {
 	Model       string
 	APIKey      string
 	Difficulty  string
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // Stream event types from claude --output-format stream-json
@@ -67,7 +66,7 @@ type toolUseFile struct {
 }
 
 // NewInvoker creates a new Claude CLI invoker.
-func NewInvoker(historyPath, statePath, commandPath, model, apiKey, difficulty string, logger *zap.Logger) *Invoker {
+func NewInvoker(historyPath, statePath, commandPath, model, apiKey, difficulty string, logger *slog.Logger) *Invoker {
 	return &Invoker{
 		HistoryPath: historyPath,
 		StatePath:   statePath,
@@ -85,8 +84,8 @@ func (inv *Invoker) PlayTurn(ctx context.Context, gameDto *dto.GameDto, myPlayer
 	turnPrompt := buildTurnPrompt(gameDto, inv.StatePath, inv.CommandPath, inv.HistoryPath)
 
 	inv.logger.Debug("Invoking Claude CLI",
-		zap.String("model", inv.Model),
-		zap.String("player_id", myPlayerID))
+		slog.String("model", inv.Model),
+		slog.String("player_id", myPlayerID))
 
 	cmd := exec.CommandContext(ctx, "claude",
 		"--print",
@@ -156,7 +155,7 @@ func (inv *Invoker) displayEvent(event *streamEvent) {
 			switch block.Type {
 			case "text":
 				if block.Text != "" {
-					inv.logger.Debug("Claude", zap.String("text", block.Text))
+					inv.logger.Debug("Claude", slog.String("text", block.Text))
 				}
 			case "tool_use":
 				inv.displayToolUse(block)
@@ -166,17 +165,17 @@ func (inv *Invoker) displayEvent(event *streamEvent) {
 	case "user":
 		if event.ToolUseResult != nil && event.ToolUseResult.File != nil {
 			f := event.ToolUseResult.File
-			inv.logger.Debug("Tool result", zap.String("file", f.FilePath), zap.Int("lines", f.NumLines))
+			inv.logger.Debug("Tool result", slog.String("file", f.FilePath), slog.Int("lines", f.NumLines))
 		}
 
 	case "result":
 		if event.Subtype == "success" {
 			inv.logger.Debug("Claude done",
-				zap.Int("turns", event.NumTurns),
-				zap.Int("duration_ms", event.DurationMs),
-				zap.Float64("cost_usd", event.Cost))
+				slog.Int("turns", event.NumTurns),
+				slog.Int("duration_ms", event.DurationMs),
+				slog.Float64("cost_usd", event.Cost))
 		} else {
-			inv.logger.Error("Claude error", zap.String("result", event.Result))
+			inv.logger.Error("Claude error", slog.String("result", event.Result))
 		}
 	}
 }
@@ -188,54 +187,54 @@ func (inv *Invoker) displayToolUse(block contentBlock) {
 			FilePath string `json:"file_path"`
 		}
 		if err := json.Unmarshal(block.Input, &input); err != nil {
-			inv.logger.Warn("Failed to unmarshal Read tool input", zap.Error(err))
+			inv.logger.Warn("Failed to unmarshal Read tool input", slog.Any("error", err))
 		}
-		inv.logger.Debug("Read", zap.String("file", input.FilePath))
+		inv.logger.Debug("Read", slog.String("file", input.FilePath))
 
 	case "Bash":
 		var input struct {
 			Command string `json:"command"`
 		}
 		if err := json.Unmarshal(block.Input, &input); err != nil {
-			inv.logger.Warn("Failed to unmarshal Bash tool input", zap.Error(err))
+			inv.logger.Warn("Failed to unmarshal Bash tool input", slog.Any("error", err))
 		}
 		cmd := input.Command
 		if len(cmd) > 200 {
 			cmd = cmd[:200] + "..."
 		}
 		if strings.Contains(cmd, ">> ") {
-			inv.logger.Debug("Command", zap.String("cmd", cmd))
+			inv.logger.Debug("Command", slog.String("cmd", cmd))
 		} else {
-			inv.logger.Debug("Bash", zap.String("cmd", cmd))
+			inv.logger.Debug("Bash", slog.String("cmd", cmd))
 		}
 
 	default:
-		inv.logger.Debug("Tool", zap.String("name", block.Name))
+		inv.logger.Debug("Tool", slog.String("name", block.Name))
 	}
 }
 
-func loadStrategyGuide(difficulty string, logger *zap.Logger) string {
+func loadStrategyGuide(difficulty string, logger *slog.Logger) string {
 	if difficulty == "" {
 		difficulty = "normal"
 	}
 
 	wd, err := os.Getwd()
 	if err != nil {
-		logger.Warn("Failed to get working directory for strategy file", zap.Error(err))
+		logger.Warn("Failed to get working directory for strategy file", slog.Any("error", err))
 		return ""
 	}
 
 	strategyPath := filepath.Join(wd, "assets", "bot", difficulty+".md")
 	data, err := os.ReadFile(strategyPath)
 	if err != nil {
-		logger.Warn("Failed to load strategy file", zap.String("path", strategyPath), zap.Error(err))
+		logger.Warn("Failed to load strategy file", slog.String("path", strategyPath), slog.Any("error", err))
 		return ""
 	}
 
 	return string(data)
 }
 
-func buildSystemPrompt(commandPath string, difficulty string, logger *zap.Logger) string {
+func buildSystemPrompt(commandPath string, difficulty string, logger *slog.Logger) string {
 	strategyGuide := loadStrategyGuide(difficulty, logger)
 	strategySection := ""
 	if strategyGuide != "" {

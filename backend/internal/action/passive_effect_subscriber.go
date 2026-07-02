@@ -2,9 +2,8 @@ package action
 
 import (
 	"context"
+	"log/slog"
 	"slices"
-
-	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
@@ -20,7 +19,7 @@ func SubscribePassiveEffectToEvents(
 	g *game.Game,
 	p *player.Player,
 	effect shared.CardEffect,
-	log *zap.Logger,
+	log *slog.Logger,
 	cardRegistry ...gamecards.CardRegistry,
 ) {
 	var cr gamecards.CardRegistry
@@ -98,7 +97,7 @@ func subscribePlacementBonusEffect(
 	p *player.Player,
 	effect shared.CardEffect,
 	trigger shared.Trigger,
-	log *zap.Logger,
+	log *slog.Logger,
 	cr gamecards.CardRegistry,
 ) events.SubscriptionID {
 	subID := events.Subscribe(g.EventBus(), func(event events.PlacementBonusGainedEvent) {
@@ -138,23 +137,23 @@ func subscribePlacementBonusEffect(
 
 		// Condition matched! Apply the effect outputs using BehaviorApplier
 		log.Debug("Passive effect triggered",
-			zap.String("card_name", effect.CardName),
-			zap.String("trigger_type", trigger.Condition.Type),
-			zap.Any("resources_gained", event.Resources))
+			slog.String("card_name", effect.CardName),
+			slog.String("trigger_type", trigger.Condition.Type),
+			slog.Any("resources_gained", event.Resources))
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, slog.Default()).
 			WithSourceCardID(effect.CardID).
 			WithCardRegistry(cr).
 			WithSourceType(shared.SourceTypePassiveEffect)
 		if err := applier.ApplyOutputs(context.Background(), effect.Behavior.Outputs); err != nil {
 			log.Error("Failed to apply passive effect outputs",
-				zap.String("card_name", effect.CardName),
-				zap.Error(err))
+				slog.String("card_name", effect.CardName),
+				slog.Any("error", err))
 		}
 	})
 
 	log.Debug("Subscribed passive effect to PlacementBonusGainedEvent",
-		zap.String("card_name", effect.CardName))
+		slog.String("card_name", effect.CardName))
 
 	return subID
 }
@@ -166,7 +165,7 @@ func subscribeCityPlacedEffect(
 	p *player.Player,
 	effect shared.CardEffect,
 	trigger shared.Trigger,
-	log *zap.Logger,
+	log *slog.Logger,
 	cr gamecards.CardRegistry,
 ) events.SubscriptionID {
 	subID := events.Subscribe(g.EventBus(), func(event events.TilePlacedEvent) {
@@ -204,24 +203,24 @@ func subscribeCityPlacedEffect(
 
 		// Condition matched! Apply the effect outputs using BehaviorApplier
 		log.Debug("Passive effect triggered (city placement)",
-			zap.String("card_name", effect.CardName),
-			zap.String("player_id", p.ID()),
-			zap.String("placed_by", event.PlayerID),
-			zap.String("tile_type", event.TileType))
+			slog.String("card_name", effect.CardName),
+			slog.String("player_id", p.ID()),
+			slog.String("placed_by", event.PlayerID),
+			slog.String("tile_type", event.TileType))
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, slog.Default()).
 			WithSourceCardID(effect.CardID).
 			WithCardRegistry(cr).
 			WithSourceType(shared.SourceTypePassiveEffect)
 		if err := applier.ApplyOutputs(context.Background(), effect.Behavior.Outputs); err != nil {
 			log.Error("Failed to apply passive effect outputs",
-				zap.String("card_name", effect.CardName),
-				zap.Error(err))
+				slog.String("card_name", effect.CardName),
+				slog.Any("error", err))
 		}
 	})
 
 	log.Debug("Subscribed passive effect to TilePlacedEvent (city)",
-		zap.String("card_name", effect.CardName))
+		slog.String("card_name", effect.CardName))
 
 	return subID
 }
@@ -233,7 +232,7 @@ func subscribeOceanPlacedEffect(
 	p *player.Player,
 	effect shared.CardEffect,
 	trigger shared.Trigger,
-	log *zap.Logger,
+	log *slog.Logger,
 	cr gamecards.CardRegistryInterface,
 ) events.SubscriptionID {
 	subID := events.Subscribe(g.EventBus(), func(event events.TilePlacedEvent) {
@@ -264,24 +263,24 @@ func subscribeOceanPlacedEffect(
 		}
 
 		log.Debug("Passive effect triggered (ocean placement)",
-			zap.String("card_name", effect.CardName),
-			zap.String("player_id", p.ID()),
-			zap.String("placed_by", event.PlayerID),
-			zap.String("tile_type", event.TileType))
+			slog.String("card_name", effect.CardName),
+			slog.String("player_id", p.ID()),
+			slog.String("placed_by", event.PlayerID),
+			slog.String("tile_type", event.TileType))
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, slog.Default()).
 			WithSourceCardID(effect.CardID).
 			WithCardRegistry(cr).
 			WithSourceType(shared.SourceTypePassiveEffect)
 		if err := applier.ApplyOutputs(context.Background(), effect.Behavior.Outputs); err != nil {
 			log.Error("Failed to apply passive effect outputs",
-				zap.String("card_name", effect.CardName),
-				zap.Error(err))
+				slog.String("card_name", effect.CardName),
+				slog.Any("error", err))
 		}
 	})
 
 	log.Debug("Subscribed passive effect to TilePlacedEvent (ocean)",
-		zap.String("card_name", effect.CardName))
+		slog.String("card_name", effect.CardName))
 
 	return subID
 }
@@ -292,7 +291,7 @@ func subscribeTagPlayedEffect(
 	p *player.Player,
 	effect shared.CardEffect,
 	trigger shared.Trigger,
-	log *zap.Logger,
+	log *slog.Logger,
 	cr gamecards.CardRegistry,
 ) events.SubscriptionID {
 	subID := events.Subscribe(g.EventBus(), func(event events.TagPlayedEvent) {
@@ -340,10 +339,10 @@ func subscribeTagPlayedEffect(
 		}
 
 		log.Debug("Passive effect triggered (tag played)",
-			zap.String("card_name", effect.CardName),
-			zap.String("effect_owner", p.ID()),
-			zap.String("tag_played_by", event.PlayerID),
-			zap.String("tag", event.Tag))
+			slog.String("card_name", effect.CardName),
+			slog.String("effect_owner", p.ID()),
+			slog.String("tag_played_by", event.PlayerID),
+			slog.String("tag", event.Tag))
 
 		// Check if this effect requires card-discard input (e.g., Mars University)
 		if gamecards.HasCardDiscardInput(effect.Behavior) {
@@ -357,19 +356,19 @@ func subscribeTagPlayedEffect(
 			return
 		}
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, slog.Default()).
 			WithSourceCardID(effect.CardID).
 			WithCardRegistry(cr).
 			WithSourceType(shared.SourceTypePassiveEffect)
 		if err := applier.ApplyOutputs(context.Background(), effect.Behavior.Outputs); err != nil {
 			log.Error("Failed to apply passive effect outputs",
-				zap.String("card_name", effect.CardName),
-				zap.Error(err))
+				slog.String("card_name", effect.CardName),
+				slog.Any("error", err))
 		}
 	})
 
 	log.Debug("Subscribed passive effect to TagPlayedEvent",
-		zap.String("card_name", effect.CardName))
+		slog.String("card_name", effect.CardName))
 
 	return subID
 }
@@ -380,7 +379,7 @@ func subscribeCardPlayedEffect(
 	p *player.Player,
 	effect shared.CardEffect,
 	trigger shared.Trigger,
-	log *zap.Logger,
+	log *slog.Logger,
 	cr gamecards.CardRegistry,
 ) events.SubscriptionID {
 	subID := events.Subscribe(g.EventBus(), func(event events.CardPlayedEvent) {
@@ -414,29 +413,29 @@ func subscribeCardPlayedEffect(
 		}
 
 		log.Debug("Passive effect triggered (card played)",
-			zap.String("card_name", effect.CardName),
-			zap.String("effect_owner", p.ID()),
-			zap.String("card_played_by", event.PlayerID),
-			zap.String("card_played", event.CardName))
+			slog.String("card_name", effect.CardName),
+			slog.String("effect_owner", p.ID()),
+			slog.String("card_played_by", event.PlayerID),
+			slog.String("card_played", event.CardName))
 
 		if gamecards.HasChoices(effect.Behavior) {
 			createPassiveBehaviorChoice(p, effect, log)
 			return
 		}
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, slog.Default()).
 			WithSourceCardID(effect.CardID).
 			WithCardRegistry(cr).
 			WithSourceType(shared.SourceTypePassiveEffect)
 		if err := applier.ApplyOutputs(context.Background(), effect.Behavior.Outputs); err != nil {
 			log.Error("Failed to apply passive effect outputs",
-				zap.String("card_name", effect.CardName),
-				zap.Error(err))
+				slog.String("card_name", effect.CardName),
+				slog.Any("error", err))
 		}
 	})
 
 	log.Debug("Subscribed passive effect to CardPlayedEvent",
-		zap.String("card_name", effect.CardName))
+		slog.String("card_name", effect.CardName))
 
 	return subID
 }
@@ -447,7 +446,7 @@ func subscribeStandardProjectPlayedEffect(
 	p *player.Player,
 	effect shared.CardEffect,
 	trigger shared.Trigger,
-	log *zap.Logger,
+	log *slog.Logger,
 	cr gamecards.CardRegistry,
 ) events.SubscriptionID {
 	subID := events.Subscribe(g.EventBus(), func(event events.StandardProjectPlayedEvent) {
@@ -492,24 +491,24 @@ func subscribeStandardProjectPlayedEffect(
 		}
 
 		log.Debug("Passive effect triggered (standard project played)",
-			zap.String("card_name", effect.CardName),
-			zap.String("effect_owner", p.ID()),
-			zap.String("project_type", event.ProjectType),
-			zap.Int("project_cost", event.ProjectCost))
+			slog.String("card_name", effect.CardName),
+			slog.String("effect_owner", p.ID()),
+			slog.String("project_type", event.ProjectType),
+			slog.Int("project_cost", event.ProjectCost))
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, slog.Default()).
 			WithSourceCardID(effect.CardID).
 			WithCardRegistry(cr).
 			WithSourceType(shared.SourceTypePassiveEffect)
 		if err := applier.ApplyOutputs(context.Background(), effect.Behavior.Outputs); err != nil {
 			log.Error("Failed to apply passive effect outputs",
-				zap.String("card_name", effect.CardName),
-				zap.Error(err))
+				slog.String("card_name", effect.CardName),
+				slog.Any("error", err))
 		}
 	})
 
 	log.Debug("Subscribed passive effect to StandardProjectPlayedEvent",
-		zap.String("card_name", effect.CardName))
+		slog.String("card_name", effect.CardName))
 
 	return subID
 }
@@ -520,7 +519,7 @@ func subscribeTilePlacedEffect(
 	p *player.Player,
 	effect shared.CardEffect,
 	trigger shared.Trigger,
-	log *zap.Logger,
+	log *slog.Logger,
 	cr gamecards.CardRegistry,
 ) events.SubscriptionID {
 	subID := events.Subscribe(g.EventBus(), func(event events.PlacementBonusGainedEvent) {
@@ -555,23 +554,23 @@ func subscribeTilePlacedEffect(
 		}
 
 		log.Debug("Passive effect triggered (tile placed on bonus)",
-			zap.String("card_name", effect.CardName),
-			zap.String("trigger_type", trigger.Condition.Type),
-			zap.Any("bonus_resources", event.Resources))
+			slog.String("card_name", effect.CardName),
+			slog.String("trigger_type", trigger.Condition.Type),
+			slog.Any("bonus_resources", event.Resources))
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, slog.Default()).
 			WithSourceCardID(effect.CardID).
 			WithCardRegistry(cr).
 			WithSourceType(shared.SourceTypePassiveEffect)
 		if err := applier.ApplyOutputs(context.Background(), effect.Behavior.Outputs); err != nil {
 			log.Error("Failed to apply passive effect outputs",
-				zap.String("card_name", effect.CardName),
-				zap.Error(err))
+				slog.String("card_name", effect.CardName),
+				slog.Any("error", err))
 		}
 	})
 
 	log.Debug("Subscribed passive effect to PlacementBonusGainedEvent (tile-placed)",
-		zap.String("card_name", effect.CardName))
+		slog.String("card_name", effect.CardName))
 
 	return subID
 }
@@ -582,7 +581,7 @@ func subscribeGlobalParameterRaisedEffect(
 	p *player.Player,
 	effect shared.CardEffect,
 	_ shared.Trigger,
-	log *zap.Logger,
+	log *slog.Logger,
 	cr gamecards.CardRegistry,
 ) events.SubscriptionID {
 	globalParams := getGlobalParametersFromSelectors(effect.Behavior.Triggers)
@@ -592,20 +591,20 @@ func subscribeGlobalParameterRaisedEffect(
 			return
 		}
 		log.Debug("Passive effect triggered (global parameter raised)",
-			zap.String("card_name", effect.CardName),
-			zap.String("player_id", p.ID()),
-			zap.String("parameter", paramName),
-			zap.Int("steps", steps))
+			slog.String("card_name", effect.CardName),
+			slog.String("player_id", p.ID()),
+			slog.String("parameter", paramName),
+			slog.Int("steps", steps))
 
 		for i := 0; i < steps; i++ {
-			applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+			applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, slog.Default()).
 				WithSourceCardID(effect.CardID).
 				WithCardRegistry(cr).
 				WithSourceType(shared.SourceTypePassiveEffect)
 			if err := applier.ApplyOutputs(context.Background(), effect.Behavior.Outputs); err != nil {
 				log.Error("Failed to apply passive effect outputs",
-					zap.String("card_name", effect.CardName),
-					zap.Error(err))
+					slog.String("card_name", effect.CardName),
+					slog.Any("error", err))
 			}
 		}
 	}
@@ -644,8 +643,8 @@ func subscribeGlobalParameterRaisedEffect(
 	}
 
 	log.Debug("Subscribed passive effect to global parameter raised events",
-		zap.String("card_name", effect.CardName),
-		zap.Strings("parameters", globalParams))
+		slog.String("card_name", effect.CardName),
+		slog.Any("parameters", globalParams))
 
 	// Subscriptions are registered internally per parameter, return empty to avoid duplicate registration by caller
 	return ""
@@ -667,7 +666,7 @@ func getGlobalParametersFromSelectors(triggers []shared.Trigger) []string {
 
 // createPassiveCardDiscard creates a pending card discard selection from a passive effect
 // Used for effects like Mars University that require player to optionally discard before gaining outputs
-func createPassiveCardDiscard(p *player.Player, effect shared.CardEffect, log *zap.Logger) {
+func createPassiveCardDiscard(p *player.Player, effect shared.CardEffect, log *slog.Logger) {
 	// Find card-discard inputs to determine min/max
 	minCards := 0
 	maxCards := 0
@@ -684,7 +683,7 @@ func createPassiveCardDiscard(p *player.Player, effect shared.CardEffect, log *z
 	// Skip if player has no cards to discard
 	if len(p.Hand().Cards()) == 0 {
 		log.Debug("Skipping card discard - player has no cards in hand",
-			zap.String("card_name", effect.CardName))
+			slog.String("card_name", effect.CardName))
 		return
 	}
 
@@ -697,9 +696,9 @@ func createPassiveCardDiscard(p *player.Player, effect shared.CardEffect, log *z
 	})
 
 	log.Debug("Created pending card discard selection from passive effect",
-		zap.String("card_name", effect.CardName),
-		zap.Int("min_cards", minCards),
-		zap.Int("max_cards", maxCards))
+		slog.String("card_name", effect.CardName),
+		slog.Int("min_cards", minCards),
+		slog.Int("max_cards", maxCards))
 }
 
 // resourceNameToProductionType maps event resource names to production resource types
@@ -719,7 +718,7 @@ func subscribeProductionIncreasedEffect(
 	p *player.Player,
 	effect shared.CardEffect,
 	trigger shared.Trigger,
-	log *zap.Logger,
+	log *slog.Logger,
 	cr gamecards.CardRegistry,
 ) events.SubscriptionID {
 	subID := events.Subscribe(g.EventBus(), func(event events.ProductionChangedEvent) {
@@ -761,31 +760,31 @@ func subscribeProductionIncreasedEffect(
 		}
 
 		log.Debug("Passive effect triggered",
-			zap.String("card_name", effect.CardName),
-			zap.String("trigger_type", trigger.Condition.Type),
-			zap.String("resource_type", event.ResourceType),
-			zap.Int("increase", increase))
+			slog.String("card_name", effect.CardName),
+			slog.String("trigger_type", trigger.Condition.Type),
+			slog.String("resource_type", event.ResourceType),
+			slog.Int("increase", increase))
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, slog.Default()).
 			WithSourceCardID(effect.CardID).
 			WithCardRegistry(cr).
 			WithSourceType(shared.SourceTypePassiveEffect)
 		if err := applier.ApplyOutputs(context.Background(), scaledOutputs); err != nil {
 			log.Error("Failed to apply passive effect outputs",
-				zap.String("card_name", effect.CardName),
-				zap.Error(err))
+				slog.String("card_name", effect.CardName),
+				slog.Any("error", err))
 		}
 	})
 
 	log.Debug("Subscribed passive effect to ProductionChangedEvent",
-		zap.String("card_name", effect.CardName))
+		slog.String("card_name", effect.CardName))
 
 	return subID
 }
 
 // createPassiveBehaviorChoice creates a pending behavior choice selection from a passive effect
 // Used for effects like Viral Enhancers and Olympus Conference that require player to choose between options
-func createPassiveBehaviorChoice(p *player.Player, effect shared.CardEffect, log *zap.Logger) {
+func createPassiveBehaviorChoice(p *player.Player, effect shared.CardEffect, log *slog.Logger) {
 	p.Selection().SetPendingBehaviorChoiceSelection(&shared.PendingBehaviorChoiceSelection{
 		Choices:      effect.Behavior.Choices,
 		Source:       effect.CardName,
@@ -793,8 +792,8 @@ func createPassiveBehaviorChoice(p *player.Player, effect shared.CardEffect, log
 	})
 
 	log.Debug("Created pending behavior choice selection from passive effect",
-		zap.String("card_name", effect.CardName),
-		zap.Int("num_choices", len(effect.Behavior.Choices)))
+		slog.String("card_name", effect.CardName),
+		slog.Int("num_choices", len(effect.Behavior.Choices)))
 }
 
 // subscribeColonyPlacedEffect subscribes to ColonyBuiltEvent for colony-placed triggers
@@ -804,7 +803,7 @@ func subscribeColonyPlacedEffect(
 	p *player.Player,
 	effect shared.CardEffect,
 	trigger shared.Trigger,
-	log *zap.Logger,
+	log *slog.Logger,
 	cr gamecards.CardRegistry,
 ) events.SubscriptionID {
 	subID := events.Subscribe(g.EventBus(), func(event events.ColonyBuiltEvent) {
@@ -822,24 +821,24 @@ func subscribeColonyPlacedEffect(
 		}
 
 		log.Debug("Passive effect triggered (colony placed)",
-			zap.String("card_name", effect.CardName),
-			zap.String("player_id", p.ID()),
-			zap.String("placed_by", event.PlayerID),
-			zap.String("colony_id", event.ColonyID))
+			slog.String("card_name", effect.CardName),
+			slog.String("player_id", p.ID()),
+			slog.String("placed_by", event.PlayerID),
+			slog.String("colony_id", event.ColonyID))
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, slog.Default()).
 			WithSourceCardID(effect.CardID).
 			WithCardRegistry(cr).
 			WithSourceType(shared.SourceTypePassiveEffect)
 		if err := applier.ApplyOutputs(context.Background(), effect.Behavior.Outputs); err != nil {
 			log.Error("Failed to apply passive effect outputs",
-				zap.String("card_name", effect.CardName),
-				zap.Error(err))
+				slog.String("card_name", effect.CardName),
+				slog.Any("error", err))
 		}
 	})
 
 	log.Debug("Subscribed passive effect to ColonyBuiltEvent",
-		zap.String("card_name", effect.CardName))
+		slog.String("card_name", effect.CardName))
 
 	return subID
 }

@@ -3,9 +3,9 @@ package connection
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
-	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/shared"
 )
@@ -13,13 +13,13 @@ import (
 // SendChatMessageAction handles sending a chat message in a game.
 type SendChatMessageAction struct {
 	gameRepo game.GameRepository
-	logger   *zap.Logger
+	logger   *slog.Logger
 }
 
 // NewSendChatMessageAction creates a new SendChatMessageAction.
 func NewSendChatMessageAction(
 	gameRepo game.GameRepository,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *SendChatMessageAction {
 	return &SendChatMessageAction{
 		gameRepo: gameRepo,
@@ -30,10 +30,10 @@ func NewSendChatMessageAction(
 // Execute adds a chat message to the game.
 func (a *SendChatMessageAction) Execute(ctx context.Context, gameID, senderID, senderName, senderColor, message string, isSpectator bool) (*shared.ChatMessage, error) {
 	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("sender_name", senderName),
-		zap.Bool("is_spectator", isSpectator),
-		zap.String("action", "send_chat_message"),
+		slog.String("game_id", gameID),
+		slog.String("sender_name", senderName),
+		slog.Bool("is_spectator", isSpectator),
+		slog.String("action", "send_chat_message"),
 	)
 
 	if len(message) == 0 {
@@ -46,7 +46,7 @@ func (a *SendChatMessageAction) Execute(ctx context.Context, gameID, senderID, s
 
 	g, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
+		log.Error("Failed to get game", slog.Any("error", err))
 		return nil, fmt.Errorf("game not found: %s", gameID)
 	}
 

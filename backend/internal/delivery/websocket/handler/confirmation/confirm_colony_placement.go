@@ -2,20 +2,19 @@ package confirmation
 
 import (
 	"context"
+	"log/slog"
 
 	confirmaction "terraforming-mars-backend/internal/action/confirmation"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // ConfirmColonyPlacementHandler handles confirm colony placement requests
 type ConfirmColonyPlacementHandler struct {
 	action      *confirmaction.ConfirmColonyPlacementAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewConfirmColonyPlacementHandler creates a new confirm colony placement handler
@@ -30,8 +29,8 @@ func NewConfirmColonyPlacementHandler(action *confirmaction.ConfirmColonyPlaceme
 // HandleMessage implements the MessageHandler interface
 func (h *ConfirmColonyPlacementHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing confirm colony placement request")
@@ -56,11 +55,11 @@ func (h *ConfirmColonyPlacementHandler) HandleMessage(ctx context.Context, conne
 	}
 
 	log.Debug("Parsed confirm colony placement request",
-		zap.String("colony_id", colonyID))
+		slog.String("colony_id", colonyID))
 
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, colonyID)
 	if err != nil {
-		log.Error("Failed to execute confirm colony placement action", zap.Error(err))
+		log.Error("Failed to execute confirm colony placement action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}

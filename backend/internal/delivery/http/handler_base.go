@@ -2,17 +2,16 @@ package http
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // BaseHandler provides common functionality for all HTTP handlers
 type BaseHandler struct {
-	logger *zap.Logger
+	logger *slog.Logger
 }
 
 // NewBaseHandler creates a new base handler
@@ -28,7 +27,7 @@ func (h *BaseHandler) WriteJSONResponse(w http.ResponseWriter, statusCode int, d
 	w.WriteHeader(statusCode)
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		h.logger.Error("Failed to encode JSON response", zap.Error(err))
+		h.logger.Error("Failed to encode JSON response", slog.Any("error", err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
 }
@@ -44,7 +43,7 @@ func (h *BaseHandler) WriteErrorResponse(w http.ResponseWriter, statusCode int, 
 // ParseJSONRequest parses a JSON request body into the provided struct
 func (h *BaseHandler) ParseJSONRequest(r *http.Request, dest interface{}) error {
 	if err := json.NewDecoder(r.Body).Decode(dest); err != nil {
-		h.logger.Error("Failed to parse JSON request", zap.Error(err))
+		h.logger.Error("Failed to parse JSON request", slog.Any("error", err))
 		return err
 	}
 	return nil

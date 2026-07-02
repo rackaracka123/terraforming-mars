@@ -3,8 +3,8 @@ package connection
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
-	"go.uber.org/zap"
 	gameaction "terraforming-mars-backend/internal/action/game"
 	"terraforming-mars-backend/internal/action/turn_management"
 	"terraforming-mars-backend/internal/game"
@@ -20,14 +20,14 @@ type KickPlayerAction struct {
 	gameRepo           game.GameRepository
 	botStopper         bot.BotStopper
 	finalScoringAction *gameaction.FinalScoringAction
-	logger             *zap.Logger
+	logger             *slog.Logger
 }
 
 func NewKickPlayerAction(
 	gameRepo game.GameRepository,
 	botStopper bot.BotStopper,
 	finalScoringAction *gameaction.FinalScoringAction,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *KickPlayerAction {
 	return &KickPlayerAction{
 		gameRepo:           gameRepo,
@@ -39,15 +39,15 @@ func NewKickPlayerAction(
 
 func (a *KickPlayerAction) Execute(ctx context.Context, gameID string, requesterID string, targetPlayerID string) error {
 	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("requester_id", requesterID),
-		zap.String("target_player_id", targetPlayerID),
-		zap.String("action", "kick_player"),
+		slog.String("game_id", gameID),
+		slog.String("requester_id", requesterID),
+		slog.String("target_player_id", targetPlayerID),
+		slog.String("action", "kick_player"),
 	)
 
 	g, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
+		log.Error("Failed to get game", slog.Any("error", err))
 		return fmt.Errorf("game not found: %s", gameID)
 	}
 
@@ -66,18 +66,18 @@ func (a *KickPlayerAction) Execute(ctx context.Context, gameID string, requester
 	return a.kickFromActiveGame(ctx, g, gameID, targetPlayerID, log)
 }
 
-func (a *KickPlayerAction) kickFromLobby(ctx context.Context, g *game.Game, targetPlayerID string, log *zap.Logger) error {
+func (a *KickPlayerAction) kickFromLobby(ctx context.Context, g *game.Game, targetPlayerID string, log *slog.Logger) error {
 	log.Debug("Kicking player from lobby")
 
 	if err := g.RemovePlayer(ctx, targetPlayerID); err != nil {
-		log.Error("Failed to remove player from lobby", zap.Error(err))
+		log.Error("Failed to remove player from lobby", slog.Any("error", err))
 		return fmt.Errorf("failed to kick player: %w", err)
 	}
 
 	remaining := g.GetAllPlayers()
 	if len(remaining) == 0 {
 		if err := a.gameRepo.Delete(ctx, g.ID()); err != nil {
-			log.Error("Failed to delete empty game", zap.Error(err))
+			log.Error("Failed to delete empty game", slog.Any("error", err))
 			return fmt.Errorf("failed to delete empty game: %w", err)
 		}
 		log.Debug("Game deleted (no players remaining)")
@@ -88,7 +88,7 @@ func (a *KickPlayerAction) kickFromLobby(ctx context.Context, g *game.Game, targ
 	return nil
 }
 
-func (a *KickPlayerAction) kickFromActiveGame(ctx context.Context, g *game.Game, gameID string, targetPlayerID string, log *zap.Logger) error {
+func (a *KickPlayerAction) kickFromActiveGame(ctx context.Context, g *game.Game, gameID string, targetPlayerID string, log *slog.Logger) error {
 	log.Debug("Kicking player from active game")
 
 	target, err := g.GetPlayer(targetPlayerID)
@@ -122,44 +122,44 @@ func (a *KickPlayerAction) kickFromActiveGame(ctx context.Context, g *game.Game,
 	}
 
 	log.Info("Player kicked from active game",
-		zap.String("target_player_id", targetPlayerID))
+		slog.String("target_player_id", targetPlayerID))
 	return nil
 }
 
-func (a *KickPlayerAction) clearPendingState(ctx context.Context, g *game.Game, playerID string, log *zap.Logger) {
+func (a *KickPlayerAction) clearPendingState(ctx context.Context, g *game.Game, playerID string, log *slog.Logger) {
 	if g.GetSelectCorporationPhase(playerID) != nil {
 		if err := g.SetSelectCorporationPhase(ctx, playerID, nil); err != nil {
-			log.Error("Failed to clear corporation phase", zap.Error(err))
+			log.Error("Failed to clear corporation phase", slog.Any("error", err))
 		}
 	}
 	if g.GetSelectStartingCardsPhase(playerID) != nil {
 		if err := g.SetSelectStartingCardsPhase(ctx, playerID, nil); err != nil {
-			log.Error("Failed to clear starting cards phase", zap.Error(err))
+			log.Error("Failed to clear starting cards phase", slog.Any("error", err))
 		}
 	}
 	if g.GetSelectPreludeCardsPhase(playerID) != nil {
 		if err := g.SetSelectPreludeCardsPhase(ctx, playerID, nil); err != nil {
-			log.Error("Failed to clear prelude phase", zap.Error(err))
+			log.Error("Failed to clear prelude phase", slog.Any("error", err))
 		}
 	}
 	if g.GetPendingTileSelection(playerID) != nil {
 		if err := g.SetPendingTileSelection(ctx, playerID, nil); err != nil {
-			log.Error("Failed to clear pending tile selection", zap.Error(err))
+			log.Error("Failed to clear pending tile selection", slog.Any("error", err))
 		}
 	}
 	if g.GetPendingTileSelectionQueue(playerID) != nil {
 		if err := g.SetPendingTileSelectionQueue(ctx, playerID, nil); err != nil {
-			log.Error("Failed to clear pending tile queue", zap.Error(err))
+			log.Error("Failed to clear pending tile queue", slog.Any("error", err))
 		}
 	}
 	if g.GetForcedFirstAction(playerID) != nil {
 		if err := g.SetForcedFirstAction(ctx, playerID, nil); err != nil {
-			log.Error("Failed to clear forced first action", zap.Error(err))
+			log.Error("Failed to clear forced first action", slog.Any("error", err))
 		}
 	}
 	if g.GetProductionPhase(playerID) != nil {
 		if err := g.SetProductionPhase(ctx, playerID, nil); err != nil {
-			log.Error("Failed to clear production phase", zap.Error(err))
+			log.Error("Failed to clear production phase", slog.Any("error", err))
 		}
 	}
 
@@ -174,7 +174,7 @@ func (a *KickPlayerAction) clearPendingState(ctx context.Context, g *game.Game, 
 	sel.SetPendingBehaviorChoiceSelection(nil)
 }
 
-func (a *KickPlayerAction) moveToEndOfTurnOrder(ctx context.Context, g *game.Game, playerID string, log *zap.Logger) {
+func (a *KickPlayerAction) moveToEndOfTurnOrder(ctx context.Context, g *game.Game, playerID string, log *slog.Logger) {
 	turnOrder := g.TurnOrder()
 	idx := -1
 	for i, id := range turnOrder {
@@ -193,11 +193,11 @@ func (a *KickPlayerAction) moveToEndOfTurnOrder(ctx context.Context, g *game.Gam
 	newOrder = append(newOrder, playerID)
 
 	if err := g.SetTurnOrder(ctx, newOrder); err != nil {
-		log.Error("Failed to reorder turn order", zap.Error(err))
+		log.Error("Failed to reorder turn order", slog.Any("error", err))
 	}
 }
 
-func (a *KickPlayerAction) handleStartingSelectionKick(ctx context.Context, g *game.Game, log *zap.Logger) {
+func (a *KickPlayerAction) handleStartingSelectionKick(ctx context.Context, g *game.Game, log *slog.Logger) {
 	allPlayers := g.GetAllPlayers()
 	for _, p := range allPlayers {
 		if p.HasExited() {
@@ -223,7 +223,7 @@ func (a *KickPlayerAction) handleStartingSelectionKick(ctx context.Context, g *g
 	}
 
 	if err := g.UpdatePhase(ctx, shared.GamePhaseAction); err != nil {
-		log.Error("Failed to transition game phase", zap.Error(err))
+		log.Error("Failed to transition game phase", slog.Any("error", err))
 		return
 	}
 
@@ -238,12 +238,12 @@ func (a *KickPlayerAction) handleStartingSelectionKick(ctx context.Context, g *g
 			availableActions = -1
 		}
 		if err := g.SetCurrentTurn(ctx, firstPlayerID, availableActions); err != nil {
-			log.Error("Failed to set current turn", zap.Error(err))
+			log.Error("Failed to set current turn", slog.Any("error", err))
 		}
 	}
 }
 
-func (a *KickPlayerAction) handleActionPhaseKick(ctx context.Context, g *game.Game, gameID string, targetPlayerID string, log *zap.Logger) {
+func (a *KickPlayerAction) handleActionPhaseKick(ctx context.Context, g *game.Game, gameID string, targetPlayerID string, log *slog.Logger) {
 	currentTurn := g.CurrentTurn()
 	if currentTurn == nil {
 		return
@@ -271,10 +271,10 @@ func (a *KickPlayerAction) handleActionPhaseKick(ctx context.Context, g *game.Ga
 				p, _ := g.GetPlayer(id)
 				if p != nil && !p.HasPassed() && !p.HasExited() {
 					if err := g.SetCurrentTurn(ctx, p.ID(), -1); err != nil {
-						log.Error("Failed to grant unlimited actions", zap.Error(err))
+						log.Error("Failed to grant unlimited actions", slog.Any("error", err))
 					}
 					log.Debug("Last active player granted unlimited actions after kick",
-						zap.String("player_id", p.ID()))
+						slog.String("player_id", p.ID()))
 					break
 				}
 			}
@@ -285,7 +285,7 @@ func (a *KickPlayerAction) handleActionPhaseKick(ctx context.Context, g *game.Ga
 	a.advanceToNextActivePlayer(ctx, g, targetPlayerID, activeCount, log)
 }
 
-func (a *KickPlayerAction) advanceToNextActivePlayer(ctx context.Context, g *game.Game, currentPlayerID string, activeCount int, log *zap.Logger) {
+func (a *KickPlayerAction) advanceToNextActivePlayer(ctx context.Context, g *game.Game, currentPlayerID string, activeCount int, log *slog.Logger) {
 	turnOrder := g.TurnOrder()
 	currentIdx := -1
 	for i, id := range turnOrder {
@@ -308,17 +308,17 @@ func (a *KickPlayerAction) advanceToNextActivePlayer(ctx context.Context, g *gam
 		nextPlayer, _ := g.GetPlayer(turnOrder[nextIdx])
 		if nextPlayer != nil && !nextPlayer.HasPassed() && !nextPlayer.HasExited() {
 			if err := g.SetCurrentTurn(ctx, nextPlayer.ID(), nextActions); err != nil {
-				log.Error("Failed to advance turn", zap.Error(err))
+				log.Error("Failed to advance turn", slog.Any("error", err))
 				return
 			}
 			log.Debug("Advanced turn after kick",
-				zap.String("next_player_id", nextPlayer.ID()))
+				slog.String("next_player_id", nextPlayer.ID()))
 			return
 		}
 	}
 }
 
-func (a *KickPlayerAction) handleProductionPhaseKick(ctx context.Context, g *game.Game, log *zap.Logger) {
+func (a *KickPlayerAction) handleProductionPhaseKick(ctx context.Context, g *game.Game, log *slog.Logger) {
 	allPlayers := g.GetAllPlayers()
 	allComplete := true
 	for _, p := range allPlayers {
@@ -340,7 +340,7 @@ func (a *KickPlayerAction) handleProductionPhaseKick(ctx context.Context, g *gam
 	log.Debug("All remaining players completed production after kick, advancing to action phase")
 
 	if err := g.UpdatePhase(ctx, shared.GamePhaseAction); err != nil {
-		log.Error("Failed to transition game phase", zap.Error(err))
+		log.Error("Failed to transition game phase", slog.Any("error", err))
 		return
 	}
 
@@ -364,7 +364,7 @@ func (a *KickPlayerAction) handleProductionPhaseKick(ctx context.Context, g *gam
 			availableActions = -1
 		}
 		if err := g.SetCurrentTurn(ctx, firstPlayerID, availableActions); err != nil {
-			log.Error("Failed to set current turn", zap.Error(err))
+			log.Error("Failed to set current turn", slog.Any("error", err))
 		}
 	}
 
@@ -374,17 +374,17 @@ func (a *KickPlayerAction) handleProductionPhaseKick(ctx context.Context, g *gam
 		}
 		if err := g.SetProductionPhase(ctx, p.ID(), nil); err != nil {
 			log.Warn("Failed to clear production phase",
-				zap.String("player_id", p.ID()),
-				zap.Error(err))
+				slog.String("player_id", p.ID()),
+				slog.Any("error", err))
 		}
 	}
 }
 
-func (a *KickPlayerAction) triggerEndOfGeneration(ctx context.Context, g *game.Game, gameID string, log *zap.Logger) {
+func (a *KickPlayerAction) triggerEndOfGeneration(ctx context.Context, g *game.Game, gameID string, log *slog.Logger) {
 	if g.GlobalParameters().IsMaxed() {
 		log.Debug("All global parameters maxed after kick - triggering final scoring")
 		if err := a.finalScoringAction.Execute(ctx, gameID); err != nil {
-			log.Error("Failed to execute final scoring", zap.Error(err))
+			log.Error("Failed to execute final scoring", slog.Any("error", err))
 		}
 		return
 	}
@@ -399,7 +399,7 @@ func (a *KickPlayerAction) triggerEndOfGeneration(ctx context.Context, g *game.G
 	}
 
 	if err := turn_management.ExecuteProductionPhase(ctx, g, activePlayers, log); err != nil {
-		log.Error("Failed to execute production phase after kick", zap.Error(err))
+		log.Error("Failed to execute production phase after kick", slog.Any("error", err))
 	}
 }
 

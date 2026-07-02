@@ -3,13 +3,12 @@ package cards
 import (
 	"context"
 	"fmt"
-
-	"go.uber.org/zap"
+	"log/slog"
 
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-func (a *BehaviorApplier) applyEffectOutput(ctx context.Context, o *shared.EffectCondition, amount int, log *zap.Logger) error {
+func (a *BehaviorApplier) applyEffectOutput(ctx context.Context, o *shared.EffectCondition, amount int, log *slog.Logger) error {
 	switch o.ResourceType {
 	case shared.ResourcePaymentSubstitute:
 		if a.player == nil {
@@ -20,19 +19,19 @@ func (a *BehaviorApplier) applyEffectOutput(ctx context.Context, o *shared.Effec
 			resourceType := shared.ResourceType(resources[0])
 			a.player.Resources().AddPaymentSubstitute(resourceType, amount)
 			log.Debug("Added payment substitute",
-				zap.String("resource_type", string(resourceType)), zap.Int("conversion_rate", amount))
+				slog.String("resource_type", string(resourceType)), slog.Int("conversion_rate", amount))
 		} else {
 			log.Warn("payment-substitute output missing selectors with resources")
 		}
 
 	case shared.ResourceDiscount:
-		log.Debug("Discount effect registered", zap.Int("amount", amount), zap.Any("selectors", o.Selectors))
+		log.Debug("Discount effect registered", slog.Int("amount", amount), slog.Any("selectors", o.Selectors))
 
 	case shared.ResourceGlobalParameterLenience:
-		log.Debug("Global parameter lenience effect registered", zap.Int("amount", amount), zap.String("temporary", o.Temporary))
+		log.Debug("Global parameter lenience effect registered", slog.Int("amount", amount), slog.String("temporary", o.Temporary))
 
 	case shared.ResourceIgnoreGlobalRequirements:
-		log.Debug("Ignore global requirements effect registered", zap.String("temporary", o.Temporary))
+		log.Debug("Ignore global requirements effect registered", slog.String("temporary", o.Temporary))
 
 	case shared.ResourceValueModifier:
 		if a.player == nil {
@@ -42,7 +41,7 @@ func (a *BehaviorApplier) applyEffectOutput(ctx context.Context, o *shared.Effec
 			resourceType := shared.ResourceType(resourceStr)
 			a.player.Resources().AddValueModifier(resourceType, amount)
 			log.Debug("Added resource value modifier",
-				zap.String("resource_type", string(resourceType)), zap.Int("modifier_amount", amount))
+				slog.String("resource_type", string(resourceType)), slog.Int("modifier_amount", amount))
 		}
 
 	case shared.ResourceStoragePaymentSubstitute:
@@ -72,26 +71,26 @@ func (a *BehaviorApplier) applyEffectOutput(ctx context.Context, o *shared.Effec
 			Selectors:      o.Selectors,
 		})
 		log.Debug("Added storage payment substitute",
-			zap.String("card_id", a.sourceCardID), zap.String("resource_type", string(storageResourceType)),
-			zap.String("target_resource", string(targetResource)), zap.Int("conversion_rate", amount))
+			slog.String("card_id", a.sourceCardID), slog.String("resource_type", string(storageResourceType)),
+			slog.String("target_resource", string(targetResource)), slog.Int("conversion_rate", amount))
 
 	case shared.ResourceOceanAdjacencyBonus:
-		log.Debug("Ocean adjacency bonus effect registered", zap.Int("amount", amount))
+		log.Debug("Ocean adjacency bonus effect registered", slog.Int("amount", amount))
 
 	case shared.ResourceDefense:
-		log.Debug("Defense effect registered", zap.Int("amount", amount), zap.Any("selectors", o.Selectors))
+		log.Debug("Defense effect registered", slog.Int("amount", amount), slog.Any("selectors", o.Selectors))
 
 	case shared.ResourceActionReuse:
 		log.Debug("Skipping action-reuse output (handled at action layer)")
 
 	case shared.ResourceEffect:
-		log.Debug("Effect registered", zap.Int("amount", amount))
+		log.Debug("Effect registered", slog.Int("amount", amount))
 
 	case shared.ResourceTag:
-		log.Debug("Tag effect registered", zap.Int("amount", amount))
+		log.Debug("Tag effect registered", slog.Int("amount", amount))
 
 	default:
-		log.Warn("Unhandled effect type", zap.String("type", string(o.ResourceType)))
+		log.Warn("Unhandled effect type", slog.String("type", string(o.ResourceType)))
 	}
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sync"
@@ -14,8 +15,6 @@ import (
 	"terraforming-mars-backend/internal/game/cards"
 	playerPkg "terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
-
-	"go.uber.org/zap"
 )
 
 // Broadcaster is used by the controller to broadcast game state and chat after dispatched commands.
@@ -31,7 +30,7 @@ type BotController struct {
 	cardRegistry cards.CardRegistry
 	dispatcher   *CommandDispatcher
 	broadcaster  Broadcaster
-	logger       *zap.Logger
+	logger       *slog.Logger
 	mu           sync.Mutex
 	sessions     map[string]map[string]*BotSession // gameID -> playerID -> session
 }
@@ -63,7 +62,7 @@ func NewBotController(
 	cardRegistry cards.CardRegistry,
 	dispatcher *CommandDispatcher,
 	broadcaster Broadcaster,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *BotController {
 	return &BotController{
 		gameRepo:     gameRepo,
@@ -108,15 +107,15 @@ func (bc *BotController) StartBot(gameID, playerID, botName, difficulty, speed s
 	historyPath := filepath.Join(runDir, "history.log")
 
 	botLogger := bc.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
-		zap.String("bot_name", botName),
+		slog.String("game_id", gameID),
+		slog.String("player_id", playerID),
+		slog.String("bot_name", botName),
 	)
 
 	historyWriter, err := NewHistoryWriter(historyPath, botLogger)
 	if err != nil {
 		if removeErr := os.RemoveAll(runDir); removeErr != nil {
-			bc.logger.Warn("Failed to remove bot run directory", zap.String("path", runDir), zap.Error(removeErr))
+			bc.logger.Warn("Failed to remove bot run directory", slog.String("path", runDir), slog.Any("error", removeErr))
 		}
 		return fmt.Errorf("create history writer: %w", err)
 	}
@@ -124,10 +123,10 @@ func (bc *BotController) StartBot(gameID, playerID, botName, difficulty, speed s
 	commandReader := NewCommandReader(commandPath, botLogger)
 	if err := commandReader.Start(); err != nil {
 		if closeErr := historyWriter.Close(); closeErr != nil {
-			bc.logger.Warn("Failed to close history writer", zap.Error(closeErr))
+			bc.logger.Warn("Failed to close history writer", slog.Any("error", closeErr))
 		}
 		if removeErr := os.RemoveAll(runDir); removeErr != nil {
-			bc.logger.Warn("Failed to remove bot run directory", zap.String("path", runDir), zap.Error(removeErr))
+			bc.logger.Warn("Failed to remove bot run directory", slog.String("path", runDir), slog.Any("error", removeErr))
 		}
 		return fmt.Errorf("start command reader: %w", err)
 	}
@@ -160,10 +159,10 @@ func (bc *BotController) StartBot(gameID, playerID, botName, difficulty, speed s
 	go bc.runBotLoop(ctx, session)
 
 	bc.logger.Debug("Bot session started",
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
-		zap.String("bot_name", botName),
-		zap.String("model", model))
+		slog.String("game_id", gameID),
+		slog.String("player_id", playerID),
+		slog.String("bot_name", botName),
+		slog.String("model", model))
 
 	return nil
 }
@@ -237,8 +236,8 @@ func (bc *BotController) StopBot(gameID, playerID string) {
 	bc.cleanupSession(session)
 
 	bc.logger.Debug("Bot stopped for player",
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID))
+		slog.String("game_id", gameID),
+		slog.String("player_id", playerID))
 }
 
 // StopAllBotsForGame stops all bot sessions for a game.
@@ -258,15 +257,15 @@ func (bc *BotController) StopAllBotsForGame(gameID string) {
 		bc.cleanupSession(session)
 	}
 
-	bc.logger.Debug("All bots stopped for game", zap.String("game_id", gameID))
+	bc.logger.Debug("All bots stopped for game", slog.String("game_id", gameID))
 }
 
 func (bc *BotController) runBotLoop(ctx context.Context, session *BotSession) {
 	defer close(session.done)
 
 	log := bc.logger.With(
-		zap.String("game_id", session.gameID),
-		zap.String("player_id", session.playerID),
+		slog.String("game_id", session.gameID),
+		slog.String("player_id", session.playerID),
 	)
 
 	for {
@@ -280,7 +279,7 @@ func (bc *BotController) runBotLoop(ctx context.Context, session *BotSession) {
 	}
 }
 
-func (bc *BotController) handleTurn(ctx context.Context, session *BotSession, log *zap.Logger) {
+func (bc *BotController) handleTurn(ctx context.Context, session *BotSession, log *slog.Logger) {
 	for {
 		if ctx.Err() != nil {
 			return
@@ -288,7 +287,7 @@ func (bc *BotController) handleTurn(ctx context.Context, session *BotSession, lo
 
 		g, err := bc.gameRepo.Get(ctx, session.gameID)
 		if err != nil {
-			log.Error("Failed to get game", zap.Error(err))
+			log.Error("Failed to get game", slog.Any("error", err))
 			return
 		}
 
@@ -317,12 +316,12 @@ func (bc *BotController) handleTurn(ctx context.Context, session *BotSession, lo
 		}
 
 		if err := session.stateWriter.WriteState(summary); err != nil {
-			log.Error("Failed to write state", zap.Error(err))
+			log.Error("Failed to write state", slog.Any("error", err))
 			return
 		}
 
 		if err := session.commandReader.Reset(); err != nil {
-			log.Error("Failed to reset command reader", zap.Error(err))
+			log.Error("Failed to reset command reader", slog.Any("error", err))
 			return
 		}
 
@@ -335,7 +334,7 @@ func (bc *BotController) handleTurn(ctx context.Context, session *BotSession, lo
 		invokeCancel()
 
 		if err != nil {
-			log.Error("Claude CLI invocation failed", zap.Error(err))
+			log.Error("Claude CLI invocation failed", slog.Any("error", err))
 		}
 
 		// Give time for remaining commands to be processed
@@ -354,7 +353,7 @@ func (bc *BotController) handleTurn(ctx context.Context, session *BotSession, lo
 	}
 }
 
-func (bc *BotController) processCommands(ctx context.Context, session *BotSession, done chan struct{}, log *zap.Logger) {
+func (bc *BotController) processCommands(ctx context.Context, session *BotSession, done chan struct{}, log *slog.Logger) {
 	defer close(done)
 
 	for {
@@ -370,7 +369,7 @@ func (bc *BotController) processCommands(ctx context.Context, session *BotSessio
 	}
 }
 
-func (bc *BotController) executeCommand(ctx context.Context, session *BotSession, rawCmd json.RawMessage, log *zap.Logger) {
+func (bc *BotController) executeCommand(ctx context.Context, session *BotSession, rawCmd json.RawMessage, log *slog.Logger) {
 	session.historyWriter.WriteSent("command", rawCmd)
 
 	var envelope struct {
@@ -378,7 +377,7 @@ func (bc *BotController) executeCommand(ctx context.Context, session *BotSession
 		Payload json.RawMessage `json:"payload"`
 	}
 	if err := json.Unmarshal(rawCmd, &envelope); err != nil {
-		log.Error("Failed to parse command envelope", zap.Error(err))
+		log.Error("Failed to parse command envelope", slog.Any("error", err))
 		return
 	}
 
@@ -390,7 +389,7 @@ func (bc *BotController) executeCommand(ctx context.Context, session *BotSession
 
 	err := bc.dispatcher.Dispatch(ctx, session.gameID, session.playerID, rawCmd)
 	if err != nil {
-		log.Error("Command dispatch failed", zap.Error(err))
+		log.Error("Command dispatch failed", slog.Any("error", err))
 		errPayload, _ := json.Marshal(map[string]string{
 			"type":  "error",
 			"error": err.Error(),
@@ -410,17 +409,17 @@ func (bc *BotController) executeCommand(ctx context.Context, session *BotSession
 		gameDto := dto.ToGameDto(g, bc.cardRegistry, session.playerID)
 		summary := SummarizeGameState(&gameDto, session.playerID)
 		if err := session.stateWriter.WriteState(summary); err != nil {
-			log.Error("Failed to update state file after command", zap.Error(err))
+			log.Error("Failed to update state file after command", slog.Any("error", err))
 		}
 	}
 }
 
-func (bc *BotController) handleChatMessage(ctx context.Context, session *BotSession, payload json.RawMessage, log *zap.Logger) {
+func (bc *BotController) handleChatMessage(ctx context.Context, session *BotSession, payload json.RawMessage, log *slog.Logger) {
 	var p struct {
 		Message string `json:"message"`
 	}
 	if err := json.Unmarshal(payload, &p); err != nil {
-		log.Error("Failed to parse chat message payload", zap.Error(err))
+		log.Error("Failed to parse chat message payload", slog.Any("error", err))
 		return
 	}
 
@@ -433,13 +432,13 @@ func (bc *BotController) handleChatMessage(ctx context.Context, session *BotSess
 
 	g, err := bc.gameRepo.Get(ctx, session.gameID)
 	if err != nil {
-		log.Error("Failed to get game for chat", zap.Error(err))
+		log.Error("Failed to get game for chat", slog.Any("error", err))
 		return
 	}
 
 	bot, err := g.GetPlayer(session.playerID)
 	if err != nil {
-		log.Error("Failed to get bot player for chat", zap.Error(err))
+		log.Error("Failed to get bot player for chat", slog.Any("error", err))
 		return
 	}
 
@@ -469,9 +468,9 @@ func (bc *BotController) handleChatMessage(ctx context.Context, session *BotSess
 func (bc *BotController) cleanupSession(session *BotSession) {
 	session.commandReader.Stop()
 	if err := session.historyWriter.Close(); err != nil {
-		bc.logger.Warn("Failed to close history writer", zap.Error(err))
+		bc.logger.Warn("Failed to close history writer", slog.Any("error", err))
 	}
 	if err := os.RemoveAll(session.runDir); err != nil {
-		bc.logger.Warn("Failed to remove bot run directory", zap.String("path", session.runDir), zap.Error(err))
+		bc.logger.Warn("Failed to remove bot run directory", slog.String("path", session.runDir), slog.Any("error", err))
 	}
 }

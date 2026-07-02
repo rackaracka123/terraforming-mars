@@ -1,11 +1,10 @@
 package core
 
 import (
+	"log/slog"
 	"sync"
 	"terraforming-mars-backend/internal/logger"
 	"unsafe"
-
-	"go.uber.org/zap"
 )
 
 // Manager handles WebSocket connection lifecycle and organization
@@ -13,7 +12,7 @@ type Manager struct {
 	connections     map[*Connection]bool
 	gameConnections map[string]map[*Connection]bool
 	mu              sync.RWMutex
-	logger          *zap.Logger
+	logger          *slog.Logger
 }
 
 // NewManager creates a new connection manager
@@ -31,7 +30,7 @@ func (m *Manager) RegisterConnection(connection *Connection) {
 	defer m.mu.Unlock()
 
 	m.connections[connection] = true
-	m.logger.Debug("Client connected to server", zap.String("connection_id", connection.ID))
+	m.logger.Debug("Client connected to server", slog.String("connection_id", connection.ID))
 }
 
 // UnregisterConnection unregisters a connection and handles cleanup.
@@ -63,18 +62,18 @@ func (m *Manager) UnregisterConnection(connection *Connection) (playerID, specta
 
 		if len(gameConns) == 0 {
 			delete(m.gameConnections, gameID)
-			m.logger.Debug("Removed empty game connections map", zap.String("game_id", gameID))
+			m.logger.Debug("Removed empty game connections map", slog.String("game_id", gameID))
 		}
 	}
 
 	connection.Close()
 
 	m.logger.Debug("Client disconnected from server",
-		zap.String("connection_id", connection.ID),
-		zap.String("player_id", playerID),
-		zap.String("spectator_id", spectatorID),
-		zap.String("game_id", gameID),
-		zap.String("conn_type", string(connType)))
+		slog.String("connection_id", connection.ID),
+		slog.String("player_id", playerID),
+		slog.String("spectator_id", spectatorID),
+		slog.String("game_id", gameID),
+		slog.String("conn_type", string(connType)))
 
 	return playerID, spectatorID, gameID, connType, shouldBroadcast
 }
@@ -125,10 +124,10 @@ func (m *Manager) RemoveExistingPlayerConnection(playerID, gameID string, exclud
 	var matchingConnections []*Connection
 
 	m.logger.Debug("Starting connection cleanup search",
-		zap.String("player_id", playerID),
-		zap.String("game_id", gameID),
-		zap.String("exclude_connection_id", excludeConnection.ID),
-		zap.Uintptr("exclude_connection_ptr", uintptr(unsafe.Pointer(excludeConnection))))
+		slog.String("player_id", playerID),
+		slog.String("game_id", gameID),
+		slog.String("exclude_connection_id", excludeConnection.ID),
+		slog.Any("exclude_connection_ptr", uintptr(unsafe.Pointer(excludeConnection))))
 
 	for connection := range m.connections {
 		existingPlayerID, existingGameID := connection.GetPlayer()
@@ -136,11 +135,11 @@ func (m *Manager) RemoveExistingPlayerConnection(playerID, gameID string, exclud
 			matchingConnections = append(matchingConnections, connection)
 
 			m.logger.Debug("Found matching connection",
-				zap.String("connection_id", connection.ID),
-				zap.Uintptr("connection_ptr", uintptr(unsafe.Pointer(connection))),
-				zap.Bool("is_excluded", connection == excludeConnection),
-				zap.String("player_id", existingPlayerID),
-				zap.String("game_id", existingGameID))
+				slog.String("connection_id", connection.ID),
+				slog.Any("connection_ptr", uintptr(unsafe.Pointer(connection))),
+				slog.Bool("is_excluded", connection == excludeConnection),
+				slog.String("player_id", existingPlayerID),
+				slog.String("game_id", existingGameID))
 
 			if connection != excludeConnection {
 				existingConnection = connection
@@ -150,24 +149,24 @@ func (m *Manager) RemoveExistingPlayerConnection(playerID, gameID string, exclud
 	}
 
 	m.logger.Debug("Connection search complete",
-		zap.Int("total_matching", len(matchingConnections)),
-		zap.Bool("found_to_cleanup", existingConnection != nil))
+		slog.Int("total_matching", len(matchingConnections)),
+		slog.Bool("found_to_cleanup", existingConnection != nil))
 
 	if existingConnection == nil {
 		m.logger.Debug("No existing connection to clean up for reconnecting player",
-			zap.String("player_id", playerID),
-			zap.String("game_id", gameID),
-			zap.String("current_connection_id", excludeConnection.ID))
+			slog.String("player_id", playerID),
+			slog.String("game_id", gameID),
+			slog.String("current_connection_id", excludeConnection.ID))
 		return nil
 	}
 
 	m.logger.Debug("Cleaning up existing connection for reconnecting player",
-		zap.String("existing_connection_id", existingConnection.ID),
-		zap.String("current_connection_id", excludeConnection.ID),
-		zap.String("player_id", playerID),
-		zap.String("game_id", gameID),
-		zap.Uintptr("existing_connection_ptr", uintptr(unsafe.Pointer(existingConnection))),
-		zap.Uintptr("current_connection_ptr", uintptr(unsafe.Pointer(excludeConnection))))
+		slog.String("existing_connection_id", existingConnection.ID),
+		slog.String("current_connection_id", excludeConnection.ID),
+		slog.String("player_id", playerID),
+		slog.String("game_id", gameID),
+		slog.Any("existing_connection_ptr", uintptr(unsafe.Pointer(existingConnection))),
+		slog.Any("current_connection_ptr", uintptr(unsafe.Pointer(excludeConnection))))
 
 	delete(m.connections, existingConnection)
 	existingConnection.CloseSend()
@@ -178,16 +177,16 @@ func (m *Manager) RemoveExistingPlayerConnection(playerID, gameID string, exclud
 
 		if len(gameConns) == 0 {
 			delete(m.gameConnections, gameID)
-			m.logger.Debug("Removed empty game connections map after cleanup", zap.String("game_id", gameID))
+			m.logger.Debug("Removed empty game connections map after cleanup", slog.String("game_id", gameID))
 		}
 	}
 
 	existingConnection.Close()
 
 	m.logger.Debug("Existing connection cleaned up for reconnecting player",
-		zap.String("old_connection_id", existingConnection.ID),
-		zap.String("current_connection_id", excludeConnection.ID),
-		zap.String("player_id", playerID))
+		slog.String("old_connection_id", existingConnection.ID),
+		slog.String("current_connection_id", excludeConnection.ID),
+		slog.String("player_id", playerID))
 
 	return existingConnection
 }
@@ -197,7 +196,7 @@ func (m *Manager) CloseAllConnections() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.logger.Debug("Closing all active connections", zap.Int("connection_count", len(m.connections)))
+	m.logger.Debug("Closing all active connections", slog.Int("connection_count", len(m.connections)))
 
 	for connection := range m.connections {
 		connection.Close()

@@ -3,6 +3,7 @@ package tile
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 	baseaction "terraforming-mars-backend/internal/action"
@@ -14,8 +15,6 @@ import (
 	"terraforming-mars-backend/internal/game/board"
 	"terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
-
-	"go.uber.org/zap"
 )
 
 // TilePlacementResult contains information about a completed tile placement
@@ -40,7 +39,7 @@ func NewSelectTileAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
 	stateRepo game.GameStateRepository,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *SelectTileAction {
 	return &SelectTileAction{
 		BaseAction:         baseaction.NewBaseActionWithStateRepo(gameRepo, cardRegistry, stateRepo),
@@ -50,8 +49,8 @@ func NewSelectTileAction(
 
 // Execute performs the select tile action and returns placement result
 func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID string, selectedHex string) (*TilePlacementResult, error) {
-	log := a.InitLogger(gameID, playerID).With(zap.String("action", "select_tile"))
-	log.Debug("Selecting tile", zap.String("hex", selectedHex))
+	log := a.InitLogger(gameID, playerID).With(slog.String("action", "select_tile"))
+	log.Debug("Selecting tile", slog.String("hex", selectedHex))
 
 	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
@@ -87,14 +86,14 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 	}
 	if !hexIsValid {
 		log.Warn("Invalid hex selection",
-			zap.String("selected_hex", selectedHex),
-			zap.Strings("available_hexes", pendingTileSelection.AvailableHexes))
+			slog.String("selected_hex", selectedHex),
+			slog.Any("available_hexes", pendingTileSelection.AvailableHexes))
 		return nil, fmt.Errorf("selected hex %s is not valid for placement", selectedHex)
 	}
 
 	coords, err := parseHexPosition(selectedHex)
 	if err != nil {
-		log.Warn("Failed to parse hex coordinates", zap.String("hex", selectedHex), zap.Error(err))
+		log.Warn("Failed to parse hex coordinates", slog.String("hex", selectedHex), slog.Any("error", err))
 		return nil, fmt.Errorf("invalid hex format: %w", err)
 	}
 
@@ -105,13 +104,13 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		// Check if tile is an ocean before clearing, so we can decrement the ocean count
 		clearedTile, tileErr := g.Board().GetTile(*coords)
 		if tileErr != nil {
-			log.Warn("Failed to get tile for clear", zap.Error(tileErr))
+			log.Warn("Failed to get tile for clear", slog.Any("error", tileErr))
 			return nil, fmt.Errorf("failed to get tile: %w", tileErr)
 		}
 		wasOcean := clearedTile.OccupiedBy != nil && clearedTile.OccupiedBy.Type == shared.ResourceOceanTile
 
 		if err := g.Board().ClearTileOccupant(ctx, *coords); err != nil {
-			log.Warn("Failed to clear tile occupant", zap.Error(err))
+			log.Warn("Failed to clear tile occupant", slog.Any("error", err))
 			return nil, fmt.Errorf("failed to clear tile: %w", err)
 		}
 
@@ -119,13 +118,13 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 			currentOceans := g.GlobalParameters().Oceans()
 			if currentOceans > 0 {
 				if err := g.GlobalParameters().SetOceans(ctx, currentOceans-1); err != nil {
-					log.Warn("Failed to decrement ocean count", zap.Error(err))
+					log.Warn("Failed to decrement ocean count", slog.Any("error", err))
 				}
 			}
 		}
 
 		log.Debug("Tile cleared",
-			zap.String("position", selectedHex))
+			slog.String("position", selectedHex))
 
 		result := &TilePlacementResult{
 			TileType:   tileType,
@@ -145,7 +144,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
 
 		log.Debug("Tile cleared",
-			zap.String("position", selectedHex))
+			slog.String("position", selectedHex))
 		return result, nil
 	}
 
@@ -154,7 +153,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		replacementTileType := strings.TrimPrefix(tileType, "tile-replacement:")
 
 		if err := g.Board().ClearTileOccupant(ctx, *coords); err != nil {
-			log.Warn("Failed to destroy tile for replacement", zap.Error(err))
+			log.Warn("Failed to destroy tile for replacement", slog.Any("error", err))
 			return nil, fmt.Errorf("failed to destroy tile: %w", err)
 		}
 
@@ -168,7 +167,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		}
 
 		if err := g.Board().UpdateTileOccupancy(ctx, *coords, occupant, playerID); err != nil {
-			log.Warn("Failed to place replacement tile", zap.Error(err))
+			log.Warn("Failed to place replacement tile", slog.Any("error", err))
 			return nil, fmt.Errorf("failed to place replacement tile: %w", err)
 		}
 
@@ -188,14 +187,14 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		}
 
 		if err := a.completionRegistry.Handle(ctx, g, playerID, result, result.OnComplete); err != nil {
-			log.Warn("Failed to handle completion callback", zap.Error(err))
+			log.Warn("Failed to handle completion callback", slog.Any("error", err))
 		}
 
 		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
 
 		log.Info("Tile replaced",
-			zap.String("position", selectedHex),
-			zap.String("replacement_type", replacementTileType))
+			slog.String("position", selectedHex),
+			slog.String("replacement_type", replacementTileType))
 		return result, nil
 	}
 
@@ -203,13 +202,13 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 	if tileType == "tile-destruction" {
 		destroyedTile, tileErr := g.Board().GetTile(*coords)
 		if tileErr != nil {
-			log.Warn("Failed to get tile for destruction", zap.Error(tileErr))
+			log.Warn("Failed to get tile for destruction", slog.Any("error", tileErr))
 			return nil, fmt.Errorf("failed to get tile: %w", tileErr)
 		}
 		wasOcean := destroyedTile.OccupiedBy != nil && destroyedTile.OccupiedBy.Type == shared.ResourceOceanTile
 
 		if err := g.Board().ClearTileOccupant(ctx, *coords); err != nil {
-			log.Warn("Failed to destroy tile", zap.Error(err))
+			log.Warn("Failed to destroy tile", slog.Any("error", err))
 			return nil, fmt.Errorf("failed to destroy tile: %w", err)
 		}
 
@@ -217,7 +216,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 			currentOceans := g.GlobalParameters().Oceans()
 			if currentOceans > 0 {
 				if err := g.GlobalParameters().SetOceans(ctx, currentOceans-1); err != nil {
-					log.Warn("Failed to decrement ocean count", zap.Error(err))
+					log.Warn("Failed to decrement ocean count", slog.Any("error", err))
 				}
 			}
 		}
@@ -226,7 +225,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 			Type: shared.ResourceNuclearZoneTile,
 		}
 		if err := g.Board().UpdateTileOccupancy(ctx, *coords, nuclearOccupant, playerID); err != nil {
-			log.Warn("Failed to place nuclear zone tile", zap.Error(err))
+			log.Warn("Failed to place nuclear zone tile", slog.Any("error", err))
 			return nil, fmt.Errorf("failed to place nuclear zone tile: %w", err)
 		}
 
@@ -246,26 +245,26 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		}
 
 		if err := a.completionRegistry.Handle(ctx, g, playerID, result, result.OnComplete); err != nil {
-			log.Warn("Failed to handle completion callback", zap.Error(err))
+			log.Warn("Failed to handle completion callback", slog.Any("error", err))
 		}
 
 		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
 
 		log.Info("Tile destroyed",
-			zap.String("position", selectedHex),
-			zap.Bool("was_ocean", wasOcean))
+			slog.String("position", selectedHex),
+			slog.Bool("was_ocean", wasOcean))
 		return result, nil
 	}
 
 	// Handle land claims differently - they reserve a tile instead of placing an occupant
 	if tileType == "land-claim" {
 		if err := g.Board().ReserveTile(ctx, *coords, playerID); err != nil {
-			log.Warn("Failed to reserve tile", zap.Error(err))
+			log.Warn("Failed to reserve tile", slog.Any("error", err))
 			return nil, fmt.Errorf("failed to reserve tile: %w", err)
 		}
 
 		log.Debug("Tile reserved for land claim",
-			zap.String("position", selectedHex))
+			slog.String("position", selectedHex))
 
 		result := &TilePlacementResult{
 			TileType:   tileType,
@@ -283,20 +282,20 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		}
 
 		if err := a.completionRegistry.Handle(ctx, g, playerID, result, result.OnComplete); err != nil {
-			log.Warn("Failed to handle completion callback", zap.Error(err))
+			log.Warn("Failed to handle completion callback", slog.Any("error", err))
 		}
 
 		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
 
 		log.Debug("Land claim reserved",
-			zap.String("position", selectedHex))
+			slog.String("position", selectedHex))
 		return result, nil
 	}
 
 	if preTile, err := g.Board().GetTile(*coords); err == nil {
 		for _, bonus := range preTile.Bonuses {
 			if err := baseaction.CanAffordResourceDeduction(p, bonus.Type, bonus.Amount); err != nil {
-				log.Debug("Tile placement blocked by unaffordable bonus", zap.Error(err))
+				log.Debug("Tile placement blocked by unaffordable bonus", slog.Any("error", err))
 				return nil, fmt.Errorf("cannot place tile here: %w", err)
 			}
 		}
@@ -312,21 +311,21 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 	}
 
 	if err := g.Board().UpdateTileOccupancy(ctx, *coords, occupant, playerID); err != nil {
-		log.Warn("Failed to place tile", zap.Error(err))
+		log.Warn("Failed to place tile", slog.Any("error", err))
 		return nil, fmt.Errorf("failed to place tile: %w", err)
 	}
 
 	log.Debug("Tile placed on board",
-		zap.String("tile_type", tileType),
-		zap.String("position", selectedHex))
+		slog.String("tile_type", tileType),
+		slog.String("position", selectedHex))
 
 	var queuedTilePlacements []string
 
 	placedTile, err := g.Board().GetTile(*coords)
 	if err != nil {
-		log.Warn("Failed to get placed tile for bonus check", zap.Error(err))
+		log.Warn("Failed to get placed tile for bonus check", slog.Any("error", err))
 	} else if len(placedTile.Bonuses) > 0 {
-		log.Debug("Tile has bonuses", zap.Int("bonus_count", len(placedTile.Bonuses)))
+		log.Debug("Tile has bonuses", slog.Int("bonus_count", len(placedTile.Bonuses)))
 
 		resourceBonuses := make(map[string]int)
 
@@ -338,8 +337,8 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 					bonus.Type: bonus.Amount,
 				})
 				log.Debug("Awarded resource bonus",
-					zap.String("resource", string(bonus.Type)),
-					zap.Int("amount", bonus.Amount))
+					slog.String("resource", string(bonus.Type)),
+					slog.Int("amount", bonus.Amount))
 
 				resourceBonuses[string(bonus.Type)] = bonus.Amount
 
@@ -350,38 +349,38 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 					bonus.Type: bonus.Amount,
 				})
 				log.Debug("Awarded production bonus",
-					zap.String("production", string(bonus.Type)),
-					zap.Int("amount", bonus.Amount))
+					slog.String("production", string(bonus.Type)),
+					slog.Int("amount", bonus.Amount))
 
 				resourceBonuses[string(bonus.Type)] = bonus.Amount
 
 			case shared.ResourceTemperature:
 				stepsRaised, err := g.GlobalParameters().IncreaseTemperature(ctx, bonus.Amount, playerID)
 				if err != nil {
-					log.Warn("Failed to raise temperature for bonus", zap.Error(err))
+					log.Warn("Failed to raise temperature for bonus", slog.Any("error", err))
 					continue
 				}
 				if stepsRaised > 0 {
 					p.Resources().UpdateTerraformRating(stepsRaised)
 				}
 				log.Debug("Awarded temperature bonus",
-					zap.Int("requested_steps", bonus.Amount),
-					zap.Int("actual_steps", stepsRaised))
+					slog.Int("requested_steps", bonus.Amount),
+					slog.Int("actual_steps", stepsRaised))
 
 				resourceBonuses[string(bonus.Type)] = stepsRaised
 
 			case shared.ResourceOxygen:
 				stepsRaised, err := g.GlobalParameters().IncreaseOxygen(ctx, bonus.Amount, playerID)
 				if err != nil {
-					log.Warn("Failed to raise oxygen for bonus", zap.Error(err))
+					log.Warn("Failed to raise oxygen for bonus", slog.Any("error", err))
 					continue
 				}
 				if stepsRaised > 0 {
 					p.Resources().UpdateTerraformRating(stepsRaised)
 				}
 				log.Debug("Awarded oxygen bonus",
-					zap.Int("requested_steps", bonus.Amount),
-					zap.Int("actual_steps", stepsRaised))
+					slog.Int("requested_steps", bonus.Amount),
+					slog.Int("actual_steps", stepsRaised))
 
 				resourceBonuses[string(bonus.Type)] = stepsRaised
 
@@ -390,7 +389,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 					queuedTilePlacements = append(queuedTilePlacements, "ocean")
 				}
 				log.Debug("Queued ocean placement bonus",
-					zap.Int("count", bonus.Amount))
+					slog.Int("count", bonus.Amount))
 
 				resourceBonuses[string(bonus.Type)] = bonus.Amount
 
@@ -398,7 +397,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 				deck := g.Deck()
 				cardIDs, err := deck.DrawProjectCards(ctx, bonus.Amount)
 				if err != nil {
-					log.Warn("Failed to draw cards for bonus", zap.Error(err))
+					log.Warn("Failed to draw cards for bonus", slog.Any("error", err))
 					continue
 				}
 
@@ -416,13 +415,13 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 				})
 
 				log.Debug("Awarded card draw bonus",
-					zap.Int("cards_drawn", len(cardIDs)),
-					zap.Strings("card_ids", cardIDs))
+					slog.Int("cards_drawn", len(cardIDs)),
+					slog.Any("card_ids", cardIDs))
 
 			default:
 				log.Warn("Unhandled tile bonus type",
-					zap.String("type", string(bonus.Type)),
-					zap.Int("amount", bonus.Amount))
+					slog.String("type", string(bonus.Type)),
+					slog.Int("amount", bonus.Amount))
 			}
 		}
 
@@ -438,12 +437,12 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 				Timestamp:    time.Now(),
 			})
 			log.Debug("Published PlacementBonusGainedEvent",
-				zap.Any("resources", resourceBonuses))
+				slog.Any("resources", resourceBonuses))
 		}
 
 		// Clear bonuses from tile after claiming
 		if err := g.Board().ClearTileBonuses(ctx, *coords); err != nil {
-			log.Warn("Failed to clear tile bonuses", zap.Error(err))
+			log.Warn("Failed to clear tile bonuses", slog.Any("error", err))
 		}
 	}
 
@@ -475,8 +474,8 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		})
 
 		log.Debug("Awarded ocean adjacency bonus",
-			zap.Int("adjacent_oceans", adjacentOceanCount),
-			zap.Int("credits_awarded", oceanBonus))
+			slog.Int("adjacent_oceans", adjacentOceanCount),
+			slog.Int("credits_awarded", oceanBonus))
 	}
 
 	result := &TilePlacementResult{
@@ -501,8 +500,8 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 			p.Resources().UpdateTerraformRating(1)
 			result.TRGained = 1
 			log.Debug("Increased oxygen and TR for forest placement",
-				zap.Int("oxygen_steps", actualSteps),
-				zap.Int("tr_gained", 1))
+				slog.Int("oxygen_steps", actualSteps),
+				slog.Int("tr_gained", 1))
 		} else {
 			log.Debug("Forest placed but oxygen already maxed")
 		}
@@ -518,7 +517,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 			p.Resources().UpdateTerraformRating(1)
 			result.TRGained = 1
 			log.Debug("Placed ocean and increased TR",
-				zap.Int("tr_gained", 1))
+				slog.Int("tr_gained", 1))
 		} else {
 			log.Debug("Ocean placed but ocean count already maxed")
 		}
@@ -543,7 +542,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 
 	// Invoke completion callback to log the action
 	if err := a.completionRegistry.Handle(ctx, g, playerID, result, result.OnComplete); err != nil {
-		log.Warn("Failed to handle completion callback", zap.Error(err))
+		log.Warn("Failed to handle completion callback", slog.Any("error", err))
 	}
 
 	switch g.CurrentPhase() {
@@ -556,14 +555,14 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 	}
 
 	log.Info("Tile placed",
-		zap.String("tile_type", tileType),
-		zap.String("position", selectedHex))
+		slog.String("tile_type", tileType),
+		slog.String("position", selectedHex))
 	return result, nil
 }
 
 // checkStartingSelectionCompletion checks if all players finished starting selection and tile placements,
 // then advances to action phase
-func (a *SelectTileAction) checkStartingSelectionCompletion(ctx context.Context, g *game.Game, log *zap.Logger) {
+func (a *SelectTileAction) checkStartingSelectionCompletion(ctx context.Context, g *game.Game, log *slog.Logger) {
 	allPlayers := g.GetAllPlayers()
 	for _, p := range allPlayers {
 		if g.GetSelectCorporationPhase(p.ID()) != nil {

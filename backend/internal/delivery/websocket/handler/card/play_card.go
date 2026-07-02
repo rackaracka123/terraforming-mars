@@ -2,6 +2,7 @@ package card
 
 import (
 	"context"
+	"log/slog"
 
 	cardaction "terraforming-mars-backend/internal/action/card"
 
@@ -9,15 +10,13 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // PlayCardHandler handles play card requests
 type PlayCardHandler struct {
 	action      *cardaction.PlayCardAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // Broadcaster interface for explicit broadcasting
@@ -37,8 +36,8 @@ func NewPlayCardHandler(action *cardaction.PlayCardAction, broadcaster Broadcast
 // HandleMessage implements the MessageHandler interface
 func (h *PlayCardHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing play card request")
@@ -125,23 +124,23 @@ func (h *PlayCardHandler) HandleMessage(ctx context.Context, connection *core.Co
 	}
 
 	log.Debug("Payment extracted",
-		zap.Int("credits", payment.Credits),
-		zap.Int("steel", payment.Steel),
-		zap.Int("titanium", payment.Titanium),
-		zap.Any("substitutes", payment.Substitutes))
+		slog.Int("credits", payment.Credits),
+		slog.Int("steel", payment.Steel),
+		slog.Int("titanium", payment.Titanium),
+		slog.Any("substitutes", payment.Substitutes))
 	if choiceIndex != nil {
-		log.Debug("Choice index extracted", zap.Int("choice_index", *choiceIndex))
+		log.Debug("Choice index extracted", slog.Int("choice_index", *choiceIndex))
 	}
 	if len(cardStorageTargets) > 0 {
-		log.Debug("Card storage targets extracted", zap.Strings("card_storage_targets", cardStorageTargets))
+		log.Debug("Card storage targets extracted", slog.Any("card_storage_targets", cardStorageTargets))
 	}
 	if targetPlayerID != nil {
-		log.Debug("Target player extracted", zap.String("target_player_id", *targetPlayerID))
+		log.Debug("Target player extracted", slog.String("target_player_id", *targetPlayerID))
 	}
 
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, cardID, payment, choiceIndex, cardStorageTargets, targetPlayerID, selectedAmount)
 	if err != nil {
-		log.Error("Failed to execute play card action", zap.Error(err))
+		log.Error("Failed to execute play card action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}

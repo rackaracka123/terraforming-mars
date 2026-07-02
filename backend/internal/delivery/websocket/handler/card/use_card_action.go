@@ -2,21 +2,20 @@ package card
 
 import (
 	"context"
+	"log/slog"
 
 	cardaction "terraforming-mars-backend/internal/action/card"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // UseCardActionHandler handles card action execution requests
 type UseCardActionHandler struct {
 	action      *cardaction.UseCardActionAction
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewUseCardActionHandler creates a new use card action handler
@@ -31,8 +30,8 @@ func NewUseCardActionHandler(action *cardaction.UseCardActionAction, broadcaster
 // HandleMessage implements the MessageHandler interface
 func (h *UseCardActionHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing use card action request")
@@ -117,28 +116,28 @@ func (h *UseCardActionHandler) HandleMessage(ctx context.Context, connection *co
 	}
 
 	log = log.With(
-		zap.String("card_id", cardID),
-		zap.Int("behavior_index", behaviorIndex),
+		slog.String("card_id", cardID),
+		slog.Int("behavior_index", behaviorIndex),
 	)
 	if choiceIndex != nil {
-		log = log.With(zap.Int("choice_index", *choiceIndex))
+		log = log.With(slog.Int("choice_index", *choiceIndex))
 	}
 	if len(cardStorageTargets) > 0 {
-		log = log.With(zap.Strings("card_storage_targets", cardStorageTargets))
+		log = log.With(slog.Any("card_storage_targets", cardStorageTargets))
 	}
 	if targetPlayerID != nil {
-		log = log.With(zap.String("target_player_id", *targetPlayerID))
+		log = log.With(slog.String("target_player_id", *targetPlayerID))
 	}
 	if stealSourceCardID != nil {
-		log = log.With(zap.String("source_card_for_input", *stealSourceCardID))
+		log = log.With(slog.String("source_card_for_input", *stealSourceCardID))
 	}
 	if reuseSourceCardID != nil {
-		log = log.With(zap.String("reuse_source_card_id", *reuseSourceCardID))
+		log = log.With(slog.String("reuse_source_card_id", *reuseSourceCardID))
 	}
 
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, cardID, behaviorIndex, choiceIndex, cardStorageTargets, targetPlayerID, stealSourceCardID, selectedAmount, actionPayment, reuseSourceCardID)
 	if err != nil {
-		log.Error("Failed to execute use card action", zap.Error(err))
+		log.Error("Failed to execute use card action", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return
 	}

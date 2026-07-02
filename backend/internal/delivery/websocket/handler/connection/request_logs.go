@@ -2,18 +2,17 @@ package connection
 
 import (
 	"context"
+	"log/slog"
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // RequestLogsHandler handles requests to resend all game logs
 type RequestLogsHandler struct {
 	broadcaster Broadcaster
-	logger      *zap.Logger
+	logger      *slog.Logger
 }
 
 // NewRequestLogsHandler creates a new request logs handler
@@ -27,8 +26,8 @@ func NewRequestLogsHandler(broadcaster Broadcaster) *RequestLogsHandler {
 // HandleMessage implements the MessageHandler interface
 func (h *RequestLogsHandler) HandleMessage(_ context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	log := h.logger.With(
-		zap.String("connection_id", connection.ID),
-		zap.String("message_type", string(message.Type)),
+		slog.String("connection_id", connection.ID),
+		slog.String("message_type", string(message.Type)),
 	)
 
 	log.Debug("Processing request-logs")
@@ -47,8 +46,8 @@ func (h *RequestLogsHandler) HandleMessage(_ context.Context, connection *core.C
 	if connection.SpectatorID != "" {
 		h.broadcaster.SendInitialLogsToSpectator(connection.GameID, connection.SpectatorID)
 		log.Debug("Sent initial logs to spectator",
-			zap.String("game_id", connection.GameID),
-			zap.String("spectator_id", connection.SpectatorID))
+			slog.String("game_id", connection.GameID),
+			slog.String("spectator_id", connection.SpectatorID))
 		return
 	}
 
@@ -65,6 +64,6 @@ func (h *RequestLogsHandler) HandleMessage(_ context.Context, connection *core.C
 
 	h.broadcaster.SendInitialLogs(connection.GameID, connection.PlayerID)
 	log.Debug("Sent initial logs to player",
-		zap.String("game_id", connection.GameID),
-		zap.String("player_id", connection.PlayerID))
+		slog.String("game_id", connection.GameID),
+		slog.String("player_id", connection.PlayerID))
 }

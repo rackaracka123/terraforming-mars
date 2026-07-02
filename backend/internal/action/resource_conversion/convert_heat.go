@@ -3,14 +3,13 @@ package resource_conversion
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	baseaction "terraforming-mars-backend/internal/action"
 
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/global_parameters"
 	"terraforming-mars-backend/internal/game/shared"
-
-	"go.uber.org/zap"
 )
 
 const (
@@ -30,7 +29,7 @@ func NewConvertHeatToTemperatureAction(
 	gameRepo game.GameRepository,
 	cardRegistry gamecards.CardRegistry,
 	stateRepo game.GameStateRepository,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *ConvertHeatToTemperatureAction {
 	return &ConvertHeatToTemperatureAction{
 		BaseAction:   baseaction.NewBaseActionWithStateRepo(gameRepo, nil, stateRepo),
@@ -82,9 +81,9 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 		requiredHeat = 1
 	}
 	log.Debug("Calculated heat cost",
-		zap.Int("base_cost", BaseHeatForTemperature),
-		zap.Int("discount", heatDiscount),
-		zap.Int("final_cost", requiredHeat))
+		slog.Int("base_cost", BaseHeatForTemperature),
+		slog.Int("discount", heatDiscount),
+		slog.Int("final_cost", requiredHeat))
 
 	storageValue, err := ValidateAndDeductStorageSubstitutes(player, storageSubstitutes, shared.ResourceHeat, log)
 	if err != nil {
@@ -99,10 +98,10 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 	resources := player.Resources().Get()
 	if resources.Heat < remainingCost {
 		log.Warn("Player cannot afford heat conversion",
-			zap.Int("required", requiredHeat),
-			zap.Int("storage_value", storageValue),
-			zap.Int("remaining_cost", remainingCost),
-			zap.Int("available_heat", resources.Heat))
+			slog.Int("required", requiredHeat),
+			slog.Int("storage_value", storageValue),
+			slog.Int("remaining_cost", remainingCost),
+			slog.Int("available_heat", resources.Heat))
 		return fmt.Errorf("insufficient heat: need %d (after %d from storage), have %d", remainingCost, storageValue, resources.Heat)
 	}
 
@@ -110,9 +109,9 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 	player.Resources().Set(resources)
 
 	log.Debug("Deducted heat",
-		zap.Int("heat_spent", remainingCost),
-		zap.Int("storage_value", storageValue),
-		zap.Int("remaining_heat", resources.Heat))
+		slog.Int("heat_spent", remainingCost),
+		slog.Int("storage_value", storageValue),
+		slog.Int("remaining_heat", resources.Heat))
 
 	var stepsRaised int
 	currentTemp := g.GlobalParameters().Temperature()
@@ -120,24 +119,24 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 		var err error
 		stepsRaised, err = g.GlobalParameters().IncreaseTemperature(ctx, 1, playerID)
 		if err != nil {
-			log.Error("Failed to raise temperature", zap.Error(err))
+			log.Error("Failed to raise temperature", slog.Any("error", err))
 			return fmt.Errorf("failed to raise temperature: %w", err)
 		}
 
 		if stepsRaised > 0 {
 			newTemp := g.GlobalParameters().Temperature()
 			log.Debug("Temperature raised",
-				zap.Int("old_temperature", currentTemp),
-				zap.Int("new_temperature", newTemp),
-				zap.Int("steps_raised", stepsRaised))
+				slog.Int("old_temperature", currentTemp),
+				slog.Int("new_temperature", newTemp),
+				slog.Int("steps_raised", stepsRaised))
 
 			oldTR := player.Resources().TerraformRating()
 			player.Resources().UpdateTerraformRating(1)
 			newTR := player.Resources().TerraformRating()
 
 			log.Debug("Increased terraform rating",
-				zap.Int("old_tr", oldTR),
-				zap.Int("new_tr", newTR))
+				slog.Int("old_tr", oldTR),
+				slog.Int("new_tr", newTR))
 		}
 	} else {
 		log.Debug("Temperature already at maximum, no TR awarded")
@@ -165,6 +164,6 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 	a.WriteStateLogFull(ctx, g, "Convert Heat", shared.SourceTypeResourceConvert, playerID, "Converted heat to raise temperature", nil, calculatedOutputs, displayData)
 
 	log.Info("Heat converted",
-		zap.Int("heat_spent", requiredHeat))
+		slog.Int("heat_spent", requiredHeat))
 	return nil
 }

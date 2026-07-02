@@ -1,9 +1,9 @@
 package logger_test
 
 import (
+	"log/slog"
 	"testing"
 
-	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/logger"
 )
 
@@ -78,7 +78,7 @@ func TestWithClientContext(t *testing.T) {
 
 	// Test that we can log with the context logger without panic
 	contextLogger.Info("Test message with client context",
-		zap.String("test_field", "test_value"),
+		slog.String("test_field", "test_value"),
 	)
 }
 
@@ -101,8 +101,8 @@ func TestWithContext(t *testing.T) {
 	defer func() { _ = logger.Shutdown() }()
 
 	contextLogger := logger.WithContext(
-		zap.String("service", "test"),
-		zap.Int("version", 1),
+		slog.String("service", "test"),
+		slog.Int("version", 1),
 	)
 
 	if contextLogger == nil {

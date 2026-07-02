@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"terraforming-mars-backend/internal/action/query"
@@ -10,7 +11,6 @@ import (
 	"terraforming-mars-backend/internal/logger"
 
 	"github.com/gorilla/mux"
-	"go.uber.org/zap"
 )
 
 // PlayerHandler handles HTTP requests for player queries
@@ -44,20 +44,20 @@ func (h *PlayerHandler) GetPlayer(w http.ResponseWriter, r *http.Request) {
 	playerID := vars["playerId"]
 
 	log.Debug("HTTP GET /api/v1/games/:gameId/players/:playerId",
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID))
+		slog.String("game_id", gameID),
+		slog.String("player_id", playerID))
 
 	// Execute query actions - need both player and game for DTO mapping
 	player, err := h.getPlayerAction.Execute(ctx, gameID, playerID)
 	if err != nil {
-		log.Error("Failed to get player", zap.Error(err))
+		log.Error("Failed to get player", slog.Any("error", err))
 		http.Error(w, "Player not found", http.StatusNotFound)
 		return
 	}
 
 	game, err := h.getGameAction.Execute(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to get game for player DTO mapping", zap.Error(err))
+		log.Error("Failed to get game for player DTO mapping", slog.Any("error", err))
 		http.Error(w, "Game not found", http.StatusNotFound)
 		return
 	}
@@ -67,12 +67,12 @@ func (h *PlayerHandler) GetPlayer(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(playerDto); err != nil {
-		log.Error("Failed to encode response", zap.Error(err))
+		log.Error("Failed to encode response", slog.Any("error", err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	log.Debug("Player retrieved",
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID))
+		slog.String("game_id", gameID),
+		slog.String("player_id", playerID))
 }

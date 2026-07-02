@@ -3,19 +3,18 @@ package cards
 import (
 	"context"
 	"fmt"
-
-	"go.uber.org/zap"
+	"log/slog"
 
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-func (a *BehaviorApplier) applyBasicResourceOutput(ctx context.Context, o *shared.BasicResourceCondition, amount int, log *zap.Logger) error {
+func (a *BehaviorApplier) applyBasicResourceOutput(ctx context.Context, o *shared.BasicResourceCondition, amount int, log *slog.Logger) error {
 	rt := o.ResourceType
 
 	// Special case: credit steal with adjacency restriction (deferred for post-tile-placement)
 	if rt == shared.ResourceCredit && o.Target == "steal-any-player" && o.TargetRestriction != nil && o.TargetRestriction.Adjacent == "self-card" {
 		a.deferredSteal = o
-		log.Debug("Deferred adjacent steal for post-tile-placement", zap.Int("amount", amount))
+		log.Debug("Deferred adjacent steal for post-tile-placement", slog.Int("amount", amount))
 		return nil
 	}
 
@@ -29,11 +28,11 @@ func (a *BehaviorApplier) applyBasicResourceOutput(ctx context.Context, o *share
 		return fmt.Errorf("cannot apply %s: no player context", rt)
 	}
 	a.player.Resources().Add(map[shared.ResourceType]int{rt: amount})
-	log.Debug("Added resource", zap.String("type", string(rt)), zap.Int("amount", amount))
+	log.Debug("Added resource", slog.String("type", string(rt)), slog.Int("amount", amount))
 	return nil
 }
 
-func (a *BehaviorApplier) applyProductionOutput(ctx context.Context, o *shared.ProductionCondition, amount int, log *zap.Logger) error {
+func (a *BehaviorApplier) applyProductionOutput(ctx context.Context, o *shared.ProductionCondition, amount int, log *slog.Logger) error {
 	rt := o.ResourceType
 	if o.Target == "any-player" {
 		return a.applyAnyPlayerProduction(rt, amount, log)
@@ -42,18 +41,18 @@ func (a *BehaviorApplier) applyProductionOutput(ctx context.Context, o *shared.P
 		return fmt.Errorf("cannot apply %s: no player context", rt)
 	}
 	a.player.Resources().AddProduction(map[shared.ResourceType]int{rt: amount})
-	log.Debug("Added production", zap.String("type", string(rt)), zap.Int("amount", amount))
+	log.Debug("Added production", slog.String("type", string(rt)), slog.Int("amount", amount))
 	return nil
 }
 
-func (a *BehaviorApplier) applyGlobalParameterOutput(ctx context.Context, o *shared.GlobalParameterCondition, amount int, log *zap.Logger) error {
+func (a *BehaviorApplier) applyGlobalParameterOutput(ctx context.Context, o *shared.GlobalParameterCondition, amount int, log *slog.Logger) error {
 	switch o.ResourceType {
 	case shared.ResourceTR:
 		if a.player == nil {
 			return fmt.Errorf("cannot apply terraform rating: no player context")
 		}
 		a.player.Resources().UpdateTerraformRating(amount)
-		log.Debug("Added terraform rating", zap.Int("amount", amount))
+		log.Debug("Added terraform rating", slog.Int("amount", amount))
 
 	case shared.ResourceOxygen:
 		if a.game == nil {
@@ -66,7 +65,7 @@ func (a *BehaviorApplier) applyGlobalParameterOutput(ctx context.Context, o *sha
 		if actualSteps > 0 && a.player != nil {
 			a.player.Resources().UpdateTerraformRating(actualSteps)
 		}
-		log.Debug("Increased oxygen", zap.Int("steps", actualSteps), zap.Int("tr_gained", actualSteps))
+		log.Debug("Increased oxygen", slog.Int("steps", actualSteps), slog.Int("tr_gained", actualSteps))
 
 	case shared.ResourceTemperature:
 		if a.game == nil {
@@ -79,7 +78,7 @@ func (a *BehaviorApplier) applyGlobalParameterOutput(ctx context.Context, o *sha
 		if actualSteps > 0 && a.player != nil {
 			a.player.Resources().UpdateTerraformRating(actualSteps)
 		}
-		log.Debug("Increased temperature", zap.Int("steps", actualSteps), zap.Int("tr_gained", actualSteps))
+		log.Debug("Increased temperature", slog.Int("steps", actualSteps), slog.Int("tr_gained", actualSteps))
 
 	case shared.ResourceVenus:
 		if a.game == nil {
@@ -92,10 +91,10 @@ func (a *BehaviorApplier) applyGlobalParameterOutput(ctx context.Context, o *sha
 		if actualSteps > 0 && a.player != nil {
 			a.player.Resources().UpdateTerraformRating(actualSteps)
 		}
-		log.Debug("Increased venus", zap.Int("steps", actualSteps), zap.Int("tr_gained", actualSteps))
+		log.Debug("Increased venus", slog.Int("steps", actualSteps), slog.Int("tr_gained", actualSteps))
 
 	default:
-		log.Warn("Unhandled global parameter type", zap.String("type", string(o.ResourceType)))
+		log.Warn("Unhandled global parameter type", slog.String("type", string(o.ResourceType)))
 	}
 	return nil
 }

@@ -1,13 +1,11 @@
 package player
 
 import (
+	"log/slog"
 	"time"
-
-	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game/datastore"
-	"terraforming-mars-backend/internal/logger"
 )
 
 // Hand manages player card hand as a pure DataStore adapter.
@@ -29,13 +27,13 @@ func newHand(ds *datastore.DataStore, eventBus *events.EventBusImpl, gameID, pla
 
 func (h *Hand) update(fn func(s *datastore.PlayerState)) {
 	if err := h.ds.UpdatePlayer(h.gameID, h.playerID, fn); err != nil {
-		logger.Get().Warn("Failed to update player state", zap.String("game_id", h.gameID), zap.String("player_id", h.playerID), zap.Error(err))
+		slog.Default().Warn("Failed to update player state", slog.String("game_id", h.gameID), slog.String("player_id", h.playerID), slog.Any("error", err))
 	}
 }
 
 func (h *Hand) read(fn func(s *datastore.PlayerState)) {
 	if err := h.ds.ReadPlayer(h.gameID, h.playerID, fn); err != nil {
-		logger.Get().Warn("Failed to read player state", zap.String("game_id", h.gameID), zap.String("player_id", h.playerID), zap.Error(err))
+		slog.Default().Warn("Failed to read player state", slog.String("game_id", h.gameID), slog.String("player_id", h.playerID), slog.Any("error", err))
 	}
 }
 

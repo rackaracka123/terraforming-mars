@@ -1,10 +1,8 @@
 package game
 
 import (
-	"go.uber.org/zap"
-
+	"log/slog"
 	"terraforming-mars-backend/internal/game/datastore"
-	"terraforming-mars-backend/internal/logger"
 )
 
 type Turn struct {
@@ -18,13 +16,13 @@ func NewTurn(ds *datastore.DataStore, gameID string) *Turn {
 
 func (t *Turn) update(fn func(s *datastore.GameState)) {
 	if err := t.ds.UpdateGame(t.gameID, fn); err != nil {
-		logger.Get().Warn("Failed to update game state", zap.String("game_id", t.gameID), zap.Error(err))
+		slog.Default().Warn("Failed to update game state", slog.String("game_id", t.gameID), slog.Any("error", err))
 	}
 }
 
 func (t *Turn) read(fn func(s *datastore.GameState)) {
 	if err := t.ds.ReadGame(t.gameID, fn); err != nil {
-		logger.Get().Warn("Failed to read game state", zap.String("game_id", t.gameID), zap.Error(err))
+		slog.Default().Warn("Failed to read game state", slog.String("game_id", t.gameID), slog.Any("error", err))
 	}
 }
 
