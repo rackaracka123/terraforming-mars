@@ -54,7 +54,7 @@ jobs:
           cache-dependency-path: backend/go.sum
 
       - name: Run architecture guardrail (depguard)
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v8
         with:
           version: v2.12.2
           working-directory: backend

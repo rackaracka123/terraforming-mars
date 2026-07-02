@@ -7,7 +7,6 @@ import (
 	"unicode/utf8"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
@@ -25,7 +24,6 @@ type JoinGameAction struct {
 // JoinGameResult contains the result of joining a game
 type JoinGameResult struct {
 	PlayerID string
-	GameDto  dto.GameDto
 }
 
 // NewJoinGameAction creates a new join game action
@@ -76,11 +74,7 @@ func (a *JoinGameAction) Execute(
 		log.Debug("Player reconnecting", slog.String("player_id", playerID))
 		existingPlayer.SetConnected(true)
 
-		gameDto := dto.ToGameDto(g, a.cardRegistry, playerID)
-		return &JoinGameResult{
-			PlayerID: playerID,
-			GameDto:  gameDto,
-		}, nil
+		return &JoinGameResult{PlayerID: playerID}, nil
 	}
 
 	// 3. Validate player name length (only for new joins)
@@ -103,12 +97,7 @@ func (a *JoinGameAction) Execute(
 			log.Debug("Player already exists, returning existing ID",
 				slog.String("player_id", p.ID()))
 
-			// Return the existing game state with personalized view
-			gameDto := dto.ToGameDto(g, a.cardRegistry, p.ID())
-			return &JoinGameResult{
-				PlayerID: p.ID(),
-				GameDto:  gameDto,
-			}, nil
+			return &JoinGameResult{PlayerID: p.ID()}, nil
 		}
 	}
 
@@ -144,15 +133,8 @@ func (a *JoinGameAction) Execute(
 	action.SetupPlayerCardStore(newPlayer, g, a.cardRegistry, a.colonyBonusLookup)
 	log.Debug("Player added to game")
 
-	// 10. Convert to DTO with personalized view for the joining player
-	gameDto := dto.ToGameDto(g, a.cardRegistry, newPlayer.ID())
-
-	// Note: Broadcasting handled automatically via PlayerJoinedEvent
-	// g.AddPlayer() publishes event → SessionManager subscribes → broadcasts
-
+	// Broadcasting handled automatically via PlayerJoinedEvent:
+	// g.AddNewPlayer() publishes the event → broadcaster sends personalized state.
 	log.Info("Player joined game")
-	return &JoinGameResult{
-		PlayerID: newPlayer.ID(),
-		GameDto:  gameDto,
-	}, nil
+	return &JoinGameResult{PlayerID: newPlayer.ID()}, nil
 }

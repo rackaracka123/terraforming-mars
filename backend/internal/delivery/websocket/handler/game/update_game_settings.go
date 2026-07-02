@@ -54,7 +54,18 @@ func (h *UpdateGameSettingsHandler) HandleMessage(ctx context.Context, connectio
 		return
 	}
 
-	if err := h.action.Execute(ctx, gameID, playerID, &patch); err != nil {
+	domainPatch := gameaction.SettingsPatch{
+		MaxPlayers:       patch.MaxPlayers,
+		MapID:            patch.MapID,
+		VenusNextEnabled: patch.VenusNextEnabled,
+		DevelopmentMode:  patch.DevelopmentMode,
+		DemoGame:         patch.DemoGame,
+		AllowRandomBuy:   patch.AllowRandomBuy,
+		CardPacks:        patch.CardPacks,
+		ClaudeAPIKey:     patch.ClaudeAPIKey,
+		ClaudeModel:      patch.ClaudeModel,
+	}
+	if err := h.action.Execute(ctx, gameID, playerID, &domainPatch); err != nil {
 		log.Debug("Failed to update game settings", slog.Any("error", err))
 		h.sendError(connection, err.Error())
 		return

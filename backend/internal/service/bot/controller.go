@@ -20,7 +20,7 @@ import (
 // Broadcaster is used by the controller to broadcast game state and chat after dispatched commands.
 type Broadcaster interface {
 	BroadcastGameState(gameID string, playerIDs []string)
-	BroadcastChatMessage(gameID string, chatMsg dto.ChatMessageDto)
+	BroadcastChatMessage(gameID string, chatMsg shared.ChatMessage)
 }
 
 // BotController manages all bot sessions and coordinates the turn-play loop.
@@ -456,13 +456,7 @@ func (bc *BotController) handleChatMessage(ctx context.Context, session *BotSess
 	})
 	session.historyWriter.WriteReceived("action-success", successPayload)
 
-	bc.broadcaster.BroadcastChatMessage(session.gameID, dto.ChatMessageDto{
-		SenderID:    chatMsg.SenderID,
-		SenderName:  chatMsg.SenderName,
-		SenderColor: chatMsg.SenderColor,
-		Message:     chatMsg.Message,
-		Timestamp:   chatMsg.Timestamp.Format(time.RFC3339),
-	})
+	bc.broadcaster.BroadcastChatMessage(session.gameID, chatMsg)
 }
 
 func (bc *BotController) cleanupSession(session *BotSession) {

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/cards"
 )
@@ -21,7 +20,6 @@ type PlayerTakeoverAction struct {
 type PlayerTakeoverResult struct {
 	PlayerID   string
 	PlayerName string
-	GameDto    dto.GameDto
 }
 
 // NewPlayerTakeoverAction creates a new player takeover action
@@ -75,14 +73,11 @@ func (a *PlayerTakeoverAction) Execute(ctx context.Context, gameID string, targe
 
 	player.SetConnected(true)
 
-	gameDto := dto.ToGameDto(g, a.cardRegistry, targetPlayerID)
-
 	log.Info("Player takeover completed",
 		slog.String("player_name", player.Name()))
 
 	return &PlayerTakeoverResult{
 		PlayerID:   targetPlayerID,
 		PlayerName: player.Name(),
-		GameDto:    gameDto,
 	}, nil
 }

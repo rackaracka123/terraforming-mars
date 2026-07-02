@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"sync"
+	"time"
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
@@ -13,6 +14,7 @@ import (
 	"terraforming-mars-backend/internal/game/colony"
 	"terraforming-mars-backend/internal/game/milestone"
 	pfRegistry "terraforming-mars-backend/internal/game/projectfunding"
+	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/game/standardproject"
 	"terraforming-mars-backend/internal/logger"
 )
@@ -296,7 +298,7 @@ func (b *Broadcaster) broadcastToSpectators(g *game.Game) {
 }
 
 // BroadcastChatMessage broadcasts a chat message to all players and spectators in a game.
-func (b *Broadcaster) BroadcastChatMessage(gameID string, chatMsg dto.ChatMessageDto) {
+func (b *Broadcaster) BroadcastChatMessage(gameID string, chatMsg shared.ChatMessage) {
 	ctx := context.Background()
 	log := b.logger.With(slog.String("game_id", gameID))
 
@@ -310,7 +312,14 @@ func (b *Broadcaster) BroadcastChatMessage(gameID string, chatMsg dto.ChatMessag
 		Type:   dto.MessageTypeChatUpdate,
 		GameID: gameID,
 		Payload: dto.ChatUpdatePayload{
-			ChatMessage: chatMsg,
+			ChatMessage: dto.ChatMessageDto{
+				SenderID:    chatMsg.SenderID,
+				SenderName:  chatMsg.SenderName,
+				SenderColor: chatMsg.SenderColor,
+				Message:     chatMsg.Message,
+				Timestamp:   chatMsg.Timestamp.Format(time.RFC3339),
+				IsSpectator: chatMsg.IsSpectator,
+			},
 		},
 	}
 
