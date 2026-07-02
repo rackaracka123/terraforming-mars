@@ -8,15 +8,13 @@ import (
 
 	"go.uber.org/zap"
 
-	"terraforming-mars-backend/internal/awards"
-	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/colony"
+	"terraforming-mars-backend/internal/game/milestone"
 	playerPkg "terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/projectfunding"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/milestones"
-	pfRegistry "terraforming-mars-backend/internal/projectfunding"
 )
 
 // BotStarter starts bot sessions when a game begins.
@@ -28,10 +26,10 @@ type BotStarter interface {
 // NOTE: Deck initialization is handled separately before calling this action
 type StartGameAction struct {
 	gameRepo               game.GameRepository
-	colonyRegistry         colonies.ColonyRegistry
-	projectFundingRegistry pfRegistry.ProjectFundingRegistry
-	milestoneRegistry      milestones.MilestoneRegistry
-	awardRegistry          awards.AwardRegistry
+	colonyRegistry         colony.ColonyRegistry
+	projectFundingRegistry projectfunding.ProjectFundingRegistry
+	milestoneRegistry      milestone.MilestoneRegistry
+	awardRegistry          award.AwardRegistry
 	botStarter             BotStarter
 	logger                 *zap.Logger
 }
@@ -39,10 +37,10 @@ type StartGameAction struct {
 // NewStartGameAction creates a new start game action
 func NewStartGameAction(
 	gameRepo game.GameRepository,
-	colonyRegistry colonies.ColonyRegistry,
-	projectFundingRegistry pfRegistry.ProjectFundingRegistry,
-	milestoneRegistry milestones.MilestoneRegistry,
-	awardRegistry awards.AwardRegistry,
+	colonyRegistry colony.ColonyRegistry,
+	projectFundingRegistry projectfunding.ProjectFundingRegistry,
+	milestoneRegistry milestone.MilestoneRegistry,
+	awardRegistry award.AwardRegistry,
 	botStarter BotStarter,
 	logger *zap.Logger,
 ) *StartGameAction {

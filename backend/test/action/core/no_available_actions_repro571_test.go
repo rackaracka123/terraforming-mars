@@ -7,30 +7,30 @@ import (
 	"testing"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/board"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/datastore"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
+	"terraforming-mars-backend/internal/game/standardproject"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/standardprojects"
 	"terraforming-mars-backend/test/testutil"
 )
 
 // loadStandardProjectRegistry571 loads the real standard-project registry from the
 // JSON asset so HasAvailableActions iterates the same surfaces the game does.
-func loadStandardProjectRegistry571(t *testing.T) standardprojects.StandardProjectRegistry {
+func loadStandardProjectRegistry571(t *testing.T) standardproject.StandardProjectRegistry {
 	t.Helper()
 	_, currentFile, _, _ := runtime.Caller(0)
 	stdProjPath := filepath.Join(filepath.Dir(currentFile), "..", "..", "..", "assets", "terraforming_mars_standard_projects.json")
-	stdProjData, err := standardprojects.LoadStandardProjectsFromJSON(stdProjPath)
+	stdProjData, err := standardproject.LoadStandardProjectsFromJSON(stdProjPath)
 	if err != nil {
 		t.Fatalf("Failed to load standard projects JSON: %v", err)
 	}
-	return standardprojects.NewInMemoryStandardProjectRegistry(stdProjData)
+	return standardproject.NewInMemoryStandardProjectRegistry(stdProjData)
 }
 
 // allStandardProjects is the full set of standard projects a player can perform during
@@ -402,7 +402,7 @@ func TestHasAvailableActions_IgnoresUnselectedMilestone(t *testing.T) {
 
 // closeAwardSurface funds the maximum number of awards so the award action surface is
 // unavailable regardless of the player's credits, letting a test isolate other surfaces.
-func closeAwardSurface(t *testing.T, g *game.Game, awardRegistry awards.AwardRegistry) {
+func closeAwardSurface(t *testing.T, g *game.Game, awardRegistry award.AwardRegistry) {
 	t.Helper()
 	ctx := context.Background()
 	defs := awardRegistry.GetAll()
@@ -419,7 +419,7 @@ func closeAwardSurface(t *testing.T, g *game.Game, awardRegistry awards.AwardReg
 }
 
 // stdProjCreditCost returns the credit cost of a registry-backed standard project.
-func stdProjCreditCost(t *testing.T, registry standardprojects.StandardProjectRegistry, projectID string) int {
+func stdProjCreditCost(t *testing.T, registry standardproject.StandardProjectRegistry, projectID string) int {
 	t.Helper()
 	def, err := registry.GetByID(projectID)
 	if err != nil {

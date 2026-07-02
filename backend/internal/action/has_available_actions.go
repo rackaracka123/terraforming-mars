@@ -1,15 +1,13 @@
 package action
 
 import (
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/milestone"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/milestones"
-	"terraforming-mars-backend/internal/standardprojects"
+	"terraforming-mars-backend/internal/game/standardproject"
 )
 
 // conversionStandardProjects are the two resource-conversion "standard projects"
@@ -34,9 +32,9 @@ func HasAvailableActions(
 	g *game.Game,
 	p *player.Player,
 	cardRegistry cards.CardRegistry,
-	stdProjRegistry standardprojects.StandardProjectRegistry,
-	milestoneRegistry milestones.MilestoneRegistry,
-	awardRegistry awards.AwardRegistry,
+	stdProjRegistry standardproject.StandardProjectRegistry,
+	milestoneRegistry milestone.MilestoneRegistry,
+	awardRegistry award.AwardRegistry,
 ) bool {
 	if g.HasAnyPendingSelection(p.ID()) {
 		return true
@@ -100,7 +98,7 @@ func hasAvailableStandardProject(
 	g *game.Game,
 	p *player.Player,
 	cardRegistry cards.CardRegistry,
-	stdProjRegistry standardprojects.StandardProjectRegistry,
+	stdProjRegistry standardproject.StandardProjectRegistry,
 ) bool {
 	enabledPacks := g.Settings().EnabledPacks()
 

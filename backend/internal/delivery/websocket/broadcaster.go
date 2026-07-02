@@ -4,16 +4,16 @@ import (
 	"context"
 	"sync"
 
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
-	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/award"
+	"terraforming-mars-backend/internal/game/colony"
+	"terraforming-mars-backend/internal/game/milestone"
+	pfRegistry "terraforming-mars-backend/internal/game/projectfunding"
+	"terraforming-mars-backend/internal/game/standardproject"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/milestones"
-	pfRegistry "terraforming-mars-backend/internal/projectfunding"
-	"terraforming-mars-backend/internal/standardprojects"
 
 	"go.uber.org/zap"
 )
@@ -30,11 +30,11 @@ type Broadcaster struct {
 	stateRepo               game.GameStateRepository
 	hub                     *core.Hub
 	cardRegistry            cards.CardRegistry
-	colonyRegistry          colonies.ColonyRegistry
+	colonyRegistry          colony.ColonyRegistry
 	projectFundingRegistry  pfRegistry.ProjectFundingRegistry
-	standardProjectRegistry standardprojects.StandardProjectRegistry
-	awardRegistry           awards.AwardRegistry
-	milestoneRegistry       milestones.MilestoneRegistry
+	standardProjectRegistry standardproject.StandardProjectRegistry
+	awardRegistry           award.AwardRegistry
+	milestoneRegistry       milestone.MilestoneRegistry
 	availableMaps           []dto.MapInfoDto
 	botNotifier             BotNotifier
 	logger                  *zap.Logger
@@ -48,11 +48,11 @@ func NewBroadcaster(
 	stateRepo game.GameStateRepository,
 	hub *core.Hub,
 	cardRegistry cards.CardRegistry,
-	colonyRegistry colonies.ColonyRegistry,
+	colonyRegistry colony.ColonyRegistry,
 	pfReg pfRegistry.ProjectFundingRegistry,
-	stdProjReg standardprojects.StandardProjectRegistry,
-	awardReg awards.AwardRegistry,
-	msReg milestones.MilestoneRegistry,
+	stdProjReg standardproject.StandardProjectRegistry,
+	awardReg award.AwardRegistry,
+	msReg milestone.MilestoneRegistry,
 	availableMaps []dto.MapInfoDto,
 ) *Broadcaster {
 	broadcaster := &Broadcaster{

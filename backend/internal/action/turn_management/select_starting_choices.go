@@ -9,10 +9,10 @@ import (
 
 	"go.uber.org/zap"
 
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/award"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
@@ -23,7 +23,7 @@ import (
 type SelectStartingChoicesAction struct {
 	gameRepo      game.GameRepository
 	cardRegistry  cards.CardRegistry
-	awardRegistry awards.AwardRegistry
+	awardRegistry award.AwardRegistry
 	corpProc      *gamecards.CorporationProcessor
 	logger        *zap.Logger
 }
@@ -32,7 +32,7 @@ type SelectStartingChoicesAction struct {
 func NewSelectStartingChoicesAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
-	awardRegistry awards.AwardRegistry,
+	awardRegistry award.AwardRegistry,
 	logger *zap.Logger,
 ) *SelectStartingChoicesAction {
 	return &SelectStartingChoicesAction{

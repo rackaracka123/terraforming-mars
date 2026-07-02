@@ -24,24 +24,24 @@ import (
 	stdprojAction "terraforming-mars-backend/internal/action/standard_project"
 	tileAction "terraforming-mars-backend/internal/action/tile"
 	turnAction "terraforming-mars-backend/internal/action/turn_management"
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
-	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/delivery/dto"
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/award"
+	"terraforming-mars-backend/internal/game/board"
+	"terraforming-mars-backend/internal/game/colony"
 	"terraforming-mars-backend/internal/game/datastore"
+	msLoader "terraforming-mars-backend/internal/game/milestone"
+	pfLoader "terraforming-mars-backend/internal/game/projectfunding"
 	"terraforming-mars-backend/internal/game/shared"
+	stdprojLoader "terraforming-mars-backend/internal/game/standardproject"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/maps"
 	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
-	msLoader "terraforming-mars-backend/internal/milestones"
-	pfLoader "terraforming-mars-backend/internal/projectfunding"
 	"terraforming-mars-backend/internal/service/bot"
 	"terraforming-mars-backend/internal/service/bugreport"
-	stdprojLoader "terraforming-mars-backend/internal/standardprojects"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -99,11 +99,11 @@ func main() {
 	colonyPath := filepath.Join(wd, "assets", "terraforming_mars_colonies.json")
 	log.Debug("Loading colonies from", zap.String("path", colonyPath))
 
-	colonyData, err := colonies.LoadColoniesFromJSON(colonyPath)
+	colonyData, err := colony.LoadColoniesFromJSON(colonyPath)
 	if err != nil {
 		log.Fatal("Failed to load colonies", zap.Error(err))
 	}
-	colonyRegistry := colonies.NewInMemoryColonyRegistry(colonyData)
+	colonyRegistry := colony.NewInMemoryColonyRegistry(colonyData)
 	log.Debug("Colony registry initialized", zap.Int("colony_count", len(colonyData)))
 
 	// ========== Initialize Project Funding Registry ==========
@@ -132,11 +132,11 @@ func main() {
 	awardPath := filepath.Join(wd, "assets", "terraforming_mars_awards.json")
 	log.Debug("Loading awards from", zap.String("path", awardPath))
 
-	awardData, err := awards.LoadAwardsFromJSON(awardPath)
+	awardData, err := award.LoadAwardsFromJSON(awardPath)
 	if err != nil {
 		log.Fatal("Failed to load awards", zap.Error(err))
 	}
-	awardRegistry := awards.NewInMemoryAwardRegistry(awardData)
+	awardRegistry := award.NewInMemoryAwardRegistry(awardData)
 	log.Debug("Award registry initialized", zap.Int("award_count", len(awardData)))
 
 	// ========== Initialize Milestone Registry ==========
@@ -154,7 +154,7 @@ func main() {
 	mapPath := filepath.Join(wd, "assets", "terraforming_mars_maps.json")
 	log.Debug("Loading maps from", zap.String("path", mapPath))
 
-	mapRegistry, err := maps.LoadMapsFromJSON(mapPath)
+	mapRegistry, err := board.LoadMapsFromJSON(mapPath)
 	if err != nil {
 		log.Fatal("Failed to load maps", zap.Error(err))
 	}
@@ -198,7 +198,7 @@ func main() {
 	availableMaps := make([]dto.MapInfoDto, 0)
 	for _, m := range mapRegistry.ListMaps() {
 		mapDef, _ := mapRegistry.GetMap(m.ID)
-		tiles := maps.GenerateBoardFromMap(mapDef, false)
+		tiles := board.GenerateBoardFromMap(mapDef, false)
 		previewTiles := make([]dto.MapPreviewTile, 0)
 		for _, t := range tiles {
 			if t.Location != "mars" || string(t.Type) == "empty" {

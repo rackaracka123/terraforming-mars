@@ -16,7 +16,7 @@ import (
 	turnmgmt "terraforming-mars-backend/internal/action/turn_management"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/standardprojects"
+	"terraforming-mars-backend/internal/game/standardproject"
 	"terraforming-mars-backend/test/testutil"
 )
 
@@ -69,8 +69,8 @@ func TestZeroActionsBlocksStandardProject(t *testing.T) {
 
 	_, currentFile, _, _ := runtime.Caller(0)
 	stdProjPath := filepath.Join(filepath.Dir(currentFile), "..", "..", "..", "assets", "terraforming_mars_standard_projects.json")
-	stdProjData, _ := standardprojects.LoadStandardProjectsFromJSON(stdProjPath)
-	stdProjRegistry := standardprojects.NewInMemoryStandardProjectRegistry(stdProjData)
+	stdProjData, _ := standardproject.LoadStandardProjectsFromJSON(stdProjPath)
+	stdProjRegistry := standardproject.NewInMemoryStandardProjectRegistry(stdProjData)
 
 	buildAction := spAction.NewExecuteStandardProjectAction(repo, cardRegistry, stdProjRegistry, nil, logger)
 

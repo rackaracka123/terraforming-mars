@@ -8,16 +8,16 @@ import (
 	"go.uber.org/zap"
 
 	baseaction "terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/shared"
 )
 
 // FundAwardAction handles the business logic for funding an award
 type FundAwardAction struct {
 	baseaction.BaseAction
-	awardRegistry awards.AwardRegistry
+	awardRegistry award.AwardRegistry
 }
 
 // NewFundAwardAction creates a new fund award action
@@ -25,7 +25,7 @@ func NewFundAwardAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
 	stateRepo game.GameStateRepository,
-	awardRegistry awards.AwardRegistry,
+	awardRegistry award.AwardRegistry,
 	logger *zap.Logger,
 ) *FundAwardAction {
 	return &FundAwardAction{

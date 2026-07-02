@@ -7,27 +7,28 @@ import (
 
 	baseaction "terraforming-mars-backend/internal/action"
 
-	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/standardprojects"
+	"terraforming-mars-backend/internal/game/standardproject"
+
+	"go.uber.org/zap"
 )
 
 // ExecuteStandardProjectAction handles all standard projects via a single unified action
 type ExecuteStandardProjectAction struct {
 	baseaction.BaseAction
-	standardProjectRegistry standardprojects.StandardProjectRegistry
+	standardProjectRegistry standardproject.StandardProjectRegistry
 }
 
 // NewExecuteStandardProjectAction creates a new unified standard project action
 func NewExecuteStandardProjectAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
-	standardProjectRegistry standardprojects.StandardProjectRegistry,
+	standardProjectRegistry standardproject.StandardProjectRegistry,
 	stateRepo game.GameStateRepository,
 	logger *zap.Logger,
 ) *ExecuteStandardProjectAction {

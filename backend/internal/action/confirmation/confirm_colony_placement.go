@@ -11,22 +11,22 @@ import (
 	colonyaction "terraforming-mars-backend/internal/action/colony"
 	"terraforming-mars-backend/internal/action/turn_management"
 	"terraforming-mars-backend/internal/cards"
-	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/colony"
 	"terraforming-mars-backend/internal/game/shared"
 )
 
 // ConfirmColonyPlacementAction handles confirming a colony placement from a card effect
 type ConfirmColonyPlacementAction struct {
 	baseaction.BaseAction
-	colonyRegistry colonies.ColonyRegistry
+	colonyRegistry colony.ColonyRegistry
 }
 
 // NewConfirmColonyPlacementAction creates a new confirm colony placement action
 func NewConfirmColonyPlacementAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
-	colonyRegistry colonies.ColonyRegistry,
+	colonyRegistry colony.ColonyRegistry,
 	logger *zap.Logger,
 ) *ConfirmColonyPlacementAction {
 	return &ConfirmColonyPlacementAction{

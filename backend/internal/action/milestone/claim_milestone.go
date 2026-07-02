@@ -11,14 +11,14 @@ import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
+	"terraforming-mars-backend/internal/game/milestone"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/milestones"
 )
 
 // ClaimMilestoneAction handles the business logic for claiming a milestone
 type ClaimMilestoneAction struct {
 	baseaction.BaseAction
-	milestoneRegistry milestones.MilestoneRegistry
+	milestoneRegistry milestone.MilestoneRegistry
 }
 
 // NewClaimMilestoneAction creates a new claim milestone action
@@ -26,7 +26,7 @@ func NewClaimMilestoneAction(
 	gameRepo game.GameRepository,
 	cardRegistry cards.CardRegistry,
 	stateRepo game.GameStateRepository,
-	milestoneRegistry milestones.MilestoneRegistry,
+	milestoneRegistry milestone.MilestoneRegistry,
 	logger *zap.Logger,
 ) *ClaimMilestoneAction {
 	return &ClaimMilestoneAction{

@@ -1,21 +1,19 @@
-package standardprojects
+package standardproject
 
 import (
 	"encoding/json"
 	"fmt"
 	"os"
-
-	"terraforming-mars-backend/internal/game/standardproject"
 )
 
 // LoadStandardProjectsFromJSON loads standard project definitions from a JSON file
-func LoadStandardProjectsFromJSON(filepath string) ([]standardproject.StandardProjectDefinition, error) {
+func LoadStandardProjectsFromJSON(filepath string) ([]StandardProjectDefinition, error) {
 	data, err := os.ReadFile(filepath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read standard projects file: %w", err)
 	}
 
-	var projects []standardproject.StandardProjectDefinition
+	var projects []StandardProjectDefinition
 	if err := json.Unmarshal(data, &projects); err != nil {
 		return nil, fmt.Errorf("failed to parse standard projects JSON: %w", err)
 	}

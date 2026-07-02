@@ -8,19 +8,18 @@ import (
 	"terraforming-mars-backend/internal/game"
 	pf "terraforming-mars-backend/internal/game/projectfunding"
 	"terraforming-mars-backend/internal/game/shared"
-	pfLoader "terraforming-mars-backend/internal/projectfunding"
 	"terraforming-mars-backend/test/testutil"
 )
 
-func setupProjectFundingGame(t *testing.T) (*game.Game, game.GameRepository, pfLoader.ProjectFundingRegistry, string, string) {
+func setupProjectFundingGame(t *testing.T) (*game.Game, game.GameRepository, pf.ProjectFundingRegistry, string, string) {
 	t.Helper()
 	testGame, repo, _, player1, player2 := testutil.SetupTwoPlayerGame(t)
 
-	pfDefs, err := pfLoader.LoadProjectsFromJSON("../../../assets/terraforming_mars_project_funding.json")
+	pfDefs, err := pf.LoadProjectsFromJSON("../../../assets/terraforming_mars_project_funding.json")
 	if err != nil {
 		t.Fatalf("Failed to load project funding: %v", err)
 	}
-	pfRegistry := pfLoader.NewInMemoryProjectFundingRegistry(pfDefs)
+	pfRegistry := pf.NewInMemoryProjectFundingRegistry(pfDefs)
 
 	settings := testGame.Settings()
 	settings.CardPacks = append(settings.CardPacks, shared.PackProjectFunding)
@@ -39,7 +38,7 @@ func setupProjectState(g *game.Game, projectID string, seatOwners []string) {
 	g.SetProjectFundingStates(states)
 }
 
-func newAction(repo game.GameRepository, pfReg pfLoader.ProjectFundingRegistry) *pfAction.FundSeatAction {
+func newAction(repo game.GameRepository, pfReg pf.ProjectFundingRegistry) *pfAction.FundSeatAction {
 	stateRepo := game.NewInMemoryGameStateRepository()
 	return pfAction.NewFundSeatAction(repo, pfReg, stateRepo)
 }
@@ -50,8 +49,8 @@ func TestFundSeat_ExpansionNotEnabled_Fails(t *testing.T) {
 	testGame, repo, _, player1, _ := testutil.SetupTwoPlayerGame(t)
 	ctx := context.Background()
 
-	pfDefs, _ := pfLoader.LoadProjectsFromJSON("../../../assets/terraforming_mars_project_funding.json")
-	pfRegistry := pfLoader.NewInMemoryProjectFundingRegistry(pfDefs)
+	pfDefs, _ := pf.LoadProjectsFromJSON("../../../assets/terraforming_mars_project_funding.json")
+	pfRegistry := pf.NewInMemoryProjectFundingRegistry(pfDefs)
 
 	setupProjectState(testGame, "pf_orbital_station", nil)
 
@@ -407,15 +406,15 @@ func TestFundSeat_Completion_MassCardDraw(t *testing.T) {
 
 // --- Player-Count Scaling Tests ---
 
-func setupProjectFundingGameN(t *testing.T, numPlayers int) (*game.Game, game.GameRepository, pfLoader.ProjectFundingRegistry, []string) {
+func setupProjectFundingGameN(t *testing.T, numPlayers int) (*game.Game, game.GameRepository, pf.ProjectFundingRegistry, []string) {
 	t.Helper()
 	testGame, repo, _, players := testutil.SetupMultiPlayerGame(t, numPlayers)
 
-	pfDefs, err := pfLoader.LoadProjectsFromJSON("../../../assets/terraforming_mars_project_funding.json")
+	pfDefs, err := pf.LoadProjectsFromJSON("../../../assets/terraforming_mars_project_funding.json")
 	if err != nil {
 		t.Fatalf("Failed to load project funding: %v", err)
 	}
-	pfRegistry := pfLoader.NewInMemoryProjectFundingRegistry(pfDefs)
+	pfRegistry := pf.NewInMemoryProjectFundingRegistry(pfDefs)
 
 	settings := testGame.Settings()
 	settings.CardPacks = append(settings.CardPacks, shared.PackProjectFunding)

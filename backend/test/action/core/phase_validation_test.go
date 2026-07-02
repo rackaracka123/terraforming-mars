@@ -14,7 +14,7 @@ import (
 	stdAction "terraforming-mars-backend/internal/action/standard_project"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/standardprojects"
+	"terraforming-mars-backend/internal/game/standardproject"
 	"terraforming-mars-backend/test/testutil"
 )
 
@@ -63,15 +63,15 @@ func TestConvertPlantsToGreenery_RejectsDuringProductionPhase(t *testing.T) {
 	testutil.AssertError(t, err, "Convert plants should be rejected during production phase")
 }
 
-func createPhaseTestStdProjRegistry(t *testing.T) standardprojects.StandardProjectRegistry {
+func createPhaseTestStdProjRegistry(t *testing.T) standardproject.StandardProjectRegistry {
 	t.Helper()
 	_, currentFile, _, _ := runtime.Caller(0)
 	stdProjPath := filepath.Join(filepath.Dir(currentFile), "..", "..", "..", "assets", "terraforming_mars_standard_projects.json")
-	stdProjData, err := standardprojects.LoadStandardProjectsFromJSON(stdProjPath)
+	stdProjData, err := standardproject.LoadStandardProjectsFromJSON(stdProjPath)
 	if err != nil {
 		t.Fatalf("Failed to load standard projects: %v", err)
 	}
-	return standardprojects.NewInMemoryStandardProjectRegistry(stdProjData)
+	return standardproject.NewInMemoryStandardProjectRegistry(stdProjData)
 }
 
 func TestSellPatents_RejectsDuringProductionPhase(t *testing.T) {

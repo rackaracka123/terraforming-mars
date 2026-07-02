@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	cardAction "terraforming-mars-backend/internal/action/card"
-	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/colony"
 	"terraforming-mars-backend/internal/game/shared"
@@ -16,15 +15,15 @@ import (
 // Helper: set up a game with colonies enabled
 // =============================================================================
 
-func setupColoniesGame(t *testing.T) (*game.Game, game.GameRepository, colonies.ColonyRegistry, string, string) {
+func setupColoniesGame(t *testing.T) (*game.Game, game.GameRepository, colony.ColonyRegistry, string, string) {
 	t.Helper()
 	testGame, repo, _, player1, player2 := testutil.SetupTwoPlayerGame(t)
 
-	colonyDefs, err := colonies.LoadColoniesFromJSON("../../../assets/terraforming_mars_colonies.json")
+	colonyDefs, err := colony.LoadColoniesFromJSON("../../../assets/terraforming_mars_colonies.json")
 	if err != nil {
 		t.Fatalf("Failed to load colonies: %v", err)
 	}
-	colonyRegistry := colonies.NewInMemoryColonyRegistry(colonyDefs)
+	colonyRegistry := colony.NewInMemoryColonyRegistry(colonyDefs)
 
 	settings := testGame.Settings()
 	settings.CardPacks = append(settings.CardPacks, shared.PackColonies)

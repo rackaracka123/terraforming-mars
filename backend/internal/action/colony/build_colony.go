@@ -8,7 +8,6 @@ import (
 
 	baseaction "terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/cards"
-	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	gamecolony "terraforming-mars-backend/internal/game/colony"
@@ -25,14 +24,14 @@ const (
 // BuildColonyAction handles the business logic for building a colony on a colony tile
 type BuildColonyAction struct {
 	baseaction.BaseAction
-	colonyRegistry colonies.ColonyRegistry
+	colonyRegistry gamecolony.ColonyRegistry
 	cardRegistry   cards.CardRegistry
 }
 
 // NewBuildColonyAction creates a new build colony action
 func NewBuildColonyAction(
 	gameRepo game.GameRepository,
-	colonyRegistry colonies.ColonyRegistry,
+	colonyRegistry gamecolony.ColonyRegistry,
 	cardRegistry cards.CardRegistry,
 	stateRepo game.GameStateRepository,
 	logger *zap.Logger,

@@ -14,21 +14,21 @@ import (
 	"terraforming-mars-backend/internal/game/datastore"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/standardprojects"
+	"terraforming-mars-backend/internal/game/standardproject"
 	"terraforming-mars-backend/test/testutil"
 )
 
 // loadStandardProjectRegistryDto loads the real standard-project registry so the mapper
 // iterates the same action surfaces a live game does.
-func loadStandardProjectRegistryDto(t *testing.T) standardprojects.StandardProjectRegistry {
+func loadStandardProjectRegistryDto(t *testing.T) standardproject.StandardProjectRegistry {
 	t.Helper()
 	_, currentFile, _, _ := runtime.Caller(0)
 	stdProjPath := filepath.Join(filepath.Dir(currentFile), "..", "..", "..", "assets", "terraforming_mars_standard_projects.json")
-	stdProjData, err := standardprojects.LoadStandardProjectsFromJSON(stdProjPath)
+	stdProjData, err := standardproject.LoadStandardProjectsFromJSON(stdProjPath)
 	if err != nil {
 		t.Fatalf("Failed to load standard projects JSON: %v", err)
 	}
-	return standardprojects.NewInMemoryStandardProjectRegistry(stdProjData)
+	return standardproject.NewInMemoryStandardProjectRegistry(stdProjData)
 }
 
 // setupStuckPlayerGame builds a single-player base game in the action phase where the

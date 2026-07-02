@@ -6,9 +6,9 @@ import (
 
 	"go.uber.org/zap"
 
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 )
@@ -16,12 +16,12 @@ import (
 // CorporationProcessor handles applying corporation card effects
 type CorporationProcessor struct {
 	cardRegistry  CardRegistryInterface
-	awardRegistry awards.AwardRegistry
+	awardRegistry award.AwardRegistry
 	logger        *zap.Logger
 }
 
 // NewCorporationProcessor creates a new corporation processor
-func NewCorporationProcessor(cardRegistry CardRegistryInterface, awardRegistry awards.AwardRegistry, logger *zap.Logger) *CorporationProcessor {
+func NewCorporationProcessor(cardRegistry CardRegistryInterface, awardRegistry award.AwardRegistry, logger *zap.Logger) *CorporationProcessor {
 	return &CorporationProcessor{
 		cardRegistry:  cardRegistry,
 		awardRegistry: awardRegistry,

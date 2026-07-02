@@ -5,14 +5,14 @@ import (
 	"strings"
 	"time"
 
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/award"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/global_parameters"
+	"terraforming-mars-backend/internal/game/milestone"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/milestones"
 )
 
 // CalculatePlayerCardState computes playability state for a card.
@@ -1715,7 +1715,7 @@ func CalculateMilestoneState(
 	p *player.Player,
 	g *game.Game,
 	cardRegistry cards.CardRegistry,
-	milestoneRegistry milestones.MilestoneRegistry,
+	milestoneRegistry milestone.MilestoneRegistry,
 ) player.EntityState {
 	var errors []player.StateError
 	metadata := make(map[string]interface{})
@@ -1794,7 +1794,7 @@ func CalculateAwardState(
 	awardType shared.AwardType,
 	p *player.Player,
 	g *game.Game,
-	awardRegistry awards.AwardRegistry,
+	awardRegistry award.AwardRegistry,
 ) player.EntityState {
 	var errors []player.StateError
 	metadata := make(map[string]interface{})

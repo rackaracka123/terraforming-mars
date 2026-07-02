@@ -1,12 +1,12 @@
 package game
 
 import (
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/award"
 	gamecards "terraforming-mars-backend/internal/game/cards"
+	"terraforming-mars-backend/internal/game/milestone"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/milestones"
 )
 
 // ComputePlayerVPBreakdowns is the single source of truth for per-player VP
@@ -16,8 +16,8 @@ import (
 func ComputePlayerVPBreakdowns(
 	g *game.Game,
 	cardRegistry cards.CardRegistry,
-	awardRegistry awards.AwardRegistry,
-	milestoneRegistry milestones.MilestoneRegistry,
+	awardRegistry award.AwardRegistry,
+	milestoneRegistry milestone.MilestoneRegistry,
 ) map[string]shared.VPBreakdown {
 	allPlayers := g.GetAllPlayers()
 	if len(allPlayers) == 0 {

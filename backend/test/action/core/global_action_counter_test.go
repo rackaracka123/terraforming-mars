@@ -11,7 +11,7 @@ import (
 	gameaction "terraforming-mars-backend/internal/action/game"
 	spAction "terraforming-mars-backend/internal/action/standard_project"
 	turnmgmt "terraforming-mars-backend/internal/action/turn_management"
-	"terraforming-mars-backend/internal/standardprojects"
+	"terraforming-mars-backend/internal/game/standardproject"
 	"terraforming-mars-backend/test/testutil"
 )
 
@@ -39,15 +39,15 @@ func TestPlayCardIncrementsGlobalActionCounter(t *testing.T) {
 	testutil.AssertEqual(t, 1, testGame.CurrentTurn().GlobalActionCounter(), "Global action counter should be 1 after playing a card")
 }
 
-func createStdProjRegistry(t *testing.T) standardprojects.StandardProjectRegistry {
+func createStdProjRegistry(t *testing.T) standardproject.StandardProjectRegistry {
 	t.Helper()
 	_, currentFile, _, _ := runtime.Caller(0)
 	stdProjPath := filepath.Join(filepath.Dir(currentFile), "..", "..", "..", "assets", "terraforming_mars_standard_projects.json")
-	stdProjData, err := standardprojects.LoadStandardProjectsFromJSON(stdProjPath)
+	stdProjData, err := standardproject.LoadStandardProjectsFromJSON(stdProjPath)
 	if err != nil {
 		t.Fatalf("Failed to load standard projects: %v", err)
 	}
-	return standardprojects.NewInMemoryStandardProjectRegistry(stdProjData)
+	return standardproject.NewInMemoryStandardProjectRegistry(stdProjData)
 }
 
 func TestStandardProjectIncrementsGlobalActionCounter(t *testing.T) {

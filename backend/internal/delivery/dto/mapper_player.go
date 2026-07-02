@@ -2,14 +2,14 @@ package dto
 
 import (
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/award"
 	gamecards "terraforming-mars-backend/internal/game/cards"
+	"terraforming-mars-backend/internal/game/milestone"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/milestones"
-	"terraforming-mars-backend/internal/standardprojects"
+	"terraforming-mars-backend/internal/game/standardproject"
 )
 
 // toResourcesDto converts shared.Resources to ResourcesDto.
@@ -49,7 +49,7 @@ func calculateResourceDelta(before, after shared.Resources) ResourcesDto {
 }
 
 // ToPlayerDto converts Player to PlayerDto
-func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry, stdProjRegistry standardprojects.StandardProjectRegistry, awardRegistry awards.AwardRegistry, milestoneRegistry milestones.MilestoneRegistry) PlayerDto {
+func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry, stdProjRegistry standardproject.StandardProjectRegistry, awardRegistry award.AwardRegistry, milestoneRegistry milestone.MilestoneRegistry) PlayerDto {
 	resourcesComponent := p.Resources()
 	resources := resourcesComponent.Get()
 	production := resourcesComponent.Production()
@@ -851,7 +851,7 @@ func mapPlayerCards(p *player.Player, g *game.Game, cardRegistry cards.CardRegis
 // Uses the state calculator to compute availability and effective costs for each project.
 // NOTE: Conversion projects (plants→greenery, heat→temperature) are NOT included here - they
 // are handled separately via resource buttons in the bottom bar.
-func mapPlayerStandardProjects(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry, stdProjRegistry standardprojects.StandardProjectRegistry) []PlayerStandardProjectDto {
+func mapPlayerStandardProjects(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry, stdProjRegistry standardproject.StandardProjectRegistry) []PlayerStandardProjectDto {
 	if stdProjRegistry == nil {
 		return nil
 	}
@@ -912,7 +912,7 @@ func mapPlayerStandardProjects(p *player.Player, g *game.Game, cardRegistry card
 
 // mapPlayerMilestones calculates state for all milestones and converts to DTOs.
 // Uses the state calculator to compute availability on-the-fly (same pattern as standard projects).
-func mapPlayerMilestones(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry, milestoneRegistry milestones.MilestoneRegistry) []PlayerMilestoneDto {
+func mapPlayerMilestones(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry, milestoneRegistry milestone.MilestoneRegistry) []PlayerMilestoneDto {
 	if milestoneRegistry == nil {
 		return nil
 	}
@@ -984,7 +984,7 @@ func convertGenerationalEvents(entries []shared.PlayerGenerationalEventEntry) []
 
 // mapPlayerAwards calculates state for all awards and converts to DTOs.
 // Uses the state calculator to compute availability on-the-fly (same pattern as standard projects).
-func mapPlayerAwards(p *player.Player, g *game.Game, awardRegistry awards.AwardRegistry) []PlayerAwardDto {
+func mapPlayerAwards(p *player.Player, g *game.Game, awardRegistry award.AwardRegistry) []PlayerAwardDto {
 	if awardRegistry == nil {
 		return nil
 	}

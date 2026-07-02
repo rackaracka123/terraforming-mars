@@ -8,40 +8,38 @@ import (
 
 	"terraforming-mars-backend/internal/action"
 	colonyAction "terraforming-mars-backend/internal/action/colony"
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
-	"terraforming-mars-backend/internal/colonies"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/board"
 	gamecards "terraforming-mars-backend/internal/game/cards"
+	"terraforming-mars-backend/internal/game/colony"
+	"terraforming-mars-backend/internal/game/milestone"
 	"terraforming-mars-backend/internal/game/player"
 	pfDomain "terraforming-mars-backend/internal/game/projectfunding"
 	"terraforming-mars-backend/internal/game/shared"
-	"terraforming-mars-backend/internal/milestones"
-	pfRegistry "terraforming-mars-backend/internal/projectfunding"
-	"terraforming-mars-backend/internal/standardprojects"
+	"terraforming-mars-backend/internal/game/standardproject"
 )
 
 // ToGameDto converts Game to GameDto with personalized view
 // The playerID parameter determines which player is "currentPlayer" vs "otherPlayers"
 // Registries bundles optional expansion registries for DTO mapping
 type Registries struct {
-	ColonyRegistry          colonies.ColonyRegistry
-	ProjectFundingRegistry  pfRegistry.ProjectFundingRegistry
-	StandardProjectRegistry standardprojects.StandardProjectRegistry
-	AwardRegistry           awards.AwardRegistry
-	MilestoneRegistry       milestones.MilestoneRegistry
+	ColonyRegistry          colony.ColonyRegistry
+	ProjectFundingRegistry  pfDomain.ProjectFundingRegistry
+	StandardProjectRegistry standardproject.StandardProjectRegistry
+	AwardRegistry           award.AwardRegistry
+	MilestoneRegistry       milestone.MilestoneRegistry
 	AvailableMaps           []MapInfoDto
 }
 
-func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string, colonyRegistry ...colonies.ColonyRegistry) GameDto {
+func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string, colonyRegistry ...colony.ColonyRegistry) GameDto {
 	return ToGameDtoFull(g, cardRegistry, playerID, Registries{
 		ColonyRegistry: firstOrNil(colonyRegistry),
 	})
 }
 
-func firstOrNil(regs []colonies.ColonyRegistry) colonies.ColonyRegistry {
+func firstOrNil(regs []colony.ColonyRegistry) colony.ColonyRegistry {
 	if len(regs) > 0 {
 		return regs[0]
 	}
@@ -313,7 +311,7 @@ func convertTileBonuses(bonuses []board.TileBonus) []TileBonusDto {
 }
 
 // ToMilestonesDto converts all milestones to DTOs including claim status and per-player progress
-func ToMilestonesDto(g *game.Game, cardRegistry cards.CardRegistry, milestoneRegistry milestones.MilestoneRegistry) []MilestoneDto {
+func ToMilestonesDto(g *game.Game, cardRegistry cards.CardRegistry, milestoneRegistry milestone.MilestoneRegistry) []MilestoneDto {
 	if milestoneRegistry == nil {
 		return nil
 	}
@@ -387,7 +385,7 @@ func buildMilestoneRewardDtos(rewards []award.RewardOutput) []AwardRewardDto {
 }
 
 // ToAwardsDto converts all awards to DTOs including funding status and per-player scores
-func ToAwardsDto(g *game.Game, cardRegistry cards.CardRegistry, awardRegistry awards.AwardRegistry) []AwardDto {
+func ToAwardsDto(g *game.Game, cardRegistry cards.CardRegistry, awardRegistry award.AwardRegistry) []AwardDto {
 	if awardRegistry == nil {
 		return nil
 	}
@@ -462,7 +460,7 @@ func ToAwardsDto(g *game.Game, cardRegistry cards.CardRegistry, awardRegistry aw
 }
 
 // ToAwardResultsDto converts funded awards to placement results
-func ToAwardResultsDto(g *game.Game, cardRegistry cards.CardRegistry, awardRegistry awards.AwardRegistry) []AwardResultDto {
+func ToAwardResultsDto(g *game.Game, cardRegistry cards.CardRegistry, awardRegistry award.AwardRegistry) []AwardResultDto {
 	if awardRegistry == nil {
 		return nil
 	}
@@ -682,7 +680,7 @@ func buildGlobalParameterBonuses(venusEnabled bool) []GlobalParameterBonusDto {
 	return bonuses
 }
 
-func toColonyDtos(g *game.Game, colonyRegistry colonies.ColonyRegistry, cardRegistry cards.CardRegistry, playerID string) []ColonyDto {
+func toColonyDtos(g *game.Game, colonyRegistry colony.ColonyRegistry, cardRegistry cards.CardRegistry, playerID string) []ColonyDto {
 	tileStates := g.Colonies().States()
 	if len(tileStates) == 0 {
 		return nil
@@ -813,7 +811,7 @@ func toColonyDtos(g *game.Game, colonyRegistry colonies.ColonyRegistry, cardRegi
 	return dtos
 }
 
-func toProjectFundingDtos(g *game.Game, registry pfRegistry.ProjectFundingRegistry, playerID string) []ProjectFundingDto {
+func toProjectFundingDtos(g *game.Game, registry pfDomain.ProjectFundingRegistry, playerID string) []ProjectFundingDto {
 	states := g.ProjectFundingStates()
 	if len(states) == 0 {
 		return nil

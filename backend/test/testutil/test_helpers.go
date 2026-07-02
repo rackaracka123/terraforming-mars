@@ -12,16 +12,15 @@ import (
 	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/awards"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/board"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/datastore"
+	"terraforming-mars-backend/internal/game/milestone"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/maps"
-	"terraforming-mars-backend/internal/milestones"
 )
 
 // TestContext provides a reusable test context
@@ -66,25 +65,25 @@ func CreateTestCardRegistry() cards.CardRegistry {
 }
 
 // CreateTestAwardRegistry returns an award registry loaded from the JSON database.
-func CreateTestAwardRegistry() awards.AwardRegistry {
+func CreateTestAwardRegistry() award.AwardRegistry {
 	_, currentFile, _, _ := runtime.Caller(0)
 	jsonPath := filepath.Join(filepath.Dir(currentFile), "..", "..", "assets", "terraforming_mars_awards.json")
-	awardList, err := awards.LoadAwardsFromJSON(jsonPath)
+	awardList, err := award.LoadAwardsFromJSON(jsonPath)
 	if err != nil {
 		panic(fmt.Sprintf("failed to load award DB for tests: %v", err))
 	}
-	return awards.NewInMemoryAwardRegistry(awardList)
+	return award.NewInMemoryAwardRegistry(awardList)
 }
 
 // CreateTestMilestoneRegistry returns a milestone registry loaded from the JSON database.
-func CreateTestMilestoneRegistry() milestones.MilestoneRegistry {
+func CreateTestMilestoneRegistry() milestone.MilestoneRegistry {
 	_, currentFile, _, _ := runtime.Caller(0)
 	jsonPath := filepath.Join(filepath.Dir(currentFile), "..", "..", "assets", "terraforming_mars_milestones.json")
-	milestoneList, err := milestones.LoadMilestonesFromJSON(jsonPath)
+	milestoneList, err := milestone.LoadMilestonesFromJSON(jsonPath)
 	if err != nil {
 		panic(fmt.Sprintf("failed to load milestone DB for tests: %v", err))
 	}
-	return milestones.NewInMemoryMilestoneRegistry(milestoneList)
+	return milestone.NewInMemoryMilestoneRegistry(milestoneList)
 }
 
 // CreateTestCardRegistryWithAdditionalCards creates a card registry with real cards plus additional synthetic cards.
@@ -305,10 +304,10 @@ func TagPtr(v shared.CardTag) *shared.CardTag { return &v }
 func ResourceTypePtr(v shared.ResourceType) *shared.ResourceType { return &v }
 
 // CreateTestMapRegistry returns a MapRegistry loaded from the JSON database.
-func CreateTestMapRegistry() *maps.MapRegistry {
+func CreateTestMapRegistry() *board.MapRegistry {
 	_, currentFile, _, _ := runtime.Caller(0)
 	jsonPath := filepath.Join(filepath.Dir(currentFile), "..", "..", "assets", "terraforming_mars_maps.json")
-	registry, err := maps.LoadMapsFromJSON(jsonPath)
+	registry, err := board.LoadMapsFromJSON(jsonPath)
 	if err != nil {
 		panic(fmt.Sprintf("failed to load map DB for tests: %v", err))
 	}

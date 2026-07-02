@@ -3,7 +3,7 @@ package projectfunding_test
 import (
 	"testing"
 
-	pfLoader "terraforming-mars-backend/internal/projectfunding"
+	pfLoader "terraforming-mars-backend/internal/game/projectfunding"
 	"terraforming-mars-backend/test/testutil"
 )
 
