@@ -5,8 +5,8 @@ import (
 
 	gameaction "terraforming-mars-backend/internal/action/game"
 	"terraforming-mars-backend/internal/action/query"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game/award"
+	"terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/milestone"
 	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
 	"terraforming-mars-backend/internal/service/bugreport"

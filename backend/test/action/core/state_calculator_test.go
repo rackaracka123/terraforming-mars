@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/board"
 	gamecards "terraforming-mars-backend/internal/game/cards"
@@ -16,7 +15,7 @@ import (
 	"terraforming-mars-backend/test/testutil"
 )
 
-func setupTestEnvironment(t *testing.T) (*game.Game, *player.Player, cards.CardRegistry) {
+func setupTestEnvironment(t *testing.T) (*game.Game, *player.Player, gamecards.CardRegistry) {
 	// Initialize logger
 	logLevel := "error"
 	if err := logger.Init(&logLevel); err != nil {
@@ -106,7 +105,7 @@ func setupTestEnvironment(t *testing.T) (*game.Game, *player.Player, cards.CardR
 		},
 	}
 
-	cardRegistry := cards.NewInMemoryCardRegistry(testCards)
+	cardRegistry := gamecards.NewInMemoryCardRegistry(testCards)
 
 	// Set game to action phase
 	if err := g.UpdatePhase(ctx, shared.GamePhaseAction); err != nil {

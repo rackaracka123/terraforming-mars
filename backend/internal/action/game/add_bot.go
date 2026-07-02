@@ -10,7 +10,6 @@ import (
 	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
@@ -39,7 +38,7 @@ type BotBroadcaster interface {
 // AddBotAction handles adding a bot player to a game lobby
 type AddBotAction struct {
 	gameRepo          game.GameRepository
-	cardRegistry      cards.CardRegistry
+	cardRegistry      gamecards.CardRegistry
 	colonyBonusLookup gamecards.ColonyBonusLookup
 	healthChecker     BotHealthChecker
 	broadcaster       BotBroadcaster
@@ -55,7 +54,7 @@ type AddBotResult struct {
 // NewAddBotAction creates a new add bot action
 func NewAddBotAction(
 	gameRepo game.GameRepository,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	healthChecker BotHealthChecker,
 	broadcaster BotBroadcaster,
 	logger *zap.Logger,

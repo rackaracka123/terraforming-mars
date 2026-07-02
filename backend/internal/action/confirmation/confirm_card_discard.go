@@ -6,7 +6,6 @@ import (
 	"slices"
 	baseaction "terraforming-mars-backend/internal/action"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
@@ -23,7 +22,7 @@ type ConfirmCardDiscardAction struct {
 // NewConfirmCardDiscardAction creates a new confirm card discard action
 func NewConfirmCardDiscardAction(
 	gameRepo game.GameRepository,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	logger *zap.Logger,
 ) *ConfirmCardDiscardAction {
 	return &ConfirmCardDiscardAction{

@@ -1,7 +1,6 @@
 package game
 
 import (
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
 	gamecards "terraforming-mars-backend/internal/game/cards"
@@ -15,7 +14,7 @@ import (
 // to both code paths automatically.
 func ComputePlayerVPBreakdowns(
 	g *game.Game,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	awardRegistry award.AwardRegistry,
 	milestoneRegistry milestone.MilestoneRegistry,
 ) map[string]shared.VPBreakdown {

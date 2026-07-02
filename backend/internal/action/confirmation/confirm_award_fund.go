@@ -8,9 +8,9 @@ import (
 	"go.uber.org/zap"
 
 	baseaction "terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
+	"terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
 )
 

@@ -6,7 +6,6 @@ import (
 	"unicode/utf8"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
@@ -19,7 +18,7 @@ import (
 // New architecture: Uses only GameRepository + logger, events handle broadcasting
 type JoinGameAction struct {
 	gameRepo          game.GameRepository
-	cardRegistry      cards.CardRegistry
+	cardRegistry      gamecards.CardRegistry
 	colonyBonusLookup gamecards.ColonyBonusLookup
 	logger            *zap.Logger
 }
@@ -33,7 +32,7 @@ type JoinGameResult struct {
 // NewJoinGameAction creates a new join game action
 func NewJoinGameAction(
 	gameRepo game.GameRepository,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	logger *zap.Logger,
 	colonyBonusLookup ...gamecards.ColonyBonusLookup,
 ) *JoinGameAction {

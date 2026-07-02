@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/cards"
 	playerPkg "terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 

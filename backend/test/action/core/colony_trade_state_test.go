@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/colony"
@@ -16,7 +15,7 @@ import (
 // setupTradeStateGame builds a started 1-player game in the action phase with the
 // colonies pack enabled and the player's turn active. Trade affordability is then
 // shaped per-test via fleet availability, colony states, and resources.
-func setupTradeStateGame(t *testing.T) (*game.Game, cards.CardRegistry, string) {
+func setupTradeStateGame(t *testing.T) (*game.Game, gamecards.CardRegistry, string) {
 	t.Helper()
 
 	broadcaster := testutil.NewMockBroadcaster()
@@ -52,7 +51,7 @@ func setTradeableColony(g *game.Game, colonyID string) {
 	g.Colonies().SetStates(states)
 }
 
-func addRimFreightersDiscount(t *testing.T, g *game.Game, cardRegistry cards.CardRegistry, playerID string) {
+func addRimFreightersDiscount(t *testing.T, g *game.Game, cardRegistry gamecards.CardRegistry, playerID string) {
 	t.Helper()
 	p, err := g.GetPlayer(playerID)
 	testutil.AssertNoError(t, err, "player should exist")

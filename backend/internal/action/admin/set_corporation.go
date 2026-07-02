@@ -6,7 +6,6 @@ import (
 	"time"
 
 	baseaction "terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
@@ -18,7 +17,7 @@ import (
 // SetCorporationAction handles the admin action to set a player's corporation
 type SetCorporationAction struct {
 	gameRepo      game.GameRepository
-	cardRegistry  cards.CardRegistry
+	cardRegistry  gamecards.CardRegistry
 	awardRegistry award.AwardRegistry
 	corpProc      *gamecards.CorporationProcessor
 	logger        *zap.Logger
@@ -27,7 +26,7 @@ type SetCorporationAction struct {
 // NewSetCorporationAction creates a new set corporation admin action
 func NewSetCorporationAction(
 	gameRepo game.GameRepository,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	awardRegistry award.AwardRegistry,
 	logger *zap.Logger,
 ) *SetCorporationAction {

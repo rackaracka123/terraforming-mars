@@ -2,7 +2,6 @@ package dto
 
 import (
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
 	gamecards "terraforming-mars-backend/internal/game/cards"
@@ -49,7 +48,7 @@ func calculateResourceDelta(before, after shared.Resources) ResourcesDto {
 }
 
 // ToPlayerDto converts Player to PlayerDto
-func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry, stdProjRegistry standardproject.StandardProjectRegistry, awardRegistry award.AwardRegistry, milestoneRegistry milestone.MilestoneRegistry) PlayerDto {
+func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry, stdProjRegistry standardproject.StandardProjectRegistry, awardRegistry award.AwardRegistry, milestoneRegistry milestone.MilestoneRegistry) PlayerDto {
 	resourcesComponent := p.Resources()
 	resources := resourcesComponent.Get()
 	production := resourcesComponent.Production()
@@ -142,7 +141,7 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 }
 
 // ToOtherPlayerDto converts Player to OtherPlayerDto
-func ToOtherPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry) OtherPlayerDto {
+func ToOtherPlayerDto(p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry) OtherPlayerDto {
 	resourcesComponent := p.Resources()
 	resources := resourcesComponent.Get()
 	production := resourcesComponent.Production()
@@ -241,7 +240,7 @@ func playerStatus(p *player.Player, g *game.Game) PlayerStatus {
 	return PlayerStatusWaiting
 }
 
-func convertSelectCorporationPhase(phase *shared.SelectCorporationPhase, cardRegistry cards.CardRegistry) *SelectCorporationPhaseDto {
+func convertSelectCorporationPhase(phase *shared.SelectCorporationPhase, cardRegistry gamecards.CardRegistry) *SelectCorporationPhaseDto {
 	if phase == nil {
 		return nil
 	}
@@ -259,7 +258,7 @@ func convertSelectCorporationPhaseForOtherPlayer(phase *shared.SelectCorporation
 	return &SelectCorporationOtherPlayerDto{}
 }
 
-func convertSelectStartingCardsPhase(phase *shared.SelectStartingCardsPhase, cardRegistry cards.CardRegistry) *SelectStartingCardsPhaseDto {
+func convertSelectStartingCardsPhase(phase *shared.SelectStartingCardsPhase, cardRegistry gamecards.CardRegistry) *SelectStartingCardsPhaseDto {
 	if phase == nil {
 		return nil
 	}
@@ -278,7 +277,7 @@ func convertSelectStartingCardsPhaseForOtherPlayer(phase *shared.SelectStartingC
 }
 
 // convertSelectPreludeCardsPhase converts SelectPreludeCardsPhase to DTO
-func convertSelectPreludeCardsPhase(phase *shared.SelectPreludeCardsPhase, cardRegistry cards.CardRegistry) *SelectPreludeCardsPhaseDto {
+func convertSelectPreludeCardsPhase(phase *shared.SelectPreludeCardsPhase, cardRegistry gamecards.CardRegistry) *SelectPreludeCardsPhaseDto {
 	if phase == nil {
 		return nil
 	}
@@ -299,7 +298,7 @@ func convertSelectPreludeCardsPhaseForOtherPlayer(phase *shared.SelectPreludeCar
 }
 
 // convertProductionPhase converts production phase data to DTO for current player
-func convertProductionPhase(phase *shared.ProductionPhase, cardRegistry cards.CardRegistry) *ProductionPhaseDto {
+func convertProductionPhase(phase *shared.ProductionPhase, cardRegistry gamecards.CardRegistry) *ProductionPhaseDto {
 	if phase == nil {
 		return nil
 	}
@@ -332,7 +331,7 @@ func convertProductionPhaseForOtherPlayer(phase *shared.ProductionPhase) *Produc
 }
 
 // convertPlayerEffects converts CardEffect slice to PlayerEffectDto slice
-func convertPlayerEffects(effects []shared.CardEffect, p *player.Player, g *game.Game, cardRegistry cards.CardRegistry) []PlayerEffectDto {
+func convertPlayerEffects(effects []shared.CardEffect, p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry) []PlayerEffectDto {
 	if len(effects) == 0 {
 		return []PlayerEffectDto{}
 	}
@@ -379,7 +378,7 @@ func convertPlayerEffects(effects []shared.CardEffect, p *player.Player, g *game
 
 // convertPlayerActions converts CardAction slice to PlayerActionDto slice
 // Calculates state for each action to determine availability and errors.
-func convertPlayerActions(actions []shared.CardAction, p *player.Player, g *game.Game, cardRegistry cards.CardRegistry) []PlayerActionDto {
+func convertPlayerActions(actions []shared.CardAction, p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry) []PlayerActionDto {
 	if len(actions) == 0 {
 		return []PlayerActionDto{}
 	}
@@ -486,7 +485,7 @@ func convertStoragePaymentSubstitutes(substitutes []shared.StoragePaymentSubstit
 }
 
 // convertPendingCardSelection converts PendingCardSelection to DTO with playability state
-func convertPendingCardSelection(selection *shared.PendingCardSelection, p *player.Player, g *game.Game, cardRegistry cards.CardRegistry) *PendingCardSelectionDto {
+func convertPendingCardSelection(selection *shared.PendingCardSelection, p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry) *PendingCardSelectionDto {
 	if selection == nil {
 		return nil
 	}
@@ -512,7 +511,7 @@ func convertPendingCardSelection(selection *shared.PendingCardSelection, p *play
 }
 
 // convertPendingCardDrawSelection converts PendingCardDrawSelection to DTO with playability state
-func convertPendingCardDrawSelection(selection *shared.PendingCardDrawSelection, p *player.Player, g *game.Game, cardRegistry cards.CardRegistry) *PendingCardDrawSelectionDto {
+func convertPendingCardDrawSelection(selection *shared.PendingCardDrawSelection, p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry) *PendingCardDrawSelectionDto {
 	if selection == nil {
 		return nil
 	}
@@ -551,7 +550,7 @@ func convertPendingCardDiscardSelection(selection *shared.PendingCardDiscardSele
 	}
 }
 
-func convertPendingBehaviorChoiceSelection(selection *shared.PendingBehaviorChoiceSelection, p *player.Player, g *game.Game, cardRegistry cards.CardRegistry) *PendingBehaviorChoiceSelectionDto {
+func convertPendingBehaviorChoiceSelection(selection *shared.PendingBehaviorChoiceSelection, p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry) *PendingBehaviorChoiceSelectionDto {
 	if selection == nil {
 		return nil
 	}
@@ -597,7 +596,7 @@ func convertPendingColonyResourceFromQueue(queue []shared.PendingColonyResourceS
 }
 
 // toChoiceDtoWithState maps a choice to DTO with computed errors from the state calculator.
-func toChoiceDtoWithState(index int, choice shared.Choice, p *player.Player, g *game.Game, cardRegistry cards.CardRegistry) ChoiceDto {
+func toChoiceDtoWithState(index int, choice shared.Choice, p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry) ChoiceDto {
 	errors := action.CalculateChoiceErrors(choice, p, g, cardRegistry)
 	return ChoiceDto{
 		OriginalIndex: index,
@@ -797,7 +796,7 @@ func ToPlayerCardDto(card *gamecards.Card, state player.EntityState) PlayerCardD
 
 // mapPlayerCards converts hand cards to DTOs using CardStateStore for cached state.
 // Enriches behavior choices with computed errors from the state calculator.
-func mapPlayerCards(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry) []PlayerCardDto {
+func mapPlayerCards(p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry) []PlayerCardDto {
 	handCardIDs := p.Hand().Cards()
 	result := make([]PlayerCardDto, 0, len(handCardIDs))
 
@@ -851,7 +850,7 @@ func mapPlayerCards(p *player.Player, g *game.Game, cardRegistry cards.CardRegis
 // Uses the state calculator to compute availability and effective costs for each project.
 // NOTE: Conversion projects (plants→greenery, heat→temperature) are NOT included here - they
 // are handled separately via resource buttons in the bottom bar.
-func mapPlayerStandardProjects(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry, stdProjRegistry standardproject.StandardProjectRegistry) []PlayerStandardProjectDto {
+func mapPlayerStandardProjects(p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry, stdProjRegistry standardproject.StandardProjectRegistry) []PlayerStandardProjectDto {
 	if stdProjRegistry == nil {
 		return nil
 	}
@@ -912,7 +911,7 @@ func mapPlayerStandardProjects(p *player.Player, g *game.Game, cardRegistry card
 
 // mapPlayerMilestones calculates state for all milestones and converts to DTOs.
 // Uses the state calculator to compute availability on-the-fly (same pattern as standard projects).
-func mapPlayerMilestones(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry, milestoneRegistry milestone.MilestoneRegistry) []PlayerMilestoneDto {
+func mapPlayerMilestones(p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry, milestoneRegistry milestone.MilestoneRegistry) []PlayerMilestoneDto {
 	if milestoneRegistry == nil {
 		return nil
 	}
@@ -1029,7 +1028,7 @@ func mapPlayerAwards(p *player.Player, g *game.Game, awardRegistry award.AwardRe
 	return result
 }
 
-func mapPlayerActionCosts(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry) []ActionCostDto {
+func mapPlayerActionCosts(p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry) []ActionCostDto {
 	calc := gamecards.NewRequirementModifierCalculator(cardRegistry)
 
 	cardBuyDiscounts := calc.CalculateActionDiscounts(p, shared.ActionCardBuying)

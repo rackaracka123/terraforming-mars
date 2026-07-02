@@ -8,7 +8,6 @@ import (
 	"go.uber.org/zap"
 
 	baseaction "terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/milestone"
@@ -24,7 +23,7 @@ type ClaimMilestoneAction struct {
 // NewClaimMilestoneAction creates a new claim milestone action
 func NewClaimMilestoneAction(
 	gameRepo game.GameRepository,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	stateRepo game.GameStateRepository,
 	milestoneRegistry milestone.MilestoneRegistry,
 	logger *zap.Logger,

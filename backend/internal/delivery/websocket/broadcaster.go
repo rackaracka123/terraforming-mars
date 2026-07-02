@@ -4,11 +4,11 @@ import (
 	"context"
 	"sync"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
+	"terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/colony"
 	"terraforming-mars-backend/internal/game/milestone"
 	pfRegistry "terraforming-mars-backend/internal/game/projectfunding"

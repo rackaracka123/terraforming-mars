@@ -4,7 +4,6 @@ import (
 	"context"
 	"sort"
 
-	"terraforming-mars-backend/internal/cards"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 
 	"go.uber.org/zap"
@@ -20,13 +19,13 @@ type ListCardsResult struct {
 
 // ListCardsAction handles querying all cards with pagination
 type ListCardsAction struct {
-	cardRegistry cards.CardRegistry
+	cardRegistry gamecards.CardRegistry
 	logger       *zap.Logger
 }
 
 // NewListCardsAction creates a new list cards query action
 func NewListCardsAction(
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	logger *zap.Logger,
 ) *ListCardsAction {
 	return &ListCardsAction{

@@ -8,7 +8,6 @@ import (
 	"terraforming-mars-backend/internal/action"
 	cardAction "terraforming-mars-backend/internal/action/card"
 	confirmAction "terraforming-mars-backend/internal/action/confirmation"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
@@ -35,7 +34,7 @@ func TestMarsUniversity_CreatesDiscardSelectionOnScienceTag(t *testing.T) {
 		Cost: 8,
 		Tags: []shared.CardTag{shared.TagBuilding, shared.TagScience},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{marsUniCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{marsUniCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -117,7 +116,7 @@ func TestMarsUniversity_SkipsDiscardWhenNoCardsInHand(t *testing.T) {
 		Type: gamecards.CardTypeActive,
 		Cost: 8,
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{marsUniCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{marsUniCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -182,7 +181,7 @@ func TestMarsUniversity_DoesNotTriggerOnNonScienceTag(t *testing.T) {
 		Type: gamecards.CardTypeActive,
 		Cost: 8,
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{marsUniCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{marsUniCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -249,7 +248,7 @@ func TestConfirmCardDiscard_DiscardAndDraw(t *testing.T) {
 		Type: gamecards.CardTypeActive,
 		Cost: 8,
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{marsUniCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{marsUniCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -306,7 +305,7 @@ func TestConfirmCardDiscard_SkipOptionalDiscard(t *testing.T) {
 		Type: gamecards.CardTypeActive,
 		Cost: 8,
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{marsUniCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{marsUniCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -351,7 +350,7 @@ func TestConfirmCardDiscard_RejectsNonHandCard(t *testing.T) {
 		Type: gamecards.CardTypeActive,
 		Cost: 8,
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{marsUniCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{marsUniCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -388,7 +387,7 @@ func TestConfirmCardDiscard_RejectsWithoutPendingSelection(t *testing.T) {
 		Type: gamecards.CardTypeActive,
 		Cost: 8,
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{marsUniCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{marsUniCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]
@@ -414,7 +413,7 @@ func TestConfirmCardDiscard_RejectsTooManyCards(t *testing.T) {
 		Type: gamecards.CardTypeActive,
 		Cost: 8,
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{marsUniCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{marsUniCard})
 
 	players := testGame.GetAllPlayers()
 	owner := players[0]

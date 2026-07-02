@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/board"
@@ -59,7 +58,7 @@ var allStandardProjects = []shared.StandardProject{
 // It returns the game, the stuck player, and a card registry that intentionally contains
 // only unaffordable cards (so we can ALSO assert the "non-empty hand of unaffordable cards"
 // variant in the test).
-func setupStuckPlayer(t *testing.T) (*game.Game, *player.Player, cards.CardRegistry) {
+func setupStuckPlayer(t *testing.T) (*game.Game, *player.Player, gamecards.CardRegistry) {
 	t.Helper()
 
 	logLevel := "error"
@@ -110,7 +109,7 @@ func setupStuckPlayer(t *testing.T) (*game.Game, *player.Player, cards.CardRegis
 			}},
 		},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry(testCards)
+	cardRegistry := gamecards.NewInMemoryCardRegistry(testCards)
 
 	// Drive the player to zero of every basic resource.
 	p.Resources().Set(shared.Resources{

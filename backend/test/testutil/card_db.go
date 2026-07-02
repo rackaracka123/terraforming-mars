@@ -6,12 +6,11 @@ import (
 	"runtime"
 	"sync"
 
-	"terraforming-mars-backend/internal/cards"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 )
 
 var (
-	realCardDB cards.CardRegistry
+	realCardDB gamecards.CardRegistry
 	cardByName map[string]gamecards.Card
 	cardByID   map[string]gamecards.Card
 	loadOnce   sync.Once
@@ -21,7 +20,7 @@ func loadCards() {
 	_, currentFile, _, _ := runtime.Caller(0)
 	jsonPath := filepath.Join(filepath.Dir(currentFile), "..", "..", "assets", "terraforming_mars_cards.json")
 
-	cardList, err := cards.LoadCardsFromJSON(jsonPath)
+	cardList, err := gamecards.LoadCardsFromJSON(jsonPath)
 	if err != nil {
 		panic(fmt.Sprintf("failed to load card DB for tests: %v", err))
 	}
@@ -33,12 +32,12 @@ func loadCards() {
 		cardByID[c.ID] = c
 	}
 
-	realCardDB = cards.NewInMemoryCardRegistry(cardList)
+	realCardDB = gamecards.NewInMemoryCardRegistry(cardList)
 }
 
 // GetCardDB returns the real card registry loaded from the JSON database.
 // The JSON is loaded once and shared across all tests.
-func GetCardDB() cards.CardRegistry {
+func GetCardDB() gamecards.CardRegistry {
 	loadOnce.Do(loadCards)
 	return realCardDB
 }

@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"go.uber.org/zap"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/cards"
+
+	"go.uber.org/zap"
 )
 
 // GiveCardAction handles the admin action to give a card to a player

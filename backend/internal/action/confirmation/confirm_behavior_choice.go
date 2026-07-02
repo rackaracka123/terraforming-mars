@@ -5,7 +5,6 @@ import (
 	"fmt"
 	baseaction "terraforming-mars-backend/internal/action"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
@@ -21,7 +20,7 @@ type ConfirmBehaviorChoiceAction struct {
 // NewConfirmBehaviorChoiceAction creates a new confirm behavior choice action
 func NewConfirmBehaviorChoiceAction(
 	gameRepo game.GameRepository,
-	cardRegistry cards.CardRegistry,
+	cardRegistry gamecards.CardRegistry,
 	logger *zap.Logger,
 ) *ConfirmBehaviorChoiceAction {
 	return &ConfirmBehaviorChoiceAction{

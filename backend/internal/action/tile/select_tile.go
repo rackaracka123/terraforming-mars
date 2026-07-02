@@ -9,12 +9,13 @@ import (
 	"terraforming-mars-backend/internal/action/turn_management"
 	"time"
 
-	"go.uber.org/zap"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/board"
+	"terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
+
+	"go.uber.org/zap"
 )
 
 // TilePlacementResult contains information about a completed tile placement

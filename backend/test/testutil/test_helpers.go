@@ -12,7 +12,6 @@ import (
 	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/award"
 	"terraforming-mars-backend/internal/game/board"
@@ -60,7 +59,7 @@ func (m *MockBroadcaster) Reset() {
 }
 
 // CreateTestCardRegistry returns the real card registry loaded from the JSON database.
-func CreateTestCardRegistry() cards.CardRegistry {
+func CreateTestCardRegistry() gamecards.CardRegistry {
 	return GetCardDB()
 }
 
@@ -87,10 +86,10 @@ func CreateTestMilestoneRegistry() milestone.MilestoneRegistry {
 }
 
 // CreateTestCardRegistryWithAdditionalCards creates a card registry with real cards plus additional synthetic cards.
-func CreateTestCardRegistryWithAdditionalCards(additionalCards []gamecards.Card) cards.CardRegistry {
+func CreateTestCardRegistryWithAdditionalCards(additionalCards []gamecards.Card) gamecards.CardRegistry {
 	allCards := GetCardDB().GetAll()
 	allCards = append(allCards, additionalCards...)
-	return cards.NewInMemoryCardRegistry(allCards)
+	return gamecards.NewInMemoryCardRegistry(allCards)
 }
 
 // NewTestDataStoreWithGame creates a DataStore with an empty GameState pre-inserted.
@@ -153,7 +152,7 @@ func CreateTestGameWithPlayers(t *testing.T, numPlayers int, broadcaster *MockBr
 
 	// Create and set deck
 	testGame.InitDeck(projectCards, corpCards, preludeCards)
-	testGame.SetVPCardLookup(cards.NewVPCardLookupAdapter(cardRegistry))
+	testGame.SetVPCardLookup(gamecards.NewVPCardLookupAdapter(cardRegistry))
 
 	err := repo.Create(context.Background(), testGame)
 	if err != nil {
@@ -216,7 +215,7 @@ func CreateTestGameWithVenus(t *testing.T, numPlayers int, broadcaster *MockBroa
 	}
 
 	testGame.InitDeck(projectCards, corpCards, preludeCards)
-	testGame.SetVPCardLookup(cards.NewVPCardLookupAdapter(cardRegistry))
+	testGame.SetVPCardLookup(gamecards.NewVPCardLookupAdapter(cardRegistry))
 
 	err := repo.Create(context.Background(), testGame)
 	if err != nil {

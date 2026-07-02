@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/colony"
@@ -64,7 +63,7 @@ func TestColonyRequirement_MaxColonies_Rejected(t *testing.T) {
 		Type: gamecards.RequirementColony,
 		Max:  testutil.IntPtr(1),
 	})
-	registry := cards.NewInMemoryCardRegistry([]gamecards.Card{card})
+	registry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{card})
 	cardPtr, _ := registry.GetByID("test-max-colony")
 
 	state := action.CalculatePlayerCardState(cardPtr, p, testGame, registry)
@@ -94,7 +93,7 @@ func TestColonyRequirement_MaxColonies_AcceptedAtLimit(t *testing.T) {
 		Type: gamecards.RequirementColony,
 		Max:  testutil.IntPtr(1),
 	})
-	registry := cards.NewInMemoryCardRegistry([]gamecards.Card{card})
+	registry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{card})
 	cardPtr, _ := registry.GetByID("test-max-colony")
 
 	state := action.CalculatePlayerCardState(cardPtr, p, testGame, registry)
@@ -116,7 +115,7 @@ func TestColonyRequirement_MaxColonies_AcceptedWithZero(t *testing.T) {
 		Type: gamecards.RequirementColony,
 		Max:  testutil.IntPtr(1),
 	})
-	registry := cards.NewInMemoryCardRegistry([]gamecards.Card{card})
+	registry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{card})
 	cardPtr, _ := registry.GetByID("test-max-colony")
 
 	state := action.CalculatePlayerCardState(cardPtr, p, testGame, registry)
@@ -138,7 +137,7 @@ func TestColonyRequirement_MinColonies_Rejected(t *testing.T) {
 		Type: gamecards.RequirementColony,
 		Min:  testutil.IntPtr(1),
 	})
-	registry := cards.NewInMemoryCardRegistry([]gamecards.Card{card})
+	registry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{card})
 	cardPtr, _ := registry.GetByID("test-min-colony")
 
 	state := action.CalculatePlayerCardState(cardPtr, p, testGame, registry)
@@ -168,7 +167,7 @@ func TestColonyRequirement_MinColonies_Accepted(t *testing.T) {
 		Type: gamecards.RequirementColony,
 		Min:  testutil.IntPtr(1),
 	})
-	registry := cards.NewInMemoryCardRegistry([]gamecards.Card{card})
+	registry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{card})
 	cardPtr, _ := registry.GetByID("test-min-colony")
 
 	state := action.CalculatePlayerCardState(cardPtr, p, testGame, registry)

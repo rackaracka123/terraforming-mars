@@ -10,7 +10,6 @@ import (
 	"terraforming-mars-backend/internal/action/confirmation"
 	resconvaction "terraforming-mars-backend/internal/action/resource_conversion"
 	turnAction "terraforming-mars-backend/internal/action/turn_management"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/colony"
@@ -58,7 +57,7 @@ func TestAridor_NewTagTriggersProductionIncrease(t *testing.T) {
 		Type: gamecards.CardTypeAutomated,
 		Tags: []shared.CardTag{shared.TagScience},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{scienceCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{scienceCard})
 
 	p := testGame.GetAllPlayers()[0]
 	p.SetCorporationID("CC1")
@@ -97,7 +96,7 @@ func TestAridor_DuplicateTagDoesNotTrigger(t *testing.T) {
 		Type: gamecards.CardTypeAutomated,
 		Tags: []shared.CardTag{shared.TagScience},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{scienceCard1, scienceCard2})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{scienceCard1, scienceCard2})
 
 	p := testGame.GetAllPlayers()[0]
 	p.SetCorporationID("CC1")
@@ -133,7 +132,7 @@ func TestAridor_MultipleNewTagsOnOneCard(t *testing.T) {
 		Type: gamecards.CardTypeAutomated,
 		Tags: []shared.CardTag{shared.TagScience, shared.TagSpace},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{multiTagCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{multiTagCard})
 
 	p := testGame.GetAllPlayers()[0]
 	p.SetCorporationID("CC1")
@@ -167,7 +166,7 @@ func TestAridor_EventCardDoesNotTrigger(t *testing.T) {
 		Type: gamecards.CardTypeEvent,
 		Tags: []shared.CardTag{shared.TagScience},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{eventCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{eventCard})
 
 	p := testGame.GetAllPlayers()[0]
 	p.SetCorporationID("CC1")
@@ -200,7 +199,7 @@ func TestAridor_WildTagDoesNotTrigger(t *testing.T) {
 		Type: gamecards.CardTypeAutomated,
 		Tags: []shared.CardTag{shared.TagWild},
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{wildCard})
+	cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{wildCard})
 
 	p := testGame.GetAllPlayers()[0]
 	p.SetCorporationID("CC1")
@@ -280,7 +279,7 @@ func TestArklight_PassiveEffectByTag(t *testing.T) {
 				Type: gamecards.CardTypeAutomated,
 				Tags: []shared.CardTag{tt.tag},
 			}
-			cardRegistry := cards.NewInMemoryCardRegistry([]gamecards.Card{testCard})
+			cardRegistry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{testCard})
 
 			p := testGame.GetAllPlayers()[0]
 			p.SetCorporationID("CC2")
