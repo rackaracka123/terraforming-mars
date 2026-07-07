@@ -2,7 +2,7 @@
 
 # Terraforming Mars: Community Edition
 
-**Play the beloved board game online -- with a fully interactive 3D Mars.**
+**Play the beloved board game online with a fully interactive 3D Mars.**
 
 Real-time multiplayer. 450+ cards. Six expansions. One red planet.
 
